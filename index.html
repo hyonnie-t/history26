@@ -221,6 +221,40 @@ button{font-family:inherit; cursor:pointer;}
 }
 .toast.show{opacity:1;}
 
+/* 포인트·칭호 */
+.rank-row{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-top:14px; padding-top:12px; border-top:1px dashed var(--line); flex-wrap:wrap;
+}
+.rank-badge{
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25);
+  color:var(--indigo); border-radius:999px; padding:6px 16px;
+  font-weight:700; font-size:.95rem;
+}
+.rank-points{font-family:var(--font-display); font-size:1.1rem; color:var(--ochre); font-weight:700;}
+.rank-next{font-size:.85rem; color:var(--ink-soft);}
+
+/* 달성도 모아보기 */
+.overview-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px 22px; margin:14px 0; display:none;
+}
+.overview-card h2{font-family:var(--font-display); font-size:1.05rem; margin-bottom:10px;}
+.overview-item{
+  display:flex; align-items:center; gap:10px; padding:8px 0;
+  border-top:1px dashed var(--line); font-size:.93rem;
+}
+.overview-item:first-of-type{border-top:none; padding-top:0;}
+.overview-item .dots{letter-spacing:2px; color:var(--ochre); flex-shrink:0;}
+.overview-item .ov-title{font-weight:600;}
+
+/* 재도전 배지 */
+.retry-hint{
+  margin-top:8px; font-size:.85rem; color:var(--indigo);
+  background:rgba(46,74,122,.07); border-radius:8px; padding:8px 12px;
+}
+
 @media (max-width:480px){
   .login-box{padding:32px 22px;}
   #portalView{padding:18px 14px 70px;}
@@ -272,6 +306,16 @@ button{font-family:inherit; cursor:pointer;}
       </span>
     </div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="rank-row">
+      <span class="rank-badge">🏷️ <span id="rankName">견습 사관</span></span>
+      <span class="rank-points">탐구 포인트 <span id="pointsNum">0</span>점</span>
+      <span class="rank-next" id="rankNext"></span>
+    </div>
+  </section>
+
+  <section class="overview-card" id="overviewCard" aria-label="나의 달성도">
+    <h2>📜 나의 달성도</h2>
+    <div id="overviewList"></div>
   </section>
 
   <section class="feedback-card" id="feedbackCard" aria-label="선생님 피드백">
@@ -304,6 +348,16 @@ button{font-family:inherit; cursor:pointer;}
  * ════════════════════════════════════════════════════════ */
 const CONFIG = {
   WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyXSjCfWY_HiZFqW_OBR-FQDoIfF1z_STqyKWUI31MacHeY3u7hbirFSFDvW-5yuUHaJQ/exec",
+
+  // 탐구 포인트: 활동 "완료"마다 적립 (달성도와 무관 — 참여 기반)
+  POINTS_PER_LESSON: 100,
+  // 누적 포인트 → 칭호. 조선의 역사 기록 관직에서 따옴. 이름·기준점 자유롭게 수정 가능.
+  RANKS: [
+    { min: 0,   name: "견습 사관" },
+    { min: 100, name: "사관" },
+    { min: 300, name: "편수관" },
+    { min: 600, name: "대제학" }
+  ],
 
   CURRICULUM: {
     // ── 2학년 세계사 ──
@@ -414,8 +468,16 @@ function renderPortal(){
     `<strong>${escapeHtml(SESSION.name)}</strong>&nbsp;· ${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
 
   const doneIds = new Set(STUDENT_DATA.activities.map(a => String(a.activityId)));
-  const achieveMap = {}; // 활동별 최신 성취 (같은 활동 여러 번이면 마지막 기록)
-  STUDENT_DATA.activities.forEach(a => { achieveMap[String(a.activityId)] = a; });
+  // 활동별 성취 기록: "성취수준이 있는 가장 최근 기록"을 우선.
+  // (재도전 직후 아직 AI 분석 전인 행이 마지막이어도, 이전 분석 결과를 유지)
+  const achieveMap = {};
+  STUDENT_DATA.activities.forEach(a => {
+    const id = String(a.activityId);
+    const prev = achieveMap[id];
+    const hasA = a.achievement && String(a.achievement).trim();
+    const prevHasA = prev && prev.achievement && String(prev.achievement).trim();
+    if (!prev || hasA || !prevHasA) achieveMap[id] = a;
+  });
 
   // 진행률: url이 있는(열려 있는) 차시만 분모로
   const active = cur.lessons.filter(l => l.url);
@@ -425,6 +487,33 @@ function renderPortal(){
   $('progressDone').textContent = doneCount;
   $('progressTotal').textContent = active.length;
   requestAnimationFrame(() => { $('progressFill').style.width = pct + '%'; });
+
+  // 탐구 포인트 & 칭호 (참여 기반 — 달성도와 무관)
+  const doneLessons = cur.lessons.filter(l => doneIds.has(l.id));
+  const points = doneLessons.length * CONFIG.POINTS_PER_LESSON;
+  let rank = CONFIG.RANKS[0], nextRank = null;
+  CONFIG.RANKS.forEach(r => { if (points >= r.min) rank = r; });
+  nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
+  $('pointsNum').textContent = points;
+  $('rankName').textContent = rank.name;
+  $('rankNext').textContent = nextRank
+    ? `다음 칭호(${nextRank.name})까지 ${nextRank.min - points}점`
+    : '최고 칭호에 도달했어요!';
+
+  // 나의 달성도 모아보기 (분석된 활동이 1개 이상일 때만 표시)
+  const analyzed = cur.lessons
+    .map(l => ({ lesson: l, rec: achieveMap[l.id] }))
+    .filter(x => x.rec && x.rec.achievement && String(x.rec.achievement).trim());
+  if (analyzed.length) {
+    $('overviewCard').style.display = 'block';
+    $('overviewList').innerHTML = analyzed.map(x => `
+      <div class="overview-item">
+        <span class="dots">${achieveDots(x.rec.achievement)}</span>
+        <span class="ov-title">${escapeHtml(x.lesson.title)}</span>
+      </div>`).join('');
+  } else {
+    $('overviewCard').style.display = 'none';
+  }
 
   // 피드백
   const fb = STUDENT_DATA.feedback || [];
@@ -464,7 +553,9 @@ function renderPortal(){
           <span class="dots">${achieveDots(rec.achievement)}</span>
           <span>${escapeHtml(String(rec.achievement))}</span>
         </div>
-        ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}`;
+        ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}
+        ${(!building && ['중','하'].includes(String(rec.achievement).trim()))
+          ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : ''}`;
     }
 
     let actions = '';
