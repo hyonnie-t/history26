@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2학기 역사 학습 포털</title>
+<title>2학기 역사 탐구 기록</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -20,6 +20,9 @@
   --ochre:#C9972E;        /* 달성 강조 */
   --line:#D9D3C4;
   --card:#FFFFFF;
+  --cover:#5C241C;        /* 책 표지 */
+  --cover-deep:#471B15;
+  --cover-cream:#F3E7D0;  /* 표지 위 글자 */
   --radius:14px;
   --shadow:0 2px 10px rgba(35,38,44,.07);
   --font-display:'Gowun Batang', serif;
@@ -40,101 +43,231 @@ button{font-family:inherit; cursor:pointer;}
   *,*::before,*::after{animation:none!important; transition:none!important;}
 }
 
-/* ══════════════ 로그인 화면 ══════════════ */
+/* ══════════════ 오프닝 — 책 표지 ══════════════ */
 #loginView{
-  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; padding:24px; gap:18px;
 }
-.login-box{
-  width:100%; max-width:420px; background:var(--card);
-  border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:40px 32px;
+.book-wrap{perspective:1400px;}
+.book{
+  position:relative; width:min(400px, 92vw);
+  background:var(--cover);
+  border-radius:6px 16px 16px 6px;
+  padding:44px 32px 36px 44px;
+  box-shadow:
+    0 18px 40px rgba(35,38,44,.28),
+    inset 0 0 0 1px rgba(243,231,208,.08);
+  transform-origin:left center;
+  transition:transform .7s cubic-bezier(.5,0,.3,1), opacity .45s ease .3s;
 }
-.login-eyebrow{
-  font-size:.85rem; letter-spacing:.35em; color:var(--indigo);
-  text-transform:uppercase; margin-bottom:8px; font-weight:600;
+.book::before{ /* 책등 */
+  content:''; position:absolute; left:0; top:0; bottom:0; width:16px;
+  background:var(--cover-deep); border-radius:6px 0 0 6px;
 }
-.login-title{
-  font-family:var(--font-display); font-size:1.9rem; font-weight:700;
-  line-height:1.3; margin-bottom:4px;
+.book::after{ /* 책배(페이지 단면) */
+  content:''; position:absolute; right:5px; top:7px; bottom:7px; width:5px;
+  background:repeating-linear-gradient(to bottom, #EFE6D2 0 2px, #DCD0B6 2px 4px);
+  border-radius:0 8px 8px 0;
 }
-.login-sub{color:var(--ink-soft); font-size:.95rem; margin-bottom:28px;}
-.field{margin-bottom:18px;}
-.field label{display:block; font-size:.9rem; font-weight:600; margin-bottom:6px;}
-.field input{
+.book.opening{transform:rotateY(-72deg); opacity:0;}
+.book-frame{ /* 표지 금선 테두리 */
+  border:1.5px solid rgba(243,231,208,.45); border-radius:8px;
+  padding:26px 22px 24px;
+}
+.book-eyebrow{
+  font-size:.82rem; letter-spacing:.4em; color:#D8A468;
+  text-align:center; margin-bottom:10px; font-weight:600;
+}
+.book-title{
+  font-family:var(--font-display); font-size:2rem; font-weight:700;
+  color:var(--cover-cream); text-align:center; line-height:1.35; margin-bottom:6px;
+}
+.book-sub{
+  color:rgba(243,231,208,.75); font-size:.9rem; text-align:center; margin-bottom:24px;
+}
+.book .field{margin-bottom:14px;}
+.book .field label{
+  display:block; font-size:.85rem; font-weight:600; margin-bottom:5px;
+  color:rgba(243,231,208,.85);
+}
+.book .field input{
   width:100%; min-height:52px; font-size:1.1rem; padding:12px 16px;
-  border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7;
-  font-family:var(--font-body); color:var(--ink);
+  border:1.5px solid rgba(243,231,208,.35); border-radius:10px;
+  background:#FBF6EA; font-family:var(--font-body); color:var(--ink);
 }
-.field input:focus{border-color:var(--indigo); outline:none; box-shadow:0 0 0 3px rgba(46,74,122,.15);}
-.field .hint{font-size:.82rem; color:var(--ink-soft); margin-top:4px;}
-.btn-primary{
+.book .field input:focus{border-color:#D8A468; outline:none; box-shadow:0 0 0 3px rgba(216,164,104,.25);}
+.book .hint{font-size:.8rem; color:rgba(243,231,208,.6); margin-top:4px;}
+.btn-open{
   width:100%; min-height:54px; font-size:1.1rem; font-weight:700;
-  background:var(--indigo); color:#fff; border:none; border-radius:10px;
-  transition:background .15s;
+  background:#D8A468; color:var(--cover-deep); border:none; border-radius:10px;
+  margin-top:6px; transition:background .15s;
 }
-.btn-primary:hover{background:var(--indigo-deep);}
-.btn-primary:disabled{background:#9AA3B2; cursor:wait;}
+.btn-open:hover{background:#E4B67F;}
+.btn-open:disabled{background:#A78E6E; cursor:wait;}
 .login-error{
   margin-top:14px; padding:12px 14px; border-radius:8px;
-  background:#FBEAE8; color:var(--seal); font-size:.92rem; display:none;
+  background:rgba(243,231,208,.14); color:#F3C9B8; font-size:.9rem; display:none;
 }
+.teacher-entry{text-align:center;}
+.teacher-link{
+  background:none; border:none; color:var(--ink-soft); font-size:.86rem;
+  text-decoration:underline; padding:8px;
+}
+.teacher-link:hover{color:var(--indigo);}
+#teacherGate{
+  display:none; margin-top:10px; text-align:left;
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:16px; width:min(340px, 90vw); box-shadow:var(--shadow);
+}
+#teacherGate input{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
+  border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7; margin-bottom:10px;}
+#teacherGate input:focus{border-color:var(--indigo); outline:none;}
+.btn-gate{
+  width:100%; min-height:48px; font-size:1rem; font-weight:700;
+  background:var(--indigo); color:#fff; border:none; border-radius:10px;
+}
+.btn-gate:hover{background:var(--indigo-deep);}
+.btn-gate:disabled{background:#9AA3B2; cursor:wait;}
+.gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
 
-/* ══════════════ 포털 화면 ══════════════ */
-#portalView{display:none; max-width:760px; margin:0 auto; padding:24px 20px 80px;}
+/* ══════════════ 포털 ══════════════ */
+#portalView{display:none; max-width:960px; margin:0 auto; padding:24px 20px 80px; opacity:0;}
+#portalView.shown{opacity:1; transition:opacity .5s ease;}
 .portal-header{
   display:flex; align-items:flex-end; justify-content:space-between;
-  gap:12px; margin-bottom:6px; flex-wrap:wrap;
+  gap:12px; margin-bottom:18px; flex-wrap:wrap;
 }
 .portal-eyebrow{font-size:.8rem; letter-spacing:.3em; color:var(--indigo); font-weight:600;}
 .portal-title{font-family:var(--font-display); font-size:1.7rem; font-weight:700;}
-.student-chip{
-  display:flex; align-items:center; gap:10px;
-  background:var(--card); border:1px solid var(--line); border-radius:999px;
-  padding:8px 8px 8px 16px; font-size:.95rem; box-shadow:var(--shadow);
-}
-.student-chip strong{font-weight:700;}
 .btn-logout{
-  min-height:36px; padding:6px 14px; font-size:.85rem;
-  background:var(--paper); border:1px solid var(--line); border-radius:999px; color:var(--ink-soft);
+  min-height:40px; padding:8px 16px; font-size:.88rem;
+  background:var(--card); border:1px solid var(--line); border-radius:999px; color:var(--ink-soft);
 }
 .btn-logout:hover{border-color:var(--ink-soft);}
 
-/* 진행률 */
-.progress-card{
+/* 2단 레이아웃 */
+.layout{display:grid; grid-template-columns:250px minmax(0,1fr); gap:18px; align-items:start;}
+@media (max-width:760px){ .layout{grid-template-columns:1fr;} }
+
+/* ── 좌측: 내 서재 ── */
+.side-card{
   background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:20px 24px; margin:20px 0 8px;
+  box-shadow:var(--shadow); padding:22px 20px; text-align:center;
+  position:sticky; top:16px;
 }
-.progress-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;}
-.progress-label{font-size:.95rem; font-weight:600; color:var(--ink-soft);}
-.progress-num{font-family:var(--font-display); font-size:1.6rem; font-weight:700; color:var(--indigo);}
-.progress-num small{font-size:.9rem; color:var(--ink-soft); font-family:var(--font-body); font-weight:400;}
-.progress-track{height:12px; background:var(--paper); border-radius:999px; overflow:hidden; border:1px solid var(--line);}
-.progress-fill{
-  height:100%; width:0%; border-radius:999px;
-  background:linear-gradient(90deg, var(--indigo), var(--ochre));
-  transition:width .6s ease;
+@media (max-width:760px){ .side-card{position:static;} }
+.tree-box{margin:0 auto 6px; width:170px;}
+.tree-box svg{width:100%; height:auto; display:block;}
+.side-name{font-family:var(--font-display); font-size:1.35rem; font-weight:700;}
+.side-class{font-size:.86rem; color:var(--ink-soft); margin-bottom:12px;}
+.rank-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25);
+  color:var(--indigo); border-radius:999px; padding:6px 16px;
+  font-weight:700; font-size:.95rem; margin-bottom:10px;
+}
+.side-points{
+  font-family:var(--font-display); font-size:1.15rem; color:var(--ochre);
+  font-weight:700; margin-bottom:8px;
+}
+.side-points small{font-family:var(--font-body); font-size:.8rem; color:var(--ink-soft); font-weight:400;}
+.rank-track{height:9px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-bottom:6px;}
+.rank-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--jade), var(--ochre)); border-radius:999px; transition:width .6s ease;}
+.rank-next{font-size:.82rem; color:var(--ink-soft); margin-bottom:12px;}
+.tree-note{
+  font-size:.78rem; color:var(--ink-soft); border-top:1px dashed var(--line);
+  padding-top:10px; line-height:1.5;
 }
 
-/* 선생님 피드백 */
+/* ── 우측 메인 ── */
+.kpi-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:14px;}
+@media (max-width:560px){ .kpi-grid{grid-template-columns:1fr 1fr;} .kpi-grid .kpi:first-child{grid-column:1/-1;} }
+.kpi{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:14px 16px;
+}
+.kpi h3{font-size:.82rem; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
+.kpi .big{font-family:var(--font-display); font-size:1.55rem; font-weight:700; color:var(--indigo); line-height:1.2;}
+.kpi .big small{font-size:.85rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
+.kpi .mini-track{height:8px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:8px;}
+.kpi .mini-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); transition:width .6s ease;}
+
+/* 단원 관통 질문 배너 */
+.unit-banner{
+  display:none; background:var(--card); border:1px solid var(--line);
+  border-left:5px solid var(--seal); border-radius:12px;
+  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
+}
+.unit-banner .ub-label{
+  font-size:.76rem; letter-spacing:.22em; color:var(--seal); font-weight:700; margin-bottom:2px;
+}
+.unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
+
+/* 학기 총평 피드백 */
 .feedback-card{
   background:#FFF9EC; border:1px solid #EAD9A8; border-radius:var(--radius);
-  padding:18px 22px; margin:14px 0; display:none;
+  padding:16px 20px; margin-bottom:14px; display:none;
 }
 .feedback-card h2{
-  font-family:var(--font-display); font-size:1.05rem; margin-bottom:10px; color:#8A6A14;
+  font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px; color:#8A6A14;
 }
-.feedback-item{padding:10px 0; border-top:1px dashed #EAD9A8; font-size:.95rem;}
+.feedback-item{padding:9px 0; border-top:1px dashed #EAD9A8; font-size:.95rem;}
 .feedback-item:first-of-type{border-top:none; padding-top:0;}
 .feedback-item .fb-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:2px;}
 
-/* ══════════════ 연표 (시그니처) ══════════════ */
-.timeline{position:relative; margin-top:28px; padding-left:34px;}
+/* 달성도 모아보기 */
+.overview-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px; display:none;
+}
+.overview-card h2{font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px;}
+.overview-item{
+  display:flex; align-items:center; gap:10px; padding:7px 0;
+  border-top:1px dashed var(--line); font-size:.93rem;
+}
+.overview-item:first-of-type{border-top:none; padding-top:0;}
+.overview-item .dots{letter-spacing:2px; color:var(--ochre); flex-shrink:0;}
+.overview-item .ov-title{font-weight:600;}
+
+/* 내 기록 보관함 */
+.archive-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); margin-bottom:14px; display:none; overflow:hidden;
+}
+.archive-card summary{
+  list-style:none; cursor:pointer; padding:15px 20px;
+  font-family:var(--font-display); font-size:1.02rem; font-weight:700;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.archive-card summary::-webkit-details-marker{display:none;}
+.archive-card summary .arch-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.85rem;}
+.archive-card[open] summary .arch-arrow{transform:rotate(90deg);}
+.archive-card summary:hover{background:#FBFAF4;}
+.archive-body{padding:0 20px 16px;}
+.archive-hint{font-size:.84rem; color:var(--ink-soft); margin-bottom:10px;}
+.archive-item{
+  border:1px solid var(--line); border-radius:10px; background:#FCFBF7;
+  padding:12px 14px; margin-bottom:10px;
+}
+.archive-item .ar-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:4px;}
+.archive-item .ar-meta b{color:var(--indigo); font-weight:700;}
+.archive-item .ar-text{
+  font-size:.94rem; white-space:pre-wrap; word-break:break-word;
+  font-family:var(--font-display); line-height:1.7;
+}
+
+/* ══════════════ 연표 ══════════════ */
+.timeline-eyebrow{
+  font-size:.78rem; letter-spacing:.28em; color:var(--indigo); font-weight:600;
+  margin:6px 0 10px 2px;
+}
+.timeline{position:relative; padding-left:34px;}
 .timeline::before{
   content:''; position:absolute; left:11px; top:8px; bottom:8px;
   width:2px; background:var(--line);
 }
 .lesson{position:relative; margin-bottom:18px;}
-.lesson::before{ /* 연표 노드 */
+.lesson::before{
   content:''; position:absolute; left:-30px; top:26px;
   width:12px; height:12px; border-radius:50%;
   background:var(--paper); border:2.5px solid var(--ink-soft);
@@ -191,6 +324,27 @@ button{font-family:inherit; cursor:pointer;}
   background:var(--paper); border-radius:8px; padding:10px 14px;
 }
 
+/* 카드 안 피드백 (인라인) */
+.note{
+  margin-top:10px; border-radius:10px; padding:10px 14px; font-size:.92rem;
+}
+.note .note-label{
+  display:flex; align-items:center; gap:6px;
+  font-size:.78rem; font-weight:700; margin-bottom:3px;
+}
+.note .note-date{font-weight:400; color:var(--ink-soft); font-size:.76rem; margin-left:auto;}
+.note-ai{background:rgba(46,74,122,.06); border:1px solid rgba(46,74,122,.18);}
+.note-ai .note-label{color:var(--indigo);}
+.note-teacher{background:#EAF4EE; border:1px solid #C4DECF;}
+.note-teacher .note-label{color:var(--jade);}
+.note-teacher .note-text{color:#254A37;}
+
+/* 재도전 배지 */
+.retry-hint{
+  margin-top:10px; font-size:.85rem; color:var(--indigo);
+  background:rgba(46,74,122,.07); border-radius:8px; padding:8px 12px;
+}
+
 /* 카드 하단 액션 */
 .lesson-actions{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;}
 .btn-go{
@@ -210,68 +364,24 @@ button{font-family:inherit; cursor:pointer;}
   padding:8px 14px; border:1px dashed var(--line); border-radius:10px;
 }
 
-/* 상태 메시지 */
 .status-line{margin-top:22px; text-align:center; color:var(--ink-soft); font-size:.95rem; display:none;}
 .toast{
   position:fixed; left:50%; bottom:28px; transform:translateX(-50%);
   background:var(--ink); color:#fff; padding:12px 22px; border-radius:999px;
   font-size:.95rem; box-shadow:0 4px 16px rgba(0,0,0,.25);
   opacity:0; pointer-events:none; transition:opacity .25s;
-  max-width:90vw; text-align:center;
+  max-width:90vw; text-align:center; z-index:50;
 }
 .toast.show{opacity:1;}
 
-/* 포인트·칭호 */
-.rank-row{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  margin-top:14px; padding-top:12px; border-top:1px dashed var(--line); flex-wrap:wrap;
-}
-.rank-badge{
-  display:inline-flex; align-items:center; gap:8px;
-  background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25);
-  color:var(--indigo); border-radius:999px; padding:6px 16px;
-  font-weight:700; font-size:.95rem;
-}
-.rank-points{font-family:var(--font-display); font-size:1.1rem; color:var(--ochre); font-weight:700;}
-.rank-next{font-size:.85rem; color:var(--ink-soft);}
-
-/* 달성도 모아보기 */
-.overview-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:18px 22px; margin:14px 0; display:none;
-}
-.overview-card h2{font-family:var(--font-display); font-size:1.05rem; margin-bottom:10px;}
-.overview-item{
-  display:flex; align-items:center; gap:10px; padding:8px 0;
-  border-top:1px dashed var(--line); font-size:.93rem;
-}
-.overview-item:first-of-type{border-top:none; padding-top:0;}
-.overview-item .dots{letter-spacing:2px; color:var(--ochre); flex-shrink:0;}
-.overview-item .ov-title{font-weight:600;}
-
-/* 재도전 배지 */
-.retry-hint{
-  margin-top:8px; font-size:.85rem; color:var(--indigo);
-  background:rgba(46,74,122,.07); border-radius:8px; padding:8px 12px;
-}
-
 @media (max-width:480px){
-  .login-box{padding:32px 22px;}
+  .book{padding:34px 22px 28px 34px;}
   #portalView{padding:18px 14px 70px;}
   .lesson-card{padding:16px 16px;}
   .seal-stamp{width:48px; height:48px; font-size:1.3rem;}
 }
 
 /* ══════════════ 교사 대시보드 ══════════════ */
-.teacher-entry{margin-top:18px; padding-top:16px; border-top:1px dashed var(--line); text-align:center;}
-.teacher-link{background:none; border:none; color:var(--ink-soft); font-size:.88rem; text-decoration:underline; padding:8px;}
-.teacher-link:hover{color:var(--indigo);}
-#teacherGate{display:none; margin-top:12px; text-align:left;}
-#teacherGate input{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
-  border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7; margin-bottom:10px;}
-#teacherGate input:focus{border-color:var(--indigo); outline:none;}
-.gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
-
 #dashView{display:none; max-width:1100px; margin:0 auto; padding:22px 20px 80px;}
 .btn{min-height:46px; padding:10px 20px; font-size:.95rem; font-weight:700;
   background:var(--indigo); color:#fff; border:none; border-radius:10px;}
@@ -284,6 +394,12 @@ button{font-family:inherit; cursor:pointer;}
 .dash-top h1{font-family:var(--font-display); font-size:1.5rem;}
 .dash-top .eyebrow{font-size:.78rem; letter-spacing:.28em; color:var(--indigo); font-weight:600;}
 .top-actions{display:flex; gap:8px;}
+.ai-notice{
+  display:none; background:rgba(46,74,122,.07); border:1px solid rgba(46,74,122,.22);
+  border-radius:12px; padding:12px 16px; margin-bottom:14px;
+  font-size:.92rem; color:var(--indigo);
+}
+.ai-notice b{font-weight:700;}
 .filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
   border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
 .filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
@@ -327,6 +443,23 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .rec dl{display:grid; grid-template-columns:88px 1fr; gap:4px 10px;}
 .rec dt{color:var(--ink-soft); font-size:.83rem;}
 .rec dd{word-break:break-word;}
+.ai-box{
+  margin-top:10px; border:1px solid rgba(46,74,122,.25); background:rgba(46,74,122,.05);
+  border-radius:10px; padding:10px 12px; font-size:.9rem;
+}
+.ai-box .ai-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;}
+.ai-box .ai-title{font-size:.78rem; font-weight:700; color:var(--indigo);}
+.ai-chip{font-size:.72rem; font-weight:700; border-radius:999px; padding:2px 9px;}
+.ai-chip.wait{background:rgba(201,151,46,.16); color:#8A6A14;}
+.ai-chip.ok{background:rgba(62,124,89,.14); color:var(--jade);}
+.ai-actions{display:flex; gap:6px; margin-left:auto; flex-wrap:wrap;}
+.btn-tiny{min-height:32px; padding:3px 11px; font-size:.78rem; font-weight:600;
+  background:var(--card); border:1px solid var(--line); border-radius:8px; color:var(--ink-soft);}
+.btn-tiny:hover{border-color:var(--indigo); color:var(--indigo);}
+.btn-tiny:disabled{opacity:.5; cursor:wait;}
+.ai-edit-area{width:100%; min-height:64px; padding:10px 12px; margin-top:6px;
+  border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7;
+  font-family:inherit; font-size:.9rem; resize:vertical;}
 .fb-history{margin:10px 0;}
 .fb-history .fb-item{font-size:.88rem; padding:8px 12px; background:#FFF9EC;
   border:1px solid #EAD9A8; border-radius:8px; margin-bottom:6px;}
@@ -337,35 +470,38 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
   border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.92rem; resize:vertical;}
 .empty-line{padding:28px; text-align:center; color:var(--ink-soft);}
 @media (max-width:600px){ #dashView{padding:16px 10px 60px;} }
-
 </style>
 </head>
 <body>
 
-<!-- ══════════════ 로그인 ══════════════ -->
+<!-- ══════════════ 오프닝 — 책 표지 ══════════════ -->
 <div id="loginView">
-  <div class="login-box">
-    <p class="login-eyebrow">2026 · 2학기</p>
-    <h1 class="login-title">역사 학습 포털</h1>
-    <p class="login-sub">학번과 이름을 입력하면 내 학습 기록이 열려요.</p>
-    <div class="field">
-      <label for="inputId">학번</label>
-      <input id="inputId" type="text" inputmode="numeric" maxlength="5" placeholder="예: 30512" autocomplete="off">
-      <p class="hint">학년·반·번호 5자리 (3학년 5반 12번 → 30512)</p>
-    </div>
-    <div class="field">
-      <label for="inputName">이름</label>
-      <input id="inputName" type="text" placeholder="이름을 입력하세요" autocomplete="off">
-    </div>
-    <button class="btn-primary" id="btnLogin">내 기록 열기</button>
-    <div class="login-error" id="loginError"></div>
-    <div class="teacher-entry">
-      <button class="teacher-link" id="btnTeacherMode">🔑 교사용 대시보드</button>
-      <div id="teacherGate">
-        <input id="tokenInput" type="password" placeholder="교사 토큰" autocomplete="off">
-        <button class="btn-primary" id="btnGate">대시보드 열기</button>
-        <p class="gate-error" id="gateError"></p>
+  <div class="book-wrap">
+    <div class="book" id="bookCover">
+      <div class="book-frame">
+        <p class="book-eyebrow">2026 · 2학기</p>
+        <h1 class="book-title">역사 탐구 기록</h1>
+        <p class="book-sub">학번과 이름을 쓰면 나의 역사책이 펼쳐져요.</p>
+        <div class="field">
+          <label for="inputId">학번</label>
+          <input id="inputId" type="text" inputmode="numeric" maxlength="5" placeholder="예: 30512" autocomplete="off">
+          <p class="hint">학년·반·번호 5자리 (3학년 5반 12번 → 30512)</p>
+        </div>
+        <div class="field">
+          <label for="inputName">이름</label>
+          <input id="inputName" type="text" placeholder="이름을 입력하세요" autocomplete="off">
+        </div>
+        <button class="btn-open" id="btnLogin">책 펼치기</button>
+        <div class="login-error" id="loginError"></div>
       </div>
+    </div>
+  </div>
+  <div class="teacher-entry">
+    <button class="teacher-link" id="btnTeacherMode">🔑 교사용 대시보드</button>
+    <div id="teacherGate">
+      <input id="tokenInput" type="password" placeholder="교사 토큰" autocomplete="off">
+      <button class="btn-gate" id="btnGate">대시보드 열기</button>
+      <p class="gate-error" id="gateError"></p>
     </div>
   </div>
 </div>
@@ -375,41 +511,70 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
   <header class="portal-header">
     <div>
       <p class="portal-eyebrow" id="portalEyebrow">2학기 · 역사</p>
-      <h1 class="portal-title" id="portalTitle">나의 학습 연표</h1>
+      <h1 class="portal-title" id="portalTitle">나의 역사책</h1>
     </div>
-    <div class="student-chip">
-      <span id="chipText"><strong>—</strong></span>
-      <button class="btn-logout" id="btnLogout">나가기</button>
-    </div>
+    <button class="btn-logout" id="btnLogout">책 덮기</button>
   </header>
 
-  <section class="progress-card" aria-label="진행률">
-    <div class="progress-top">
-      <span class="progress-label">진행률</span>
-      <span class="progress-num"><span id="progressPct">0</span>%
-        <small>(<span id="progressDone">0</span>/<span id="progressTotal">0</span> 차시)</small>
-      </span>
-    </div>
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="rank-row">
+  <div class="layout">
+    <!-- 좌측: 내 서재 -->
+    <aside class="side-card" aria-label="내 탐구 나무">
+      <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
+      <p class="side-name" id="sideName">—</p>
+      <p class="side-class" id="sideClass">—</p>
       <span class="rank-badge">🏷️ <span id="rankName">견습 사관</span></span>
-      <span class="rank-points">탐구 포인트 <span id="pointsNum">0</span>점</span>
-      <span class="rank-next" id="rankNext"></span>
-    </div>
-  </section>
+      <p class="side-points"><span id="pointsNum">0</span>점 <small>탐구 포인트</small></p>
+      <div class="rank-track"><div class="rank-fill" id="rankFill"></div></div>
+      <p class="rank-next" id="rankNext"></p>
+      <p class="tree-note">활동을 완료할 때마다 나무에 잎이 돋아요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
+    </aside>
 
-  <section class="overview-card" id="overviewCard" aria-label="나의 달성도">
-    <h2>📜 나의 달성도</h2>
-    <div id="overviewList"></div>
-  </section>
+    <!-- 우측 메인 -->
+    <main>
+      <div class="kpi-grid">
+        <div class="kpi">
+          <h3>완료한 활동</h3>
+          <div class="big"><span id="progressDone">0</span><small> / <span id="progressTotal">0</span> 차시</small></div>
+          <div class="mini-track"><div class="mini-fill" id="progressFill"></div></div>
+        </div>
+        <div class="kpi">
+          <h3>탐구 포인트</h3>
+          <div class="big"><span id="kpiPoints">0</span><small> 점</small></div>
+        </div>
+        <div class="kpi">
+          <h3>선생님 피드백</h3>
+          <div class="big"><span id="kpiFeedback">0</span><small> 개</small></div>
+        </div>
+      </div>
 
-  <section class="feedback-card" id="feedbackCard" aria-label="선생님 피드백">
-    <h2>📮 선생님이 남긴 피드백</h2>
-    <div id="feedbackList"></div>
-  </section>
+      <section class="unit-banner" id="unitBanner" aria-label="이번 학기의 질문">
+        <p class="ub-label">이번 학기의 질문</p>
+        <p class="ub-q" id="unitQuestion"></p>
+      </section>
 
-  <div class="timeline" id="timeline"></div>
-  <p class="status-line" id="statusLine"></p>
+      <section class="feedback-card" id="feedbackCard" aria-label="선생님의 학기 총평">
+        <h2>📮 선생님이 남긴 총평</h2>
+        <div id="feedbackList"></div>
+      </section>
+
+      <section class="overview-card" id="overviewCard" aria-label="나의 달성도">
+        <h2>📜 나의 달성도</h2>
+        <div id="overviewList"></div>
+      </section>
+
+      <details class="archive-card" id="archiveCard">
+        <summary>🗂 내 기록 보관함 <span class="arch-arrow">▶</span></summary>
+        <div class="archive-body">
+          <p class="archive-hint">활동에서 내가 직접 쓴 글이 모여요. 학기 말 자기평가에 활용해 보세요.</p>
+          <div id="archiveList"></div>
+        </div>
+      </details>
+
+      <p class="timeline-eyebrow">학습 연표</p>
+      <div class="timeline" id="timeline"></div>
+      <p class="status-line" id="statusLine"></p>
+    </main>
+  </div>
 </div>
 
 <!-- ══════════════ 교사 대시보드 ══════════════ -->
@@ -424,6 +589,11 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
       <button class="btn btn-ghost btn-sm" id="btnDashRefresh">새로고침</button>
       <button class="btn btn-ghost btn-sm" id="btnDashOut">나가기</button>
     </div>
+  </div>
+
+  <div class="ai-notice" id="aiNotice">
+    🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b> — 학생 화면에 이미 표시되고 있어요.
+    학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
   </div>
 
   <div class="filters">
@@ -487,14 +657,12 @@ const $ = id => document.getElementById(id);
 let SESSION = null;      // { studentId, name, grade, ban, num }
 let STUDENT_DATA = null; // 서버 응답 { activities, feedback }
 
-/* ── 저장소 (미리보기 환경 대비 try/catch) ── */
 const store = {
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
   set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
 
-/* ── 학번 파싱: 30512 → 3학년 5반 12번 ── */
 function parseStudentId(sid){
   if(!/^\d{5}$/.test(sid)) return null;
   return { grade: Number(sid[0]), ban: Number(sid.slice(1,3)), num: Number(sid.slice(3,5)) };
@@ -503,7 +671,6 @@ function parseStudentId(sid){
 /* ── 로그인 ── */
 async function login(sid, name, silent){
   const parsed = parseStudentId(sid);
-  const err = $('loginError');
   if(!parsed){ showLoginError("학번은 숫자 5자리예요. 예: 30512"); return; }
   if(!name){ showLoginError("이름을 입력해 주세요."); return; }
   if(!CONFIG.CURRICULUM[parsed.grade]){
@@ -511,8 +678,8 @@ async function login(sid, name, silent){
   }
 
   const btn = $('btnLogin');
-  btn.disabled = true; btn.textContent = "기록을 불러오는 중…";
-  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = "책을 펼치는 중…";
+  $('loginError').style.display = 'none';
 
   try{
     const url = CONFIG.WEBAPP_URL
@@ -525,13 +692,20 @@ async function login(sid, name, silent){
     SESSION = { studentId: sid, name, ...parsed };
     STUDENT_DATA = data;
     store.set('portal_session', JSON.stringify({ sid, name }));
-    renderPortal();
+    openBook(silent);
   }catch(e){
-    if(silent){ /* 자동 로그인 실패는 조용히 로그인 화면 유지 */ }
-    else showLoginError("기록을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.");
+    if(!silent) showLoginError("기록을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.");
   }finally{
-    btn.disabled = false; btn.textContent = "내 기록 열기";
+    btn.disabled = false; btn.textContent = "책 펼치기";
   }
+}
+
+/* 책 펼침 연출 → 포털 진입 */
+function openBook(instant){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(instant || reduce){ renderPortal(); return; }
+  $('bookCover').classList.add('opening');
+  setTimeout(renderPortal, 650);
 }
 
 function showLoginError(msg){
@@ -539,19 +713,72 @@ function showLoginError(msg){
   err.textContent = msg; err.style.display = 'block';
 }
 
+/* ── 탐구 나무 SVG ──
+ * stage(0~3) = 칭호 단계 / leaves = 완료 활동 수 (참여 기반만 반영, 달성도와 무관) */
+function treeSvg(stage, leaves){
+  const trunk = '#7A5230', crownA = '#3E7C59', crownB = '#5C9C77', ground = '#E4DECB';
+  const leafSpots = [
+    [64,52],[100,58],[82,38],[52,70],[112,74],[70,66],[94,46],[58,44],[106,50],[82,58]
+  ];
+  const extra = leafSpots.slice(0, Math.min(leaves, leafSpots.length)).map(p =>
+    `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#8FBE72"/>`).join('');
+  const fruits = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
+    `<circle cx="${p[0]+4}" cy="${p[1]+6}" r="3.5" fill="#B03A2E"/>`).join('');
+  const flowers = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
+    `<circle cx="${p[0]+3}" cy="${p[1]+5}" r="3" fill="#E8C77E"/>`).join('');
+
+  let body = '';
+  if(stage <= 0){
+    body = `
+      <path d="M84 118 L84 96" stroke="${crownA}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M84 102 C70 98 64 86 66 78 C78 80 84 90 84 102 Z" fill="${crownB}"/>
+      <path d="M84 96 C98 92 104 80 102 72 C90 74 84 84 84 96 Z" fill="${crownA}"/>`;
+  } else if(stage === 1){
+    body = `
+      <path d="M84 118 L84 74" stroke="${trunk}" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="84" cy="58" r="24" fill="${crownA}"/>
+      <circle cx="66" cy="70" r="14" fill="${crownB}"/>
+      <circle cx="102" cy="68" r="15" fill="${crownB}"/>
+      ${extra}`;
+  } else if(stage === 2){
+    body = `
+      <path d="M84 118 L84 62" stroke="${trunk}" stroke-width="9" stroke-linecap="round"/>
+      <path d="M84 86 L62 72 M84 76 L106 62" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="84" cy="46" r="27" fill="${crownA}"/>
+      <circle cx="58" cy="64" r="17" fill="${crownB}"/>
+      <circle cx="110" cy="60" r="18" fill="${crownB}"/>
+      ${extra}${flowers}`;
+  } else {
+    body = `
+      <path d="M84 118 L84 56" stroke="${trunk}" stroke-width="11" stroke-linecap="round"/>
+      <path d="M84 86 L56 68 M84 74 L112 56 M84 96 L66 88" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="84" cy="40" r="30" fill="${crownA}"/>
+      <circle cx="52" cy="60" r="19" fill="${crownB}"/>
+      <circle cx="116" cy="54" r="20" fill="${crownB}"/>
+      <circle cx="70" cy="30" r="14" fill="${crownB}"/>
+      ${extra}${fruits}`;
+  }
+  return `<svg viewBox="0 0 168 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <ellipse cx="84" cy="120" rx="52" ry="9" fill="${ground}"/>
+    ${body}
+  </svg>`;
+}
+
 /* ── 포털 렌더 ── */
 function renderPortal(){
   const cur = CONFIG.CURRICULUM[SESSION.grade];
   $('loginView').style.display = 'none';
-  $('portalView').style.display = 'block';
+  $('dashView').style.display = 'none';
+  const pv = $('portalView');
+  pv.style.display = 'block';
+  requestAnimationFrame(() => pv.classList.add('shown'));
 
   $('portalEyebrow').textContent = `2학기 · ${SESSION.grade}학년 ${cur.subject}`;
-  $('chipText').innerHTML =
-    `<strong>${escapeHtml(SESSION.name)}</strong>&nbsp;· ${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
+  $('sideName').textContent = SESSION.name;
+  $('sideClass').textContent = `${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
 
   const doneIds = new Set(STUDENT_DATA.activities.map(a => String(a.activityId)));
-  // 활동별 성취 기록: "성취수준이 있는 가장 최근 기록"을 우선.
-  // (재도전 직후 아직 AI 분석 전인 행이 마지막이어도, 이전 분석 결과를 유지)
+  /* 활동별 성취 기록: "성취수준이 있는 가장 최근 기록" 우선 */
   const achieveMap = {};
   STUDENT_DATA.activities.forEach(a => {
     const id = String(a.activityId);
@@ -561,28 +788,73 @@ function renderPortal(){
     if (!prev || hasA || !prevHasA) achieveMap[id] = a;
   });
 
-  // 진행률: url이 있는(열려 있는) 차시만 분모로
+  /* 피드백을 활동별로 분류 — 차시 id와 일치하면 인라인, 아니면 총평 */
+  const lessonIds = new Set(cur.lessons.map(l => l.id));
+  const fbAll = STUDENT_DATA.feedback || [];
+  const fbByLesson = {};
+  const fbGeneral = [];
+  fbAll.forEach(f => {
+    const aid = String(f.activityId || '').trim();
+    if (lessonIds.has(aid)) {
+      (fbByLesson[aid] = fbByLesson[aid] || []).push(f);
+    } else {
+      fbGeneral.push(f);
+    }
+  });
+
+  /* KPI: 진행률 */
   const active = cur.lessons.filter(l => l.url);
   const doneCount = active.filter(l => doneIds.has(l.id)).length;
   const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
-  $('progressPct').textContent = pct;
   $('progressDone').textContent = doneCount;
   $('progressTotal').textContent = active.length;
   requestAnimationFrame(() => { $('progressFill').style.width = pct + '%'; });
 
-  // 탐구 포인트 & 칭호 (참여 기반 — 달성도와 무관)
+  /* 포인트·칭호·나무 (참여 기반 — 달성도와 무관) */
   const doneLessons = cur.lessons.filter(l => doneIds.has(l.id));
   const points = doneLessons.length * CONFIG.POINTS_PER_LESSON;
-  let rank = CONFIG.RANKS[0], nextRank = null;
-  CONFIG.RANKS.forEach(r => { if (points >= r.min) rank = r; });
-  nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
+  let rank = CONFIG.RANKS[0], rankIdx = 0;
+  CONFIG.RANKS.forEach((r, i) => { if (points >= r.min) { rank = r; rankIdx = i; } });
+  const nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
   $('pointsNum').textContent = points;
+  $('kpiPoints').textContent = points;
   $('rankName').textContent = rank.name;
-  $('rankNext').textContent = nextRank
-    ? `다음 칭호(${nextRank.name})까지 ${nextRank.min - points}점`
-    : '최고 칭호에 도달했어요!';
+  $('kpiFeedback').textContent = fbAll.length;
+  if (nextRank) {
+    $('rankNext').textContent = `다음 칭호(${nextRank.name})까지 ${nextRank.min - points}점`;
+    const span = nextRank.min - rank.min;
+    const p = span > 0 ? Math.round((points - rank.min) / span * 100) : 0;
+    requestAnimationFrame(() => { $('rankFill').style.width = p + '%'; });
+  } else {
+    $('rankNext').textContent = '최고 칭호에 도달했어요!';
+    requestAnimationFrame(() => { $('rankFill').style.width = '100%'; });
+  }
+  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessons.length);
+  $('treeBox').setAttribute('aria-label',
+    `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessons.length}개`);
 
-  // 나의 달성도 모아보기 (분석된 활동이 1개 이상일 때만 표시)
+  /* 단원 관통 질문 배너 */
+  const uq = (cur.unitQuestion || '').trim();
+  if (uq) {
+    $('unitBanner').style.display = 'block';
+    $('unitQuestion').textContent = uq;
+  } else {
+    $('unitBanner').style.display = 'none';
+  }
+
+  /* 학기 총평 피드백 (차시에 속하지 않는 피드백) */
+  if (fbGeneral.length) {
+    $('feedbackCard').style.display = 'block';
+    $('feedbackList').innerHTML = fbGeneral.map(f => `
+      <div class="feedback-item">
+        <div class="fb-meta">${formatDate(f.timestamp)}</div>
+        <div>${escapeHtml(f.feedback)}</div>
+      </div>`).join('');
+  } else {
+    $('feedbackCard').style.display = 'none';
+  }
+
+  /* 달성도 모아보기 */
   const analyzed = cur.lessons
     .map(l => ({ lesson: l, rec: achieveMap[l.id] }))
     .filter(x => x.rec && x.rec.achievement && String(x.rec.achievement).trim());
@@ -597,20 +869,22 @@ function renderPortal(){
     $('overviewCard').style.display = 'none';
   }
 
-  // 피드백
-  const fb = STUDENT_DATA.feedback || [];
-  if(fb.length){
-    $('feedbackCard').style.display = 'block';
-    $('feedbackList').innerHTML = fb.map(f => `
-      <div class="feedback-item">
-        <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(f.activityId)}</div>
-        <div>${escapeHtml(f.feedback)}</div>
+  /* 내 기록 보관함 — 내가 쓴 서술 다시 보기 (백엔드 v5부터 reflection 제공) */
+  const myWritings = STUDENT_DATA.activities
+    .filter(a => a.reflection && String(a.reflection).trim())
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  if (myWritings.length) {
+    $('archiveCard').style.display = 'block';
+    $('archiveList').innerHTML = myWritings.map(a => `
+      <div class="archive-item">
+        <div class="ar-meta"><b>${escapeHtml(lessonTitle(String(a.activityId)))}</b> · ${formatDate(a.timestamp)}</div>
+        <div class="ar-text">${escapeHtml(String(a.reflection))}</div>
       </div>`).join('');
   } else {
-    $('feedbackCard').style.display = 'none';
+    $('archiveCard').style.display = 'none';
   }
 
-  // 연표
+  /* 연표 */
   const tl = $('timeline');
   if(cur.lessons.length === 0){
     tl.innerHTML = '';
@@ -635,10 +909,37 @@ function renderPortal(){
           <span class="dots">${achieveDots(rec.achievement)}</span>
           <span>${escapeHtml(String(rec.achievement))}</span>
         </div>
-        ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}
-        ${(!building && ['중','하'].includes(String(rec.achievement).trim()))
-          ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : ''}`;
+        ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}`;
     }
+
+    /* AI 분석 코멘트 (출처를 명확히 구분해 표시) */
+    let aiHtml = '';
+    if(done && rec && rec.aiComment && String(rec.aiComment).trim()){
+      aiHtml = `
+        <div class="note note-ai">
+          <div class="note-label">🤖 AI 분석 코멘트
+            <span class="note-date">${formatDate(rec.timestamp)}</span>
+          </div>
+          <div class="note-text">${escapeHtml(String(rec.aiComment))}</div>
+        </div>`;
+    }
+
+    /* 이 활동에 대한 선생님 피드백 (인라인) */
+    let teaHtml = '';
+    const fbs = fbByLesson[l.id] || [];
+    if(fbs.length){
+      teaHtml = fbs.map(f => `
+        <div class="note note-teacher">
+          <div class="note-label">👩‍🏫 선생님 피드백
+            <span class="note-date">${formatDate(f.timestamp)}</span>
+          </div>
+          <div class="note-text">${escapeHtml(String(f.feedback))}</div>
+        </div>`).join('');
+    }
+
+    const retryHtml = (done && rec && rec.achievement && !building
+      && ['중','하'].includes(String(rec.achievement).trim()))
+      ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : '';
 
     let actions = '';
     if(building){
@@ -663,12 +964,14 @@ function renderPortal(){
             ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
           </div>
           ${achieveHtml}
+          ${aiHtml}
+          ${teaHtml}
+          ${retryHtml}
           <div class="lesson-actions">${actions}</div>
         </div>
       </div>`;
   }).join('');
 
-  // 자가체크 버튼 이벤트
   tl.querySelectorAll('.btn-check').forEach(btn => {
     btn.addEventListener('click', () => selfCheck(btn));
   });
@@ -688,8 +991,7 @@ async function selfCheck(btn){
         choiceSummary: '자가체크'
       })
     });
-    // 서버 반영을 로컬에도 즉시 반영
-    STUDENT_DATA.activities.push({ activityId: lessonId, achievement:'', summary:'', timestamp:new Date().toISOString() });
+    STUDENT_DATA.activities.push({ activityId: lessonId, achievement:'', summary:'', aiComment:'', reflection:'', timestamp:new Date().toISOString() });
     showToast("완료로 기록했어요! 도장이 찍혔어요 🎉");
     renderPortal();
   }catch(e){
@@ -698,7 +1000,6 @@ async function selfCheck(btn){
   }
 }
 
-/* ── 활동 페이지로 학번·이름 전달 ── */
 function withStudentParams(url){
   const sep = url.includes('?') ? '&' : '?';
   return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
@@ -717,6 +1018,13 @@ function formatDate(ts){
   const d = new Date(ts);
   if(isNaN(d)) return '';
   return `${d.getMonth()+1}월 ${d.getDate()}일`;
+}
+function lessonTitle(id){
+  for(const g of Object.keys(CONFIG.CURRICULUM)){
+    const l = CONFIG.CURRICULUM[g].lessons.find(x => x.id === id);
+    if(l) return l.title;
+  }
+  return id;
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -739,6 +1047,8 @@ $('btnLogout').addEventListener('click', () => {
   store.del('portal_session');
   SESSION = null; STUDENT_DATA = null;
   $('portalView').style.display = 'none';
+  $('portalView').classList.remove('shown');
+  $('bookCover').classList.remove('opening');
   $('loginView').style.display = 'flex';
   $('inputId').value = ''; $('inputName').value = '';
 });
@@ -818,6 +1128,13 @@ function dashFilteredRows(){
   });
 }
 
+/* 미검토 AI 코멘트 수 (전체 기준) */
+function aiUnreviewedCount(){
+  return ROWS.filter(r =>
+    String(r['AI코멘트']||'').trim() && !String(r['AI코멘트확인']||'').trim()
+  ).length;
+}
+
 function renderDash(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
@@ -825,6 +1142,11 @@ function renderDash(){
   const lessons = CONFIG.CURRICULUM[grade].lessons;
   const activeLessons = lessons.filter(l => l.url);
   const rows = dashFilteredRows();
+
+  /* 미검토 AI 코멘트 알림 */
+  const unrev = aiUnreviewedCount();
+  $('aiNotice').style.display = unrev ? 'block' : 'none';
+  $('aiNoticeCount').textContent = unrev;
 
   const gradeRows = ROWS.filter(r => {
     const p = parseStudentId(String(r.studentId));
@@ -915,6 +1237,15 @@ function renderDash(){
   document.querySelectorAll('tr.detail-row').forEach(tr => {
     tr.addEventListener('click', ev => ev.stopPropagation());
   });
+  document.querySelectorAll('.ai-confirm').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiConfirm(btn); });
+  });
+  document.querySelectorAll('.ai-editbtn').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiEditToggle(btn); });
+  });
+  document.querySelectorAll('.ai-hide').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiHide(btn); });
+  });
 }
 
 function dashDetailRowHtml(s, lessons, colspan){
@@ -923,7 +1254,27 @@ function dashDetailRowHtml(s, lessons, colspan){
     .filter(r => !act || String(r.gameName) === act)
     .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-  const recHtml = recs.length ? recs.map(r => `
+  const recHtml = recs.length ? recs.map(r => {
+    const aiComment = String(r['AI코멘트']||'').trim();
+    const aiChecked = String(r['AI코멘트확인']||'').trim();
+    const rowNum = r._row || '';
+    let aiBox = '';
+    if (aiComment && rowNum) {
+      aiBox = `
+        <div class="ai-box" data-row="${rowNum}">
+          <div class="ai-head">
+            <span class="ai-title">🤖 AI 코멘트 (학생에게 표시 중)</span>
+            <span class="ai-chip ${aiChecked ? 'ok' : 'wait'}">${aiChecked ? '검토 완료' : '미검토'}</span>
+            <span class="ai-actions">
+              ${aiChecked ? '' : `<button class="btn-tiny ai-confirm" data-row="${rowNum}">확인</button>`}
+              <button class="btn-tiny ai-editbtn" data-row="${rowNum}">수정</button>
+              <button class="btn-tiny ai-hide" data-row="${rowNum}">숨기기</button>
+            </span>
+          </div>
+          <div class="ai-text">${escapeHtml(aiComment)}</div>
+        </div>`;
+    }
+    return `
     <div class="rec">
       <div class="rec-head">
         <span class="rec-title">${escapeHtml(dashLessonTitle(String(r.gameName)))}</span>
@@ -935,7 +1286,9 @@ function dashDetailRowHtml(s, lessons, colspan){
         <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
         <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
       </dl>
-    </div>`).join('') : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
+      ${aiBox}
+    </div>`;
+  }).join('') : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
 
   const fbHtml = s.feedbacks.length ? `<div class="fb-history">${
     s.feedbacks.map(f => `<div class="fb-item">
@@ -951,10 +1304,83 @@ function dashDetailRowHtml(s, lessons, colspan){
       ${fbHtml}
       <div class="fb-form">
         <select class="fb-activity">${options}</select>
-        <textarea class="fb-text" placeholder="${escapeHtml(s.name)} 학생에게 보낼 피드백 — 학생 포털에 표시됩니다"></textarea>
+        <textarea class="fb-text" placeholder="${escapeHtml(s.name)} 학생에게 보낼 피드백 — 학생 포털의 해당 활동 카드에 표시됩니다"></textarea>
         <button class="btn btn-sm fb-send" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">보내기</button>
       </div>
     </td></tr>`;
+}
+
+/* ── AI 코멘트 관리 ── */
+function dashFindRowRec(rowNum){
+  return ROWS.find(r => String(r._row) === String(rowNum));
+}
+async function dashAiPost(payload){
+  const res = await fetch(CONFIG.WEBAPP_URL, {
+    method:'POST',
+    body: JSON.stringify(Object.assign({ token: TOKEN }, payload))
+  });
+  const data = await res.json();
+  if (data.result !== 'success') throw new Error(data.message || '요청 실패');
+}
+async function dashAiConfirm(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await dashAiPost({ action:'aiReview', row });
+    const rec = dashFindRowRec(row);
+    if(rec) rec['AI코멘트확인'] = '확인';
+    showToast('검토 완료로 표시했어요.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false;
+    showToast('처리하지 못했어요: ' + e.message);
+  }
+}
+function dashAiEditToggle(btn){
+  const box = btn.closest('.ai-box');
+  if(box.querySelector('.ai-edit-area')) return;
+  const rec = dashFindRowRec(box.dataset.row);
+  const current = rec ? String(rec['AI코멘트']||'') : '';
+  const textEl = box.querySelector('.ai-text');
+  textEl.innerHTML = `
+    <textarea class="ai-edit-area">${escapeHtml(current)}</textarea>
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <button class="btn-tiny ai-save" data-row="${box.dataset.row}">저장</button>
+      <button class="btn-tiny ai-cancel">취소</button>
+    </div>`;
+  textEl.querySelector('.ai-save').addEventListener('click', async ev => {
+    ev.stopPropagation();
+    const saveBtn = ev.currentTarget;
+    const newText = textEl.querySelector('.ai-edit-area').value.trim();
+    saveBtn.disabled = true;
+    try{
+      await dashAiPost({ action:'aiEdit', row: box.dataset.row, comment: newText });
+      if(rec){ rec['AI코멘트'] = newText; rec['AI코멘트확인'] = '확인'; }
+      showToast('AI 코멘트를 수정했어요. 학생 화면에 바로 반영됩니다.');
+      renderDash();
+    }catch(e){
+      saveBtn.disabled = false;
+      showToast('저장하지 못했어요: ' + e.message);
+    }
+  });
+  textEl.querySelector('.ai-cancel').addEventListener('click', ev => {
+    ev.stopPropagation(); renderDash();
+  });
+}
+async function dashAiHide(btn){
+  if(!confirm('이 AI 코멘트를 학생 화면에서 숨길까요? (내용이 지워집니다)')) return;
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await dashAiPost({ action:'aiEdit', row, comment: '' });
+    const rec = dashFindRowRec(row);
+    if(rec){ rec['AI코멘트'] = ''; rec['AI코멘트확인'] = '확인'; }
+    showToast('AI 코멘트를 숨겼어요.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false;
+    showToast('처리하지 못했어요: ' + e.message);
+  }
 }
 
 async function dashSendFeedback(btn){
@@ -974,7 +1400,7 @@ async function dashSendFeedback(btn){
     });
     FEEDBACKS.push({ timestamp:new Date().toISOString(), studentId:btn.dataset.sid,
       studentName:btn.dataset.name, activityId, feedback:text });
-    showToast('피드백을 보냈어요. 학생 포털에 표시됩니다.');
+    showToast('피드백을 보냈어요. 학생 포털의 해당 활동 카드에 표시됩니다.');
     renderDash();
   }catch(e){
     btn.disabled = false; btn.textContent = '보내기';
@@ -992,7 +1418,8 @@ function dashDownloadCsv(){
     ['선택 요약', r=>r.choiceSummary], ['실제 역사와의 차이', r=>r.diffSummary],
     ['학생 서술', r=>r.reflection],
     ['분류태그', r=>r['분류태그']||''], ['1줄요약', r=>r['1줄요약']||''],
-    ['성취수준', r=>r['성취수준']||''], ['판단근거', r=>r['판단근거']||'']
+    ['성취수준', r=>r['성취수준']||''], ['판단근거', r=>r['판단근거']||''],
+    ['AI코멘트', r=>r['AI코멘트']||''], ['AI코멘트확인', r=>r['AI코멘트확인']||'']
   ];
   const esc = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
   const csv = '\uFEFF' + cols.map(c=>esc(c[0])).join(',') + '\n'
@@ -1005,11 +1432,8 @@ function dashDownloadCsv(){
 }
 
 function dashLessonTitle(id){
-  for(const g of Object.keys(CONFIG.CURRICULUM)){
-    const l = CONFIG.CURRICULUM[g].lessons.find(x => x.id === id);
-    if(l) return l.title;
-  }
-  return id;
+  if(id === '전체') return '전체(학기 총평)';
+  return lessonTitle(id);
 }
 function dashDots(lv){ return lv==='상'?'●●●':lv==='중'?'●●○':lv==='하'?'●○○':'◌'; }
 function dashShorten(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
