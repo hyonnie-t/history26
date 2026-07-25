@@ -513,7 +513,10 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
       <p class="portal-eyebrow" id="portalEyebrow">2학기 · 역사</p>
       <h1 class="portal-title" id="portalTitle">나의 역사책</h1>
     </div>
-    <button class="btn-logout" id="btnLogout">책 덮기</button>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-logout" id="btnPortalRefresh">↻ 새로고침</button>
+      <button class="btn-logout" id="btnLogout">책 덮기</button>
+    </div>
   </header>
 
   <div class="layout">
@@ -526,7 +529,7 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
       <p class="side-points"><span id="pointsNum">0</span>점 <small>탐구 포인트</small></p>
       <div class="rank-track"><div class="rank-fill" id="rankFill"></div></div>
       <p class="rank-next" id="rankNext"></p>
-      <p class="tree-note">활동을 완료할 때마다 나무에 잎이 돋아요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
+      <p class="tree-note">활동을 완료하면 나무에 잎이 돋고,<br>다시 도전하면 포인트가 더 쌓여요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
     </aside>
 
     <!-- 우측 메인 -->
@@ -810,9 +813,21 @@ function renderPortal(){
   $('progressTotal').textContent = active.length;
   requestAnimationFrame(() => { $('progressFill').style.width = pct + '%'; });
 
-  /* 포인트·칭호·나무 (참여 기반 — 달성도와 무관) */
+  /* 포인트·칭호·나무 (참여·노력 기반 — 달성도와 무관)
+   * 첫 완료 FIRST점 + 재도전 1회당 RETRY점 (활동당 RETRY_MAX회까지) */
+  const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 };
   const doneLessons = cur.lessons.filter(l => doneIds.has(l.id));
-  const points = doneLessons.length * CONFIG.POINTS_PER_LESSON;
+  const attemptCnt = {};
+  STUDENT_DATA.activities.forEach(a => {
+    const id = String(a.activityId);
+    attemptCnt[id] = (attemptCnt[id] || 0) + 1;
+  });
+  let points = 0;
+  doneLessons.forEach(l => {
+    points += P.FIRST;
+    const retries = Math.max((attemptCnt[l.id] || 1) - 1, 0);
+    points += Math.min(retries, P.RETRY_MAX) * P.RETRY;
+  });
   let rank = CONFIG.RANKS[0], rankIdx = 0;
   CONFIG.RANKS.forEach((r, i) => { if (points >= r.min) { rank = r; rankIdx = i; } });
   const nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
@@ -1043,6 +1058,36 @@ $('btnLogin').addEventListener('click', () => {
 $('inputName').addEventListener('keydown', e => {
   if(e.key === 'Enter') $('btnLogin').click();
 });
+/* ── 자동 재조회 ──
+ * 포털은 로그인 때 한 번만 데이터를 불러오므로, 학생이 다른 탭에서
+ * 활동을 끝내고 돌아왔을 때를 위해 탭 복귀 시 자동으로 다시 조회한다. */
+let lastRefresh = Date.now();
+async function refreshStudentData(force){
+  if(!SESSION) return;
+  if($('portalView').style.display !== 'block') return;
+  if(!force && Date.now() - lastRefresh < 15000) return; // 15초 쿨다운
+  lastRefresh = Date.now();
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=student&studentId=" + encodeURIComponent(SESSION.studentId)
+      + "&name=" + encodeURIComponent(SESSION.name);
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.result === 'success'){
+      STUDENT_DATA = data;
+      renderPortal();
+      if(force) showToast('최신 기록으로 갱신했어요.');
+    }
+  }catch(e){
+    if(force) showToast('갱신하지 못했어요. 인터넷 연결을 확인해 주세요.');
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') refreshStudentData(false);
+});
+window.addEventListener('focus', () => refreshStudentData(false));
+$('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
+
 $('btnLogout').addEventListener('click', () => {
   store.del('portal_session');
   SESSION = null; STUDENT_DATA = null;
