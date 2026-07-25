@@ -344,6 +344,12 @@ button{font-family:inherit; cursor:pointer;}
   margin-top:10px; font-size:.85rem; color:var(--indigo);
   background:rgba(46,74,122,.07); border-radius:8px; padding:8px 12px;
 }
+/* 분석 대기 안내 */
+.pending-note{
+  margin-top:10px; font-size:.85rem; color:#8A6A14;
+  background:rgba(201,151,46,.1); border-radius:8px; padding:8px 12px;
+}
+.achieve small{font-size:.78rem; color:var(--ink-soft); font-weight:400;}
 
 /* 카드 하단 액션 */
 .lesson-actions{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;}
@@ -790,6 +796,13 @@ function renderPortal(){
     const prevHasA = prev && prev.achievement && String(prev.achievement).trim();
     if (!prev || hasA || !prevHasA) achieveMap[id] = a;
   });
+  /* 활동별 진짜 최근 기록 (분석 여부 무관) — "새 기록 분석 대기 중" 표시용 */
+  const latestMap = {};
+  STUDENT_DATA.activities.forEach(a => {
+    const id = String(a.activityId);
+    const prev = latestMap[id];
+    if (!prev || new Date(a.timestamp) - new Date(prev.timestamp) >= 0) latestMap[id] = a;
+  });
 
   /* 피드백을 활동별로 분류 — 차시 id와 일치하면 인라인, 아니면 총평 */
   const lessonIds = new Set(cur.lessons.map(l => l.id));
@@ -913,18 +926,35 @@ function renderPortal(){
     const done = doneIds.has(l.id);
     const building = !l.url;
     const rec = achieveMap[l.id];
+    const latest = latestMap[l.id];
     const typeLabel = { module:"탐구 활동", padlet:"패들렛 글쓰기", link:"외부 활동" }[l.type] || "활동";
     const typeClass = { padlet:"t-padlet", link:"t-link" }[l.type] || "";
 
+    /* 분석 상태 판정 (module 활동만 — 자가체크형은 서술이 없어 분석 대상 아님) */
+    const recAnalyzed = !!(rec && rec.achievement && String(rec.achievement).trim());
+    const latestAnalyzed = !!(latest && latest.achievement && String(latest.achievement).trim());
+    const isModule = l.type === 'module';
+    const pendingNew = isModule && done && recAnalyzed && latest && !latestAnalyzed
+      && String(latest.timestamp) !== String(rec.timestamp);
+    const pendingFirst = isModule && done && !recAnalyzed;
+
     let achieveHtml = '';
-    if(done && rec && rec.achievement){
+    if(done && recAnalyzed){
       achieveHtml = `
         <div class="achieve">
           <span>달성도</span>
           <span class="dots">${achieveDots(rec.achievement)}</span>
-          <span>${escapeHtml(String(rec.achievement))}</span>
+          <span>${escapeHtml(String(rec.achievement))}${pendingNew ? ' <small>(이전 도전 기준)</small>' : ''}</span>
         </div>
         ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}`;
+    }
+
+    /* 분석 대기 안내 */
+    let pendingHtml = '';
+    if(pendingNew){
+      pendingHtml = `<div class="pending-note">🕐 ${formatDate(latest.timestamp)} 새 도전 기록이 저장됐어요. AI 분석이 끝나면 달성도와 코멘트가 새로 표시돼요.</div>`;
+    } else if(pendingFirst){
+      pendingHtml = `<div class="pending-note">🕐 기록이 저장됐어요! AI 분석이 끝나면 달성도와 코멘트가 표시돼요.</div>`;
     }
 
     /* AI 분석 코멘트 (출처를 명확히 구분해 표시) */
@@ -952,7 +982,7 @@ function renderPortal(){
         </div>`).join('');
     }
 
-    const retryHtml = (done && rec && rec.achievement && !building
+    const retryHtml = (done && recAnalyzed && !building && !pendingNew
       && ['중','하'].includes(String(rec.achievement).trim()))
       ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : '';
 
@@ -979,6 +1009,7 @@ function renderPortal(){
             ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
           </div>
           ${achieveHtml}
+          ${pendingHtml}
           ${aiHtml}
           ${teaHtml}
           ${retryHtml}
