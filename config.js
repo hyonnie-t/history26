@@ -44,7 +44,7 @@ window.PORTAL_CONFIG = {
           title: "세력권 전략 시뮬레이션",
           desc: "게르만 왕국의 갈림길에서 직접 선택하고, 실제 역사와 비교해요.",
           type: "module",
-          url: "https://hyonnie-t.github.io/church_sim/"   // 완성되면 GitHub Pages 주소 입력
+          url: "https://hyonnie-t.github.io/church_sim/"
         },
         {
           id: "교황권자원게임",
