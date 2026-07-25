@@ -261,6 +261,83 @@ button{font-family:inherit; cursor:pointer;}
   .lesson-card{padding:16px 16px;}
   .seal-stamp{width:48px; height:48px; font-size:1.3rem;}
 }
+
+/* ══════════════ 교사 대시보드 ══════════════ */
+.teacher-entry{margin-top:18px; padding-top:16px; border-top:1px dashed var(--line); text-align:center;}
+.teacher-link{background:none; border:none; color:var(--ink-soft); font-size:.88rem; text-decoration:underline; padding:8px;}
+.teacher-link:hover{color:var(--indigo);}
+#teacherGate{display:none; margin-top:12px; text-align:left;}
+#teacherGate input{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
+  border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7; margin-bottom:10px;}
+#teacherGate input:focus{border-color:var(--indigo); outline:none;}
+.gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
+
+#dashView{display:none; max-width:1100px; margin:0 auto; padding:22px 20px 80px;}
+.btn{min-height:46px; padding:10px 20px; font-size:.95rem; font-weight:700;
+  background:var(--indigo); color:#fff; border:none; border-radius:10px;}
+.btn:hover{background:var(--indigo-deep);}
+.btn:disabled{background:#9AA3B2; cursor:wait;}
+.btn-ghost{background:var(--card); color:var(--ink-soft); border:1px solid var(--line); font-weight:600;}
+.btn-ghost:hover{background:var(--paper); color:var(--ink);}
+.btn-sm{min-height:38px; padding:6px 14px; font-size:.86rem;}
+.dash-top{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
+.dash-top h1{font-family:var(--font-display); font-size:1.5rem;}
+.dash-top .eyebrow{font-size:.78rem; letter-spacing:.28em; color:var(--indigo); font-weight:600;}
+.top-actions{display:flex; gap:8px;}
+.filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
+.filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
+.filters select{min-height:42px; font-size:.93rem; padding:8px 12px; border:1.5px solid var(--line);
+  border-radius:8px; background:#FCFBF7; font-family:inherit;}
+.filters .spacer{flex:1;}
+.summary{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-bottom:14px;}
+.sum-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px 18px;}
+.sum-card h3{font-size:.85rem; color:var(--ink-soft); font-weight:600; margin-bottom:6px;}
+.sum-card .big{font-family:var(--font-display); font-size:1.7rem; font-weight:700; color:var(--indigo);}
+.sum-card .big small{font-size:.9rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
+.dist-bar{display:flex; height:14px; border-radius:999px; overflow:hidden; margin:8px 0 6px; border:1px solid var(--line);}
+.dist-sang{background:var(--ochre);} .dist-jung{background:var(--indigo);} .dist-ha{background:#B9BFC9;}
+.dist-legend{display:flex; gap:12px; font-size:.82rem; color:var(--ink-soft); flex-wrap:wrap;}
+.dist-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px;}
+.tag-list{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
+.tag-chip{font-size:.82rem; background:rgba(46,74,122,.08); color:var(--indigo);
+  border-radius:999px; padding:3px 11px; font-weight:600;}
+.tag-chip small{color:var(--ink-soft); font-weight:400;}
+.table-wrap{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow-x:auto;}
+.table-wrap table{width:100%; border-collapse:collapse; font-size:.9rem; min-width:640px;}
+.table-wrap th{position:sticky; top:0; background:#F0EDE3; text-align:left; padding:11px 14px;
+  font-size:.82rem; color:var(--ink-soft); border-bottom:1.5px solid var(--line); white-space:nowrap;}
+.table-wrap td{padding:10px 14px; border-bottom:1px solid #EEEBE1; vertical-align:middle;}
+tr.student-row{cursor:pointer;}
+tr.student-row:hover td{background:#FBFAF4;}
+.tbl-dots{letter-spacing:2px; color:var(--ochre); white-space:nowrap;}
+.muted{color:#B0B5BE;}
+.prog-mini{display:inline-flex; align-items:center; gap:8px;}
+.prog-mini .track{width:70px; height:8px; background:var(--paper); border:1px solid var(--line);
+  border-radius:999px; overflow:hidden;}
+.prog-mini .fill{height:100%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); display:block;}
+.fb-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--jade); margin-left:6px;}
+tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
+.rec{border:1px solid var(--line); border-radius:10px; background:var(--card); padding:12px 14px; margin-bottom:10px; font-size:.9rem;}
+.rec .rec-head{display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:6px;}
+.rec .rec-title{font-weight:700;}
+.rec .rec-meta{color:var(--ink-soft); font-size:.83rem;}
+.rec dl{display:grid; grid-template-columns:88px 1fr; gap:4px 10px;}
+.rec dt{color:var(--ink-soft); font-size:.83rem;}
+.rec dd{word-break:break-word;}
+.fb-history{margin:10px 0;}
+.fb-history .fb-item{font-size:.88rem; padding:8px 12px; background:#FFF9EC;
+  border:1px solid #EAD9A8; border-radius:8px; margin-bottom:6px;}
+.fb-item .fb-meta{font-size:.78rem; color:var(--ink-soft);}
+.fb-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-top:8px;}
+.fb-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
+.fb-form textarea{flex:1; min-width:220px; min-height:42px; padding:10px 12px;
+  border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.92rem; resize:vertical;}
+.empty-line{padding:28px; text-align:center; color:var(--ink-soft);}
+@media (max-width:600px){ #dashView{padding:16px 10px 60px;} }
+
 </style>
 </head>
 <body>
@@ -282,6 +359,14 @@ button{font-family:inherit; cursor:pointer;}
     </div>
     <button class="btn-primary" id="btnLogin">내 기록 열기</button>
     <div class="login-error" id="loginError"></div>
+    <div class="teacher-entry">
+      <button class="teacher-link" id="btnTeacherMode">🔑 교사용 대시보드</button>
+      <div id="teacherGate">
+        <input id="tokenInput" type="password" placeholder="교사 토큰" autocomplete="off">
+        <button class="btn-primary" id="btnGate">대시보드 열기</button>
+        <p class="gate-error" id="gateError"></p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -325,6 +410,63 @@ button{font-family:inherit; cursor:pointer;}
 
   <div class="timeline" id="timeline"></div>
   <p class="status-line" id="statusLine"></p>
+</div>
+
+<!-- ══════════════ 교사 대시보드 ══════════════ -->
+<div id="dashView">
+  <div class="dash-top">
+    <div>
+      <p class="eyebrow">2학기 · 통합 학습 포털</p>
+      <h1>교사 대시보드</h1>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-ghost btn-sm" id="btnCsv">CSV 다운로드</button>
+      <button class="btn btn-ghost btn-sm" id="btnDashRefresh">새로고침</button>
+      <button class="btn btn-ghost btn-sm" id="btnDashOut">나가기</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <label for="selGrade">학년</label>
+    <select id="selGrade"></select>
+    <label for="selBan">반</label>
+    <select id="selBan"></select>
+    <label for="selActivity">활동</label>
+    <select id="selActivity"></select>
+    <span class="spacer"></span>
+    <span id="rowCount" style="font-size:.85rem;color:var(--ink-soft);"></span>
+  </div>
+
+  <div class="summary">
+    <div class="sum-card">
+      <h3>기록이 있는 학생</h3>
+      <div class="big"><span id="sumStudents">0</span><small>명</small></div>
+    </div>
+    <div class="sum-card">
+      <h3>평균 진행률</h3>
+      <div class="big"><span id="sumProgress">0</span><small>%</small></div>
+    </div>
+    <div class="sum-card">
+      <h3>성취수준 분포 <small id="distScope"></small></h3>
+      <div class="dist-bar" id="distBar"></div>
+      <div class="dist-legend">
+        <span><i class="dist-sang"></i>상 <b id="cntSang">0</b></span>
+        <span><i class="dist-jung"></i>중 <b id="cntJung">0</b></span>
+        <span><i class="dist-ha"></i>하 <b id="cntHa">0</b></span>
+      </div>
+    </div>
+    <div class="sum-card">
+      <h3>분류태그 상위</h3>
+      <div class="tag-list" id="tagList"><span class="muted">—</span></div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -599,6 +741,305 @@ $('btnLogout').addEventListener('click', () => {
   $('portalView').style.display = 'none';
   $('loginView').style.display = 'flex';
   $('inputId').value = ''; $('inputName').value = '';
+});
+
+/* ════════════════════════════════════════════════════════
+ * 교사 대시보드
+ * ════════════════════════════════════════════════════════ */
+let TOKEN = '';
+let ROWS = [];
+let FEEDBACKS = [];
+let openDetailSid = null;
+
+async function dashLoadData(){
+  const base = CONFIG.WEBAPP_URL;
+  const [r1, r2] = await Promise.all([
+    fetch(base + '?token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
+    fetch(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
+  ]);
+  if(r1.result === 'error') throw new Error(r1.message);
+  ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
+  FEEDBACKS = (r2.rows || []);
+}
+
+async function enterDash(token){
+  TOKEN = token;
+  const btn = $('btnGate'); btn.disabled = true; btn.textContent = '확인 중…';
+  $('gateError').style.display = 'none';
+  try{
+    await dashLoadData();
+    store.set('dash_token', token);
+    $('loginView').style.display = 'none';
+    $('portalView').style.display = 'none';
+    $('dashView').style.display = 'block';
+    dashInitFilters();
+    renderDash();
+  }catch(e){
+    $('gateError').textContent = '들어가지 못했어요: ' + e.message;
+    $('gateError').style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = '대시보드 열기';
+  }
+}
+
+function dashInitFilters(){
+  const grades = Object.keys(CONFIG.CURRICULUM);
+  $('selGrade').innerHTML = grades.map(g =>
+    `<option value="${g}">${g}학년 ${CONFIG.CURRICULUM[g].subject}</option>`).join('');
+  const withData = grades.find(g => ROWS.some(r => parseStudentId(String(r.studentId)).grade === Number(g)));
+  if(withData) $('selGrade').value = withData;
+  dashRefreshBanOptions();
+  dashRefreshActivityOptions();
+}
+function dashRefreshBanOptions(){
+  const grade = Number($('selGrade').value);
+  const bans = [...new Set(ROWS.map(r => parseStudentId(String(r.studentId)))
+    .filter(p => p.grade === grade).map(p => p.ban))].sort((a,b)=>a-b);
+  $('selBan').innerHTML = '<option value="">전체 반</option>'
+    + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
+}
+function dashRefreshActivityOptions(){
+  const grade = Number($('selGrade').value);
+  const lessons = CONFIG.CURRICULUM[grade].lessons;
+  $('selActivity').innerHTML = '<option value="">전체 활동</option>'
+    + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
+}
+
+function dashFilteredRows(){
+  const grade = Number($('selGrade').value);
+  const ban = $('selBan').value;
+  const act = $('selActivity').value;
+  return ROWS.filter(r => {
+    const p = parseStudentId(String(r.studentId));
+    if(p.grade !== grade) return false;
+    if(ban && p.ban !== Number(ban)) return false;
+    if(act && String(r.gameName) !== act) return false;
+    return true;
+  });
+}
+
+function renderDash(){
+  const grade = Number($('selGrade').value);
+  const ban = $('selBan').value;
+  const act = $('selActivity').value;
+  const lessons = CONFIG.CURRICULUM[grade].lessons;
+  const activeLessons = lessons.filter(l => l.url);
+  const rows = dashFilteredRows();
+
+  const gradeRows = ROWS.filter(r => {
+    const p = parseStudentId(String(r.studentId));
+    return p.grade === grade && (!ban || p.ban === Number(ban));
+  });
+  const students = {};
+  gradeRows.forEach(r => {
+    const sid = String(r.studentId);
+    if(!students[sid]) students[sid] = { sid, name:String(r.studentName||''), p:parseStudentId(sid), records:[] };
+    students[sid].records.push(r);
+  });
+  const list = Object.values(students).sort((a,b) => a.p.ban - b.p.ban || a.p.num - b.p.num);
+
+  list.forEach(s => {
+    s.doneIds = new Set(s.records.map(r => String(r.gameName)));
+    s.achieve = {};
+    s.records.forEach(r => {
+      const id = String(r.gameName);
+      const lv = String(r['성취수준']||'').trim();
+      const prev = s.achieve[id];
+      if(!prev || lv || !String(prev['성취수준']||'').trim()) s.achieve[id] = r;
+    });
+    const done = activeLessons.filter(l => s.doneIds.has(l.id)).length;
+    s.pct = activeLessons.length ? Math.round(done/activeLessons.length*100) : 0;
+    s.doneCount = done;
+    s.feedbacks = FEEDBACKS.filter(f => String(f.studentId).trim() === s.sid);
+  });
+
+  $('sumStudents').textContent = list.length;
+  $('sumProgress').textContent = list.length
+    ? Math.round(list.reduce((a,s)=>a+s.pct,0)/list.length) : 0;
+
+  const cnt = { 상:0, 중:0, 하:0 };
+  rows.forEach(r => { const l = String(r['성취수준']||'').trim(); if(cnt[l]!==undefined) cnt[l]++; });
+  $('cntSang').textContent = cnt['상']; $('cntJung').textContent = cnt['중']; $('cntHa').textContent = cnt['하'];
+  $('distScope').textContent = act ? '(선택한 활동)' : '(전체 활동)';
+  const total = cnt['상']+cnt['중']+cnt['하'];
+  $('distBar').innerHTML = total ?
+    `<div class="dist-sang" style="width:${cnt['상']/total*100}%"></div>
+     <div class="dist-jung" style="width:${cnt['중']/total*100}%"></div>
+     <div class="dist-ha" style="width:${cnt['하']/total*100}%"></div>`
+    : '<div style="width:100%;background:#EEE"></div>';
+
+  const tagCnt = {};
+  rows.forEach(r => { const t = String(r['분류태그']||'').trim(); if(t) tagCnt[t]=(tagCnt[t]||0)+1; });
+  const topTags = Object.entries(tagCnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  $('tagList').innerHTML = topTags.length
+    ? topTags.map(([t,n]) => `<span class="tag-chip">${escapeHtml(t)} <small>${n}</small></span>`).join('')
+    : '<span class="muted">아직 분석된 태그가 없어요</span>';
+
+  $('rowCount').textContent = `기록 ${rows.length}건`;
+
+  $('tableHead').innerHTML = '<tr><th>학번</th><th>이름</th><th>진행률</th>'
+    + lessons.map(l => `<th title="${escapeHtml(l.title)}">${escapeHtml(dashShorten(l.title, 8))}</th>`).join('')
+    + '</tr>';
+
+  if(!list.length){
+    $('tableBody').innerHTML = `<tr><td colspan="${3+lessons.length}" class="empty-line">아직 이 조건에 해당하는 학생 기록이 없어요.</td></tr>`;
+    return;
+  }
+
+  $('tableBody').innerHTML = list.map(s => {
+    const cells = lessons.map(l => {
+      if(!s.doneIds.has(l.id)) return '<td class="muted">—</td>';
+      const rec = s.achieve[l.id];
+      const lv = rec ? String(rec['성취수준']||'').trim() : '';
+      return `<td><span class="tbl-dots" title="${escapeHtml(lv||'분석 전')}">${dashDots(lv)}</span></td>`;
+    }).join('');
+    return `
+      <tr class="student-row" data-sid="${s.sid}">
+        <td>${s.sid}</td>
+        <td>${escapeHtml(s.name)}${s.feedbacks.length ? '<span class="fb-dot" title="피드백 있음"></span>' : ''}</td>
+        <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${activeLessons.length}</span></td>
+        ${cells}
+      </tr>
+      ${openDetailSid === s.sid ? dashDetailRowHtml(s, lessons, 3+lessons.length) : ''}`;
+  }).join('');
+
+  document.querySelectorAll('tr.student-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      openDetailSid = (openDetailSid === tr.dataset.sid) ? null : tr.dataset.sid;
+      renderDash();
+    });
+  });
+  document.querySelectorAll('.fb-send').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashSendFeedback(btn); });
+  });
+  document.querySelectorAll('tr.detail-row').forEach(tr => {
+    tr.addEventListener('click', ev => ev.stopPropagation());
+  });
+}
+
+function dashDetailRowHtml(s, lessons, colspan){
+  const act = $('selActivity').value;
+  const recs = s.records
+    .filter(r => !act || String(r.gameName) === act)
+    .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  const recHtml = recs.length ? recs.map(r => `
+    <div class="rec">
+      <div class="rec-head">
+        <span class="rec-title">${escapeHtml(dashLessonTitle(String(r.gameName)))}</span>
+        <span class="rec-meta">${formatDate(r.timestamp)} · 성취 ${escapeHtml(String(r['성취수준']||'분석 전'))}</span>
+      </div>
+      <dl>
+        <dt>선택 요약</dt><dd>${escapeHtml(String(r.choiceSummary||'—'))}</dd>
+        <dt>학생 서술</dt><dd>${escapeHtml(String(r.reflection||'—'))}</dd>
+        <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
+        <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
+      </dl>
+    </div>`).join('') : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
+
+  const fbHtml = s.feedbacks.length ? `<div class="fb-history">${
+    s.feedbacks.map(f => `<div class="fb-item">
+      <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(dashLessonTitle(String(f.activityId)))}</div>
+      ${escapeHtml(String(f.feedback))}</div>`).join('')}</div>` : '';
+
+  const options = '<option value="전체">전체(학기 총평)</option>'
+    + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
+
+  return `
+    <tr class="detail-row"><td colspan="${colspan}">
+      ${recHtml}
+      ${fbHtml}
+      <div class="fb-form">
+        <select class="fb-activity">${options}</select>
+        <textarea class="fb-text" placeholder="${escapeHtml(s.name)} 학생에게 보낼 피드백 — 학생 포털에 표시됩니다"></textarea>
+        <button class="btn btn-sm fb-send" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">보내기</button>
+      </div>
+    </td></tr>`;
+}
+
+async function dashSendFeedback(btn){
+  const wrap = btn.closest('.fb-form');
+  const text = wrap.querySelector('.fb-text').value.trim();
+  const activityId = wrap.querySelector('.fb-activity').value;
+  if(!text){ showToast('피드백 내용을 입력해 주세요.'); return; }
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({
+        action:'feedback', token:TOKEN,
+        studentId:btn.dataset.sid, studentName:btn.dataset.name,
+        activityId, feedback:text
+      })
+    });
+    FEEDBACKS.push({ timestamp:new Date().toISOString(), studentId:btn.dataset.sid,
+      studentName:btn.dataset.name, activityId, feedback:text });
+    showToast('피드백을 보냈어요. 학생 포털에 표시됩니다.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false; btn.textContent = '보내기';
+    showToast('보내지 못했어요. 다시 시도해 주세요.');
+  }
+}
+
+function dashDownloadCsv(){
+  const rows = dashFilteredRows();
+  if(!rows.length){ showToast('내려받을 기록이 없어요.'); return; }
+  const cols = [
+    ['타임스탬프', r=>{ const d=new Date(r.timestamp); return isNaN(d)?'':d.toLocaleString('ko-KR'); }],
+    ['학번', r=>r.studentId], ['이름', r=>r.studentName],
+    ['활동', r=>dashLessonTitle(String(r.gameName))], ['게임명(원본)', r=>r.gameName],
+    ['선택 요약', r=>r.choiceSummary], ['실제 역사와의 차이', r=>r.diffSummary],
+    ['학생 서술', r=>r.reflection],
+    ['분류태그', r=>r['분류태그']||''], ['1줄요약', r=>r['1줄요약']||''],
+    ['성취수준', r=>r['성취수준']||''], ['판단근거', r=>r['판단근거']||'']
+  ];
+  const esc = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+  const csv = '\uFEFF' + cols.map(c=>esc(c[0])).join(',') + '\n'
+    + rows.map(r => cols.map(c=>esc(c[1](r))).join(',')).join('\n');
+  const grade = $('selGrade').value, ban = $('selBan').value;
+  const name = `학습기록_${grade}학년${ban? '_'+ban+'반':''}_${new Date().toISOString().slice(0,10)}.csv`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function dashLessonTitle(id){
+  for(const g of Object.keys(CONFIG.CURRICULUM)){
+    const l = CONFIG.CURRICULUM[g].lessons.find(x => x.id === id);
+    if(l) return l.title;
+  }
+  return id;
+}
+function dashDots(lv){ return lv==='상'?'●●●':lv==='중'?'●●○':lv==='하'?'●○○':'◌'; }
+function dashShorten(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
+
+/* 대시보드 이벤트 */
+$('btnTeacherMode').addEventListener('click', () => {
+  const g = $('teacherGate');
+  const open = g.style.display === 'block';
+  g.style.display = open ? 'none' : 'block';
+  if(!open){
+    const saved = store.get('dash_token');
+    if(saved) $('tokenInput').value = saved;
+    $('tokenInput').focus();
+  }
+});
+$('btnGate').addEventListener('click', () => enterDash($('tokenInput').value.trim()));
+$('tokenInput').addEventListener('keydown', e => { if(e.key==='Enter') $('btnGate').click(); });
+$('selGrade').addEventListener('change', () => { openDetailSid=null; dashRefreshBanOptions(); dashRefreshActivityOptions(); renderDash(); });
+$('selBan').addEventListener('change', () => { openDetailSid=null; renderDash(); });
+$('selActivity').addEventListener('change', () => renderDash());
+$('btnCsv').addEventListener('click', dashDownloadCsv);
+$('btnDashRefresh').addEventListener('click', async () => {
+  showToast('새로고침 중…');
+  try{ await dashLoadData(); renderDash(); showToast('최신 기록으로 갱신했어요.'); }
+  catch(e){ showToast('갱신 실패: ' + e.message); }
+});
+$('btnDashOut').addEventListener('click', () => {
+  $('dashView').style.display = 'none';
+  $('loginView').style.display = 'flex';
+  $('teacherGate').style.display = 'none';
 });
 
 /* ── 자동 로그인 (이전 접속 기억) ── */
