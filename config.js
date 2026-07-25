@@ -28,15 +28,20 @@
 window.PORTAL_CONFIG = {
   WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyXSjCfWY_HiZFqW_OBR-FQDoIfF1z_STqyKWUI31MacHeY3u7hbirFSFDvW-5yuUHaJQ/exec",
 
-  // 탐구 포인트: 활동 "완료"마다 적립 (달성도와 무관 — 참여 기반)
-  POINTS_PER_LESSON: 100,
+  // 탐구 포인트 (달성도와 무관 — 참여·노력 기반)
+  //  FIRST     : 활동을 처음 완료하면 적립
+  //  RETRY     : 같은 활동에 다시 도전할 때마다 적립
+  //  RETRY_MAX : 재도전 보너스 인정 횟수 상한 (활동당)
+  POINTS: { FIRST: 10, RETRY: 5, RETRY_MAX: 2 },
   // 누적 포인트 → 칭호. 조선의 역사 기록 관직에서 따옴. 이름·기준점 자유롭게 수정 가능.
   // 칭호 단계는 좌측 "탐구 나무"의 성장 단계(4단계)와 연동됩니다.
+  // 기준점은 한 학기 활동 6~8개를 가정한 값 — 차시 수가 정해지면 min만 조정하세요.
+  //  (예: 8차시면 첫완료만으로 80점 → 대제학(90)은 재도전까지 해야 닿는 목표)
   RANKS: [
-    { min: 0,   name: "견습 사관" },
-    { min: 100, name: "사관" },
-    { min: 300, name: "편수관" },
-    { min: 600, name: "대제학" }
+    { min: 0,  name: "견습 사관" },
+    { min: 20, name: "사관" },
+    { min: 50, name: "편수관" },
+    { min: 90, name: "대제학" }
   ],
 
   CURRICULUM: {
