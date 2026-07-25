@@ -22,7 +22,7 @@
  * 활동이 완성될 때마다 여기 한 줄씩 추가/수정하고 GitHub에 올리면 끝.
  * ════════════════════════════════════════════════════════ */
 window.PORTAL_CONFIG = {
-  WEBAPP_URL: "여기에_웹앱_URL_붙여넣기",
+  WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyXSjCfWY_HiZFqW_OBR-FQDoIfF1z_STqyKWUI31MacHeY3u7hbirFSFDvW-5yuUHaJQ/exec",
 
   // 탐구 포인트: 활동 "완료"마다 적립 (달성도와 무관 — 참여 기반)
   POINTS_PER_LESSON: 100,
@@ -44,7 +44,7 @@ window.PORTAL_CONFIG = {
           title: "세력권 전략 시뮬레이션",
           desc: "게르만 왕국의 갈림길에서 직접 선택하고, 실제 역사와 비교해요.",
           type: "module",
-          url: ""   // 완성되면 GitHub Pages 주소 입력
+          url: "https://hyonnie-t.github.io/church_sim/"   // 완성되면 GitHub Pages 주소 입력
         },
         {
           id: "교황권자원게임",
