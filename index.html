@@ -502,7 +502,7 @@ function renderPortal(){
     if(building){
       actions = `<span class="badge-wait">🔨 준비 중이에요</span>`;
     } else if(l.type === 'module'){
-      actions = `<a class="btn-go" href="${l.url}" target="_blank" rel="noopener">
+      actions = `<a class="btn-go" href="${withStudentParams(l.url)}" target="_blank" rel="noopener">
         ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
     } else {
       actions = `<a class="btn-go" href="${l.url}" target="_blank" rel="noopener">활동 열기 →</a>`
@@ -554,6 +554,13 @@ async function selfCheck(btn){
     btn.disabled = false; btn.textContent = "활동을 끝냈어요 ✓";
     showToast("기록하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.");
   }
+}
+
+/* ── 활동 페이지로 학번·이름 전달 ── */
+function withStudentParams(url){
+  const sep = url.includes('?') ? '&' : '?';
+  return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
+             + '&name=' + encodeURIComponent(SESSION.name);
 }
 
 /* ── 유틸 ── */
