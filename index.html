@@ -114,14 +114,14 @@ button{font-family:inherit; cursor:pointer;}
   text-decoration:underline; padding:8px;
 }
 .teacher-link:hover{color:var(--indigo);}
-#teacherGate{
+#teacherGate, #previewGate{
   display:none; margin-top:10px; text-align:left;
   background:var(--card); border:1px solid var(--line); border-radius:12px;
   padding:16px; width:min(340px, 90vw); box-shadow:var(--shadow);
 }
-#teacherGate input{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
+#teacherGate input, #previewGate input, #previewGate select{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
   border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7; margin-bottom:10px;}
-#teacherGate input:focus{border-color:var(--indigo); outline:none;}
+#teacherGate input:focus, #previewGate input:focus, #previewGate select:focus{border-color:var(--indigo); outline:none;}
 .btn-gate{
   width:100%; min-height:48px; font-size:1rem; font-weight:700;
   background:var(--indigo); color:#fff; border:none; border-radius:10px;
@@ -509,6 +509,18 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
       <button class="btn-gate" id="btnGate">대시보드 열기</button>
       <p class="gate-error" id="gateError"></p>
     </div>
+    <button class="teacher-link" id="btnPreviewMode">👀 학생 화면 미리보기</button>
+    <div id="previewGate">
+      <label for="previewGrade" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">학년</label>
+      <select id="previewGrade"></select>
+      <label for="previewBan" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">반 (숫자만)</label>
+      <input id="previewBan" type="number" min="1" max="20" value="1">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-soft);margin-bottom:12px;">
+        <input type="checkbox" id="previewSample" style="width:auto;min-height:auto;margin:0;">
+        완료·AI코멘트 예시도 같이 보기
+      </label>
+      <button class="btn-gate" id="btnPreviewStart">미리보기 시작</button>
+    </div>
   </div>
 </div>
 
@@ -524,6 +536,11 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
       <button class="btn-logout" id="btnLogout">책 덮기</button>
     </div>
   </header>
+
+  <div id="previewBanner" style="display:none; align-items:center; justify-content:space-between; gap:10px; background:var(--seal); color:#fff; padding:10px 16px; border-radius:10px; margin-bottom:14px; font-size:.88rem; font-weight:700;">
+    <span>👀 미리보기 모드 — 실제 학생 기록이 아니에요. 활동 페이지를 열어도 실제로 제출하지 마세요.</span>
+    <button id="btnExitPreview" style="background:#fff; color:var(--seal); border:none; border-radius:999px; padding:6px 14px; font-size:.82rem; font-weight:700; cursor:pointer; flex-shrink:0;">종료</button>
+  </div>
 
   <div class="layout">
     <!-- 좌측: 내 서재 -->
@@ -665,6 +682,7 @@ if (!CONFIG) {
 const $ = id => document.getElementById(id);
 let SESSION = null;      // { studentId, name, grade, ban, num }
 let STUDENT_DATA = null; // 서버 응답 { activities, feedback }
+let PREVIEW_MODE = false; // 교사용 "학생 화면 미리보기"에서 true — 실제 기록/조회 없이 화면만 확인
 
 const store = {
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
@@ -783,6 +801,7 @@ function renderPortal(){
   requestAnimationFrame(() => pv.classList.add('shown'));
 
   $('portalEyebrow').textContent = `2학기 · ${SESSION.grade}학년 ${cur.subject}`;
+  $('previewBanner').style.display = PREVIEW_MODE ? 'flex' : 'none';
   $('sideName').textContent = SESSION.name;
   $('sideClass').textContent = `${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
 
@@ -1026,6 +1045,10 @@ function renderPortal(){
 
 /* ── 자가체크 (패들렛·외부 활동) ── */
 async function selfCheck(btn){
+  if(PREVIEW_MODE){
+    showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
+    return;
+  }
   const lessonId = btn.dataset.lesson;
   btn.disabled = true; btn.textContent = "기록하는 중…";
   try{
@@ -1128,15 +1151,17 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', () => refreshStudentData(false));
 $('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
 
-$('btnLogout').addEventListener('click', () => {
+function exitToLogin(){
   store.del('portal_session');
-  SESSION = null; STUDENT_DATA = null;
+  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false;
   $('portalView').style.display = 'none';
   $('portalView').classList.remove('shown');
   $('bookCover').classList.remove('opening');
   $('loginView').style.display = 'flex';
   $('inputId').value = ''; $('inputName').value = '';
-});
+}
+$('btnLogout').addEventListener('click', exitToLogin);
+$('btnExitPreview').addEventListener('click', exitToLogin);
 
 /* ════════════════════════════════════════════════════════
  * 교사 대시보드
@@ -1534,6 +1559,53 @@ $('btnTeacherMode').addEventListener('click', () => {
     $('tokenInput').focus();
   }
 });
+
+/* ── 학생 화면 미리보기 (교사용) ──
+ * 실제 학생 로그인 없이 특정 학년·반 화면을 바로 확인. 백엔드 조회 없이
+ * SESSION·STUDENT_DATA를 클라이언트에서 채워 넣는 방식이라 실제 기록에 영향 없음.
+ * 단, 모듈형 활동(게임 등)의 "하러 가기" 링크는 실제 활동 페이지로 이동하므로
+ * 거기서 실제로 제출하면 시트에 남을 수 있음 — 화면만 확인하는 용도로 안내함. */
+function previewInitGradeOptions(){
+  const grades = Object.keys(CONFIG.CURRICULUM);
+  $('previewGrade').innerHTML = grades.map(g =>
+    `<option value="${g}">${g}학년 ${CONFIG.CURRICULUM[g].subject}</option>`).join('');
+}
+function startPreview(){
+  const grade = Number($('previewGrade').value);
+  const ban = Math.max(1, Number($('previewBan').value) || 1);
+  const withSample = $('previewSample').checked;
+  const cur = CONFIG.CURRICULUM[grade];
+  if(!cur){ showToast('해당 학년 설정을 찾을 수 없어요.'); return; }
+
+  PREVIEW_MODE = true;
+  SESSION = { studentId: `${grade}${String(ban).padStart(2,'0')}99`, name: '미리보기 학생', grade, ban, num: 99 };
+
+  let activities = [], feedback = [];
+  if(withSample){
+    const sampleLessons = cur.lessons.filter(l => l.url || l.urlByBan).slice(0, 2);
+    activities = sampleLessons.map((l, i) => ({
+      activityId: l.id,
+      achievement: i === 0 ? '상' : '중',
+      summary: '(예시) 자료를 근거로 판단 이유를 구체적으로 서술함',
+      aiComment: '(예시) 두 선택지의 차이를 잘 짚었어요. 다음엔 반대 입장도 함께 고려해보면 더 좋겠어요.',
+      reflection: '(예시 학생 서술) 내가 그 자리였다면 이런 선택을 했을 것 같다. 왜냐하면…',
+      timestamp: new Date().toISOString()
+    }));
+    feedback = [{ timestamp: new Date().toISOString(), activityId: '전체', feedback: '(예시) 이번 학기 전반적으로 성실하게 참여했어요.' }];
+  }
+  STUDENT_DATA = { activities, feedback };
+
+  $('teacherGate').style.display = 'none';
+  $('previewGate').style.display = 'none';
+  openBook(true);
+}
+previewInitGradeOptions();
+$('btnPreviewMode').addEventListener('click', () => {
+  const g = $('previewGate');
+  const open = g.style.display === 'block';
+  g.style.display = open ? 'none' : 'block';
+});
+$('btnPreviewStart').addEventListener('click', startPreview);
 $('btnGate').addEventListener('click', () => enterDash($('tokenInput').value.trim()));
 $('tokenInput').addEventListener('keydown', e => { if(e.key==='Enter') $('btnGate').click(); });
 $('selGrade').addEventListener('change', () => { openDetailSid=null; dashRefreshBanOptions(); dashRefreshActivityOptions(); renderDash(); });
