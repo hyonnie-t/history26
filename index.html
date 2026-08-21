@@ -203,6 +203,19 @@ button{font-family:inherit; cursor:pointer;}
 }
 .unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
 
+/* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 */
+.portfolio-card{
+  display:none; background:var(--card); border:1px solid var(--line);
+  border-left:5px solid var(--jade); border-radius:12px;
+  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
+  align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+}
+.portfolio-card .pf-label{
+  font-size:.76rem; letter-spacing:.22em; color:var(--jade); font-weight:700; margin-bottom:2px;
+}
+.portfolio-card .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
+.portfolio-card .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
+
 /* 학기 총평 피드백 */
 .feedback-card{
   background:#FFF9EC; border:1px solid #EAD9A8; border-radius:var(--radius);
@@ -578,6 +591,15 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
         <p class="ub-q" id="unitQuestion"></p>
       </section>
 
+      <section class="portfolio-card" id="portfolioCard" aria-label="나의 패들렛 포트폴리오">
+        <div>
+          <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
+          <p class="pf-title" id="portfolioTitle"></p>
+          <p class="pf-desc" id="portfolioDesc"></p>
+        </div>
+        <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
+      </section>
+
       <section class="feedback-card" id="feedbackCard" aria-label="선생님의 학기 총평">
         <h2>📮 선생님이 남긴 총평</h2>
         <div id="feedbackList"></div>
@@ -887,6 +909,18 @@ function renderPortal(){
     $('unitQuestion').textContent = uq;
   } else {
     $('unitBanner').style.display = 'none';
+  }
+
+  /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 (차시가 아니라 완료·포인트 대상 아님) */
+  const pf = cur.portfolio;
+  const pfUrl = pf ? (pf.urlByBan ? (pf.urlByBan[SESSION.ban] || '') : (pf.url || '')) : '';
+  if (pf && pfUrl) {
+    $('portfolioCard').style.display = 'flex';
+    $('portfolioTitle').textContent = pf.title || '나의 패들렛';
+    $('portfolioDesc').textContent = pf.desc || '';
+    $('portfolioLinkBtn').href = pfUrl;
+  } else {
+    $('portfolioCard').style.display = 'none';
   }
 
   /* 학기 총평 피드백 (차시에 속하지 않는 피드백) */
