@@ -31,6 +31,10 @@
  *   - urlByBan : 반마다 링크가 다를 때 url 대신 사용. { 5:"...", 6:"...", 7:"...", 8:"..." } 형태.
  *   - title / desc : 학생에게 보이는 이름과 한 줄 설명
  *
+ * portfolio (학년 객체 안, lessons와 같은 레벨) : 학기 내내 반마다 같은 링크를 계속 쓰는
+ *   고정 카드(예: 패들렛 포트폴리오). "차시"가 아니라서 완료 체크·포인트 대상이 아니고,
+ *   포털 상단에 항상 노출됨. { title, desc, url 또는 urlByBan } 형태.
+ *
  * 활동이 완성될 때마다 여기 한 줄씩 추가/수정하고 GitHub에 올리면 끝.
  * ════════════════════════════════════════════════════════ */
 window.PORTAL_CONFIG = {
@@ -89,6 +93,21 @@ window.PORTAL_CONFIG = {
     3: {
       subject: "한국사",
       unitQuestion: "",   // 단원 바뀌면 문구 입력
+
+      // 패들렛 포트폴리오 — 학기 내내 반마다 같은 보드를 계속 씀(학생이 자기 칸에 글을 계속 쌓는 방식).
+      // 활동(차시) 하나가 아니라서 lessons 배열에 넣지 않고, 포털 상단에 항상 고정 카드로 노출.
+      // 완료 체크·포인트 집계 대상 아님 — 기록은 Padlet 자체(엑셀 내보내기)로 관리.
+      portfolio: {
+        title: "나의 역사 패들렛",
+        desc: "활동에서 정리한 생각을 우리 반 패들렛에 계속 쌓아가요. 학기 내내 같은 보드를 사용해요.",
+        urlByBan: {
+          5: "https://padlet.com/dy_sch03/2026-2-3-5-cewq8vec8p3ew2yn",
+          6: "https://padlet.com/dy_sch03/2026-2-3-6-2xngg3v8pstkvld9",
+          7: "https://padlet.com/dy_sch03/2026-2-3-7-8ssvnriy75f7xwxs",
+          8: "https://padlet.com/dy_sch03/2026-2-3-8-gsrz2i3ca863675l"
+        }
+      },
+
       lessons: [
         {
           id: "고려거란관계게임",
@@ -96,18 +115,6 @@ window.PORTAL_CONFIG = {
           desc: "993년과 1019년, 두 번의 갈림길에서 신하가 되어 직접 명을 내리고 실제 역사와 비교해요.",
           type: "module",
           url: "https://hyonnie-t.github.io/Goryeo-Khitan/"
-        },
-        {
-          id: "패들렛_고려거란",
-          title: "패들렛 글쓰기: 고려의 거란 대응",
-          desc: "활동에서 정리한 생각을 복사해서 우리 반 패들렛에 옮겨 적어요.",
-          type: "padlet",
-          urlByBan: {
-            5: "https://padlet.com/dy_sch03/2026-2-3-5-cewq8vec8p3ew2yn",
-            6: "https://padlet.com/dy_sch03/2026-2-3-6-2xngg3v8pstkvld9",
-            7: "https://padlet.com/dy_sch03/2026-2-3-7-8ssvnriy75f7xwxs",
-            8: "https://padlet.com/dy_sch03/2026-2-3-8-gsrz2i3ca863675l"
-          }
         }
       ]
     }
