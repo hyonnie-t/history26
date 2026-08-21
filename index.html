@@ -819,7 +819,7 @@ function renderPortal(){
   });
 
   /* KPI: 진행률 */
-  const active = cur.lessons.filter(l => l.url);
+  const active = cur.lessons.filter(l => l.url || l.urlByBan);
   const doneCount = active.filter(l => doneIds.has(l.id)).length;
   const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
   $('progressDone').textContent = doneCount;
@@ -924,7 +924,8 @@ function renderPortal(){
 
   tl.innerHTML = cur.lessons.map((l, i) => {
     const done = doneIds.has(l.id);
-    const building = !l.url;
+    const url = lessonUrl(l);
+    const building = !url;
     const rec = achieveMap[l.id];
     const latest = latestMap[l.id];
     const typeLabel = { module:"탐구 활동", padlet:"패들렛 글쓰기", link:"외부 활동" }[l.type] || "활동";
@@ -990,10 +991,10 @@ function renderPortal(){
     if(building){
       actions = `<span class="badge-wait">🔨 준비 중이에요</span>`;
     } else if(l.type === 'module'){
-      actions = `<a class="btn-go" href="${withStudentParams(l.url)}" target="_blank" rel="noopener">
+      actions = `<a class="btn-go" href="${withStudentParams(url)}" target="_blank" rel="noopener">
         ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
     } else {
-      actions = `<a class="btn-go" href="${l.url}" target="_blank" rel="noopener">활동 열기 →</a>`
+      actions = `<a class="btn-go" href="${url}" target="_blank" rel="noopener">활동 열기 →</a>`
         + (done ? '' : `<button class="btn-check" data-lesson="${escapeHtml(l.id)}">활동을 끝냈어요 ✓</button>`);
     }
 
@@ -1050,6 +1051,14 @@ function withStudentParams(url){
   const sep = url.includes('?') ? '&' : '?';
   return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
              + '&name=' + encodeURIComponent(SESSION.name);
+}
+
+/* 반마다 링크가 다른 활동(urlByBan) 지원 —
+ * urlByBan이 있으면 로그인한 학생의 반(SESSION.ban) 링크를 골라 쓰고,
+ * 없으면 기존처럼 공통 url을 그대로 씁니다. 해당 반 링크가 없으면 '준비 중'으로 처리됩니다. */
+function lessonUrl(l){
+  if (l.urlByBan) return l.urlByBan[SESSION.ban] || '';
+  return l.url || '';
 }
 
 /* ── 유틸 ── */
@@ -1216,7 +1225,7 @@ function renderDash(){
   const ban = $('selBan').value;
   const act = $('selActivity').value;
   const lessons = CONFIG.CURRICULUM[grade].lessons;
-  const activeLessons = lessons.filter(l => l.url);
+  const activeLessons = lessons.filter(l => l.url || l.urlByBan);
   const rows = dashFilteredRows();
 
   /* 미검토 AI 코멘트 알림 */
