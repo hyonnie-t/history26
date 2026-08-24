@@ -8,7 +8,7 @@
  * 이 파일은 페이지 로딩 시점에 CONFIG.CURRICULUM을 API로 덮어씁니다.
  * ════════════════════════════════════════════════════════ */
 window.PORTAL_CONFIG = {
-  WEBAPP_URL: "여기에_웹앱_URL_붙여넣기",
+  WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyXSjCfWY_HiZFqW_OBR-FQDoIfF1z_STqyKWUI31MacHeY3u7hbirFSFDvW-5yuUHaJQ/exec",
 
   // 탐구 포인트: 활동 "완료"마다 적립 (달성도와 무관 — 참여 기반)
   POINTS_PER_LESSON: 100,
