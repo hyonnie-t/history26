@@ -531,8 +531,19 @@ button{font-family:inherit; cursor:pointer;}
 .an-item .an-toggle:hover{border-color:var(--ochre); color:var(--ochre);}
 
 /* 커리큘럼 관리 (교사 대시보드) */
+.cl-collapse{
+  background:#FAFAF6; border:1px solid var(--line); border-radius:10px; margin-bottom:14px;
+}
+.cl-collapse summary{
+  list-style:none; cursor:pointer; display:flex; align-items:center; gap:6px;
+  padding:12px 14px; font-size:.9rem; font-weight:700;
+}
+.cl-collapse summary::-webkit-details-marker{display:none;}
+.cl-collapse summary .cl-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.8rem;}
+.cl-collapse[open] summary .cl-arrow{transform:rotate(90deg);}
+.cl-collapse .cl-collapse-body{padding:0 14px 14px;}
 .gi-block{
-  background:#FAFAF6; border:1px solid var(--line); border-radius:10px;
+  background:var(--card); border:1px solid var(--line); border-radius:10px;
   padding:12px 14px; margin-bottom:10px;
 }
 .gi-block h4{font-size:.9rem; font-weight:700; margin-bottom:8px;}
@@ -546,6 +557,26 @@ button{font-family:inherit; cursor:pointer;}
   margin-top:8px; background:var(--indigo); color:#fff; border:none; border-radius:999px;
   padding:7px 16px; font-size:.83rem; font-weight:700; cursor:pointer;
 }
+.cl-form{display:flex; flex-direction:column; gap:8px; margin-bottom:6px;}
+.cl-form .cl-row{display:flex; gap:8px; flex-wrap:wrap;}
+.cl-form input[type=text], .cl-form select{
+  min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;
+  font-family:inherit; font-size:.9rem; box-sizing:border-box;
+}
+.cl-form textarea{
+  min-height:52px; max-height:140px; padding:9px 11px; border:1.5px solid var(--line);
+  border-radius:8px; font-family:inherit; font-size:.9rem; box-sizing:border-box; resize:vertical;
+}
+.cl-form .cl-hint{font-size:.8rem; color:var(--ink-soft);}
+.cl-form button{
+  align-self:flex-start; background:var(--ochre); color:#fff; border:none; border-radius:999px;
+  padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer;
+}
+.cl-grade-head{
+  font-family:var(--font-display); font-size:.9rem; font-weight:700; color:var(--ochre);
+  margin:14px 0 4px; padding-top:10px; border-top:1px solid var(--line);
+}
+.cl-grade-head:first-child{margin-top:0; padding-top:0; border-top:none;}
 .cl-item{padding:9px 0; border-top:1px dashed var(--line); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;}
 .cl-item:first-of-type{border-top:none; padding-top:0;}
 .cl-item .cl-meta{font-size:.78rem; color:var(--ink-soft);}
@@ -863,36 +894,41 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
   </div>
 
   <div class="dash-panel" id="panelCurriculum" style="display:none;">
-    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;">
+    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
       오타 수정처럼 간단한 건 시트를 직접 열어 고쳐도 돼요. 여기는 "새 활동 추가"와 "공개/비공개 전환" 전용이에요.
       새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
     </p>
 
-    <h3 style="font-family:var(--font-display); font-size:.95rem; margin-bottom:8px;">학년 정보 (단원 관통 질문 · 포트폴리오)</h3>
-    <div id="giForm"></div>
+    <details class="cl-collapse">
+      <summary>🏫 학년 정보 (단원 관통 질문 · 포트폴리오) <span class="cl-arrow">▶</span></summary>
+      <div class="cl-collapse-body">
+        <div id="giForm"></div>
+      </div>
+    </details>
 
-    <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">새 활동 추가</h3>
-    <div class="an-add-form" style="flex-direction:column; align-items:stretch;">
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <h3 style="font-family:var(--font-display); font-size:.95rem; margin:16px 0 8px;">새 활동 추가</h3>
+    <div class="cl-form">
+      <div class="cl-row">
         <select id="clGrade"></select>
         <select id="clType">
           <option value="module">module (게임·HTML 활동)</option>
           <option value="padlet">padlet (패들렛 글쓰기)</option>
           <option value="link">link (기타 외부 링크)</option>
         </select>
-        <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px; min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
+        <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px;">
       </div>
-      <input id="clTitle" type="text" placeholder="제목" style="min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
-      <textarea id="clDesc" placeholder="한 줄 설명"></textarea>
-      <label style="font-size:.85rem; color:var(--ink-soft);">
+      <input id="clTitle" type="text" placeholder="제목">
+      <input id="clDesc" type="text" placeholder="한 줄 설명">
+      <label class="cl-hint">
         링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
       </label>
-      <textarea id="clUrl" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
+      <textarea id="clUrl" rows="2" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
       <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
         <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
       </label>
-      <button id="btnAddLesson" onclick="dashAddLesson(this)" style="align-self:flex-start;">활동 추가</button>
+      <button id="btnAddLesson" onclick="dashAddLesson(this)">활동 추가</button>
     </div>
+
 
     <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">등록된 활동</h3>
     <div id="clList"></div>
@@ -1721,14 +1757,23 @@ function dashRenderLessons(){
     return;
   }
   const sorted = [...LESSONS_ADMIN].sort((a,b) => Number(a.grade) - Number(b.grade) || new Date(a.timestamp) - new Date(b.timestamp));
-  list.innerHTML = sorted.map(l => `
-    <div class="cl-item">
-      <div>
-        <div class="cl-meta">${l.grade}학년 · ${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}</div>
-        <div class="cl-title">${escapeHtml(l.title)}</div>
-      </div>
-      <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
-    </div>`).join('');
+  let html = '';
+  let curGrade = null;
+  sorted.forEach(l => {
+    if(l.grade !== curGrade){
+      curGrade = l.grade;
+      html += `<h4 class="cl-grade-head">${curGrade}학년</h4>`;
+    }
+    html += `
+      <div class="cl-item">
+        <div>
+          <div class="cl-meta">${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}</div>
+          <div class="cl-title">${escapeHtml(l.title)}</div>
+        </div>
+        <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
+      </div>`;
+  });
+  list.innerHTML = html;
 }
 
 async function dashAddLesson(btn){
