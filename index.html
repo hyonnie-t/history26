@@ -467,18 +467,25 @@ button{font-family:inherit; cursor:pointer;}
   font-size:.92rem; color:var(--indigo);
 }
 .ai-notice b{font-weight:700;}
+
+/* 대시보드 탭 */
+.dash-tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; border-bottom:1px solid var(--line);}
+.dash-tab{
+  position:relative; background:transparent; border:none; cursor:pointer;
+  font-family:inherit; font-size:.92rem; font-weight:600; color:var(--ink-soft);
+  padding:10px 16px; border-bottom:3px solid transparent; margin-bottom:-1px;
+}
+.dash-tab:hover{color:var(--ink);}
+.dash-tab.active{color:var(--indigo); border-bottom-color:var(--indigo);}
+.dash-tab .dq-badge{position:relative; top:-1px; margin-left:2px;}
+.dash-panel{animation:fadeIn .15s ease;}
+@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+
 .dash-questions{
   background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
   box-shadow:var(--shadow); padding:16px 18px; margin-bottom:14px;
 }
-.dash-questions summary{
-  list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px;
-  font-family:var(--font-display); font-size:1.02rem; font-weight:700;
-}
-.dash-questions summary::-webkit-details-marker{display:none;}
-.dash-questions summary .dq-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.85rem;}
-.dash-questions[open] summary .dq-arrow{transform:rotate(90deg);}
-.dash-questions .dq-badge{
+.dq-badge{
   background:var(--seal); color:#fff; font-size:.74rem; font-weight:700;
   border-radius:999px; padding:1px 9px; margin-left:2px;
 }
@@ -779,114 +786,116 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
     </div>
   </div>
 
-  <div class="ai-notice" id="aiNotice">
-    🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b> — 학생 화면에 이미 표시되고 있어요.
-    학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
+  <div class="dash-tabs">
+    <button class="dash-tab active" data-tab="records" onclick="switchDashTab('records')">📋 학생 기록</button>
+    <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">💬 질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
+    <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">📢 공지 관리</button>
+    <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
   </div>
 
-  <details class="dash-questions" id="dashQuestions">
-    <summary>💬 질문함 <span class="dq-arrow">▶</span><span class="dq-badge" id="dqBadge" style="display:none;"></span></summary>
-    <div id="dqList" style="margin-top:10px;"></div>
-  </details>
-
-  <details class="dash-questions" id="dashAnnouncements" open>
-    <summary>📢 공지 관리 <span class="dq-arrow">▶</span></summary>
-    <div style="margin-top:10px;">
-      <div class="an-add-form">
-        <select id="anGrade"></select>
-        <select id="anBan">
-          <option value="전체">전체 반</option>
-          <option value="1">1반</option><option value="2">2반</option>
-          <option value="3">3반</option><option value="4">4반</option>
-          <option value="5">5반</option><option value="6">6반</option>
-          <option value="7">7반</option><option value="8">8반</option>
-        </select>
-        <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
-        <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
-      </div>
-      <div id="anList"></div>
+  <div class="dash-panel" id="panelRecords">
+    <div class="ai-notice" id="aiNotice">
+      🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b> — 학생 화면에 이미 표시되고 있어요.
+      학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
     </div>
-  </details>
 
-  <details class="dash-questions" id="dashCurriculum">
-    <summary>📚 커리큘럼 관리 <span class="dq-arrow">▶</span></summary>
-    <div style="margin-top:10px;">
-      <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;">
-        오타 수정처럼 간단한 건 시트를 직접 열어 고쳐도 돼요. 여기는 "새 활동 추가"와 "공개/비공개 전환" 전용이에요.
-        새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
-      </p>
+    <div class="filters">
+      <label for="selGrade">학년</label>
+      <select id="selGrade"></select>
+      <label for="selBan">반</label>
+      <select id="selBan"></select>
+      <label for="selActivity">활동</label>
+      <select id="selActivity"></select>
+      <span class="spacer"></span>
+      <span id="rowCount" style="font-size:.85rem;color:var(--ink-soft);"></span>
+    </div>
 
-      <h3 style="font-family:var(--font-display); font-size:.95rem; margin-bottom:8px;">학년 정보 (단원 관통 질문 · 포트폴리오)</h3>
-      <div id="giForm"></div>
-
-      <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">새 활동 추가</h3>
-      <div class="an-add-form" style="flex-direction:column; align-items:stretch;">
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <select id="clGrade"></select>
-          <select id="clType">
-            <option value="module">module (게임·HTML 활동)</option>
-            <option value="padlet">padlet (패들렛 글쓰기)</option>
-            <option value="link">link (기타 외부 링크)</option>
-          </select>
-          <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px; min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
+    <div class="summary">
+      <div class="sum-card">
+        <h3>기록이 있는 학생</h3>
+        <div class="big"><span id="sumStudents">0</span><small>명</small></div>
+      </div>
+      <div class="sum-card">
+        <h3>평균 진행률</h3>
+        <div class="big"><span id="sumProgress">0</span><small>%</small></div>
+      </div>
+      <div class="sum-card">
+        <h3>성취수준 분포 <small id="distScope"></small></h3>
+        <div class="dist-bar" id="distBar"></div>
+        <div class="dist-legend">
+          <span><i class="dist-sang"></i>상 <b id="cntSang">0</b></span>
+          <span><i class="dist-jung"></i>중 <b id="cntJung">0</b></span>
+          <span><i class="dist-ha"></i>하 <b id="cntHa">0</b></span>
         </div>
-        <input id="clTitle" type="text" placeholder="제목" style="min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
-        <textarea id="clDesc" placeholder="한 줄 설명"></textarea>
-        <label style="font-size:.85rem; color:var(--ink-soft);">
-          링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
-        </label>
-        <textarea id="clUrl" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
-        <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
-          <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
-        </label>
-        <button id="btnAddLesson" onclick="dashAddLesson(this)" style="align-self:flex-start;">활동 추가</button>
       </div>
-
-      <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">등록된 활동</h3>
-      <div id="clList"></div>
-    </div>
-  </details>
-
-  <div class="filters">
-    <label for="selGrade">학년</label>
-    <select id="selGrade"></select>
-    <label for="selBan">반</label>
-    <select id="selBan"></select>
-    <label for="selActivity">활동</label>
-    <select id="selActivity"></select>
-    <span class="spacer"></span>
-    <span id="rowCount" style="font-size:.85rem;color:var(--ink-soft);"></span>
-  </div>
-
-  <div class="summary">
-    <div class="sum-card">
-      <h3>기록이 있는 학생</h3>
-      <div class="big"><span id="sumStudents">0</span><small>명</small></div>
-    </div>
-    <div class="sum-card">
-      <h3>평균 진행률</h3>
-      <div class="big"><span id="sumProgress">0</span><small>%</small></div>
-    </div>
-    <div class="sum-card">
-      <h3>성취수준 분포 <small id="distScope"></small></h3>
-      <div class="dist-bar" id="distBar"></div>
-      <div class="dist-legend">
-        <span><i class="dist-sang"></i>상 <b id="cntSang">0</b></span>
-        <span><i class="dist-jung"></i>중 <b id="cntJung">0</b></span>
-        <span><i class="dist-ha"></i>하 <b id="cntHa">0</b></span>
+      <div class="sum-card">
+        <h3>분류태그 상위</h3>
+        <div class="tag-list" id="tagList"><span class="muted">—</span></div>
       </div>
     </div>
-    <div class="sum-card">
-      <h3>분류태그 상위</h3>
-      <div class="tag-list" id="tagList"><span class="muted">—</span></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
     </div>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead id="tableHead"></thead>
-      <tbody id="tableBody"></tbody>
-    </table>
+  <div class="dash-panel" id="panelQuestions" style="display:none;">
+    <div id="dqList"></div>
+  </div>
+
+  <div class="dash-panel" id="panelAnnounce" style="display:none;">
+    <div class="an-add-form">
+      <select id="anGrade"></select>
+      <select id="anBan">
+        <option value="전체">전체 반</option>
+        <option value="1">1반</option><option value="2">2반</option>
+        <option value="3">3반</option><option value="4">4반</option>
+        <option value="5">5반</option><option value="6">6반</option>
+        <option value="7">7반</option><option value="8">8반</option>
+      </select>
+      <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
+      <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
+    </div>
+    <div id="anList"></div>
+  </div>
+
+  <div class="dash-panel" id="panelCurriculum" style="display:none;">
+    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;">
+      오타 수정처럼 간단한 건 시트를 직접 열어 고쳐도 돼요. 여기는 "새 활동 추가"와 "공개/비공개 전환" 전용이에요.
+      새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
+    </p>
+
+    <h3 style="font-family:var(--font-display); font-size:.95rem; margin-bottom:8px;">학년 정보 (단원 관통 질문 · 포트폴리오)</h3>
+    <div id="giForm"></div>
+
+    <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">새 활동 추가</h3>
+    <div class="an-add-form" style="flex-direction:column; align-items:stretch;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <select id="clGrade"></select>
+        <select id="clType">
+          <option value="module">module (게임·HTML 활동)</option>
+          <option value="padlet">padlet (패들렛 글쓰기)</option>
+          <option value="link">link (기타 외부 링크)</option>
+        </select>
+        <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px; min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
+      </div>
+      <input id="clTitle" type="text" placeholder="제목" style="min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
+      <textarea id="clDesc" placeholder="한 줄 설명"></textarea>
+      <label style="font-size:.85rem; color:var(--ink-soft);">
+        링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
+      </label>
+      <textarea id="clUrl" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
+      <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
+      </label>
+      <button id="btnAddLesson" onclick="dashAddLesson(this)" style="align-self:flex-start;">활동 추가</button>
+    </div>
+
+    <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">등록된 활동</h3>
+    <div id="clList"></div>
   </div>
 </div>
 
@@ -1568,6 +1577,16 @@ async function enterDash(token){
   }finally{
     btn.disabled = false; btn.textContent = '대시보드 열기';
   }
+}
+
+/* ── 대시보드 탭 전환 ── */
+function switchDashTab(tab){
+  ['records','questions','announce','curriculum'].forEach(t => {
+    $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.dash-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
 }
 
 /* ── 공지 관리 (교사) ── */
