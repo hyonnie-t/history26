@@ -523,6 +523,27 @@ button{font-family:inherit; cursor:pointer;}
 }
 .an-item .an-toggle:hover{border-color:var(--ochre); color:var(--ochre);}
 
+/* 커리큘럼 관리 (교사 대시보드) */
+.gi-block{
+  background:#FAFAF6; border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; margin-bottom:10px;
+}
+.gi-block h4{font-size:.9rem; font-weight:700; margin-bottom:8px;}
+.gi-block label{font-size:.8rem; color:var(--ink-soft); display:block; margin:8px 0 3px;}
+.gi-block input[type=text], .gi-block textarea{
+  width:100%; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;
+  font-family:inherit; font-size:.88rem; box-sizing:border-box;
+}
+.gi-block textarea{min-height:42px;}
+.gi-block button{
+  margin-top:8px; background:var(--indigo); color:#fff; border:none; border-radius:999px;
+  padding:7px 16px; font-size:.83rem; font-weight:700; cursor:pointer;
+}
+.cl-item{padding:9px 0; border-top:1px dashed var(--line); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;}
+.cl-item:first-of-type{border-top:none; padding-top:0;}
+.cl-item .cl-meta{font-size:.78rem; color:var(--ink-soft);}
+.cl-item .cl-title{font-size:.92rem; font-weight:600;}
+
 .filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
   border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
 .filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
@@ -787,6 +808,45 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
     </div>
   </details>
 
+  <details class="dash-questions" id="dashCurriculum">
+    <summary>📚 커리큘럼 관리 <span class="dq-arrow">▶</span></summary>
+    <div style="margin-top:10px;">
+      <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;">
+        오타 수정처럼 간단한 건 시트를 직접 열어 고쳐도 돼요. 여기는 "새 활동 추가"와 "공개/비공개 전환" 전용이에요.
+        새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
+      </p>
+
+      <h3 style="font-family:var(--font-display); font-size:.95rem; margin-bottom:8px;">학년 정보 (단원 관통 질문 · 포트폴리오)</h3>
+      <div id="giForm"></div>
+
+      <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">새 활동 추가</h3>
+      <div class="an-add-form" style="flex-direction:column; align-items:stretch;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <select id="clGrade"></select>
+          <select id="clType">
+            <option value="module">module (게임·HTML 활동)</option>
+            <option value="padlet">padlet (패들렛 글쓰기)</option>
+            <option value="link">link (기타 외부 링크)</option>
+          </select>
+          <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px; min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
+        </div>
+        <input id="clTitle" type="text" placeholder="제목" style="min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;">
+        <textarea id="clDesc" placeholder="한 줄 설명"></textarea>
+        <label style="font-size:.85rem; color:var(--ink-soft);">
+          링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
+        </label>
+        <textarea id="clUrl" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
+        <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
+        </label>
+        <button id="btnAddLesson" onclick="dashAddLesson(this)" style="align-self:flex-start;">활동 추가</button>
+      </div>
+
+      <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">등록된 활동</h3>
+      <div id="clList"></div>
+    </div>
+  </details>
+
   <div class="filters">
     <label for="selGrade">학년</label>
     <select id="selGrade"></select>
@@ -905,6 +965,20 @@ async function fetchAnnouncements(grade, ban){
   }catch(e){
     return [];
   }
+}
+
+/* 커리큘럼 로딩 (시트 기반) — CONFIG.CURRICULUM을 API 응답으로 채움.
+ * 실패 시 CONFIG.CURRICULUM은 빈 객체로 남고, 로그인 시 "학년 정보를 찾을 수 없어요" 오류로 이어짐. */
+async function loadCurriculum(){
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL + "?mode=curriculum");
+    const data = await res.json();
+    if(data.result === 'success' && data.grades){
+      CONFIG.CURRICULUM = data.grades;
+      return true;
+    }
+  }catch(e){}
+  return false;
 }
 
 /* 책 펼침 연출 → 포털 진입 */
@@ -1448,21 +1522,26 @@ let ROWS = [];
 let FEEDBACKS = [];
 let QUESTIONS = [];
 let ANNOUNCEMENTS_ADMIN = [];
+let LESSONS_ADMIN = [];
+let GRADE_INFO_ADMIN = {};
 let openDetailSid = null;
 
 async function dashLoadData(){
   const base = CONFIG.WEBAPP_URL;
-  const [r1, r2, r3, r4] = await Promise.all([
+  const [r1, r2, r3, r4, r5] = await Promise.all([
     fetch(base + '?token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
     fetch(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
     fetch(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
-    fetch(base + '?mode=announcementsAdmin&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
+    fetch(base + '?mode=announcementsAdmin&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
+    fetch(base + '?mode=curriculumAdmin&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
   ]);
   if(r1.result === 'error') throw new Error(r1.message);
   ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
   FEEDBACKS = (r2.rows || []);
   QUESTIONS = (r3.rows || []);
   ANNOUNCEMENTS_ADMIN = (r4.rows || []);
+  LESSONS_ADMIN = (r5.lessons || []);
+  GRADE_INFO_ADMIN = (r5.gradeInfo || {});
 }
 
 async function enterDash(token){
@@ -1477,9 +1556,12 @@ async function enterDash(token){
     $('dashView').style.display = 'block';
     dashInitFilters();
     dashInitAnnounceForm();
+    dashInitCurriculumForm();
     renderDash();
     dashRenderQuestions();
     dashRenderAnnouncements();
+    dashRenderLessons();
+    dashRenderGradeInfoForm();
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
     $('gateError').style.display = 'block';
@@ -1550,6 +1632,123 @@ async function dashToggleAnnouncement(btn){
     const a = ANNOUNCEMENTS_ADMIN.find(x => String(x._row) === String(row));
     if(a){ a.status = (a.status === '게시') ? '보류' : '게시'; }
     dashRenderAnnouncements();
+  }catch(e){
+    showToast('처리하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ── 커리큘럼 관리 (교사) ── */
+function dashInitCurriculumForm(){
+  const grades = Object.keys(GRADE_INFO_ADMIN);
+  $('clGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+}
+
+function dashRenderGradeInfoForm(){
+  const wrap = $('giForm');
+  const grades = Object.keys(GRADE_INFO_ADMIN);
+  if(!grades.length){
+    wrap.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">학년정보가 아직 없어요. (마이그레이션이 필요할 수 있어요)</p>';
+    return;
+  }
+  wrap.innerHTML = grades.map(g => {
+    const gi = GRADE_INFO_ADMIN[g];
+    return `
+      <div class="gi-block" data-grade="${g}">
+        <h4>${g}학년 ${escapeHtml(gi.subject || '')}</h4>
+        <label>단원 관통 질문</label>
+        <textarea class="gi-uq">${escapeHtml(gi.unitQuestion || '')}</textarea>
+        <label>포트폴리오 제목</label>
+        <input type="text" class="gi-pf-title" value="${escapeHtml(gi.portfolioTitle || '')}">
+        <label>포트폴리오 설명</label>
+        <input type="text" class="gi-pf-desc" value="${escapeHtml(gi.portfolioDesc || '')}">
+        <label>포트폴리오 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
+        <textarea class="gi-pf-url">${escapeHtml(gi.portfolioUrlText || '')}</textarea>
+        <button onclick="dashSaveGradeInfo('${g}', this)">저장</button>
+      </div>`;
+  }).join('');
+}
+
+async function dashSaveGradeInfo(grade, btn){
+  const block = btn.closest('.gi-block');
+  const payload = {
+    action: 'updateGradeInfo', token: TOKEN, grade,
+    subject: (GRADE_INFO_ADMIN[grade] && GRADE_INFO_ADMIN[grade].subject) || '',
+    unitQuestion: block.querySelector('.gi-uq').value.trim(),
+    portfolioTitle: block.querySelector('.gi-pf-title').value.trim(),
+    portfolioDesc: block.querySelector('.gi-pf-desc').value.trim(),
+    portfolioUrlText: block.querySelector('.gi-pf-url').value.trim()
+  };
+  btn.disabled = true; btn.textContent = '저장하는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
+    Object.assign(GRADE_INFO_ADMIN[grade], {
+      unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
+      portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText
+    });
+    showToast('학년정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.');
+  }catch(e){
+    showToast('저장하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '저장';
+  }
+}
+
+function dashRenderLessons(){
+  const list = $('clList');
+  if(!LESSONS_ADMIN.length){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 활동이 없어요.</p>';
+    return;
+  }
+  const sorted = [...LESSONS_ADMIN].sort((a,b) => Number(a.grade) - Number(b.grade) || new Date(a.timestamp) - new Date(b.timestamp));
+  list.innerHTML = sorted.map(l => `
+    <div class="cl-item">
+      <div>
+        <div class="cl-meta">${l.grade}학년 · ${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}</div>
+        <div class="cl-title">${escapeHtml(l.title)}</div>
+      </div>
+      <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
+    </div>`).join('');
+}
+
+async function dashAddLesson(btn){
+  const grade = $('clGrade').value;
+  const id = $('clId').value.trim();
+  const title = $('clTitle').value.trim();
+  const desc = $('clDesc').value.trim();
+  const type = $('clType').value;
+  const url = $('clUrl').value.trim();
+  const isPublic = $('clPublic').checked;
+  if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
+  btn.disabled = true; btn.textContent = '추가하는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic })
+    });
+    $('clId').value = ''; $('clTitle').value = ''; $('clDesc').value = ''; $('clUrl').value = ''; $('clPublic').checked = false;
+    showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
+    await dashLoadData();
+    dashRenderLessons();
+  }catch(e){
+    showToast('추가하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '활동 추가';
+  }
+}
+
+async function dashToggleLessonPublic(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'toggleLessonPublic', token:TOKEN, row })
+    });
+    const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
+    if(l){ l.public = !l.public; }
+    dashRenderLessons();
   }catch(e){
     showToast('처리하지 못했어요. 다시 시도해 주세요.');
   }finally{
@@ -2009,7 +2208,6 @@ function startPreview(){
   $('previewGate').style.display = 'none';
   openBook(true);
 }
-previewInitGradeOptions();
 $('btnPreviewMode').addEventListener('click', () => {
   const g = $('previewGate');
   const open = g.style.display === 'block';
@@ -2024,7 +2222,7 @@ $('selActivity').addEventListener('change', () => renderDash());
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('btnDashRefresh').addEventListener('click', async () => {
   showToast('새로고침 중…');
-  try{ await dashLoadData(); renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); showToast('최신 기록으로 갱신했어요.'); }
+  try{ await dashLoadData(); renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm(); showToast('최신 기록으로 갱신했어요.'); }
   catch(e){ showToast('갱신 실패: ' + e.message); }
 });
 $('btnDashOut').addEventListener('click', () => {
@@ -2033,8 +2231,21 @@ $('btnDashOut').addEventListener('click', () => {
   $('teacherGate').style.display = 'none';
 });
 
-/* ── 자동 로그인 (이전 접속 기억) ── */
-(function(){
+/* ── 초기 부팅: 커리큘럼(시트)을 먼저 불러온 뒤에야 로그인·미리보기·대시보드 필터가
+ * 의미 있는 CONFIG.CURRICULUM을 참조할 수 있음. 그 전엔 로그인 버튼을 잠가 둠. ── */
+(async function initPortal(){
+  const btn = $('btnLogin');
+  btn.disabled = true; btn.textContent = '커리큘럼 불러오는 중…';
+
+  const ok = await loadCurriculum();
+  if(!ok){
+    showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
+  }
+
+  btn.disabled = false; btn.textContent = '책 펼치기';
+  previewInitGradeOptions();
+
+  /* 자동 로그인 (이전 접속 기억) */
   const saved = store.get('portal_session');
   if(saved){
     try{
