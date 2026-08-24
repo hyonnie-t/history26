@@ -216,6 +216,41 @@ button{font-family:inherit; cursor:pointer;}
 .portfolio-card .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
 .portfolio-card .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
 
+/* 질문함 — 학생 ↔ 교사 */
+.question-card{
+  background:var(--card); border:1px solid var(--line);
+  border-left:5px solid var(--indigo); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px;
+}
+.question-card h2{
+  font-family:var(--font-display); font-size:1.02rem; margin-bottom:4px; color:var(--indigo-deep);
+}
+.question-card .q-hint{font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;}
+.question-card .q-form{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+.question-card .q-form textarea{
+  flex:1 1 220px; min-height:60px; resize:vertical; border:1px solid var(--line);
+  border-radius:10px; padding:9px 11px; font-family:var(--font-body); font-size:.92rem;
+}
+.question-card .q-form button{
+  align-self:flex-end; background:var(--indigo); color:#fff; border:none;
+  border-radius:999px; padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer; flex-shrink:0;
+}
+.question-card .q-form button:disabled{opacity:.6; cursor:default;}
+.q-item{padding:10px 0; border-top:1px dashed var(--line); font-size:.93rem;}
+.q-item:first-of-type{border-top:none; padding-top:0;}
+.q-item .q-meta{font-size:.78rem; color:var(--ink-soft); margin-bottom:2px; display:flex; align-items:center; gap:6px;}
+.q-item .q-text{margin-bottom:6px; line-height:1.5;}
+.q-status{
+  display:inline-block; font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 9px;
+}
+.q-status.wait{background:#F3EFE3; color:#8A6A14;}
+.q-status.done{background:#E4EEE8; color:var(--jade);}
+.q-answer{
+  margin-top:6px; background:#F3F5FA; border-radius:10px; padding:8px 12px;
+  font-size:.9rem; line-height:1.5; border-left:3px solid var(--indigo);
+}
+.q-answer b{color:var(--indigo-deep);}
+
 /* 학기 총평 피드백 */
 .feedback-card{
   background:#FFF9EC; border:1px solid #EAD9A8; border-radius:var(--radius);
@@ -419,6 +454,39 @@ button{font-family:inherit; cursor:pointer;}
   font-size:.92rem; color:var(--indigo);
 }
 .ai-notice b{font-weight:700;}
+.dash-questions{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px 18px; margin-bottom:14px;
+}
+.dash-questions summary{
+  list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px;
+  font-family:var(--font-display); font-size:1.02rem; font-weight:700;
+}
+.dash-questions summary::-webkit-details-marker{display:none;}
+.dash-questions summary .dq-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.85rem;}
+.dash-questions[open] summary .dq-arrow{transform:rotate(90deg);}
+.dash-questions .dq-badge{
+  background:var(--seal); color:#fff; font-size:.74rem; font-weight:700;
+  border-radius:999px; padding:1px 9px; margin-left:2px;
+}
+.dq-item{padding:12px 0; border-top:1px dashed var(--line);}
+.dq-item:first-of-type{border-top:none; padding-top:10px;}
+.dq-item .dq-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:4px;}
+.dq-item .dq-text{font-size:.94rem; margin-bottom:8px; line-height:1.5;}
+.dq-item .dq-answer{
+  background:#F3F5FA; border-left:3px solid var(--indigo); border-radius:8px;
+  padding:8px 12px; font-size:.9rem; margin-bottom:6px;
+}
+.dq-reply-form{display:flex; gap:8px; flex-wrap:wrap;}
+.dq-reply-form textarea{
+  flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line);
+  border-radius:8px; font-family:inherit; font-size:.9rem;
+}
+.dq-reply-form button{
+  background:var(--indigo); color:#fff; border:none; border-radius:999px;
+  padding:8px 16px; font-size:.85rem; font-weight:700; cursor:pointer;
+}
+
 .filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
   border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
 .filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
@@ -605,6 +673,16 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
         <div id="feedbackList"></div>
       </section>
 
+      <section class="question-card" aria-label="질문함">
+        <h2>💬 선생님께 질문하기</h2>
+        <p class="q-hint">수업이나 활동 중 궁금한 게 있으면 여기 남겨 주세요. 답이 오면 여기서 확인할 수 있어요.</p>
+        <div class="q-form">
+          <textarea id="questionInput" placeholder="궁금한 점을 적어주세요…"></textarea>
+          <button id="btnAskQuestion" onclick="askQuestion()">질문 보내기</button>
+        </div>
+        <div id="questionList"></div>
+      </section>
+
       <section class="overview-card" id="overviewCard" aria-label="나의 달성도">
         <h2>📜 나의 달성도</h2>
         <div id="overviewList"></div>
@@ -643,6 +721,11 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
     🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b> — 학생 화면에 이미 표시되고 있어요.
     학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
   </div>
+
+  <details class="dash-questions" id="dashQuestions">
+    <summary>💬 질문함 <span class="dq-arrow">▶</span><span class="dq-badge" id="dqBadge" style="display:none;"></span></summary>
+    <div id="dqList" style="margin-top:10px;"></div>
+  </details>
 
   <div class="filters">
     <label for="selGrade">학년</label>
@@ -935,6 +1018,9 @@ function renderPortal(){
     $('feedbackCard').style.display = 'none';
   }
 
+  /* 질문함 (학생 ↔ 교사) */
+  renderQuestions();
+
   /* 달성도 모아보기 */
   const analyzed = cur.lessons
     .map(l => ({ lesson: l, rec: achieveMap[l.id] }))
@@ -1104,6 +1190,67 @@ async function selfCheck(btn){
   }
 }
 
+/* ── 질문함: 목록 렌더 ── */
+function renderQuestions(){
+  const list = $('questionList');
+  if(!list) return;
+  const qs = (STUDENT_DATA && STUDENT_DATA.questions) || [];
+  if(!qs.length){
+    list.innerHTML = '<p class="q-hint" style="margin:0;">아직 남긴 질문이 없어요.</p>';
+    return;
+  }
+  const sorted = [...qs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  list.innerHTML = sorted.map(q => {
+    const done = q.status === '답변완료';
+    return `
+      <div class="q-item">
+        <div class="q-meta">
+          ${formatDate(q.timestamp)}
+          <span class="q-status ${done ? 'done' : 'wait'}">${done ? '답변완료' : '대기중'}</span>
+        </div>
+        <div class="q-text">${escapeHtml(q.question)}</div>
+        ${done ? `<div class="q-answer"><b>선생님 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+/* ── 질문함: 보내기 ── */
+async function askQuestion(){
+  if(PREVIEW_MODE){
+    showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
+    return;
+  }
+  const input = $('questionInput');
+  const text = input.value.trim();
+  if(!text){ showToast('질문 내용을 입력해 주세요.'); return; }
+  const btn = $('btnAskQuestion');
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'askQuestion',
+        studentId: SESSION.studentId,
+        studentName: SESSION.name,
+        grade: SESSION.grade,
+        ban: SESSION.ban,
+        question: text
+      })
+    });
+    STUDENT_DATA.questions = STUDENT_DATA.questions || [];
+    STUDENT_DATA.questions.push({
+      timestamp: new Date().toISOString(), question: text, answer: '', status: '대기'
+    });
+    input.value = '';
+    showToast('질문을 보냈어요. 답이 오면 여기서 확인할 수 있어요.');
+    renderQuestions();
+  }catch(e){
+    showToast('보내지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '질문 보내기';
+  }
+}
+
 function withStudentParams(url){
   const sep = url.includes('?') ? '&' : '?';
   return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
@@ -1203,17 +1350,20 @@ $('btnExitPreview').addEventListener('click', exitToLogin);
 let TOKEN = '';
 let ROWS = [];
 let FEEDBACKS = [];
+let QUESTIONS = [];
 let openDetailSid = null;
 
 async function dashLoadData(){
   const base = CONFIG.WEBAPP_URL;
-  const [r1, r2] = await Promise.all([
+  const [r1, r2, r3] = await Promise.all([
     fetch(base + '?token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
-    fetch(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
+    fetch(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
+    fetch(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
   ]);
   if(r1.result === 'error') throw new Error(r1.message);
   ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
   FEEDBACKS = (r2.rows || []);
+  QUESTIONS = (r3.rows || []);
 }
 
 async function enterDash(token){
@@ -1228,11 +1378,67 @@ async function enterDash(token){
     $('dashView').style.display = 'block';
     dashInitFilters();
     renderDash();
+    dashRenderQuestions();
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
     $('gateError').style.display = 'block';
   }finally{
     btn.disabled = false; btn.textContent = '대시보드 열기';
+  }
+}
+
+/* ── 질문함 (교사) ── */
+function dashRenderQuestions(){
+  const list = $('dqList');
+  const waiting = QUESTIONS.filter(q => q.status !== '답변완료');
+  const done = QUESTIONS.filter(q => q.status === '답변완료');
+  const sorted = [...waiting, ...done]; // 대기중 먼저
+  const badge = $('dqBadge');
+  if(waiting.length){
+    badge.textContent = waiting.length + '건 대기';
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+  if(!sorted.length){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">아직 들어온 질문이 없어요.</p>';
+    return;
+  }
+  list.innerHTML = sorted.map(q => {
+    const isDone = q.status === '답변완료';
+    return `
+      <div class="dq-item">
+        <div class="dq-meta">${formatDate(q.timestamp)} · ${escapeHtml(q.studentName)} (${escapeHtml(String(q.studentId))}) · ${q.grade}학년 ${q.ban}반
+          <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span>
+        </div>
+        <div class="dq-text">${escapeHtml(q.question)}</div>
+        ${isDone ? `<div class="dq-answer"><b>내 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
+        <div class="dq-reply-form">
+          <textarea class="dq-reply-text" placeholder="${isDone ? '답변을 수정하려면 다시 입력…' : '답변을 입력…'}"></textarea>
+          <button data-row="${q._row}" onclick="dashAnswerQuestion(this)">${isDone ? '답변 수정' : '답변 보내기'}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function dashAnswerQuestion(btn){
+  const wrap = btn.closest('.dq-item');
+  const text = wrap.querySelector('.dq-reply-text').value.trim();
+  if(!text){ showToast('답변 내용을 입력해 주세요.'); return; }
+  const row = btn.dataset.row;
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'answerQuestion', token: TOKEN, row, answer: text })
+    });
+    const q = QUESTIONS.find(x => String(x._row) === String(row));
+    if(q){ q.answer = text; q.status = '답변완료'; }
+    showToast('답변을 보냈어요. 학생 포털의 질문함에 표시됩니다.');
+    dashRenderQuestions();
+  }catch(e){
+    btn.disabled = false; btn.textContent = '답변 보내기';
+    showToast('보내지 못했어요. 다시 시도해 주세요.');
   }
 }
 
@@ -1648,7 +1854,7 @@ $('selActivity').addEventListener('change', () => renderDash());
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('btnDashRefresh').addEventListener('click', async () => {
   showToast('새로고침 중…');
-  try{ await dashLoadData(); renderDash(); showToast('최신 기록으로 갱신했어요.'); }
+  try{ await dashLoadData(); renderDash(); dashRenderQuestions(); showToast('최신 기록으로 갱신했어요.'); }
   catch(e){ showToast('갱신 실패: ' + e.message); }
 });
 $('btnDashOut').addEventListener('click', () => {
