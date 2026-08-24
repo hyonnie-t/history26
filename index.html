@@ -216,6 +216,19 @@ button{font-family:inherit; cursor:pointer;}
 .portfolio-card .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
 .portfolio-card .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
 
+/* 공지사항(학년+반별) */
+.announce-card{
+  display:none; background:#FFF6E9; border:1px solid #EBD6A8;
+  border-left:5px solid var(--ochre); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
+}
+.announce-card h2{
+  font-family:var(--font-display); font-size:.98rem; margin-bottom:8px; color:#8A6A14;
+}
+.announce-item{padding:8px 0; border-top:1px dashed #EBD6A8; font-size:.92rem; line-height:1.5;}
+.announce-item:first-of-type{border-top:none; padding-top:0;}
+.announce-item .an-meta{font-size:.76rem; color:var(--ink-soft); margin-bottom:2px;}
+
 /* 질문함 — 학생 ↔ 교사 */
 .question-card{
   background:var(--card); border:1px solid var(--line);
@@ -487,6 +500,29 @@ button{font-family:inherit; cursor:pointer;}
   padding:8px 16px; font-size:.85rem; font-weight:700; cursor:pointer;
 }
 
+/* 공지 관리 (교사 대시보드) — .dash-questions 스타일 재사용 */
+.an-add-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed var(--line);}
+.an-add-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
+.an-add-form textarea{flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;}
+.an-add-form button{
+  background:var(--ochre); color:#fff; border:none; border-radius:999px;
+  padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer;
+}
+.an-item{padding:10px 0; border-top:1px dashed var(--line); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;}
+.an-item:first-of-type{border-top:none; padding-top:0;}
+.an-item .an-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:3px;}
+.an-item .an-text{font-size:.92rem; line-height:1.5;}
+.an-item .an-status{
+  font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 9px; margin-left:6px;
+}
+.an-item .an-status.live{background:#E4EEE8; color:var(--jade);}
+.an-item .an-status.hidden{background:#EFEDE6; color:var(--ink-soft);}
+.an-item .an-toggle{
+  background:transparent; border:1.5px solid var(--line); border-radius:999px;
+  padding:6px 14px; font-size:.8rem; font-weight:600; cursor:pointer; color:var(--ink-soft); flex-shrink:0;
+}
+.an-item .an-toggle:hover{border-color:var(--ochre); color:var(--ochre);}
+
 .filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
   border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
 .filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
@@ -638,6 +674,11 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 
     <!-- 우측 메인 -->
     <main>
+      <section class="announce-card" id="announceCard" aria-label="공지사항">
+        <h2>📢 공지사항</h2>
+        <div id="announceList"></div>
+      </section>
+
       <div class="kpi-grid">
         <div class="kpi">
           <h3>완료한 활동</h3>
@@ -725,6 +766,25 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
   <details class="dash-questions" id="dashQuestions">
     <summary>💬 질문함 <span class="dq-arrow">▶</span><span class="dq-badge" id="dqBadge" style="display:none;"></span></summary>
     <div id="dqList" style="margin-top:10px;"></div>
+  </details>
+
+  <details class="dash-questions" id="dashAnnouncements" open>
+    <summary>📢 공지 관리 <span class="dq-arrow">▶</span></summary>
+    <div style="margin-top:10px;">
+      <div class="an-add-form">
+        <select id="anGrade"></select>
+        <select id="anBan">
+          <option value="전체">전체 반</option>
+          <option value="1">1반</option><option value="2">2반</option>
+          <option value="3">3반</option><option value="4">4반</option>
+          <option value="5">5반</option><option value="6">6반</option>
+          <option value="7">7반</option><option value="8">8반</option>
+        </select>
+        <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
+        <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
+      </div>
+      <div id="anList"></div>
+    </div>
   </details>
 
   <div class="filters">
@@ -823,12 +883,27 @@ async function login(sid, name, silent){
 
     SESSION = { studentId: sid, name, ...parsed };
     STUDENT_DATA = data;
+    STUDENT_DATA.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
     store.set('portal_session', JSON.stringify({ sid, name }));
     openBook(silent);
   }catch(e){
     if(!silent) showLoginError("기록을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.");
   }finally{
     btn.disabled = false; btn.textContent = "책 펼치기";
+  }
+}
+
+/* 공지사항 조회 — 실패해도 로그인 자체는 막지 않도록 별도 try/catch */
+async function fetchAnnouncements(grade, ban){
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=announcements&grade=" + encodeURIComponent(grade)
+      + "&ban=" + encodeURIComponent(ban);
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.result === 'success') ? (data.rows || []) : [];
+  }catch(e){
+    return [];
   }
 }
 
@@ -909,6 +984,8 @@ function renderPortal(){
   $('previewBanner').style.display = PREVIEW_MODE ? 'flex' : 'none';
   $('sideName').textContent = SESSION.name;
   $('sideClass').textContent = `${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
+
+  renderAnnouncements();
 
   const doneIds = new Set(STUDENT_DATA.activities.map(a => String(a.activityId)));
   /* 활동별 성취 기록: "성취수준이 있는 가장 최근 기록" 우선 */
@@ -1190,6 +1267,24 @@ async function selfCheck(btn){
   }
 }
 
+/* ── 공지사항: 목록 렌더 (서버가 이미 학년+반으로 필터링해 내려줌) ── */
+function renderAnnouncements(){
+  const card = $('announceCard');
+  const list = $('announceList');
+  const items = (STUDENT_DATA && STUDENT_DATA.announcements) || [];
+  if(!items.length){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  const sorted = [...items].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  list.innerHTML = sorted.slice(0, 3).map(a => `
+    <div class="announce-item">
+      <div class="an-meta">${formatDate(a.timestamp)}</div>
+      <div>${escapeHtml(a.content)}</div>
+    </div>`).join('');
+}
+
 /* ── 질문함: 목록 렌더 ── */
 function renderQuestions(){
   const list = $('questionList');
@@ -1319,6 +1414,7 @@ async function refreshStudentData(force){
     const data = await res.json();
     if(data.result === 'success'){
       STUDENT_DATA = data;
+      STUDENT_DATA.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
       renderPortal();
       if(force) showToast('최신 기록으로 갱신했어요.');
     }
@@ -1351,19 +1447,22 @@ let TOKEN = '';
 let ROWS = [];
 let FEEDBACKS = [];
 let QUESTIONS = [];
+let ANNOUNCEMENTS_ADMIN = [];
 let openDetailSid = null;
 
 async function dashLoadData(){
   const base = CONFIG.WEBAPP_URL;
-  const [r1, r2, r3] = await Promise.all([
+  const [r1, r2, r3, r4] = await Promise.all([
     fetch(base + '?token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
     fetch(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
-    fetch(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
+    fetch(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
+    fetch(base + '?mode=announcementsAdmin&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
   ]);
   if(r1.result === 'error') throw new Error(r1.message);
   ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
   FEEDBACKS = (r2.rows || []);
   QUESTIONS = (r3.rows || []);
+  ANNOUNCEMENTS_ADMIN = (r4.rows || []);
 }
 
 async function enterDash(token){
@@ -1377,13 +1476,84 @@ async function enterDash(token){
     $('portalView').style.display = 'none';
     $('dashView').style.display = 'block';
     dashInitFilters();
+    dashInitAnnounceForm();
     renderDash();
     dashRenderQuestions();
+    dashRenderAnnouncements();
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
     $('gateError').style.display = 'block';
   }finally{
     btn.disabled = false; btn.textContent = '대시보드 열기';
+  }
+}
+
+/* ── 공지 관리 (교사) ── */
+function dashInitAnnounceForm(){
+  const grades = Object.keys(CONFIG.CURRICULUM);
+  $('anGrade').innerHTML = '<option value="전체">전체 학년</option>' +
+    grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+}
+
+function dashRenderAnnouncements(){
+  const list = $('anList');
+  if(!ANNOUNCEMENTS_ADMIN.length){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 공지가 없어요.</p>';
+    return;
+  }
+  const sorted = [...ANNOUNCEMENTS_ADMIN].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  list.innerHTML = sorted.map(a => {
+    const live = a.status === '게시';
+    return `
+      <div class="an-item">
+        <div>
+          <div class="an-meta">${formatDate(a.timestamp)} · ${a.grade}${a.grade==='전체'?'':'학년'} ${a.ban}${a.ban==='전체'?'':'반'}
+            <span class="an-status ${live?'live':'hidden'}">${live?'게시중':'보류'}</span>
+          </div>
+          <div class="an-text">${escapeHtml(a.content)}</div>
+        </div>
+        <button class="an-toggle" data-row="${a._row}" onclick="dashToggleAnnouncement(this)">${live?'보류로 전환':'다시 게시'}</button>
+      </div>`;
+  }).join('');
+}
+
+async function dashAddAnnouncement(btn){
+  const grade = $('anGrade').value;
+  const ban = $('anBan').value;
+  const content = $('anContent').value.trim();
+  if(!content){ showToast('공지 내용을 입력해 주세요.'); return; }
+  btn.disabled = true; btn.textContent = '게시하는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'addAnnouncement', token:TOKEN, grade, ban, content })
+    });
+    $('anContent').value = '';
+    showToast('공지를 게시했어요.');
+    await dashLoadData();
+    dashRenderAnnouncements();
+  }catch(e){
+    showToast('게시하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '게시';
+  }
+}
+
+async function dashToggleAnnouncement(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'toggleAnnouncement', token:TOKEN, row })
+    });
+    const a = ANNOUNCEMENTS_ADMIN.find(x => String(x._row) === String(row));
+    if(a){ a.status = (a.status === '게시') ? '보류' : '게시'; }
+    dashRenderAnnouncements();
+  }catch(e){
+    showToast('처리하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false;
   }
 }
 
@@ -1854,7 +2024,7 @@ $('selActivity').addEventListener('change', () => renderDash());
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('btnDashRefresh').addEventListener('click', async () => {
   showToast('새로고침 중…');
-  try{ await dashLoadData(); renderDash(); dashRenderQuestions(); showToast('최신 기록으로 갱신했어요.'); }
+  try{ await dashLoadData(); renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); showToast('최신 기록으로 갱신했어요.'); }
   catch(e){ showToast('갱신 실패: ' + e.message); }
 });
 $('btnDashOut').addEventListener('click', () => {
