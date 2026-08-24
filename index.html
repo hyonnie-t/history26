@@ -1,2324 +1,1053 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2학기 역사 탐구 기록</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<style>
-/* ══════════════ 디자인 토큰 ══════════════ */
-:root{
-  --paper:#F6F3EB;        /* 배접지 */
-  --ink:#23262C;          /* 먹 */
-  --ink-soft:#5A5F6A;
-  --indigo:#2E4A7A;       /* 쪽빛 — 주 색 */
-  --indigo-deep:#1F3457;
-  --seal:#B03A2E;         /* 낙관 인주색 */
-  --jade:#3E7C59;         /* 완료 보조 */
-  --ochre:#C9972E;        /* 달성 강조 */
-  --line:#D9D3C4;
-  --card:#FFFFFF;
-  --cover:#5C241C;        /* 책 표지 */
-  --cover-deep:#471B15;
-  --cover-cream:#F3E7D0;  /* 표지 위 글자 */
-  --radius:14px;
-  --shadow:0 2px 10px rgba(35,38,44,.07);
-  --font-display:'Gowun Batang', serif;
-  --font-body:'Pretendard', -apple-system, sans-serif;
-}
-*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
-html{font-size:16px;}
-body{
-  font-family:var(--font-body);
-  background:var(--paper);
-  color:var(--ink);
-  min-height:100vh;
-  line-height:1.6;
-}
-button{font-family:inherit; cursor:pointer;}
-:focus-visible{outline:3px solid var(--indigo); outline-offset:2px; border-radius:4px;}
-@media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{animation:none!important; transition:none!important;}
-}
-
-/* ══════════════ 오프닝 — 책 표지 ══════════════ */
-#loginView{
-  min-height:100vh; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; padding:24px; gap:18px;
-}
-.book-wrap{perspective:1400px;}
-.book{
-  position:relative; width:min(400px, 92vw);
-  background:var(--cover);
-  border-radius:6px 16px 16px 6px;
-  padding:44px 32px 36px 44px;
-  box-shadow:
-    0 18px 40px rgba(35,38,44,.28),
-    inset 0 0 0 1px rgba(243,231,208,.08);
-  transform-origin:left center;
-  transition:transform .7s cubic-bezier(.5,0,.3,1), opacity .45s ease .3s;
-}
-.book::before{ /* 책등 */
-  content:''; position:absolute; left:0; top:0; bottom:0; width:16px;
-  background:var(--cover-deep); border-radius:6px 0 0 6px;
-}
-.book::after{ /* 책배(페이지 단면) */
-  content:''; position:absolute; right:5px; top:7px; bottom:7px; width:5px;
-  background:repeating-linear-gradient(to bottom, #EFE6D2 0 2px, #DCD0B6 2px 4px);
-  border-radius:0 8px 8px 0;
-}
-.book.opening{transform:rotateY(-72deg); opacity:0;}
-.book-frame{ /* 표지 금선 테두리 */
-  border:1.5px solid rgba(243,231,208,.45); border-radius:8px;
-  padding:26px 22px 24px;
-}
-.book-eyebrow{
-  font-size:.82rem; letter-spacing:.4em; color:#D8A468;
-  text-align:center; margin-bottom:10px; font-weight:600;
-}
-.book-title{
-  font-family:var(--font-display); font-size:2rem; font-weight:700;
-  color:var(--cover-cream); text-align:center; line-height:1.35; margin-bottom:6px;
-}
-.book-sub{
-  color:rgba(243,231,208,.75); font-size:.9rem; text-align:center; margin-bottom:24px;
-}
-.book .field{margin-bottom:14px;}
-.book .field label{
-  display:block; font-size:.85rem; font-weight:600; margin-bottom:5px;
-  color:rgba(243,231,208,.85);
-}
-.book .field input{
-  width:100%; min-height:52px; font-size:1.1rem; padding:12px 16px;
-  border:1.5px solid rgba(243,231,208,.35); border-radius:10px;
-  background:#FBF6EA; font-family:var(--font-body); color:var(--ink);
-}
-.book .field input:focus{border-color:#D8A468; outline:none; box-shadow:0 0 0 3px rgba(216,164,104,.25);}
-.book .hint{font-size:.8rem; color:rgba(243,231,208,.6); margin-top:4px;}
-.btn-open{
-  width:100%; min-height:54px; font-size:1.1rem; font-weight:700;
-  background:#D8A468; color:var(--cover-deep); border:none; border-radius:10px;
-  margin-top:6px; transition:background .15s;
-}
-.btn-open:hover{background:#E4B67F;}
-.btn-open:disabled{background:#A78E6E; cursor:wait;}
-.login-error{
-  margin-top:14px; padding:12px 14px; border-radius:8px;
-  background:rgba(243,231,208,.14); color:#F3C9B8; font-size:.9rem; display:none;
-}
-.teacher-entry{text-align:center;}
-.teacher-link{
-  background:none; border:none; color:var(--ink-soft); font-size:.86rem;
-  text-decoration:underline; padding:8px;
-}
-.teacher-link:hover{color:var(--indigo);}
-#teacherGate, #previewGate{
-  display:none; margin-top:10px; text-align:left;
-  background:var(--card); border:1px solid var(--line); border-radius:12px;
-  padding:16px; width:min(340px, 90vw); box-shadow:var(--shadow);
-}
-#teacherGate input, #previewGate input, #previewGate select{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
-  border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7; margin-bottom:10px;}
-#teacherGate input:focus, #previewGate input:focus, #previewGate select:focus{border-color:var(--indigo); outline:none;}
-.btn-gate{
-  width:100%; min-height:48px; font-size:1rem; font-weight:700;
-  background:var(--indigo); color:#fff; border:none; border-radius:10px;
-}
-.btn-gate:hover{background:var(--indigo-deep);}
-.btn-gate:disabled{background:#9AA3B2; cursor:wait;}
-.gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
-
-/* ══════════════ 포털 ══════════════ */
-#portalView{display:none; max-width:960px; margin:0 auto; padding:24px 20px 80px; opacity:0;}
-#portalView.shown{opacity:1; transition:opacity .5s ease;}
-.portal-header{
-  display:flex; align-items:flex-end; justify-content:space-between;
-  gap:12px; margin-bottom:18px; flex-wrap:wrap;
-}
-.portal-eyebrow{font-size:.8rem; letter-spacing:.3em; color:var(--indigo); font-weight:600;}
-.portal-title{font-family:var(--font-display); font-size:1.7rem; font-weight:700;}
-.btn-logout{
-  min-height:40px; padding:8px 16px; font-size:.88rem;
-  background:var(--card); border:1px solid var(--line); border-radius:999px; color:var(--ink-soft);
-}
-.btn-logout:hover{border-color:var(--ink-soft);}
-
-/* 2단 레이아웃 */
-.layout{display:grid; grid-template-columns:250px minmax(0,1fr); gap:18px; align-items:start;}
-@media (max-width:760px){ .layout{grid-template-columns:1fr;} }
-
-/* ── 좌측: 내 서재 ── */
-.side-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:22px 20px; text-align:center;
-  position:sticky; top:16px;
-}
-@media (max-width:760px){ .side-card{position:static;} }
-.tree-box{margin:0 auto 6px; width:170px;}
-.tree-box svg{width:100%; height:auto; display:block;}
-.side-name{font-family:var(--font-display); font-size:1.35rem; font-weight:700;}
-.side-class{font-size:.86rem; color:var(--ink-soft); margin-bottom:12px;}
-.rank-badge{
-  display:inline-flex; align-items:center; gap:6px;
-  background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25);
-  color:var(--indigo); border-radius:999px; padding:6px 16px;
-  font-weight:700; font-size:.95rem; margin-bottom:10px;
-}
-.side-points{
-  font-family:var(--font-display); font-size:1.15rem; color:var(--ochre);
-  font-weight:700; margin-bottom:8px;
-}
-.side-points small{font-family:var(--font-body); font-size:.8rem; color:var(--ink-soft); font-weight:400;}
-.rank-track{height:9px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-bottom:6px;}
-.rank-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--jade), var(--ochre)); border-radius:999px; transition:width .6s ease;}
-.rank-next{font-size:.82rem; color:var(--ink-soft); margin-bottom:12px;}
-.tree-note{
-  font-size:.78rem; color:var(--ink-soft); border-top:1px dashed var(--line);
-  padding-top:10px; line-height:1.5;
-}
-
-/* ── 우측 메인 ── */
-.kpi-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:14px;}
-@media (max-width:560px){ .kpi-grid{grid-template-columns:1fr 1fr;} .kpi-grid .kpi:first-child{grid-column:1/-1;} }
-.kpi{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px 16px;
-}
-.kpi h3{font-size:.82rem; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
-.kpi .big{font-family:var(--font-display); font-size:1.55rem; font-weight:700; color:var(--indigo); line-height:1.2;}
-.kpi .big small{font-size:.85rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
-.kpi .mini-track{height:8px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:8px;}
-.kpi .mini-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); transition:width .6s ease;}
-
-/* 단원 관통 질문 배너 */
-.unit-banner{
-  display:none; background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--seal); border-radius:12px;
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
-}
-.unit-banner .ub-label{
-  font-size:.76rem; letter-spacing:.22em; color:var(--seal); font-weight:700; margin-bottom:2px;
-}
-.unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
-
-/* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 */
-.portfolio-card{
-  display:none; background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--jade); border-radius:12px;
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
-  align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-}
-.portfolio-card .pf-label{
-  font-size:.76rem; letter-spacing:.22em; color:var(--jade); font-weight:700; margin-bottom:2px;
-}
-.portfolio-card .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
-.portfolio-card .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
-
-/* 공지사항(학년+반별) */
-.announce-card{
-  display:none; background:#FFF6E9; border:1px solid #EBD6A8;
-  border-left:5px solid var(--ochre); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
-}
-.announce-card h2{
-  font-family:var(--font-display); font-size:.98rem; margin-bottom:8px; color:#8A6A14;
-}
-.announce-item{padding:8px 0; border-top:1px dashed #EBD6A8; font-size:.92rem; line-height:1.5;}
-.announce-item:first-of-type{border-top:none; padding-top:0;}
-.announce-item .an-meta{font-size:.76rem; color:var(--ink-soft); margin-bottom:2px;}
-
-/* 질문함 — 학생 ↔ 교사 */
-.question-card{
-  background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--indigo); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px;
-}
-.question-card h2{
-  font-family:var(--font-display); font-size:1.02rem; margin-bottom:4px; color:var(--indigo-deep);
-}
-.question-card .q-hint{font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;}
-.question-card .q-form{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
-.question-card .q-form textarea{
-  flex:1 1 220px; min-height:60px; resize:vertical; border:1px solid var(--line);
-  border-radius:10px; padding:9px 11px; font-family:var(--font-body); font-size:.92rem;
-}
-.question-card .q-form button{
-  align-self:flex-end; background:var(--indigo); color:#fff; border:none;
-  border-radius:999px; padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer; flex-shrink:0;
-}
-.question-card .q-form button:disabled{opacity:.6; cursor:default;}
-.q-item{padding:10px 0; border-top:1px dashed var(--line); font-size:.93rem;}
-.q-item:first-of-type{border-top:none; padding-top:0;}
-.q-item .q-meta{font-size:.78rem; color:var(--ink-soft); margin-bottom:2px; display:flex; align-items:center; gap:6px;}
-.q-item .q-text{margin-bottom:6px; line-height:1.5;}
-.q-status{
-  display:inline-block; font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 9px;
-}
-.q-status.wait{background:#F3EFE3; color:#8A6A14;}
-.q-status.done{background:#E4EEE8; color:var(--jade);}
-.q-answer{
-  margin-top:6px; background:#F3F5FA; border-radius:10px; padding:8px 12px;
-  font-size:.9rem; line-height:1.5; border-left:3px solid var(--indigo);
-}
-.q-answer b{color:var(--indigo-deep);}
-
-/* 학기 총평 피드백 */
-.feedback-card{
-  background:#FFF9EC; border:1px solid #EAD9A8; border-radius:var(--radius);
-  padding:16px 20px; margin-bottom:14px; display:none;
-}
-.feedback-card h2{
-  font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px; color:#8A6A14;
-}
-.feedback-item{padding:9px 0; border-top:1px dashed #EAD9A8; font-size:.95rem;}
-.feedback-item:first-of-type{border-top:none; padding-top:0;}
-.feedback-item .fb-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:2px;}
-
-/* 달성도 모아보기 */
-.overview-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px; display:none;
-}
-.overview-card h2{font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px;}
-.overview-item{
-  display:flex; align-items:center; gap:10px; padding:7px 0;
-  border-top:1px dashed var(--line); font-size:.93rem;
-}
-.overview-item:first-of-type{border-top:none; padding-top:0;}
-.overview-item .dots{letter-spacing:2px; color:var(--ochre); flex-shrink:0;}
-.overview-item .ov-title{font-weight:600;}
-
-/* 내 기록 보관함 */
-.archive-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); margin-bottom:14px; display:none; overflow:hidden;
-}
-.archive-card summary{
-  list-style:none; cursor:pointer; padding:15px 20px;
-  font-family:var(--font-display); font-size:1.02rem; font-weight:700;
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-}
-.archive-card summary::-webkit-details-marker{display:none;}
-.archive-card summary .arch-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.85rem;}
-.archive-card[open] summary .arch-arrow{transform:rotate(90deg);}
-.archive-card summary:hover{background:#FBFAF4;}
-.archive-body{padding:0 20px 16px;}
-.archive-hint{font-size:.84rem; color:var(--ink-soft); margin-bottom:10px;}
-.archive-item{
-  border:1px solid var(--line); border-radius:10px; background:#FCFBF7;
-  padding:12px 14px; margin-bottom:10px;
-}
-.archive-item .ar-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:4px;}
-.archive-item .ar-meta b{color:var(--indigo); font-weight:700;}
-.archive-item .ar-text{
-  font-size:.94rem; white-space:pre-wrap; word-break:break-word;
-  font-family:var(--font-display); line-height:1.7;
-}
-
-/* ══════════════ 연표 ══════════════ */
-.timeline-eyebrow{
-  font-size:.78rem; letter-spacing:.28em; color:var(--indigo); font-weight:600;
-  margin:6px 0 10px 2px;
-}
-.timeline{position:relative; padding-left:34px;}
-.timeline::before{
-  content:''; position:absolute; left:11px; top:8px; bottom:8px;
-  width:2px; background:var(--line);
-}
-.lesson{position:relative; margin-bottom:18px;}
-.lesson::before{
-  content:''; position:absolute; left:-30px; top:26px;
-  width:12px; height:12px; border-radius:50%;
-  background:var(--paper); border:2.5px solid var(--ink-soft);
-}
-.lesson.done::before{background:var(--jade); border-color:var(--jade);}
-.lesson.pending-build::before{border-style:dashed; border-color:var(--line);}
-
-.lesson-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:20px 22px; position:relative; overflow:hidden;
-}
-.lesson.pending-build .lesson-card{opacity:.62; background:#FBFAF5;}
-.lesson-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
-.lesson-info{min-width:0;}
-.lesson-type{
-  display:inline-block; font-size:.75rem; font-weight:700; letter-spacing:.06em;
-  padding:3px 10px; border-radius:999px; margin-bottom:8px;
-  background:rgba(46,74,122,.1); color:var(--indigo);
-}
-.lesson-type.t-padlet{background:rgba(62,124,89,.12); color:var(--jade);}
-.lesson-type.t-link{background:rgba(201,151,46,.14); color:#8A6A14;}
-.lesson-title{
-  font-family:var(--font-display); font-size:1.2rem; font-weight:700; line-height:1.4;
-}
-.lesson-desc{font-size:.92rem; color:var(--ink-soft); margin-top:4px;}
-
-/* 낙관 도장 */
-.seal-stamp{
-  flex-shrink:0; width:56px; height:56px; border-radius:8px;
-  border:2.5px solid var(--seal); color:var(--seal);
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-size:1.5rem; font-weight:700;
-  transform:rotate(-6deg);
-  background:
-    radial-gradient(circle at 30% 30%, rgba(176,58,46,.12), transparent 60%),
-    rgba(176,58,46,.05);
-  box-shadow:inset 0 0 0 1px rgba(176,58,46,.25);
-  animation:stampIn .35s ease-out;
-}
-@keyframes stampIn{
-  0%{transform:rotate(-6deg) scale(1.6); opacity:0;}
-  100%{transform:rotate(-6deg) scale(1); opacity:1;}
-}
-
-/* 달성도 */
-.achieve{
-  display:flex; align-items:center; gap:8px; margin-top:14px;
-  padding-top:12px; border-top:1px dashed var(--line);
-  font-size:.9rem; color:var(--ink-soft);
-}
-.achieve .dots{letter-spacing:2px; font-size:1rem; color:var(--ochre);}
-.achieve-summary{
-  margin-top:8px; font-size:.9rem; color:var(--ink-soft);
-  background:var(--paper); border-radius:8px; padding:10px 14px;
-}
-
-/* 카드 안 피드백 (인라인) */
-.note{
-  margin-top:10px; border-radius:10px; padding:10px 14px; font-size:.92rem;
-}
-.note .note-label{
-  display:flex; align-items:center; gap:6px;
-  font-size:.78rem; font-weight:700; margin-bottom:3px;
-}
-.note .note-date{font-weight:400; color:var(--ink-soft); font-size:.76rem; margin-left:auto;}
-.note-ai{background:rgba(46,74,122,.06); border:1px solid rgba(46,74,122,.18);}
-.note-ai .note-label{color:var(--indigo);}
-.note-teacher{background:#EAF4EE; border:1px solid #C4DECF;}
-.note-teacher .note-label{color:var(--jade);}
-.note-teacher .note-text{color:#254A37;}
-
-/* 재도전 배지 */
-.retry-hint{
-  margin-top:10px; font-size:.85rem; color:var(--indigo);
-  background:rgba(46,74,122,.07); border-radius:8px; padding:8px 12px;
-}
-/* 분석 대기 안내 */
-.pending-note{
-  margin-top:10px; font-size:.85rem; color:#8A6A14;
-  background:rgba(201,151,46,.1); border-radius:8px; padding:8px 12px;
-}
-.achieve small{font-size:.78rem; color:var(--ink-soft); font-weight:400;}
-
-/* 카드 하단 액션 */
-.lesson-actions{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;}
-.btn-go{
-  min-height:46px; padding:10px 22px; font-size:1rem; font-weight:700;
-  background:var(--indigo); color:#fff; border:none; border-radius:10px;
-  text-decoration:none; display:inline-flex; align-items:center; gap:6px;
-}
-.btn-go:hover{background:var(--indigo-deep);}
-.btn-check{
-  min-height:46px; padding:10px 20px; font-size:.95rem; font-weight:600;
-  background:var(--card); color:var(--jade); border:1.5px solid var(--jade); border-radius:10px;
-}
-.btn-check:hover{background:rgba(62,124,89,.08);}
-.btn-check:disabled{opacity:.5; cursor:wait;}
-.badge-wait{
-  display:inline-block; font-size:.85rem; color:var(--ink-soft);
-  padding:8px 14px; border:1px dashed var(--line); border-radius:10px;
-}
-
-.status-line{margin-top:22px; text-align:center; color:var(--ink-soft); font-size:.95rem; display:none;}
-.toast{
-  position:fixed; left:50%; bottom:28px; transform:translateX(-50%);
-  background:var(--ink); color:#fff; padding:12px 22px; border-radius:999px;
-  font-size:.95rem; box-shadow:0 4px 16px rgba(0,0,0,.25);
-  opacity:0; pointer-events:none; transition:opacity .25s;
-  max-width:90vw; text-align:center; z-index:50;
-}
-.toast.show{opacity:1;}
-
-@media (max-width:480px){
-  .book{padding:34px 22px 28px 34px;}
-  #portalView{padding:18px 14px 70px;}
-  .lesson-card{padding:16px 16px;}
-  .seal-stamp{width:48px; height:48px; font-size:1.3rem;}
-}
-
-/* ══════════════ 교사 대시보드 ══════════════ */
-#dashView{display:none; max-width:1100px; margin:0 auto; padding:22px 20px 80px;}
-.btn{min-height:46px; padding:10px 20px; font-size:.95rem; font-weight:700;
-  background:var(--indigo); color:#fff; border:none; border-radius:10px;}
-.btn:hover{background:var(--indigo-deep);}
-.btn:disabled{background:#9AA3B2; cursor:wait;}
-.btn-ghost{background:var(--card); color:var(--ink-soft); border:1px solid var(--line); font-weight:600;}
-.btn-ghost:hover{background:var(--paper); color:var(--ink);}
-.btn-sm{min-height:38px; padding:6px 14px; font-size:.86rem;}
-.dash-top{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
-.dash-top h1{font-family:var(--font-display); font-size:1.5rem;}
-.dash-top .eyebrow{font-size:.78rem; letter-spacing:.28em; color:var(--indigo); font-weight:600;}
-.top-actions{display:flex; gap:8px;}
-.ai-notice{
-  display:none; background:rgba(46,74,122,.07); border:1px solid rgba(46,74,122,.22);
-  border-radius:12px; padding:12px 16px; margin-bottom:14px;
-  font-size:.92rem; color:var(--indigo);
-}
-.ai-notice b{font-weight:700;}
-
-/* 대시보드 탭 */
-.dash-tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; border-bottom:1px solid var(--line);}
-.dash-tab{
-  position:relative; background:transparent; border:none; cursor:pointer;
-  font-family:inherit; font-size:.92rem; font-weight:600; color:var(--ink-soft);
-  padding:10px 16px; border-bottom:3px solid transparent; margin-bottom:-1px;
-}
-.dash-tab:hover{color:var(--ink);}
-.dash-tab.active{color:var(--indigo); border-bottom-color:var(--indigo);}
-.dash-tab .dq-badge{position:relative; top:-1px; margin-left:2px;}
-.dash-panel{animation:fadeIn .15s ease;}
-@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
-
-.dash-questions{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 18px; margin-bottom:14px;
-}
-.dq-badge{
-  background:var(--seal); color:#fff; font-size:.74rem; font-weight:700;
-  border-radius:999px; padding:1px 9px; margin-left:2px;
-}
-.dq-item{padding:12px 0; border-top:1px dashed var(--line);}
-.dq-item:first-of-type{border-top:none; padding-top:10px;}
-.dq-item .dq-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:4px;}
-.dq-item .dq-text{font-size:.94rem; margin-bottom:8px; line-height:1.5;}
-.dq-item .dq-answer{
-  background:#F3F5FA; border-left:3px solid var(--indigo); border-radius:8px;
-  padding:8px 12px; font-size:.9rem; margin-bottom:6px;
-}
-.dq-reply-form{display:flex; gap:8px; flex-wrap:wrap;}
-.dq-reply-form textarea{
-  flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line);
-  border-radius:8px; font-family:inherit; font-size:.9rem;
-}
-.dq-reply-form button{
-  background:var(--indigo); color:#fff; border:none; border-radius:999px;
-  padding:8px 16px; font-size:.85rem; font-weight:700; cursor:pointer;
-}
-
-/* 공지 관리 (교사 대시보드) — .dash-questions 스타일 재사용 */
-.an-add-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed var(--line);}
-.an-add-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
-.an-add-form textarea{flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;}
-.an-add-form button{
-  background:var(--ochre); color:#fff; border:none; border-radius:999px;
-  padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer;
-}
-.an-item{padding:10px 0; border-top:1px dashed var(--line); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;}
-.an-item:first-of-type{border-top:none; padding-top:0;}
-.an-item .an-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:3px;}
-.an-item .an-text{font-size:.92rem; line-height:1.5;}
-.an-item .an-status{
-  font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 9px; margin-left:6px;
-}
-.an-item .an-status.live{background:#E4EEE8; color:var(--jade);}
-.an-item .an-status.hidden{background:#EFEDE6; color:var(--ink-soft);}
-.an-item .an-toggle{
-  background:transparent; border:1.5px solid var(--line); border-radius:999px;
-  padding:6px 14px; font-size:.8rem; font-weight:600; cursor:pointer; color:var(--ink-soft); flex-shrink:0;
-}
-.an-item .an-toggle:hover{border-color:var(--ochre); color:var(--ochre);}
-
-/* 커리큘럼 관리 (교사 대시보드) */
-.cl-collapse{
-  background:#FAFAF6; border:1px solid var(--line); border-radius:10px; margin-bottom:14px;
-}
-.cl-collapse summary{
-  list-style:none; cursor:pointer; display:flex; align-items:center; gap:6px;
-  padding:12px 14px; font-size:.9rem; font-weight:700;
-}
-.cl-collapse summary::-webkit-details-marker{display:none;}
-.cl-collapse summary .cl-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.8rem;}
-.cl-collapse[open] summary .cl-arrow{transform:rotate(90deg);}
-.cl-collapse .cl-collapse-body{padding:0 14px 14px;}
-.gi-block{
-  background:var(--card); border:1px solid var(--line); border-radius:10px;
-  padding:12px 14px; margin-bottom:10px;
-}
-.gi-block h4{font-size:.9rem; font-weight:700; margin-bottom:8px;}
-.gi-block label{font-size:.8rem; color:var(--ink-soft); display:block; margin:8px 0 3px;}
-.gi-block input[type=text], .gi-block textarea{
-  width:100%; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;
-  font-family:inherit; font-size:.88rem; box-sizing:border-box;
-}
-.gi-block textarea{min-height:42px;}
-.gi-block button{
-  margin-top:8px; background:var(--indigo); color:#fff; border:none; border-radius:999px;
-  padding:7px 16px; font-size:.83rem; font-weight:700; cursor:pointer;
-}
-.cl-form{display:flex; flex-direction:column; gap:8px; margin-bottom:6px;}
-.cl-form .cl-row{display:flex; gap:8px; flex-wrap:wrap;}
-.cl-form input[type=text], .cl-form select{
-  min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;
-  font-family:inherit; font-size:.9rem; box-sizing:border-box;
-}
-.cl-form textarea{
-  min-height:52px; max-height:140px; padding:9px 11px; border:1.5px solid var(--line);
-  border-radius:8px; font-family:inherit; font-size:.9rem; box-sizing:border-box; resize:vertical;
-}
-.cl-form .cl-hint{font-size:.8rem; color:var(--ink-soft);}
-.cl-form button{
-  align-self:flex-start; background:var(--ochre); color:#fff; border:none; border-radius:999px;
-  padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer;
-}
-.cl-grade-head{
-  font-family:var(--font-display); font-size:.9rem; font-weight:700; color:var(--ochre);
-  margin:14px 0 4px; padding-top:10px; border-top:1px solid var(--line);
-}
-.cl-grade-head:first-child{margin-top:0; padding-top:0; border-top:none;}
-.cl-item{padding:9px 0; border-top:1px dashed var(--line); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;}
-.cl-item:first-of-type{border-top:none; padding-top:0;}
-.cl-item .cl-meta{font-size:.78rem; color:var(--ink-soft);}
-.cl-item .cl-title{font-size:.92rem; font-weight:600;}
-
-.filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
-  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
-.filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
-.filters select{min-height:42px; font-size:.93rem; padding:8px 12px; border:1.5px solid var(--line);
-  border-radius:8px; background:#FCFBF7; font-family:inherit;}
-.filters .spacer{flex:1;}
-.summary{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-bottom:14px;}
-.sum-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 18px;}
-.sum-card h3{font-size:.85rem; color:var(--ink-soft); font-weight:600; margin-bottom:6px;}
-.sum-card .big{font-family:var(--font-display); font-size:1.7rem; font-weight:700; color:var(--indigo);}
-.sum-card .big small{font-size:.9rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
-.dist-bar{display:flex; height:14px; border-radius:999px; overflow:hidden; margin:8px 0 6px; border:1px solid var(--line);}
-.dist-sang{background:var(--ochre);} .dist-jung{background:var(--indigo);} .dist-ha{background:#B9BFC9;}
-.dist-legend{display:flex; gap:12px; font-size:.82rem; color:var(--ink-soft); flex-wrap:wrap;}
-.dist-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px;}
-.tag-list{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
-.tag-chip{font-size:.82rem; background:rgba(46,74,122,.08); color:var(--indigo);
-  border-radius:999px; padding:3px 11px; font-weight:600;}
-.tag-chip small{color:var(--ink-soft); font-weight:400;}
-.table-wrap{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); overflow-x:auto;}
-.table-wrap table{width:100%; border-collapse:collapse; font-size:.9rem; min-width:640px;}
-.table-wrap th{position:sticky; top:0; background:#F0EDE3; text-align:left; padding:11px 14px;
-  font-size:.82rem; color:var(--ink-soft); border-bottom:1.5px solid var(--line); white-space:nowrap;}
-.table-wrap td{padding:10px 14px; border-bottom:1px solid #EEEBE1; vertical-align:middle;}
-tr.student-row{cursor:pointer;}
-tr.student-row:hover td{background:#FBFAF4;}
-.tbl-dots{letter-spacing:2px; color:var(--ochre); white-space:nowrap;}
-.muted{color:#B0B5BE;}
-.prog-mini{display:inline-flex; align-items:center; gap:8px;}
-.prog-mini .track{width:70px; height:8px; background:var(--paper); border:1px solid var(--line);
-  border-radius:999px; overflow:hidden;}
-.prog-mini .fill{height:100%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); display:block;}
-.fb-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--jade); margin-left:6px;}
-tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
-.rec{border:1px solid var(--line); border-radius:10px; background:var(--card); padding:12px 14px; margin-bottom:10px; font-size:.9rem;}
-.rec .rec-head{display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:6px;}
-.rec .rec-title{font-weight:700;}
-.rec .rec-meta{color:var(--ink-soft); font-size:.83rem;}
-.rec dl{display:grid; grid-template-columns:88px 1fr; gap:4px 10px;}
-.rec dt{color:var(--ink-soft); font-size:.83rem;}
-.rec dd{word-break:break-word;}
-.ai-box{
-  margin-top:10px; border:1px solid rgba(46,74,122,.25); background:rgba(46,74,122,.05);
-  border-radius:10px; padding:10px 12px; font-size:.9rem;
-}
-.ai-box .ai-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;}
-.ai-box .ai-title{font-size:.78rem; font-weight:700; color:var(--indigo);}
-.ai-chip{font-size:.72rem; font-weight:700; border-radius:999px; padding:2px 9px;}
-.ai-chip.wait{background:rgba(201,151,46,.16); color:#8A6A14;}
-.ai-chip.ok{background:rgba(62,124,89,.14); color:var(--jade);}
-.ai-actions{display:flex; gap:6px; margin-left:auto; flex-wrap:wrap;}
-.btn-tiny{min-height:32px; padding:3px 11px; font-size:.78rem; font-weight:600;
-  background:var(--card); border:1px solid var(--line); border-radius:8px; color:var(--ink-soft);}
-.btn-tiny:hover{border-color:var(--indigo); color:var(--indigo);}
-.btn-tiny:disabled{opacity:.5; cursor:wait;}
-.ai-edit-area{width:100%; min-height:64px; padding:10px 12px; margin-top:6px;
-  border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7;
-  font-family:inherit; font-size:.9rem; resize:vertical;}
-.fb-history{margin:10px 0;}
-.fb-history .fb-item{font-size:.88rem; padding:8px 12px; background:#FFF9EC;
-  border:1px solid #EAD9A8; border-radius:8px; margin-bottom:6px;}
-.fb-item .fb-meta{font-size:.78rem; color:var(--ink-soft);}
-.fb-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-top:8px;}
-.fb-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
-.fb-form textarea{flex:1; min-width:220px; min-height:42px; padding:10px 12px;
-  border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.92rem; resize:vertical;}
-.empty-line{padding:28px; text-align:center; color:var(--ink-soft);}
-@media (max-width:600px){ #dashView{padding:16px 10px 60px;} }
-</style>
-</head>
-<body>
-
-<!-- ══════════════ 오프닝 — 책 표지 ══════════════ -->
-<div id="loginView">
-  <div class="book-wrap">
-    <div class="book" id="bookCover">
-      <div class="book-frame">
-        <p class="book-eyebrow">2026 · 2학기</p>
-        <h1 class="book-title">역사 탐구 기록</h1>
-        <p class="book-sub">학번과 이름을 쓰면 나의 역사책이 펼쳐져요.</p>
-        <div class="field">
-          <label for="inputId">학번</label>
-          <input id="inputId" type="text" inputmode="numeric" maxlength="5" placeholder="예: 30512" autocomplete="off">
-          <p class="hint">학년·반·번호 5자리 (3학년 5반 12번 → 30512)</p>
-        </div>
-        <div class="field">
-          <label for="inputName">이름</label>
-          <input id="inputName" type="text" placeholder="이름을 입력하세요" autocomplete="off">
-        </div>
-        <button class="btn-open" id="btnLogin">책 펼치기</button>
-        <div class="login-error" id="loginError"></div>
-      </div>
-    </div>
-  </div>
-  <div class="teacher-entry">
-    <button class="teacher-link" id="btnTeacherMode">🔑 교사용 대시보드</button>
-    <div id="teacherGate">
-      <input id="tokenInput" type="password" placeholder="교사 토큰" autocomplete="off">
-      <button class="btn-gate" id="btnGate">대시보드 열기</button>
-      <p class="gate-error" id="gateError"></p>
-    </div>
-    <button class="teacher-link" id="btnPreviewMode">👀 학생 화면 미리보기</button>
-    <div id="previewGate">
-      <label for="previewGrade" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">학년</label>
-      <select id="previewGrade"></select>
-      <label for="previewBan" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">반 (숫자만)</label>
-      <input id="previewBan" type="number" min="1" max="20" value="1">
-      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-soft);margin-bottom:12px;">
-        <input type="checkbox" id="previewSample" style="width:auto;min-height:auto;margin:0;">
-        완료·AI코멘트 예시도 같이 보기
-      </label>
-      <button class="btn-gate" id="btnPreviewStart">미리보기 시작</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════ 포털 ══════════════ -->
-<div id="portalView">
-  <header class="portal-header">
-    <div>
-      <p class="portal-eyebrow" id="portalEyebrow">2학기 · 역사</p>
-      <h1 class="portal-title" id="portalTitle">나의 역사책</h1>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn-logout" id="btnPortalRefresh">↻ 새로고침</button>
-      <button class="btn-logout" id="btnLogout">책 덮기</button>
-    </div>
-  </header>
-
-  <div id="previewBanner" style="display:none; align-items:center; justify-content:space-between; gap:10px; background:var(--seal); color:#fff; padding:10px 16px; border-radius:10px; margin-bottom:14px; font-size:.88rem; font-weight:700;">
-    <span>👀 미리보기 모드 — 실제 학생 기록이 아니에요. 활동 페이지를 열어도 실제로 제출하지 마세요.</span>
-    <button id="btnExitPreview" style="background:#fff; color:var(--seal); border:none; border-radius:999px; padding:6px 14px; font-size:.82rem; font-weight:700; cursor:pointer; flex-shrink:0;">종료</button>
-  </div>
-
-  <div class="layout">
-    <!-- 좌측: 내 서재 -->
-    <aside class="side-card" aria-label="내 탐구 나무">
-      <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
-      <p class="side-name" id="sideName">—</p>
-      <p class="side-class" id="sideClass">—</p>
-      <span class="rank-badge">🏷️ <span id="rankName">견습 사관</span></span>
-      <p class="side-points"><span id="pointsNum">0</span>점 <small>탐구 포인트</small></p>
-      <div class="rank-track"><div class="rank-fill" id="rankFill"></div></div>
-      <p class="rank-next" id="rankNext"></p>
-      <p class="tree-note">활동을 완료하면 나무에 잎이 돋고,<br>다시 도전하면 포인트가 더 쌓여요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
-    </aside>
-
-    <!-- 우측 메인 -->
-    <main>
-      <section class="announce-card" id="announceCard" aria-label="공지사항">
-        <h2>📢 공지사항</h2>
-        <div id="announceList"></div>
-      </section>
-
-      <div class="kpi-grid">
-        <div class="kpi">
-          <h3>완료한 활동</h3>
-          <div class="big"><span id="progressDone">0</span><small> / <span id="progressTotal">0</span> 차시</small></div>
-          <div class="mini-track"><div class="mini-fill" id="progressFill"></div></div>
-        </div>
-        <div class="kpi">
-          <h3>탐구 포인트</h3>
-          <div class="big"><span id="kpiPoints">0</span><small> 점</small></div>
-        </div>
-        <div class="kpi">
-          <h3>선생님 피드백</h3>
-          <div class="big"><span id="kpiFeedback">0</span><small> 개</small></div>
-        </div>
-      </div>
-
-      <section class="unit-banner" id="unitBanner" aria-label="이번 학기의 질문">
-        <p class="ub-label">이번 학기의 질문</p>
-        <p class="ub-q" id="unitQuestion"></p>
-      </section>
-
-      <section class="portfolio-card" id="portfolioCard" aria-label="나의 패들렛 포트폴리오">
-        <div>
-          <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
-          <p class="pf-title" id="portfolioTitle"></p>
-          <p class="pf-desc" id="portfolioDesc"></p>
-        </div>
-        <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
-      </section>
-
-      <section class="feedback-card" id="feedbackCard" aria-label="선생님의 학기 총평">
-        <h2>📮 선생님이 남긴 총평</h2>
-        <div id="feedbackList"></div>
-      </section>
-
-      <section class="question-card" aria-label="질문함">
-        <h2>💬 선생님께 질문하기</h2>
-        <p class="q-hint">수업이나 활동 중 궁금한 게 있으면 여기 남겨 주세요. 답이 오면 여기서 확인할 수 있어요.</p>
-        <div class="q-form">
-          <textarea id="questionInput" placeholder="궁금한 점을 적어주세요…"></textarea>
-          <button id="btnAskQuestion" onclick="askQuestion()">질문 보내기</button>
-        </div>
-        <div id="questionList"></div>
-      </section>
-
-      <section class="overview-card" id="overviewCard" aria-label="나의 달성도">
-        <h2>📜 나의 달성도</h2>
-        <div id="overviewList"></div>
-      </section>
-
-      <details class="archive-card" id="archiveCard">
-        <summary>🗂 내 기록 보관함 <span class="arch-arrow">▶</span></summary>
-        <div class="archive-body">
-          <p class="archive-hint">활동에서 내가 직접 쓴 글이 모여요. 학기 말 자기평가에 활용해 보세요.</p>
-          <div id="archiveList"></div>
-        </div>
-      </details>
-
-      <p class="timeline-eyebrow">학습 연표</p>
-      <div class="timeline" id="timeline"></div>
-      <p class="status-line" id="statusLine"></p>
-    </main>
-  </div>
-</div>
-
-<!-- ══════════════ 교사 대시보드 ══════════════ -->
-<div id="dashView">
-  <div class="dash-top">
-    <div>
-      <p class="eyebrow">2학기 · 통합 학습 포털</p>
-      <h1>교사 대시보드</h1>
-    </div>
-    <div class="top-actions">
-      <button class="btn btn-ghost btn-sm" id="btnCsv">CSV 다운로드</button>
-      <button class="btn btn-ghost btn-sm" id="btnDashRefresh">새로고침</button>
-      <button class="btn btn-ghost btn-sm" id="btnDashOut">나가기</button>
-    </div>
-  </div>
-
-  <div class="dash-tabs">
-    <button class="dash-tab active" data-tab="records" onclick="switchDashTab('records')">📋 학생 기록</button>
-    <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">💬 질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
-    <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">📢 공지 관리</button>
-    <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
-  </div>
-
-  <div class="dash-panel" id="panelRecords">
-    <div class="ai-notice" id="aiNotice">
-      🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b> — 학생 화면에 이미 표시되고 있어요.
-      학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
-    </div>
-
-    <div class="filters">
-      <label for="selGrade">학년</label>
-      <select id="selGrade"></select>
-      <label for="selBan">반</label>
-      <select id="selBan"></select>
-      <label for="selActivity">활동</label>
-      <select id="selActivity"></select>
-      <span class="spacer"></span>
-      <span id="rowCount" style="font-size:.85rem;color:var(--ink-soft);"></span>
-    </div>
-
-    <div class="summary">
-      <div class="sum-card">
-        <h3>기록이 있는 학생</h3>
-        <div class="big"><span id="sumStudents">0</span><small>명</small></div>
-      </div>
-      <div class="sum-card">
-        <h3>평균 진행률</h3>
-        <div class="big"><span id="sumProgress">0</span><small>%</small></div>
-      </div>
-      <div class="sum-card">
-        <h3>성취수준 분포 <small id="distScope"></small></h3>
-        <div class="dist-bar" id="distBar"></div>
-        <div class="dist-legend">
-          <span><i class="dist-sang"></i>상 <b id="cntSang">0</b></span>
-          <span><i class="dist-jung"></i>중 <b id="cntJung">0</b></span>
-          <span><i class="dist-ha"></i>하 <b id="cntHa">0</b></span>
-        </div>
-      </div>
-      <div class="sum-card">
-        <h3>분류태그 상위</h3>
-        <div class="tag-list" id="tagList"><span class="muted">—</span></div>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead id="tableHead"></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="dash-panel" id="panelQuestions" style="display:none;">
-    <div id="dqList"></div>
-  </div>
-
-  <div class="dash-panel" id="panelAnnounce" style="display:none;">
-    <div class="an-add-form">
-      <select id="anGrade"></select>
-      <select id="anBan">
-        <option value="전체">전체 반</option>
-        <option value="1">1반</option><option value="2">2반</option>
-        <option value="3">3반</option><option value="4">4반</option>
-        <option value="5">5반</option><option value="6">6반</option>
-        <option value="7">7반</option><option value="8">8반</option>
-      </select>
-      <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
-      <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
-    </div>
-    <div id="anList"></div>
-  </div>
-
-  <div class="dash-panel" id="panelCurriculum" style="display:none;">
-    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
-      오타 수정처럼 간단한 건 시트를 직접 열어 고쳐도 돼요. 여기는 "새 활동 추가"와 "공개/비공개 전환" 전용이에요.
-      새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
-    </p>
-
-    <details class="cl-collapse">
-      <summary>🏫 학년 정보 (단원 관통 질문 · 포트폴리오) <span class="cl-arrow">▶</span></summary>
-      <div class="cl-collapse-body">
-        <div id="giForm"></div>
-      </div>
-    </details>
-
-    <h3 style="font-family:var(--font-display); font-size:.95rem; margin:16px 0 8px;">새 활동 추가</h3>
-    <div class="cl-form">
-      <div class="cl-row">
-        <select id="clGrade"></select>
-        <select id="clType">
-          <option value="module">module (게임·HTML 활동)</option>
-          <option value="padlet">padlet (패들렛 글쓰기)</option>
-          <option value="link">link (기타 외부 링크)</option>
-        </select>
-        <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px;">
-      </div>
-      <input id="clTitle" type="text" placeholder="제목">
-      <input id="clDesc" type="text" placeholder="한 줄 설명">
-      <label class="cl-hint">
-        링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
-      </label>
-      <textarea id="clUrl" rows="2" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
-      <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
-        <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
-      </label>
-      <button id="btnAddLesson" onclick="dashAddLesson(this)">활동 추가</button>
-    </div>
-
-
-    <h3 style="font-family:var(--font-display); font-size:.95rem; margin:18px 0 8px;">등록된 활동</h3>
-    <div id="clList"></div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script src="config.js"></script>
-<script>
-/* 설정은 config.js에서 불러옵니다 (같은 폴더에 있어야 함) */
-const CONFIG = window.PORTAL_CONFIG;
-if (!CONFIG) {
-  document.body.innerHTML = '<div style="max-width:420px;margin:80px auto;padding:24px;font-family:sans-serif;line-height:1.6">'
-    + '<h2>config.js를 찾을 수 없어요</h2>'
-    + '<p>config.js 파일이 이 HTML과 같은 폴더에 있는지 확인해 주세요.</p></div>';
-  throw new Error('config.js 없음');
-}
-
-/* ════════════════════════════════════════════════════════ */
-const $ = id => document.getElementById(id);
-let SESSION = null;      // { studentId, name, grade, ban, num }
-let STUDENT_DATA = null; // 서버 응답 { activities, feedback }
-let PREVIEW_MODE = false; // 교사용 "학생 화면 미리보기"에서 true — 실제 기록/조회 없이 화면만 확인
-
-const store = {
-  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
-  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
-};
-
-function parseStudentId(sid){
-  if(!/^\d{5}$/.test(sid)) return null;
-  return { grade: Number(sid[0]), ban: Number(sid.slice(1,3)), num: Number(sid.slice(3,5)) };
-}
-
-/* ── 로그인 ── */
-async function login(sid, name, silent){
-  const parsed = parseStudentId(sid);
-  if(!parsed){ showLoginError("학번은 숫자 5자리예요. 예: 30512"); return; }
-  if(!name){ showLoginError("이름을 입력해 주세요."); return; }
-  if(!CONFIG.CURRICULUM[parsed.grade]){
-    showLoginError("이 학번의 학년 정보를 찾을 수 없어요. 학번을 다시 확인해 주세요."); return;
-  }
-
-  const btn = $('btnLogin');
-  btn.disabled = true; btn.textContent = "책을 펼치는 중…";
-  $('loginError').style.display = 'none';
-
-  try{
-    const url = CONFIG.WEBAPP_URL
-      + "?mode=student&studentId=" + encodeURIComponent(sid)
-      + "&name=" + encodeURIComponent(name);
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
-
-    SESSION = { studentId: sid, name, ...parsed };
-    STUDENT_DATA = data;
-    STUDENT_DATA.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
-    store.set('portal_session', JSON.stringify({ sid, name }));
-    openBook(silent);
-  }catch(e){
-    if(!silent) showLoginError("기록을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.");
-  }finally{
-    btn.disabled = false; btn.textContent = "책 펼치기";
-  }
-}
-
-/* 공지사항 조회 — 실패해도 로그인 자체는 막지 않도록 별도 try/catch */
-async function fetchAnnouncements(grade, ban){
-  try{
-    const url = CONFIG.WEBAPP_URL
-      + "?mode=announcements&grade=" + encodeURIComponent(grade)
-      + "&ban=" + encodeURIComponent(ban);
-    const res = await fetch(url);
-    const data = await res.json();
-    return (data.result === 'success') ? (data.rows || []) : [];
-  }catch(e){
-    return [];
-  }
-}
-
-/* 커리큘럼 로딩 (시트 기반) — CONFIG.CURRICULUM을 API 응답으로 채움.
- * 실패 시 CONFIG.CURRICULUM은 빈 객체로 남고, 로그인 시 "학년 정보를 찾을 수 없어요" 오류로 이어짐. */
-async function loadCurriculum(){
-  try{
-    const res = await fetch(CONFIG.WEBAPP_URL + "?mode=curriculum");
-    const data = await res.json();
-    if(data.result === 'success' && data.grades){
-      CONFIG.CURRICULUM = data.grades;
-      return true;
-    }
-  }catch(e){}
-  return false;
-}
-
-/* 책 펼침 연출 → 포털 진입 */
-function openBook(instant){
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(instant || reduce){ renderPortal(); return; }
-  $('bookCover').classList.add('opening');
-  setTimeout(renderPortal, 650);
-}
-
-function showLoginError(msg){
-  const err = $('loginError');
-  err.textContent = msg; err.style.display = 'block';
-}
-
-/* ── 탐구 나무 SVG ──
- * stage(0~3) = 칭호 단계 / leaves = 완료 활동 수 (참여 기반만 반영, 달성도와 무관) */
-function treeSvg(stage, leaves){
-  const trunk = '#7A5230', crownA = '#3E7C59', crownB = '#5C9C77', ground = '#E4DECB';
-  const leafSpots = [
-    [64,52],[100,58],[82,38],[52,70],[112,74],[70,66],[94,46],[58,44],[106,50],[82,58]
-  ];
-  const extra = leafSpots.slice(0, Math.min(leaves, leafSpots.length)).map(p =>
-    `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#8FBE72"/>`).join('');
-  const fruits = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
-    `<circle cx="${p[0]+4}" cy="${p[1]+6}" r="3.5" fill="#B03A2E"/>`).join('');
-  const flowers = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
-    `<circle cx="${p[0]+3}" cy="${p[1]+5}" r="3" fill="#E8C77E"/>`).join('');
-
-  let body = '';
-  if(stage <= 0){
-    body = `
-      <path d="M84 118 L84 96" stroke="${crownA}" stroke-width="5" stroke-linecap="round"/>
-      <path d="M84 102 C70 98 64 86 66 78 C78 80 84 90 84 102 Z" fill="${crownB}"/>
-      <path d="M84 96 C98 92 104 80 102 72 C90 74 84 84 84 96 Z" fill="${crownA}"/>`;
-  } else if(stage === 1){
-    body = `
-      <path d="M84 118 L84 74" stroke="${trunk}" stroke-width="7" stroke-linecap="round"/>
-      <circle cx="84" cy="58" r="24" fill="${crownA}"/>
-      <circle cx="66" cy="70" r="14" fill="${crownB}"/>
-      <circle cx="102" cy="68" r="15" fill="${crownB}"/>
-      ${extra}`;
-  } else if(stage === 2){
-    body = `
-      <path d="M84 118 L84 62" stroke="${trunk}" stroke-width="9" stroke-linecap="round"/>
-      <path d="M84 86 L62 72 M84 76 L106 62" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="84" cy="46" r="27" fill="${crownA}"/>
-      <circle cx="58" cy="64" r="17" fill="${crownB}"/>
-      <circle cx="110" cy="60" r="18" fill="${crownB}"/>
-      ${extra}${flowers}`;
+/**
+ * ============================================================
+ * 2학기 통합 학습 포털 — 백엔드 v13
+ * ============================================================
+ * v12(커리큘럼 시트화) 기준으로 아래를 추가한 버전.
+ *
+ * [v13] 커리큘럼 관리 UI 개선 지원 — 순서 조정 + 지난 활동 구분.
+ *   - "커리큘럼" 시트에 컬럼 2개 추가: 순서(학년 내 노출 순서, 숫자),
+ *     지난활동(진행중/예정과 별개로 "이미 수업한 것" 표시 — 공개여부와 무관).
+ *   - mode=curriculum / curriculumAdmin 모두 학년 내에서 순서 기준으로
+ *     정렬해서 내려줌 (기존엔 시트 행 순서 그대로였음).
+ *   - action=reorderLessons: [{row, order}, ...] 배열을 받아 순서 값을
+ *     일괄 업데이트 (교사 토큰 필수). 시트 행 자체는 옮기지 않음.
+ *   - action=toggleLessonPast: 지난활동 표시 on/off 전환 (교사 토큰 필수).
+ *   - addLesson은 이제 같은 학년 내 최대 순서값+1을 자동으로 부여함.
+ *
+ * [v12] 커리큘럼(차시)·학년정보(단원 관통 질문·포트폴리오)를
+ *   config.js 하드코딩에서 시트 기반으로 이관.
+ *   - "커리큘럼" 시트: 활동(차시) 한 줄 = 행 하나. 공개여부 컬럼으로
+ *     학생 노출 여부를 켜고 끔(추가 직후 기본 비공개 — 미리 만들어놔도
+ *     공개 전까진 학생 화면에 안 뜸).
+ *   - "학년정보" 시트: 학년당 1행. 단원 관통 질문 + 포트폴리오(패들렛 등)
+ *     정보를 담음. urlByBan이 필요하면 "반:URL"을 줄바꿈으로 나열한 텍스트로
+ *     저장하고, 서버가 parseUrlField_()로 파싱해서 프론트에 내려줌.
+ *   - mode=curriculum (공개) — 공개된 활동 + 학년정보를 합쳐서 프론트의
+ *     기존 CONFIG.CURRICULUM 모양 그대로 반환. index.html의 renderPortal 등
+ *     기존 로직은 손대지 않아도 되도록 이 응답 모양을 맞춤.
+ *   - mode=curriculumAdmin&token= (교사) — 비공개 포함 전체 + _row.
+ *   - action=addLesson / toggleLessonPublic / updateGradeInfo (토큰 필수).
+ *   - 맨 아래 migrateCurriculumFromConfig_() : 기존 config.js 스냅샷을
+ *     시트로 옮기는 일회성 함수. ⚠️ 실행 전 안내 주석 꼭 읽어주세요 —
+ *     단원 관통 질문 등 정확한 값은 비워뒀으니 채워 넣고 실행해야 합니다.
+ *
+ * [배포]
+ *  기존 Apps Script 프로젝트의 본체 파일 내용을 이 파일 전체로 교체.
+ *  ⚠️ 재배포는 반드시 "배포 > 배포 관리 > 수정(연필) > 새 버전" — 새 배포 금지(URL 바뀜).
+ * ============================================================
+ */
+
+const SHEET_NAME = '게임활동_로그';
+const FEEDBACK_SHEET_NAME = '피드백';
+const GROUP_TEMP_SHEET_NAME = '조별_임시공유';
+const QUESTION_SHEET_NAME = '질문함'; // v10 신규
+const ANNOUNCEMENT_SHEET_NAME = '공지사항'; // v11 신규
+const CURRICULUM_SHEET_NAME = '커리큘럼'; // v12 신규
+const GRADE_INFO_SHEET_NAME = '학년정보'; // v12 신규
+const HEADERS = ['타임스탬프', '학번', '이름', '게임명', '선택 요약', '실제 역사와의 차이', '학생 서술', '선택 상세(JSON)'];
+const FEEDBACK_HEADERS = ['타임스탬프', '학번', '이름', '활동id', '피드백'];
+const GROUP_TEMP_HEADERS = ['타임스탬프', '학번', '이름', '게임명', '조번호', '역할', 'give', 'want', 'why'];
+// v10 신규 — 질문함 시트 헤더
+const QUESTION_HEADERS = ['타임스탬프', '학번', '이름', '학년', '반', '질문', '답변', '답변시각', '상태'];
+// v11 신규 — 공지사항 시트 헤더 (학년/반은 "전체" 또는 구체값 문자열로 저장)
+const ANNOUNCEMENT_HEADERS = ['타임스탬프', '학년', '반', '내용', '게시여부'];
+// v12 신규 — 커리큘럼 시트 헤더. URL은 단일 URL 또는 "반:URL" 줄바꿈 텍스트.
+const CURRICULUM_HEADERS = ['타임스탬프', '학년', '활동id', '제목', '설명', '타입', 'URL', '공개여부', '순서', '지난활동']; // v13: 순서·지난활동 추가
+// 커리큘럼 시트 컬럼 위치 (1-based, CURRICULUM_HEADERS와 동일한 순서)
+const CLCOL_PUBLIC = 8;
+const CLCOL_ORDER = 9;
+const CLCOL_PAST = 10;
+// v12 신규 — 학년정보 시트 헤더 (학년당 1행). 포트폴리오URL도 단일/반별(줄바꿈) 텍스트.
+const GRADE_INFO_HEADERS = ['학년', '과목', '단원관통질문', '포트폴리오제목', '포트폴리오설명', '포트폴리오URL'];
+const TEACHER_TOKEN = 'his26';
+
+// AI 관련 컬럼 위치 (1-based) — 기존 v5·v6과 동일하게 유지
+const COL_AI_COMMENT = 13;  // AI코멘트
+const COL_AI_CHECK   = 14;  // AI코멘트확인
+const COL_GROUP_ID   = 15;  // 조번호 (v7 신규)
+
+// 질문함 시트 컬럼 위치 (1-based, QUESTION_HEADERS와 동일한 순서)
+const QCOL_TIMESTAMP = 1;
+const QCOL_STUDENT_ID = 2;
+const QCOL_STUDENT_NAME = 3;
+const QCOL_GRADE = 4;
+const QCOL_BAN = 5;
+const QCOL_QUESTION = 6;
+const QCOL_ANSWER = 7;
+const QCOL_ANSWER_TIME = 8;
+const QCOL_STATUS = 9;
+
+// 공지사항 시트 컬럼 위치 (1-based, ANNOUNCEMENT_HEADERS와 동일한 순서)
+const ACOL_TIMESTAMP = 1;
+const ACOL_GRADE = 2;
+const ACOL_BAN = 3;
+const ACOL_CONTENT = 4;
+const ACOL_STATUS = 5;
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+
+function getOrCreateSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+  if (sheet.getLastRow() === 0) sheet.appendRow(HEADERS);
+  return sheet;
+}
+
+function getOrCreateFeedbackSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(FEEDBACK_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(FEEDBACK_SHEET_NAME);
+  if (sheet.getLastRow() === 0) sheet.appendRow(FEEDBACK_HEADERS);
+  return sheet;
+}
+
+/* ── 짝 활동 1차 판단 전용 임시 시트 (v9) ──
+ * 포털의 완료 판정·세특 도구는 이 시트를 보지 않는다.
+ * 오직 "같은 조끼리 서로 답 조회"용 스크래치 공간. */
+function getOrCreateGroupTempSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(GROUP_TEMP_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(GROUP_TEMP_SHEET_NAME);
+  if (sheet.getLastRow() === 0) sheet.appendRow(GROUP_TEMP_HEADERS);
+  return sheet;
+}
+
+/* ── 질문함 시트 (v10 신규) ── */
+function getOrCreateQuestionSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(QUESTION_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(QUESTION_SHEET_NAME);
+  if (sheet.getLastRow() === 0) sheet.appendRow(QUESTION_HEADERS);
+  return sheet;
+}
+
+/* ── 공지사항 시트 (v11 신규) ── */
+function getOrCreateAnnouncementSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(ANNOUNCEMENT_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(ANNOUNCEMENT_SHEET_NAME);
+  if (sheet.getLastRow() === 0) sheet.appendRow(ANNOUNCEMENT_HEADERS);
+  return sheet;
+}
+
+/* ── 커리큘럼 시트 (v12 신규, v13에서 순서·지난활동 컬럼 추가) ──
+ * v12 때 이미 만들어둔 기존 시트(8열)에도 새 헤더가 없으면 자동으로 채워 넣음
+ * (기존 행들의 순서·지난활동 값은 빈 칸으로 남는데, curriculumGet_/Admin에서
+ * 빈 값은 시트 행 순서를 fallback 순서로 취급하므로 동작엔 문제 없음). */
+function getOrCreateCurriculumSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CURRICULUM_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(CURRICULUM_SHEET_NAME);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(CURRICULUM_HEADERS);
   } else {
-    body = `
-      <path d="M84 118 L84 56" stroke="${trunk}" stroke-width="11" stroke-linecap="round"/>
-      <path d="M84 86 L56 68 M84 74 L112 56 M84 96 L66 88" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="84" cy="40" r="30" fill="${crownA}"/>
-      <circle cx="52" cy="60" r="19" fill="${crownB}"/>
-      <circle cx="116" cy="54" r="20" fill="${crownB}"/>
-      <circle cx="70" cy="30" r="14" fill="${crownB}"/>
-      ${extra}${fruits}`;
+    ensureColumns_(sheet, CURRICULUM_HEADERS.length);
+    for (let c = 1; c <= CURRICULUM_HEADERS.length; c++) {
+      if (!sheet.getRange(1, c).getValue()) sheet.getRange(1, c).setValue(CURRICULUM_HEADERS[c - 1]);
+    }
   }
-  return `<svg viewBox="0 0 168 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <ellipse cx="84" cy="120" rx="52" ry="9" fill="${ground}"/>
-    ${body}
-  </svg>`;
+  return sheet;
 }
 
-/* ── 포털 렌더 ── */
-function renderPortal(){
-  const cur = CONFIG.CURRICULUM[SESSION.grade];
-  $('loginView').style.display = 'none';
-  $('dashView').style.display = 'none';
-  const pv = $('portalView');
-  pv.style.display = 'block';
-  requestAnimationFrame(() => pv.classList.add('shown'));
-
-  $('portalEyebrow').textContent = `2학기 · ${SESSION.grade}학년 ${cur.subject}`;
-  $('previewBanner').style.display = PREVIEW_MODE ? 'flex' : 'none';
-  $('sideName').textContent = SESSION.name;
-  $('sideClass').textContent = `${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
-
-  renderAnnouncements();
-
-  const doneIds = new Set(STUDENT_DATA.activities.map(a => String(a.activityId)));
-  /* 활동별 성취 기록: "성취수준이 있는 가장 최근 기록" 우선 */
-  const achieveMap = {};
-  STUDENT_DATA.activities.forEach(a => {
-    const id = String(a.activityId);
-    const prev = achieveMap[id];
-    const hasA = a.achievement && String(a.achievement).trim();
-    const prevHasA = prev && prev.achievement && String(prev.achievement).trim();
-    if (!prev || hasA || !prevHasA) achieveMap[id] = a;
-  });
-  /* 활동별 진짜 최근 기록 (분석 여부 무관) — "새 기록 분석 대기 중" 표시용 */
-  const latestMap = {};
-  STUDENT_DATA.activities.forEach(a => {
-    const id = String(a.activityId);
-    const prev = latestMap[id];
-    if (!prev || new Date(a.timestamp) - new Date(prev.timestamp) >= 0) latestMap[id] = a;
-  });
-
-  /* 피드백을 활동별로 분류 — 차시 id와 일치하면 인라인, 아니면 총평 */
-  const lessonIds = new Set(cur.lessons.map(l => l.id));
-  const fbAll = STUDENT_DATA.feedback || [];
-  const fbByLesson = {};
-  const fbGeneral = [];
-  fbAll.forEach(f => {
-    const aid = String(f.activityId || '').trim();
-    if (lessonIds.has(aid)) {
-      (fbByLesson[aid] = fbByLesson[aid] || []).push(f);
-    } else {
-      fbGeneral.push(f);
-    }
-  });
-
-  /* KPI: 진행률 */
-  const active = cur.lessons.filter(l => l.url || l.urlByBan);
-  const doneCount = active.filter(l => doneIds.has(l.id)).length;
-  const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
-  $('progressDone').textContent = doneCount;
-  $('progressTotal').textContent = active.length;
-  requestAnimationFrame(() => { $('progressFill').style.width = pct + '%'; });
-
-  /* 포인트·칭호·나무 (참여·노력 기반 — 달성도와 무관)
-   * 첫 완료 FIRST점 + 재도전 1회당 RETRY점 (활동당 RETRY_MAX회까지) */
-  const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 };
-  const doneLessons = cur.lessons.filter(l => doneIds.has(l.id));
-  const attemptCnt = {};
-  STUDENT_DATA.activities.forEach(a => {
-    const id = String(a.activityId);
-    attemptCnt[id] = (attemptCnt[id] || 0) + 1;
-  });
-  let points = 0;
-  doneLessons.forEach(l => {
-    points += P.FIRST;
-    const retries = Math.max((attemptCnt[l.id] || 1) - 1, 0);
-    points += Math.min(retries, P.RETRY_MAX) * P.RETRY;
-  });
-  let rank = CONFIG.RANKS[0], rankIdx = 0;
-  CONFIG.RANKS.forEach((r, i) => { if (points >= r.min) { rank = r; rankIdx = i; } });
-  const nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
-  $('pointsNum').textContent = points;
-  $('kpiPoints').textContent = points;
-  $('rankName').textContent = rank.name;
-  $('kpiFeedback').textContent = fbAll.length;
-  if (nextRank) {
-    $('rankNext').textContent = `다음 칭호(${nextRank.name})까지 ${nextRank.min - points}점`;
-    const span = nextRank.min - rank.min;
-    const p = span > 0 ? Math.round((points - rank.min) / span * 100) : 0;
-    requestAnimationFrame(() => { $('rankFill').style.width = p + '%'; });
-  } else {
-    $('rankNext').textContent = '최고 칭호에 도달했어요!';
-    requestAnimationFrame(() => { $('rankFill').style.width = '100%'; });
-  }
-  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessons.length);
-  $('treeBox').setAttribute('aria-label',
-    `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessons.length}개`);
-
-  /* 단원 관통 질문 배너 */
-  const uq = (cur.unitQuestion || '').trim();
-  if (uq) {
-    $('unitBanner').style.display = 'block';
-    $('unitQuestion').textContent = uq;
-  } else {
-    $('unitBanner').style.display = 'none';
-  }
-
-  /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 (차시가 아니라 완료·포인트 대상 아님) */
-  const pf = cur.portfolio;
-  const pfUrl = pf ? (pf.urlByBan ? (pf.urlByBan[SESSION.ban] || '') : (pf.url || '')) : '';
-  if (pf && pfUrl) {
-    $('portfolioCard').style.display = 'flex';
-    $('portfolioTitle').textContent = pf.title || '나의 패들렛';
-    $('portfolioDesc').textContent = pf.desc || '';
-    $('portfolioLinkBtn').href = pfUrl;
-  } else {
-    $('portfolioCard').style.display = 'none';
-  }
-
-  /* 학기 총평 피드백 (차시에 속하지 않는 피드백) */
-  if (fbGeneral.length) {
-    $('feedbackCard').style.display = 'block';
-    $('feedbackList').innerHTML = fbGeneral.map(f => `
-      <div class="feedback-item">
-        <div class="fb-meta">${formatDate(f.timestamp)}</div>
-        <div>${escapeHtml(f.feedback)}</div>
-      </div>`).join('');
-  } else {
-    $('feedbackCard').style.display = 'none';
-  }
-
-  /* 질문함 (학생 ↔ 교사) */
-  renderQuestions();
-
-  /* 달성도 모아보기 */
-  const analyzed = cur.lessons
-    .map(l => ({ lesson: l, rec: achieveMap[l.id] }))
-    .filter(x => x.rec && x.rec.achievement && String(x.rec.achievement).trim());
-  if (analyzed.length) {
-    $('overviewCard').style.display = 'block';
-    $('overviewList').innerHTML = analyzed.map(x => `
-      <div class="overview-item">
-        <span class="dots">${achieveDots(x.rec.achievement)}</span>
-        <span class="ov-title">${escapeHtml(x.lesson.title)}</span>
-      </div>`).join('');
-  } else {
-    $('overviewCard').style.display = 'none';
-  }
-
-  /* 내 기록 보관함 — 내가 쓴 서술 다시 보기 (백엔드 v5부터 reflection 제공) */
-  const myWritings = STUDENT_DATA.activities
-    .filter(a => a.reflection && String(a.reflection).trim())
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  if (myWritings.length) {
-    $('archiveCard').style.display = 'block';
-    $('archiveList').innerHTML = myWritings.map(a => `
-      <div class="archive-item">
-        <div class="ar-meta"><b>${escapeHtml(lessonTitle(String(a.activityId)))}</b> · ${formatDate(a.timestamp)}</div>
-        <div class="ar-text">${escapeHtml(String(a.reflection))}</div>
-      </div>`).join('');
-  } else {
-    $('archiveCard').style.display = 'none';
-  }
-
-  /* 연표 */
-  const tl = $('timeline');
-  if(cur.lessons.length === 0){
-    tl.innerHTML = '';
-    $('statusLine').style.display = 'block';
-    $('statusLine').textContent = "이번 학기 활동이 준비되면 여기에 하나씩 나타나요.";
-    return;
-  }
-  $('statusLine').style.display = 'none';
-
-  tl.innerHTML = cur.lessons.map((l, i) => {
-    const done = doneIds.has(l.id);
-    const url = lessonUrl(l);
-    const building = !url;
-    const rec = achieveMap[l.id];
-    const latest = latestMap[l.id];
-    const typeLabel = { module:"탐구 활동", padlet:"패들렛 글쓰기", link:"외부 활동" }[l.type] || "활동";
-    const typeClass = { padlet:"t-padlet", link:"t-link" }[l.type] || "";
-
-    /* 분석 상태 판정 (module 활동만 — 자가체크형은 서술이 없어 분석 대상 아님) */
-    const recAnalyzed = !!(rec && rec.achievement && String(rec.achievement).trim());
-    const latestAnalyzed = !!(latest && latest.achievement && String(latest.achievement).trim());
-    const isModule = l.type === 'module';
-    const pendingNew = isModule && done && recAnalyzed && latest && !latestAnalyzed
-      && String(latest.timestamp) !== String(rec.timestamp);
-    const pendingFirst = isModule && done && !recAnalyzed;
-
-    let achieveHtml = '';
-    if(done && recAnalyzed){
-      achieveHtml = `
-        <div class="achieve">
-          <span>달성도</span>
-          <span class="dots">${achieveDots(rec.achievement)}</span>
-          <span>${escapeHtml(String(rec.achievement))}${pendingNew ? ' <small>(이전 도전 기준)</small>' : ''}</span>
-        </div>
-        ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}`;
-    }
-
-    /* 분석 대기 안내 */
-    let pendingHtml = '';
-    if(pendingNew){
-      pendingHtml = `<div class="pending-note">🕐 ${formatDate(latest.timestamp)} 새 도전 기록이 저장됐어요. AI 분석이 끝나면 달성도와 코멘트가 새로 표시돼요.</div>`;
-    } else if(pendingFirst){
-      pendingHtml = `<div class="pending-note">🕐 기록이 저장됐어요! AI 분석이 끝나면 달성도와 코멘트가 표시돼요.</div>`;
-    }
-
-    /* AI 분석 코멘트 (출처를 명확히 구분해 표시) */
-    let aiHtml = '';
-    if(done && rec && rec.aiComment && String(rec.aiComment).trim()){
-      aiHtml = `
-        <div class="note note-ai">
-          <div class="note-label">🤖 AI 분석 코멘트
-            <span class="note-date">${formatDate(rec.timestamp)}</span>
-          </div>
-          <div class="note-text">${escapeHtml(String(rec.aiComment))}</div>
-        </div>`;
-    }
-
-    /* 이 활동에 대한 선생님 피드백 (인라인) */
-    let teaHtml = '';
-    const fbs = fbByLesson[l.id] || [];
-    if(fbs.length){
-      teaHtml = fbs.map(f => `
-        <div class="note note-teacher">
-          <div class="note-label">👩‍🏫 선생님 피드백
-            <span class="note-date">${formatDate(f.timestamp)}</span>
-          </div>
-          <div class="note-text">${escapeHtml(String(f.feedback))}</div>
-        </div>`).join('');
-    }
-
-    const retryHtml = (done && recAnalyzed && !building && !pendingNew
-      && ['중','하'].includes(String(rec.achievement).trim()))
-      ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : '';
-
-    let actions = '';
-    if(building){
-      actions = `<span class="badge-wait">🔨 준비 중이에요</span>`;
-    } else if(l.type === 'module'){
-      actions = `<a class="btn-go" href="${withStudentParams(url)}" target="_blank" rel="noopener">
-        ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
-    } else {
-      actions = `<a class="btn-go" href="${url}" target="_blank" rel="noopener">활동 열기 →</a>`
-        + (done ? '' : `<button class="btn-check" data-lesson="${escapeHtml(l.id)}">활동을 끝냈어요 ✓</button>`);
-    }
-
-    return `
-      <div class="lesson ${done ? 'done' : ''} ${building ? 'pending-build' : ''}">
-        <div class="lesson-card">
-          <div class="lesson-top">
-            <div class="lesson-info">
-              <span class="lesson-type ${typeClass}">${i+1}차시 · ${typeLabel}</span>
-              <h2 class="lesson-title">${escapeHtml(l.title)}</h2>
-              ${l.desc ? `<p class="lesson-desc">${escapeHtml(l.desc)}</p>` : ''}
-            </div>
-            ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
-          </div>
-          ${achieveHtml}
-          ${pendingHtml}
-          ${aiHtml}
-          ${teaHtml}
-          ${retryHtml}
-          <div class="lesson-actions">${actions}</div>
-        </div>
-      </div>`;
-  }).join('');
-
-  tl.querySelectorAll('.btn-check').forEach(btn => {
-    btn.addEventListener('click', () => selfCheck(btn));
-  });
+/* ── 학년정보 시트 (v12 신규) ── */
+function getOrCreateGradeInfoSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(GRADE_INFO_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(GRADE_INFO_SHEET_NAME);
+  if (sheet.getLastRow() === 0) sheet.appendRow(GRADE_INFO_HEADERS);
+  return sheet;
 }
 
-/* ── 자가체크 (패들렛·외부 활동) ── */
-async function selfCheck(btn){
-  if(PREVIEW_MODE){
-    showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
-    return;
-  }
-  const lessonId = btn.dataset.lesson;
-  btn.disabled = true; btn.textContent = "기록하는 중…";
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        studentId: SESSION.studentId,
-        studentName: SESSION.name,
-        gameName: lessonId,
-        choiceSummary: '자가체크'
-      })
+/* ── URL 필드 파서 (v12 신규) ──
+ * "https://..." 단일 줄이면 { url, urlByBan: null }.
+ * 모든 줄이 "숫자:내용" 형태면(반별 링크) { url: null, urlByBan: {반:URL, ...} }.
+ * 섞여 있거나 애매하면 첫 줄을 단일 url로 취급(안전한 기본값). */
+function parseUrlField_(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return { url: '', urlByBan: null };
+  const lines = text.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+  const banPattern = /^([0-9]+)\s*:\s*(.+)$/;
+  const allBanLines = lines.length > 0 && lines.every(function (l) { return banPattern.test(l); });
+  if (allBanLines) {
+    const map = {};
+    lines.forEach(function (l) {
+      const m = l.match(banPattern);
+      map[m[1]] = m[2].trim();
     });
-    STUDENT_DATA.activities.push({ activityId: lessonId, achievement:'', summary:'', aiComment:'', reflection:'', timestamp:new Date().toISOString() });
-    showToast("완료로 기록했어요! 도장이 찍혔어요 🎉");
-    renderPortal();
-  }catch(e){
-    btn.disabled = false; btn.textContent = "활동을 끝냈어요 ✓";
-    showToast("기록하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.");
+    return { url: null, urlByBan: map };
   }
+  return { url: lines[0], urlByBan: null };
 }
 
-/* ── 공지사항: 목록 렌더 (서버가 이미 학년+반으로 필터링해 내려줌) ── */
-function renderAnnouncements(){
-  const card = $('announceCard');
-  const list = $('announceList');
-  const items = (STUDENT_DATA && STUDENT_DATA.announcements) || [];
-  if(!items.length){
-    card.style.display = 'none';
-    return;
-  }
-  card.style.display = 'block';
-  const sorted = [...items].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-  list.innerHTML = sorted.slice(0, 3).map(a => `
-    <div class="announce-item">
-      <div class="an-meta">${formatDate(a.timestamp)}</div>
-      <div>${escapeHtml(a.content)}</div>
-    </div>`).join('');
+function json_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
-
-/* ── 질문함: 목록 렌더 ── */
-function renderQuestions(){
-  const list = $('questionList');
-  if(!list) return;
-  const qs = (STUDENT_DATA && STUDENT_DATA.questions) || [];
-  if(!qs.length){
-    list.innerHTML = '<p class="q-hint" style="margin:0;">아직 남긴 질문이 없어요.</p>';
-    return;
-  }
-  const sorted = [...qs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-  list.innerHTML = sorted.map(q => {
-    const done = q.status === '답변완료';
-    return `
-      <div class="q-item">
-        <div class="q-meta">
-          ${formatDate(q.timestamp)}
-          <span class="q-status ${done ? 'done' : 'wait'}">${done ? '답변완료' : '대기중'}</span>
-        </div>
-        <div class="q-text">${escapeHtml(q.question)}</div>
-        ${done ? `<div class="q-answer"><b>선생님 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
-      </div>`;
-  }).join('');
-}
-
-/* ── 질문함: 보내기 ── */
-async function askQuestion(){
-  if(PREVIEW_MODE){
-    showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
-    return;
-  }
-  const input = $('questionInput');
-  const text = input.value.trim();
-  if(!text){ showToast('질문 내용을 입력해 주세요.'); return; }
-  const btn = $('btnAskQuestion');
-  btn.disabled = true; btn.textContent = '보내는 중…';
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'askQuestion',
-        studentId: SESSION.studentId,
-        studentName: SESSION.name,
-        grade: SESSION.grade,
-        ban: SESSION.ban,
-        question: text
-      })
-    });
-    STUDENT_DATA.questions = STUDENT_DATA.questions || [];
-    STUDENT_DATA.questions.push({
-      timestamp: new Date().toISOString(), question: text, answer: '', status: '대기'
-    });
-    input.value = '';
-    showToast('질문을 보냈어요. 답이 오면 여기서 확인할 수 있어요.');
-    renderQuestions();
-  }catch(e){
-    showToast('보내지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
-  }finally{
-    btn.disabled = false; btn.textContent = '질문 보내기';
-  }
-}
-
-function withStudentParams(url){
-  const sep = url.includes('?') ? '&' : '?';
-  return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
-             + '&name=' + encodeURIComponent(SESSION.name);
-}
-
-/* 반마다 링크가 다른 활동(urlByBan) 지원 —
- * urlByBan이 있으면 로그인한 학생의 반(SESSION.ban) 링크를 골라 쓰고,
- * 없으면 기존처럼 공통 url을 그대로 씁니다. 해당 반 링크가 없으면 '준비 중'으로 처리됩니다. */
-function lessonUrl(l){
-  if (l.urlByBan) return l.urlByBan[SESSION.ban] || '';
-  return l.url || '';
-}
-
-/* ── 유틸 ── */
-function achieveDots(level){
-  const l = String(level).trim();
-  if(l === '상') return '●●●';
-  if(l === '중') return '●●○';
-  if(l === '하') return '●○○';
-  return '○○○';
-}
-function formatDate(ts){
-  const d = new Date(ts);
-  if(isNaN(d)) return '';
-  return `${d.getMonth()+1}월 ${d.getDate()}일`;
-}
-function lessonTitle(id){
-  for(const g of Object.keys(CONFIG.CURRICULUM)){
-    const l = CONFIG.CURRICULUM[g].lessons.find(x => x.id === id);
-    if(l) return l.title;
-  }
-  return id;
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function showToast(msg){
-  const t = $('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove('show'), 2600);
-}
-
-/* ── 이벤트 바인딩 ── */
-$('btnLogin').addEventListener('click', () => {
-  login($('inputId').value.trim(), $('inputName').value.trim(), false);
-});
-$('inputName').addEventListener('keydown', e => {
-  if(e.key === 'Enter') $('btnLogin').click();
-});
-/* ── 자동 재조회 ──
- * 포털은 로그인 때 한 번만 데이터를 불러오므로, 학생이 다른 탭에서
- * 활동을 끝내고 돌아왔을 때를 위해 탭 복귀 시 자동으로 다시 조회한다. */
-let lastRefresh = Date.now();
-async function refreshStudentData(force){
-  if(!SESSION) return;
-  if($('portalView').style.display !== 'block') return;
-  if(!force && Date.now() - lastRefresh < 15000) return; // 15초 쿨다운
-  lastRefresh = Date.now();
-  try{
-    const url = CONFIG.WEBAPP_URL
-      + "?mode=student&studentId=" + encodeURIComponent(SESSION.studentId)
-      + "&name=" + encodeURIComponent(SESSION.name);
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.result === 'success'){
-      STUDENT_DATA = data;
-      STUDENT_DATA.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
-      renderPortal();
-      if(force) showToast('최신 기록으로 갱신했어요.');
-    }
-  }catch(e){
-    if(force) showToast('갱신하지 못했어요. 인터넷 연결을 확인해 주세요.');
-  }
-}
-document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible') refreshStudentData(false);
-});
-window.addEventListener('focus', () => refreshStudentData(false));
-$('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
-
-function exitToLogin(){
-  store.del('portal_session');
-  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false;
-  $('portalView').style.display = 'none';
-  $('portalView').classList.remove('shown');
-  $('bookCover').classList.remove('opening');
-  $('loginView').style.display = 'flex';
-  $('inputId').value = ''; $('inputName').value = '';
-}
-$('btnLogout').addEventListener('click', exitToLogin);
-$('btnExitPreview').addEventListener('click', exitToLogin);
 
 /* ════════════════════════════════════════════════════════
- * 교사 대시보드
+ * 시트 열 자동 확장 헬퍼
  * ════════════════════════════════════════════════════════ */
-let TOKEN = '';
-let ROWS = [];
-let FEEDBACKS = [];
-let QUESTIONS = [];
-let ANNOUNCEMENTS_ADMIN = [];
-let LESSONS_ADMIN = [];
-let GRADE_INFO_ADMIN = {};
-let openDetailSid = null;
-
-async function dashLoadData(){
-  const base = CONFIG.WEBAPP_URL;
-  const [r1, r2, r3, r4, r5] = await Promise.all([
-    fetch(base + '?token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
-    fetch(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
-    fetch(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
-    fetch(base + '?mode=announcementsAdmin&token=' + encodeURIComponent(TOKEN)).then(r=>r.json()),
-    fetch(base + '?mode=curriculumAdmin&token=' + encodeURIComponent(TOKEN)).then(r=>r.json())
-  ]);
-  if(r1.result === 'error') throw new Error(r1.message);
-  ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
-  FEEDBACKS = (r2.rows || []);
-  QUESTIONS = (r3.rows || []);
-  ANNOUNCEMENTS_ADMIN = (r4.rows || []);
-  LESSONS_ADMIN = (r5.lessons || []);
-  GRADE_INFO_ADMIN = (r5.gradeInfo || {});
+function ensureColumns_(sheet, col) {
+  const max = sheet.getMaxColumns();
+  if (max < col) sheet.insertColumnsAfter(max, col - max);
 }
 
-async function enterDash(token){
-  TOKEN = token;
-  const btn = $('btnGate'); btn.disabled = true; btn.textContent = '확인 중…';
-  $('gateError').style.display = 'none';
-  try{
-    await dashLoadData();
-    store.set('dash_token', token);
-    $('loginView').style.display = 'none';
-    $('portalView').style.display = 'none';
-    $('dashView').style.display = 'block';
-    dashInitFilters();
-    dashInitAnnounceForm();
-    dashInitCurriculumForm();
-    renderDash();
-    dashRenderQuestions();
-    dashRenderAnnouncements();
-    dashRenderLessons();
-    dashRenderGradeInfoForm();
-  }catch(e){
-    $('gateError').textContent = '들어가지 못했어요: ' + e.message;
-    $('gateError').style.display = 'block';
-  }finally{
-    btn.disabled = false; btn.textContent = '대시보드 열기';
+function ensureAiCommentHeader_(sheet) {
+  ensureColumns_(sheet, COL_AI_COMMENT);
+  const header = sheet.getRange(1, COL_AI_COMMENT).getValue();
+  if (!header) sheet.getRange(1, COL_AI_COMMENT).setValue('AI코멘트');
+}
+
+function ensureGroupIdHeader_(sheet) {
+  ensureColumns_(sheet, COL_GROUP_ID);
+  const header = sheet.getRange(1, COL_GROUP_ID).getValue();
+  if (!header) sheet.getRange(1, COL_GROUP_ID).setValue('조번호');
+}
+
+/* ════════════════════════════════════════════════════════
+ * Gemini 연동 (v6과 동일)
+ * ════════════════════════════════════════════════════════ */
+function getGeminiApiKey_() {
+  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!key) throw new Error('GEMINI_API_KEY가 스크립트 속성에 설정되지 않았습니다.');
+  return key;
+}
+
+function getGeminiModel_() {
+  return PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || DEFAULT_GEMINI_MODEL;
+}
+
+/**
+ * choicesJson을 분석해서 프롬프트를 만든다.
+ * "선택+이유" 구조(개인 진단)가 아니면 null을 반환해서 상위 로직이 건너뛰게 한다.
+ * → 게임명을 하드코딩해서 분기하지 않고, 데이터 형태로 판단.
+ * (v7의 짝 활동 choicesJson은 {stage, role, judgment, ...} 구조라 자동으로 건너뜀)
+ */
+function buildFeedbackPrompt_(data) {
+  let detail;
+  try {
+    detail = JSON.parse(data.choicesJson || '[]');
+  } catch (e) {
+    return null;
   }
+  if (!Array.isArray(detail) || !detail.length) return null;
+  if (typeof detail[0] !== 'object' || detail[0] === null) return null;
+  if (detail[0].reason === undefined || detail[0].choice === undefined) return null;
+
+  const lines = detail.map(function (d) {
+    return '- [' + d.q + '] 학생 선택: "' + d.choice + '" / 정답 여부: ' +
+      (d.isCorrect ? '정답' : '오답') +
+      (d.isCorrect ? '' : ' (정답: "' + d.correct + '")') +
+      ' / 학생이 쓴 이유: "' + (d.reason || '') + '"';
+  }).join('\n');
+
+  return '너는 중학교 역사 교사를 돕는 보조 채점자야. 한 학생이 문항별로 고른 답과 그 이유를 아래에 줄게.\n\n' +
+    lines + '\n\n' +
+    '이 학생에게 줄 피드백을 한국어 2~3문장으로 작성해줘.\n' +
+    '조건:\n' +
+    '1. 과장된 칭찬 없이 담백하게 쓸 것.\n' +
+    '2. 오답이 있으면 어떤 개념을 다시 봐야 하는지는 짚어주되, 정답 자체를 그대로 알려주지는 말 것.\n' +
+    '3. 학생이 쓴 "이유"에 드러난 사고 과정에 대한 코멘트를 반드시 한 마디 포함할 것.\n' +
+    '4. 정답을 맞힌 문항이 하나라도 있으면 그중 하나를 구체적으로 짚어 잘한 점으로 언급할 것.\n' +
+    '   전부 오답이더라도 이유 서술 중 나름대로 논리적으로 접근한 부분이 있으면 그 점을 찾아 짚어줄 것.\n' +
+    '   즉 오답 지적만 나열하지 말고, 잘한 점과 보완할 점이 균형 있게 드러나게 쓸 것.\n' +
+    '5. 존댓말이 아니라 반말로, 다정하되 명확하게 쓸 것.\n' +
+    '6. 다른 설명이나 따옴표 없이 피드백 본문만 출력할 것.';
 }
 
-/* ── 대시보드 탭 전환 ── */
-function switchDashTab(tab){
-  ['records','questions','announce','curriculum'].forEach(t => {
-    $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
-  });
-  document.querySelectorAll('.dash-tab').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tab);
-  });
-}
+function callGeminiFeedback_(promptText) {
+  const apiKey = getGeminiApiKey_();
+  const model = getGeminiModel_();
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model +
+    ':generateContent?key=' + apiKey;
 
-/* ── 공지 관리 (교사) ── */
-function dashInitAnnounceForm(){
-  const grades = Object.keys(CONFIG.CURRICULUM);
-  $('anGrade').innerHTML = '<option value="전체">전체 학년</option>' +
-    grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
-}
-
-function dashRenderAnnouncements(){
-  const list = $('anList');
-  if(!ANNOUNCEMENTS_ADMIN.length){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 공지가 없어요.</p>';
-    return;
-  }
-  const sorted = [...ANNOUNCEMENTS_ADMIN].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-  list.innerHTML = sorted.map(a => {
-    const live = a.status === '게시';
-    return `
-      <div class="an-item">
-        <div>
-          <div class="an-meta">${formatDate(a.timestamp)} · ${a.grade}${a.grade==='전체'?'':'학년'} ${a.ban}${a.ban==='전체'?'':'반'}
-            <span class="an-status ${live?'live':'hidden'}">${live?'게시중':'보류'}</span>
-          </div>
-          <div class="an-text">${escapeHtml(a.content)}</div>
-        </div>
-        <button class="an-toggle" data-row="${a._row}" onclick="dashToggleAnnouncement(this)">${live?'보류로 전환':'다시 게시'}</button>
-      </div>`;
-  }).join('');
-}
-
-async function dashAddAnnouncement(btn){
-  const grade = $('anGrade').value;
-  const ban = $('anBan').value;
-  const content = $('anContent').value.trim();
-  if(!content){ showToast('공지 내용을 입력해 주세요.'); return; }
-  btn.disabled = true; btn.textContent = '게시하는 중…';
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'addAnnouncement', token:TOKEN, grade, ban, content })
-    });
-    $('anContent').value = '';
-    showToast('공지를 게시했어요.');
-    await dashLoadData();
-    dashRenderAnnouncements();
-  }catch(e){
-    showToast('게시하지 못했어요. 다시 시도해 주세요.');
-  }finally{
-    btn.disabled = false; btn.textContent = '게시';
-  }
-}
-
-async function dashToggleAnnouncement(btn){
-  const row = btn.dataset.row;
-  btn.disabled = true;
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'toggleAnnouncement', token:TOKEN, row })
-    });
-    const a = ANNOUNCEMENTS_ADMIN.find(x => String(x._row) === String(row));
-    if(a){ a.status = (a.status === '게시') ? '보류' : '게시'; }
-    dashRenderAnnouncements();
-  }catch(e){
-    showToast('처리하지 못했어요. 다시 시도해 주세요.');
-  }finally{
-    btn.disabled = false;
-  }
-}
-
-/* ── 커리큘럼 관리 (교사) ── */
-function dashInitCurriculumForm(){
-  const grades = Object.keys(GRADE_INFO_ADMIN);
-  $('clGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
-}
-
-function dashRenderGradeInfoForm(){
-  const wrap = $('giForm');
-  const grades = Object.keys(GRADE_INFO_ADMIN);
-  if(!grades.length){
-    wrap.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">학년정보가 아직 없어요. (마이그레이션이 필요할 수 있어요)</p>';
-    return;
-  }
-  wrap.innerHTML = grades.map(g => {
-    const gi = GRADE_INFO_ADMIN[g];
-    return `
-      <div class="gi-block" data-grade="${g}">
-        <h4>${g}학년 ${escapeHtml(gi.subject || '')}</h4>
-        <label>단원 관통 질문</label>
-        <textarea class="gi-uq">${escapeHtml(gi.unitQuestion || '')}</textarea>
-        <label>포트폴리오 제목</label>
-        <input type="text" class="gi-pf-title" value="${escapeHtml(gi.portfolioTitle || '')}">
-        <label>포트폴리오 설명</label>
-        <input type="text" class="gi-pf-desc" value="${escapeHtml(gi.portfolioDesc || '')}">
-        <label>포트폴리오 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
-        <textarea class="gi-pf-url">${escapeHtml(gi.portfolioUrlText || '')}</textarea>
-        <button onclick="dashSaveGradeInfo('${g}', this)">저장</button>
-      </div>`;
-  }).join('');
-}
-
-async function dashSaveGradeInfo(grade, btn){
-  const block = btn.closest('.gi-block');
-  const payload = {
-    action: 'updateGradeInfo', token: TOKEN, grade,
-    subject: (GRADE_INFO_ADMIN[grade] && GRADE_INFO_ADMIN[grade].subject) || '',
-    unitQuestion: block.querySelector('.gi-uq').value.trim(),
-    portfolioTitle: block.querySelector('.gi-pf-title').value.trim(),
-    portfolioDesc: block.querySelector('.gi-pf-desc').value.trim(),
-    portfolioUrlText: block.querySelector('.gi-pf-url').value.trim()
+  const body = {
+    contents: [{ parts: [{ text: promptText }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 1500,
+      thinkingConfig: { thinkingLevel: 'MINIMAL' }
+    }
   };
-  btn.disabled = true; btn.textContent = '저장하는 중…';
-  try{
-    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
-    Object.assign(GRADE_INFO_ADMIN[grade], {
-      unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
-      portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText
-    });
-    showToast('학년정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.');
-  }catch(e){
-    showToast('저장하지 못했어요. 다시 시도해 주세요.');
-  }finally{
-    btn.disabled = false; btn.textContent = '저장';
+
+  const res = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true
+  });
+
+  const code = res.getResponseCode();
+  let json;
+  try {
+    json = JSON.parse(res.getContentText());
+  } catch (e) {
+    throw new Error('Gemini 응답 파싱 실패: ' + res.getContentText().slice(0, 200));
   }
+
+  if (code !== 200) {
+    const msg = json.error && json.error.message ? json.error.message : res.getContentText();
+    throw new Error('Gemini API 오류(' + code + '): ' + msg);
+  }
+
+  const text = json.candidates && json.candidates[0] &&
+    json.candidates[0].content && json.candidates[0].content.parts &&
+    json.candidates[0].content.parts[0] && json.candidates[0].content.parts[0].text;
+
+  const finishReason = json.candidates && json.candidates[0] && json.candidates[0].finishReason;
+  if (finishReason === 'MAX_TOKENS') {
+    throw new Error('응답이 토큰 한도로 잘렸습니다(finishReason=MAX_TOKENS). maxOutputTokens를 더 늘려보세요.');
+  }
+
+  if (!text) throw new Error('Gemini 응답에서 텍스트를 찾지 못했습니다.');
+  return text.trim();
 }
 
-function dashRenderLessons(){
-  const list = $('clList');
-  if(!LESSONS_ADMIN.length){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 활동이 없어요.</p>';
-    return;
-  }
-  const sorted = [...LESSONS_ADMIN].sort((a,b) => Number(a.grade) - Number(b.grade) || new Date(a.timestamp) - new Date(b.timestamp));
-  let html = '';
-  let curGrade = null;
-  sorted.forEach(l => {
-    if(l.grade !== curGrade){
-      curGrade = l.grade;
-      html += `<h4 class="cl-grade-head">${curGrade}학년</h4>`;
+/* ════════════════════════════════════════════════════════
+ * doGet 라우팅
+ *  - ?mode=student&studentId=&name=              → 학생 본인 기록 (+ 본인 질문함, v10)
+ *  - ?mode=group&gameName=&groupId=&studentId=   → 짝(조)의 1차 판단 조회
+ *  - ?mode=feedback&token=                       → 피드백 전체 (교사)
+ *  - ?mode=questions&token=                      → 질문함 전체 (교사, v10 신규)
+ *  - ?mode=announcements&grade=&ban=             → 공지사항, 학년+반 매칭분만 (학생, v11 신규)
+ *  - ?mode=announcementsAdmin&token=             → 공지사항 전체(게시+보류) (교사, v11 신규)
+ *  - ?mode=curriculum                            → 공개된 차시 + 학년정보 (학생, v12 신규)
+ *  - ?mode=curriculumAdmin&token=                → 커리큘럼 전체(비공개 포함) + 학년정보 (교사, v12 신규)
+ *  - ?token=                                     → 전체 기록 (교사)
+ * ════════════════════════════════════════════════════════ */
+function doGet(e) {
+  const mode = (e.parameter.mode || '').trim();
+
+  if (mode === 'student') return studentGet_(e);
+  if (mode === 'group') return groupGet_(e);
+  if (mode === 'feedback') return feedbackGet_(e);
+  if (mode === 'questions') return questionsGet_(e); // v10 신규
+  if (mode === 'announcements') return announcementsGet_(e); // v11 신규
+  if (mode === 'announcementsAdmin') return announcementsAdminGet_(e); // v11 신규
+  if (mode === 'curriculum') return curriculumGet_(e); // v12 신규
+  if (mode === 'curriculumAdmin') return curriculumAdminGet_(e); // v12 신규
+  return teacherGet_(e);
+}
+
+/* ── 학생 본인 기록 조회 (v10: questions 필드 추가) ── */
+function studentGet_(e) {
+  try {
+    const sid = String(e.parameter.studentId || '').trim();
+    const name = String(e.parameter.name || '').trim();
+    if (!sid || !name) throw new Error('학번과 이름이 필요합니다.');
+
+    const sheet = getOrCreateSheet_();
+    const activities = [];
+    if (sheet.getLastRow() >= 2) {
+      const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(sheet.getLastColumn(), COL_AI_CHECK)).getValues();
+      values.forEach(row => {
+        if (String(row[1]).trim() === sid && String(row[2]).trim() === name) {
+          activities.push({
+            activityId: String(row[3] || ''),
+            achievement: String(row[10] || ''),
+            summary: String(row[9] || ''),
+            aiComment: String(row[COL_AI_COMMENT - 1] || ''),
+            reflection: String(row[6] || ''),
+            timestamp: row[0]
+          });
+        }
+      });
     }
-    html += `
-      <div class="cl-item">
-        <div>
-          <div class="cl-meta">${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}</div>
-          <div class="cl-title">${escapeHtml(l.title)}</div>
-        </div>
-        <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
-      </div>`;
-  });
-  list.innerHTML = html;
-}
 
-async function dashAddLesson(btn){
-  const grade = $('clGrade').value;
-  const id = $('clId').value.trim();
-  const title = $('clTitle').value.trim();
-  const desc = $('clDesc').value.trim();
-  const type = $('clType').value;
-  const url = $('clUrl').value.trim();
-  const isPublic = $('clPublic').checked;
-  if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
-  btn.disabled = true; btn.textContent = '추가하는 중…';
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic })
-    });
-    $('clId').value = ''; $('clTitle').value = ''; $('clDesc').value = ''; $('clUrl').value = ''; $('clPublic').checked = false;
-    showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
-    await dashLoadData();
-    dashRenderLessons();
-  }catch(e){
-    showToast('추가하지 못했어요. 다시 시도해 주세요.');
-  }finally{
-    btn.disabled = false; btn.textContent = '활동 추가';
-  }
-}
-
-async function dashToggleLessonPublic(btn){
-  const row = btn.dataset.row;
-  btn.disabled = true;
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'toggleLessonPublic', token:TOKEN, row })
-    });
-    const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
-    if(l){ l.public = !l.public; }
-    dashRenderLessons();
-  }catch(e){
-    showToast('처리하지 못했어요. 다시 시도해 주세요.');
-  }finally{
-    btn.disabled = false;
-  }
-}
-
-/* ── 질문함 (교사) ── */
-function dashRenderQuestions(){
-  const list = $('dqList');
-  const waiting = QUESTIONS.filter(q => q.status !== '답변완료');
-  const done = QUESTIONS.filter(q => q.status === '답변완료');
-  const sorted = [...waiting, ...done]; // 대기중 먼저
-  const badge = $('dqBadge');
-  if(waiting.length){
-    badge.textContent = waiting.length + '건 대기';
-    badge.style.display = 'inline-block';
-  } else {
-    badge.style.display = 'none';
-  }
-  if(!sorted.length){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">아직 들어온 질문이 없어요.</p>';
-    return;
-  }
-  list.innerHTML = sorted.map(q => {
-    const isDone = q.status === '답변완료';
-    return `
-      <div class="dq-item">
-        <div class="dq-meta">${formatDate(q.timestamp)} · ${escapeHtml(q.studentName)} (${escapeHtml(String(q.studentId))}) · ${q.grade}학년 ${q.ban}반
-          <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span>
-        </div>
-        <div class="dq-text">${escapeHtml(q.question)}</div>
-        ${isDone ? `<div class="dq-answer"><b>내 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
-        <div class="dq-reply-form">
-          <textarea class="dq-reply-text" placeholder="${isDone ? '답변을 수정하려면 다시 입력…' : '답변을 입력…'}"></textarea>
-          <button data-row="${q._row}" onclick="dashAnswerQuestion(this)">${isDone ? '답변 수정' : '답변 보내기'}</button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-async function dashAnswerQuestion(btn){
-  const wrap = btn.closest('.dq-item');
-  const text = wrap.querySelector('.dq-reply-text').value.trim();
-  if(!text){ showToast('답변 내용을 입력해 주세요.'); return; }
-  const row = btn.dataset.row;
-  btn.disabled = true; btn.textContent = '보내는 중…';
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'answerQuestion', token: TOKEN, row, answer: text })
-    });
-    const q = QUESTIONS.find(x => String(x._row) === String(row));
-    if(q){ q.answer = text; q.status = '답변완료'; }
-    showToast('답변을 보냈어요. 학생 포털의 질문함에 표시됩니다.');
-    dashRenderQuestions();
-  }catch(e){
-    btn.disabled = false; btn.textContent = '답변 보내기';
-    showToast('보내지 못했어요. 다시 시도해 주세요.');
-  }
-}
-
-function dashInitFilters(){
-  const grades = Object.keys(CONFIG.CURRICULUM);
-  $('selGrade').innerHTML = grades.map(g =>
-    `<option value="${g}">${g}학년 ${CONFIG.CURRICULUM[g].subject}</option>`).join('');
-  const withData = grades.find(g => ROWS.some(r => parseStudentId(String(r.studentId)).grade === Number(g)));
-  if(withData) $('selGrade').value = withData;
-  dashRefreshBanOptions();
-  dashRefreshActivityOptions();
-}
-function dashRefreshBanOptions(){
-  const grade = Number($('selGrade').value);
-  const bans = [...new Set(ROWS.map(r => parseStudentId(String(r.studentId)))
-    .filter(p => p.grade === grade).map(p => p.ban))].sort((a,b)=>a-b);
-  $('selBan').innerHTML = '<option value="">전체 반</option>'
-    + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
-}
-function dashRefreshActivityOptions(){
-  const grade = Number($('selGrade').value);
-  const lessons = CONFIG.CURRICULUM[grade].lessons;
-  $('selActivity').innerHTML = '<option value="">전체 활동</option>'
-    + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
-}
-
-function dashFilteredRows(){
-  const grade = Number($('selGrade').value);
-  const ban = $('selBan').value;
-  const act = $('selActivity').value;
-  return ROWS.filter(r => {
-    const p = parseStudentId(String(r.studentId));
-    if(p.grade !== grade) return false;
-    if(ban && p.ban !== Number(ban)) return false;
-    if(act && String(r.gameName) !== act) return false;
-    return true;
-  });
-}
-
-/* 미검토 AI 코멘트 수 (전체 기준) */
-function aiUnreviewedCount(){
-  return ROWS.filter(r =>
-    String(r['AI코멘트']||'').trim() && !String(r['AI코멘트확인']||'').trim()
-  ).length;
-}
-
-function renderDash(){
-  const grade = Number($('selGrade').value);
-  const ban = $('selBan').value;
-  const act = $('selActivity').value;
-  const lessons = CONFIG.CURRICULUM[grade].lessons;
-  const activeLessons = lessons.filter(l => l.url || l.urlByBan);
-  const rows = dashFilteredRows();
-
-  /* 미검토 AI 코멘트 알림 */
-  const unrev = aiUnreviewedCount();
-  $('aiNotice').style.display = unrev ? 'block' : 'none';
-  $('aiNoticeCount').textContent = unrev;
-
-  const gradeRows = ROWS.filter(r => {
-    const p = parseStudentId(String(r.studentId));
-    return p.grade === grade && (!ban || p.ban === Number(ban));
-  });
-  const students = {};
-  gradeRows.forEach(r => {
-    const sid = String(r.studentId);
-    if(!students[sid]) students[sid] = { sid, name:String(r.studentName||''), p:parseStudentId(sid), records:[] };
-    students[sid].records.push(r);
-  });
-  const list = Object.values(students).sort((a,b) => a.p.ban - b.p.ban || a.p.num - b.p.num);
-
-  list.forEach(s => {
-    s.doneIds = new Set(s.records.map(r => String(r.gameName)));
-    s.achieve = {};
-    s.records.forEach(r => {
-      const id = String(r.gameName);
-      const lv = String(r['성취수준']||'').trim();
-      const prev = s.achieve[id];
-      if(!prev || lv || !String(prev['성취수준']||'').trim()) s.achieve[id] = r;
-    });
-    const done = activeLessons.filter(l => s.doneIds.has(l.id)).length;
-    s.pct = activeLessons.length ? Math.round(done/activeLessons.length*100) : 0;
-    s.doneCount = done;
-    s.feedbacks = FEEDBACKS.filter(f => String(f.studentId).trim() === s.sid);
-  });
-
-  $('sumStudents').textContent = list.length;
-  $('sumProgress').textContent = list.length
-    ? Math.round(list.reduce((a,s)=>a+s.pct,0)/list.length) : 0;
-
-  const cnt = { 상:0, 중:0, 하:0 };
-  rows.forEach(r => { const l = String(r['성취수준']||'').trim(); if(cnt[l]!==undefined) cnt[l]++; });
-  $('cntSang').textContent = cnt['상']; $('cntJung').textContent = cnt['중']; $('cntHa').textContent = cnt['하'];
-  $('distScope').textContent = act ? '(선택한 활동)' : '(전체 활동)';
-  const total = cnt['상']+cnt['중']+cnt['하'];
-  $('distBar').innerHTML = total ?
-    `<div class="dist-sang" style="width:${cnt['상']/total*100}%"></div>
-     <div class="dist-jung" style="width:${cnt['중']/total*100}%"></div>
-     <div class="dist-ha" style="width:${cnt['하']/total*100}%"></div>`
-    : '<div style="width:100%;background:#EEE"></div>';
-
-  const tagCnt = {};
-  rows.forEach(r => { const t = String(r['분류태그']||'').trim(); if(t) tagCnt[t]=(tagCnt[t]||0)+1; });
-  const topTags = Object.entries(tagCnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  $('tagList').innerHTML = topTags.length
-    ? topTags.map(([t,n]) => `<span class="tag-chip">${escapeHtml(t)} <small>${n}</small></span>`).join('')
-    : '<span class="muted">아직 분석된 태그가 없어요</span>';
-
-  $('rowCount').textContent = `기록 ${rows.length}건`;
-
-  $('tableHead').innerHTML = '<tr><th>학번</th><th>이름</th><th>진행률</th>'
-    + lessons.map(l => `<th title="${escapeHtml(l.title)}">${escapeHtml(dashShorten(l.title, 8))}</th>`).join('')
-    + '</tr>';
-
-  if(!list.length){
-    $('tableBody').innerHTML = `<tr><td colspan="${3+lessons.length}" class="empty-line">아직 이 조건에 해당하는 학생 기록이 없어요.</td></tr>`;
-    return;
-  }
-
-  $('tableBody').innerHTML = list.map(s => {
-    const cells = lessons.map(l => {
-      if(!s.doneIds.has(l.id)) return '<td class="muted">—</td>';
-      const rec = s.achieve[l.id];
-      const lv = rec ? String(rec['성취수준']||'').trim() : '';
-      return `<td><span class="tbl-dots" title="${escapeHtml(lv||'분석 전')}">${dashDots(lv)}</span></td>`;
-    }).join('');
-    return `
-      <tr class="student-row" data-sid="${s.sid}">
-        <td>${s.sid}</td>
-        <td>${escapeHtml(s.name)}${s.feedbacks.length ? '<span class="fb-dot" title="피드백 있음"></span>' : ''}</td>
-        <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${activeLessons.length}</span></td>
-        ${cells}
-      </tr>
-      ${openDetailSid === s.sid ? dashDetailRowHtml(s, lessons, 3+lessons.length) : ''}`;
-  }).join('');
-
-  document.querySelectorAll('tr.student-row').forEach(tr => {
-    tr.addEventListener('click', () => {
-      openDetailSid = (openDetailSid === tr.dataset.sid) ? null : tr.dataset.sid;
-      renderDash();
-    });
-  });
-  document.querySelectorAll('.fb-send').forEach(btn => {
-    btn.addEventListener('click', ev => { ev.stopPropagation(); dashSendFeedback(btn); });
-  });
-  document.querySelectorAll('tr.detail-row').forEach(tr => {
-    tr.addEventListener('click', ev => ev.stopPropagation());
-  });
-  document.querySelectorAll('.ai-confirm').forEach(btn => {
-    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiConfirm(btn); });
-  });
-  document.querySelectorAll('.ai-editbtn').forEach(btn => {
-    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiEditToggle(btn); });
-  });
-  document.querySelectorAll('.ai-hide').forEach(btn => {
-    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiHide(btn); });
-  });
-}
-
-function dashDetailRowHtml(s, lessons, colspan){
-  const act = $('selActivity').value;
-  const recs = s.records
-    .filter(r => !act || String(r.gameName) === act)
-    .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  const recHtml = recs.length ? recs.map(r => {
-    const aiComment = String(r['AI코멘트']||'').trim();
-    const aiChecked = String(r['AI코멘트확인']||'').trim();
-    const rowNum = r._row || '';
-    let aiBox = '';
-    if (aiComment && rowNum) {
-      aiBox = `
-        <div class="ai-box" data-row="${rowNum}">
-          <div class="ai-head">
-            <span class="ai-title">🤖 AI 코멘트 (학생에게 표시 중)</span>
-            <span class="ai-chip ${aiChecked ? 'ok' : 'wait'}">${aiChecked ? '검토 완료' : '미검토'}</span>
-            <span class="ai-actions">
-              ${aiChecked ? '' : `<button class="btn-tiny ai-confirm" data-row="${rowNum}">확인</button>`}
-              <button class="btn-tiny ai-editbtn" data-row="${rowNum}">수정</button>
-              <button class="btn-tiny ai-hide" data-row="${rowNum}">숨기기</button>
-            </span>
-          </div>
-          <div class="ai-text">${escapeHtml(aiComment)}</div>
-        </div>`;
+    const fbSheet = getOrCreateFeedbackSheet_();
+    const feedback = [];
+    if (fbSheet.getLastRow() >= 2) {
+      const fv = fbSheet.getRange(2, 1, fbSheet.getLastRow() - 1, 5).getValues();
+      fv.forEach(row => {
+        if (String(row[1]).trim() === sid) {
+          feedback.push({
+            timestamp: row[0],
+            activityId: String(row[3] || ''),
+            feedback: String(row[4] || '')
+          });
+        }
+      });
     }
-    return `
-    <div class="rec">
-      <div class="rec-head">
-        <span class="rec-title">${escapeHtml(dashLessonTitle(String(r.gameName)))}</span>
-        <span class="rec-meta">${formatDate(r.timestamp)} · 성취 ${escapeHtml(String(r['성취수준']||'분석 전'))}</span>
-      </div>
-      <dl>
-        <dt>선택 요약</dt><dd>${escapeHtml(String(r.choiceSummary||'—'))}</dd>
-        <dt>학생 서술</dt><dd>${escapeHtml(String(r.reflection||'—'))}</dd>
-        <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
-        <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
-      </dl>
-      ${aiBox}
-    </div>`;
-  }).join('') : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
 
-  const fbHtml = s.feedbacks.length ? `<div class="fb-history">${
-    s.feedbacks.map(f => `<div class="fb-item">
-      <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(dashLessonTitle(String(f.activityId)))}</div>
-      ${escapeHtml(String(f.feedback))}</div>`).join('')}</div>` : '';
-
-  const options = '<option value="전체">전체(학기 총평)</option>'
-    + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
-
-  return `
-    <tr class="detail-row"><td colspan="${colspan}">
-      ${recHtml}
-      ${fbHtml}
-      <div class="fb-form">
-        <select class="fb-activity">${options}</select>
-        <textarea class="fb-text" placeholder="${escapeHtml(s.name)} 학생에게 보낼 피드백 — 학생 포털의 해당 활동 카드에 표시됩니다"></textarea>
-        <button class="btn btn-sm fb-send" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">보내기</button>
-      </div>
-    </td></tr>`;
-}
-
-/* ── AI 코멘트 관리 ── */
-function dashFindRowRec(rowNum){
-  return ROWS.find(r => String(r._row) === String(rowNum));
-}
-async function dashAiPost(payload){
-  const res = await fetch(CONFIG.WEBAPP_URL, {
-    method:'POST',
-    body: JSON.stringify(Object.assign({ token: TOKEN }, payload))
-  });
-  const data = await res.json();
-  if (data.result !== 'success') throw new Error(data.message || '요청 실패');
-}
-async function dashAiConfirm(btn){
-  const row = btn.dataset.row;
-  btn.disabled = true;
-  try{
-    await dashAiPost({ action:'aiReview', row });
-    const rec = dashFindRowRec(row);
-    if(rec) rec['AI코멘트확인'] = '확인';
-    showToast('검토 완료로 표시했어요.');
-    renderDash();
-  }catch(e){
-    btn.disabled = false;
-    showToast('처리하지 못했어요: ' + e.message);
-  }
-}
-function dashAiEditToggle(btn){
-  const box = btn.closest('.ai-box');
-  if(box.querySelector('.ai-edit-area')) return;
-  const rec = dashFindRowRec(box.dataset.row);
-  const current = rec ? String(rec['AI코멘트']||'') : '';
-  const textEl = box.querySelector('.ai-text');
-  textEl.innerHTML = `
-    <textarea class="ai-edit-area">${escapeHtml(current)}</textarea>
-    <div style="display:flex;gap:6px;margin-top:6px;">
-      <button class="btn-tiny ai-save" data-row="${box.dataset.row}">저장</button>
-      <button class="btn-tiny ai-cancel">취소</button>
-    </div>`;
-  textEl.querySelector('.ai-save').addEventListener('click', async ev => {
-    ev.stopPropagation();
-    const saveBtn = ev.currentTarget;
-    const newText = textEl.querySelector('.ai-edit-area').value.trim();
-    saveBtn.disabled = true;
-    try{
-      await dashAiPost({ action:'aiEdit', row: box.dataset.row, comment: newText });
-      if(rec){ rec['AI코멘트'] = newText; rec['AI코멘트확인'] = '확인'; }
-      showToast('AI 코멘트를 수정했어요. 학생 화면에 바로 반영됩니다.');
-      renderDash();
-    }catch(e){
-      saveBtn.disabled = false;
-      showToast('저장하지 못했어요: ' + e.message);
+    // v10 신규 — 본인이 남긴 질문 + 교사 답변
+    const qSheet = getOrCreateQuestionSheet_();
+    const questions = [];
+    if (qSheet.getLastRow() >= 2) {
+      const qv = qSheet.getRange(2, 1, qSheet.getLastRow() - 1, QUESTION_HEADERS.length).getValues();
+      qv.forEach(row => {
+        if (String(row[QCOL_STUDENT_ID - 1]).trim() === sid) {
+          questions.push({
+            timestamp: row[QCOL_TIMESTAMP - 1],
+            question: String(row[QCOL_QUESTION - 1] || ''),
+            answer: String(row[QCOL_ANSWER - 1] || ''),
+            answerTime: row[QCOL_ANSWER_TIME - 1] || '',
+            status: String(row[QCOL_STATUS - 1] || '대기')
+          });
+        }
+      });
     }
-  });
-  textEl.querySelector('.ai-cancel').addEventListener('click', ev => {
-    ev.stopPropagation(); renderDash();
-  });
-}
-async function dashAiHide(btn){
-  if(!confirm('이 AI 코멘트를 학생 화면에서 숨길까요? (내용이 지워집니다)')) return;
-  const row = btn.dataset.row;
-  btn.disabled = true;
-  try{
-    await dashAiPost({ action:'aiEdit', row, comment: '' });
-    const rec = dashFindRowRec(row);
-    if(rec){ rec['AI코멘트'] = ''; rec['AI코멘트확인'] = '확인'; }
-    showToast('AI 코멘트를 숨겼어요.');
-    renderDash();
-  }catch(e){
-    btn.disabled = false;
-    showToast('처리하지 못했어요: ' + e.message);
+
+    return json_({ result: 'success', activities: activities, feedback: feedback, questions: questions });
+  } catch (err) {
+    return json_({ result: 'error', message: err.message });
   }
 }
 
-async function dashSendFeedback(btn){
-  const wrap = btn.closest('.fb-form');
-  const text = wrap.querySelector('.fb-text').value.trim();
-  const activityId = wrap.querySelector('.fb-activity').value;
-  if(!text){ showToast('피드백 내용을 입력해 주세요.'); return; }
-  btn.disabled = true; btn.textContent = '보내는 중…';
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({
-        action:'feedback', token:TOKEN,
-        studentId:btn.dataset.sid, studentName:btn.dataset.name,
-        activityId, feedback:text
-      })
+/* ── 짝(조) 1차 판단 조회 (v9: 임시 시트에서 조회) ──
+ * 조별_임시공유 시트에서 같은 gameName + 같은 groupId를 가진
+ * "본인이 아닌" 다른 학생의 판단을 찾아 반환. */
+function groupGet_(e) {
+  try {
+    const gameName = String(e.parameter.gameName || '').trim();
+    const groupId = String(e.parameter.groupId || '').trim();
+    const selfId = String(e.parameter.studentId || '').trim();
+    if (!gameName || !groupId) throw new Error('gameName과 groupId가 필요합니다.');
+
+    const sheet = getOrCreateGroupTempSheet_();
+    const partners = [];
+    if (sheet.getLastRow() >= 2) {
+      const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, GROUP_TEMP_HEADERS.length).getValues();
+      values.forEach(row => {
+        const rowStudentId = String(row[1] || '').trim();
+        const rowGame = String(row[3] || '').trim();
+        const rowGroup = String(row[4] || '').trim();
+        if (rowGame !== gameName || rowGroup !== groupId) return;
+        if (selfId && rowStudentId === selfId) return; // 본인 제외
+
+        partners.push({
+          studentName: String(row[2] || ''),
+          role: String(row[5] || ''),
+          give: String(row[6] || ''),
+          want: String(row[7] || ''),
+          why: String(row[8] || '')
+        });
+      });
+    }
+
+    return json_({ result: 'success', partners: partners });
+  } catch (err) {
+    return json_({ result: 'error', message: err.message });
+  }
+}
+
+/* ── 피드백 전체 조회 (교사) ── */
+function feedbackGet_(e) {
+  const token = e.parameter.token || '';
+  if (token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+
+  const sheet = getOrCreateFeedbackSheet_();
+  if (sheet.getLastRow() < 2) return json_({ result: 'success', rows: [] });
+
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
+  const rows = values.map(row => ({
+    timestamp: row[0],
+    studentId: String(row[1] || ''),
+    studentName: String(row[2] || ''),
+    activityId: String(row[3] || ''),
+    feedback: String(row[4] || '')
+  }));
+  return json_({ result: 'success', rows: rows });
+}
+
+/* ── 질문함 전체 조회 (교사, v10 신규) ──
+ * _row: 시트상 실제 행 번호. answerQuestion 액션에서 이 값으로 행을 특정함. */
+function questionsGet_(e) {
+  const token = e.parameter.token || '';
+  if (token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+
+  const sheet = getOrCreateQuestionSheet_();
+  if (sheet.getLastRow() < 2) return json_({ result: 'success', rows: [] });
+
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, QUESTION_HEADERS.length).getValues();
+  const rows = values.map((row, i) => ({
+    _row: i + 2,
+    timestamp: row[QCOL_TIMESTAMP - 1],
+    studentId: String(row[QCOL_STUDENT_ID - 1] || ''),
+    studentName: String(row[QCOL_STUDENT_NAME - 1] || ''),
+    grade: row[QCOL_GRADE - 1],
+    ban: row[QCOL_BAN - 1],
+    question: String(row[QCOL_QUESTION - 1] || ''),
+    answer: String(row[QCOL_ANSWER - 1] || ''),
+    answerTime: row[QCOL_ANSWER_TIME - 1] || '',
+    status: String(row[QCOL_STATUS - 1] || '대기')
+  }));
+  return json_({ result: 'success', rows: rows });
+}
+
+/* ── 공지사항 조회 — 학생용, 학년+반 매칭 + 게시중인 것만 (v11 신규) ──
+ * 매칭 규칙: (학년="전체" or 학년==grade) AND (반="전체" or 반==ban) AND 게시여부="게시" */
+function announcementsGet_(e) {
+  const grade = String(e.parameter.grade || '').trim();
+  const ban = String(e.parameter.ban || '').trim();
+
+  const sheet = getOrCreateAnnouncementSheet_();
+  if (sheet.getLastRow() < 2) return json_({ result: 'success', rows: [] });
+
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, ANNOUNCEMENT_HEADERS.length).getValues();
+  const rows = values
+    .map(row => ({
+      timestamp: row[ACOL_TIMESTAMP - 1],
+      grade: String(row[ACOL_GRADE - 1] || ''),
+      ban: String(row[ACOL_BAN - 1] || ''),
+      content: String(row[ACOL_CONTENT - 1] || ''),
+      status: String(row[ACOL_STATUS - 1] || '')
+    }))
+    .filter(a => a.status === '게시')
+    .filter(a => a.grade === '전체' || !grade || a.grade === grade)
+    .filter(a => a.ban === '전체' || !ban || a.ban === ban);
+
+  return json_({ result: 'success', rows: rows });
+}
+
+/* ── 공지사항 조회 — 교사용, 게시+보류 전체 (v11 신규) ── */
+function announcementsAdminGet_(e) {
+  const token = e.parameter.token || '';
+  if (token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+
+  const sheet = getOrCreateAnnouncementSheet_();
+  if (sheet.getLastRow() < 2) return json_({ result: 'success', rows: [] });
+
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, ANNOUNCEMENT_HEADERS.length).getValues();
+  const rows = values.map((row, i) => ({
+    _row: i + 2,
+    timestamp: row[ACOL_TIMESTAMP - 1],
+    grade: String(row[ACOL_GRADE - 1] || ''),
+    ban: String(row[ACOL_BAN - 1] || ''),
+    content: String(row[ACOL_CONTENT - 1] || ''),
+    status: String(row[ACOL_STATUS - 1] || '')
+  }));
+  return json_({ result: 'success', rows: rows });
+}
+
+/* ── 커리큘럼 조회 — 학생용, 공개된 활동 + 학년정보만 (v12 신규) ──
+ * 응답 모양을 config.js의 기존 CONFIG.CURRICULUM 구조와 동일하게 맞춰서
+ * 프론트가 그대로 CONFIG.CURRICULUM = data.grades 로 덮어쓸 수 있게 함. */
+function curriculumGet_(e) {
+  const grades = {};
+
+  const giSheet = getOrCreateGradeInfoSheet_();
+  if (giSheet.getLastRow() >= 2) {
+    const gv = giSheet.getRange(2, 1, giSheet.getLastRow() - 1, GRADE_INFO_HEADERS.length).getValues();
+    gv.forEach(function (row) {
+      const grade = String(row[0] || '').trim();
+      if (!grade) return;
+      const pf = parseUrlField_(row[5]);
+      const hasPortfolio = !!(pf.url || pf.urlByBan);
+      const portfolio = hasPortfolio ? {
+        title: String(row[3] || ''),
+        desc: String(row[4] || '')
+      } : null;
+      if (portfolio) {
+        if (pf.urlByBan) portfolio.urlByBan = pf.urlByBan; else portfolio.url = pf.url;
+      }
+      grades[grade] = {
+        subject: String(row[1] || ''),
+        unitQuestion: String(row[2] || ''),
+        portfolio: portfolio,
+        lessons: []
+      };
     });
-    FEEDBACKS.push({ timestamp:new Date().toISOString(), studentId:btn.dataset.sid,
-      studentName:btn.dataset.name, activityId, feedback:text });
-    showToast('피드백을 보냈어요. 학생 포털의 해당 활동 카드에 표시됩니다.');
-    renderDash();
-  }catch(e){
-    btn.disabled = false; btn.textContent = '보내기';
-    showToast('보내지 못했어요. 다시 시도해 주세요.');
+  }
+
+  const clSheet = getOrCreateCurriculumSheet_();
+  if (clSheet.getLastRow() >= 2) {
+    const lv = clSheet.getRange(2, 1, clSheet.getLastRow() - 1, CURRICULUM_HEADERS.length).getValues();
+    // v13: 학년 내 순서(CLCOL_ORDER) 기준 정렬 후 담기 — 시트 행 순서가 아니라 순서 컬럼이 노출 순서를 결정함
+    const withOrder = lv.map(function (row, i) {
+      return { row: row, order: Number(row[CLCOL_ORDER - 1]) || (i + 1) };
+    });
+    withOrder.sort(function (a, b) { return a.order - b.order; });
+    withOrder.forEach(function (item) {
+      const row = item.row;
+      const isPublic = String(row[CLCOL_PUBLIC - 1] || '') === '공개';
+      if (!isPublic) return;
+      const grade = String(row[1] || '').trim();
+      if (!grade) return;
+      if (!grades[grade]) grades[grade] = { subject: '', unitQuestion: '', portfolio: null, lessons: [] };
+
+      const u = parseUrlField_(row[6]);
+      const lesson = {
+        id: String(row[2] || ''),
+        title: String(row[3] || ''),
+        desc: String(row[4] || ''),
+        type: String(row[5] || '')
+      };
+      if (u.urlByBan) lesson.urlByBan = u.urlByBan; else lesson.url = u.url;
+      grades[grade].lessons.push(lesson);
+    });
+  }
+
+  return json_({ result: 'success', grades: grades });
+}
+
+/* ── 커리큘럼 조회 — 교사용, 비공개 포함 전체 + _row (v12 신규) ── */
+function curriculumAdminGet_(e) {
+  const token = e.parameter.token || '';
+  if (token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+
+  const gradeInfo = {};
+  const giSheet = getOrCreateGradeInfoSheet_();
+  if (giSheet.getLastRow() >= 2) {
+    const gv = giSheet.getRange(2, 1, giSheet.getLastRow() - 1, GRADE_INFO_HEADERS.length).getValues();
+    gv.forEach(function (row, i) {
+      const grade = String(row[0] || '').trim();
+      if (!grade) return;
+      gradeInfo[grade] = {
+        _row: i + 2,
+        subject: String(row[1] || ''),
+        unitQuestion: String(row[2] || ''),
+        portfolioTitle: String(row[3] || ''),
+        portfolioDesc: String(row[4] || ''),
+        portfolioUrlText: String(row[5] || '')
+      };
+    });
+  }
+
+  const lessons = [];
+  const clSheet = getOrCreateCurriculumSheet_();
+  if (clSheet.getLastRow() >= 2) {
+    const lv = clSheet.getRange(2, 1, clSheet.getLastRow() - 1, CURRICULUM_HEADERS.length).getValues();
+    lv.forEach(function (row, i) {
+      lessons.push({
+        _row: i + 2,
+        timestamp: row[0],
+        grade: String(row[1] || ''),
+        id: String(row[2] || ''),
+        title: String(row[3] || ''),
+        desc: String(row[4] || ''),
+        type: String(row[5] || ''),
+        urlText: String(row[6] || ''),
+        public: String(row[CLCOL_PUBLIC - 1] || '') === '공개',
+        order: Number(row[CLCOL_ORDER - 1]) || (i + 1),   // v13
+        isPast: String(row[CLCOL_PAST - 1] || '') === '지난활동' // v13
+      });
+    });
+    // v13: 학년별로 묶어서 보되, 학년 내에서는 순서 기준 정렬 — 대시보드가 이 순서 그대로 그리면 됨
+    lessons.sort(function (a, b) { return a.grade.localeCompare(b.grade) || a.order - b.order; });
+  }
+
+  return json_({ result: 'success', lessons: lessons, gradeInfo: gradeInfo });
+}
+
+/* ── 전체 기록 조회 (교사) ── */
+function teacherGet_(e) {
+  const token = e.parameter.token || '';
+  if (token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+
+  const sheet = getOrCreateSheet_();
+  if (sheet.getLastRow() < 2) return json_({ rows: [] });
+
+  const lastCol = Math.max(sheet.getLastColumn(), COL_GROUP_ID);
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), lastCol).getValues();
+  const headers = values[0];
+  const keyMap = {
+    '타임스탬프': 'timestamp', '학번': 'studentId', '이름': 'studentName',
+    '게임명': 'gameName', '선택 요약': 'choiceSummary', '실제 역사와의 차이': 'diffSummary',
+    '학생 서술': 'reflection', '선택 상세(JSON)': 'choicesJson', '조번호': 'groupId'
+  };
+
+  const gameFilter = e.parameter.game || '';
+
+  let rows = values.slice(1).map((row, i) => {
+    const obj = { _row: i + 2 };
+    headers.forEach((h, c) => {
+      const key = keyMap[h] || h;
+      if (key) obj[key] = row[c];
+    });
+    return obj;
+  });
+
+  if (gameFilter) rows = rows.filter(r => r.gameName === gameFilter);
+
+  return json_({ rows: rows });
+}
+
+/* ════════════════════════════════════════════════════════
+ * doPost 라우팅
+ *  - stage="judgment"      → 조별_임시공유 시트에만 기록 (포털 완료 판정에 안 잡힘)
+ *  - (기본, stage 없음/그 외) → 게임활동_로그에 활동 기록 + groupId 기록 + 가능하면 Gemini 피드백 동봉
+ *  - action=feedback       → 피드백 기록 (토큰 필수)
+ *  - action=aiReview       → AI 코멘트 검토 완료 표시 (토큰 필수)
+ *  - action=aiEdit         → AI 코멘트 수정/숨김 (토큰 필수)
+ *  - action=askQuestion        → 질문함에 질문 등록 (토큰 불필요, v10 신규)
+ *  - action=answerQuestion     → 질문함에 답변 기록 (토큰 필수, v10 신규)
+ *  - action=addAnnouncement    → 공지 새로 게시 (토큰 필수, v11 신규)
+ *  - action=toggleAnnouncement → 공지 게시↔보류 전환 (토큰 필수, v11 신규)
+ *  - action=addLesson          → 커리큘럼에 새 활동 추가 (토큰 필수, v12 신규, 기본 비공개)
+ *  - action=toggleLessonPublic → 활동 공개↔비공개 전환 (토큰 필수, v12 신규)
+ *  - action=updateGradeInfo    → 학년정보(단원질문·포트폴리오) 저장 (토큰 필수, v12 신규, upsert)
+ *  - action=toggleLessonPast   → 지난활동 표시 on/off 전환 (토큰 필수, v13 신규)
+ *  - action=reorderLessons     → 순서 일괄 재조정 [{row,order},...] (토큰 필수, v13 신규)
+ * ════════════════════════════════════════════════════════ */
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = String(data.action || '').trim();
+
+    if (action === 'feedback') return feedbackPost_(data);
+    if (action === 'aiReview') return aiReviewPost_(data);
+    if (action === 'aiEdit') return aiEditPost_(data);
+    if (action === 'askQuestion') return askQuestionPost_(data);       // v10 신규
+    if (action === 'answerQuestion') return answerQuestionPost_(data); // v10 신규
+    if (action === 'addAnnouncement') return addAnnouncementPost_(data);       // v11 신규
+    if (action === 'toggleAnnouncement') return toggleAnnouncementPost_(data); // v11 신규
+    if (action === 'addLesson') return addLessonPost_(data);                   // v12 신규
+    if (action === 'toggleLessonPublic') return toggleLessonPublicPost_(data); // v12 신규
+    if (action === 'updateGradeInfo') return updateGradeInfoPost_(data);       // v12 신규
+    if (action === 'toggleLessonPast') return toggleLessonPastPost_(data);     // v13 신규
+    if (action === 'reorderLessons') return reorderLessonsPost_(data);         // v13 신규
+
+    // ── 짝 활동 1차 판단: 임시 시트에만 기록, 게임활동_로그는 건드리지 않음 ──
+    if (String(data.stage || '').trim() === 'judgment') {
+      return groupTempPost_(data);
+    }
+
+    // ── 기본: 활동 기록 (최종 제출 등, 학생당 1행) ──
+    const sheet = getOrCreateSheet_();
+    if (!data.gameName) {
+      throw new Error('gameName이 없습니다. 게임 HTML의 CONFIG.GAME_NAME을 확인하세요.');
+    }
+    sheet.appendRow([
+      new Date(),
+      data.studentId || '',
+      data.studentName || '',
+      data.gameName || '',
+      data.choiceSummary || '',
+      data.diffSummary || '',
+      data.reflection || '',
+      data.choicesJson || ''
+    ]);
+    const newRow = sheet.getLastRow();
+
+    // ── groupId 기록 (있을 때만) ──
+    if (data.groupId) {
+      ensureGroupIdHeader_(sheet);
+      sheet.getRange(newRow, COL_GROUP_ID).setValue(String(data.groupId));
+    }
+
+    // ── Gemini 피드백 시도 (실패해도 위 기록은 이미 저장 완료된 상태) ──
+    let aiComment = '';
+    let aiError = '';
+    const prompt = buildFeedbackPrompt_(data);
+    if (prompt) {
+      try {
+        aiComment = callGeminiFeedback_(prompt);
+        ensureAiCommentHeader_(sheet);
+        sheet.getRange(newRow, COL_AI_COMMENT).setValue(aiComment);
+      } catch (err) {
+        aiError = err.message;
+        Logger.log('Gemini 피드백 실패 (row ' + newRow + '): ' + err.message);
+      }
+    }
+
+    return json_({ result: 'success', aiComment: aiComment, aiError: aiError });
+
+  } catch (err) {
+    return json_({ result: 'error', message: err.message });
   }
 }
 
-function dashDownloadCsv(){
-  const rows = dashFilteredRows();
-  if(!rows.length){ showToast('내려받을 기록이 없어요.'); return; }
-  const cols = [
-    ['타임스탬프', r=>{ const d=new Date(r.timestamp); return isNaN(d)?'':d.toLocaleString('ko-KR'); }],
-    ['학번', r=>r.studentId], ['이름', r=>r.studentName],
-    ['활동', r=>dashLessonTitle(String(r.gameName))], ['게임명(원본)', r=>r.gameName],
-    ['선택 요약', r=>r.choiceSummary], ['실제 역사와의 차이', r=>r.diffSummary],
-    ['학생 서술', r=>r.reflection],
-    ['분류태그', r=>r['분류태그']||''], ['1줄요약', r=>r['1줄요약']||''],
-    ['성취수준', r=>r['성취수준']||''], ['판단근거', r=>r['판단근거']||''],
-    ['AI코멘트', r=>r['AI코멘트']||''], ['AI코멘트확인', r=>r['AI코멘트확인']||'']
+/* ── 짝 활동 1차 판단 기록 (임시 시트 전용) ── */
+function groupTempPost_(data) {
+  if (!data.gameName || !data.groupId) {
+    return json_({ result: 'error', message: 'gameName과 groupId가 필요합니다.' });
+  }
+  const sheet = getOrCreateGroupTempSheet_();
+  sheet.appendRow([
+    new Date(),
+    data.studentId || '',
+    data.studentName || '',
+    data.gameName || '',
+    data.groupId || '',
+    data.role || '',
+    data.give || '',
+    data.want || '',
+    data.why || ''
+  ]);
+  return json_({ result: 'success' });
+}
+
+/* ── 피드백 기록 (교사) ── */
+function feedbackPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const sheet = getOrCreateFeedbackSheet_();
+  sheet.appendRow([
+    new Date(),
+    data.studentId || '',
+    data.studentName || '',
+    data.activityId || '전체',
+    data.feedback || ''
+  ]);
+  return json_({ result: 'success' });
+}
+
+/* ── AI 코멘트 검토 완료 표시 ── */
+function aiReviewPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const sheet = getOrCreateSheet_();
+  const row = Number(data.row);
+  if (!row || row < 2 || row > sheet.getLastRow()) {
+    return json_({ result: 'error', message: '잘못된 행 번호: ' + data.row });
+  }
+  sheet.getRange(row, COL_AI_CHECK).setValue('확인');
+  return json_({ result: 'success' });
+}
+
+/* ── AI 코멘트 수정/숨김 (빈 문자열이면 숨김) ── */
+function aiEditPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const sheet = getOrCreateSheet_();
+  const row = Number(data.row);
+  if (!row || row < 2 || row > sheet.getLastRow()) {
+    return json_({ result: 'error', message: '잘못된 행 번호: ' + data.row });
+  }
+  sheet.getRange(row, COL_AI_COMMENT).setValue(String(data.comment == null ? '' : data.comment));
+  sheet.getRange(row, COL_AI_CHECK).setValue('확인');
+  return json_({ result: 'success' });
+}
+
+/* ── 질문 등록 (학생, 토큰 불필요, v10 신규) ── */
+function askQuestionPost_(data) {
+  const sid = String(data.studentId || '').trim();
+  const name = String(data.studentName || '').trim();
+  const question = String(data.question || '').trim();
+  if (!sid || !name || !question) {
+    return json_({ result: 'error', message: '학번·이름·질문 내용이 모두 필요합니다.' });
+  }
+  const sheet = getOrCreateQuestionSheet_();
+  sheet.appendRow([
+    new Date(),                  // 타임스탬프
+    sid,                          // 학번
+    name,                         // 이름
+    data.grade || '',             // 학년
+    data.ban || '',               // 반
+    question,                     // 질문
+    '',                           // 답변
+    '',                           // 답변시각
+    '대기'                        // 상태
+  ]);
+  return json_({ result: 'success' });
+}
+
+/* ── 답변 등록/수정 (교사, 토큰 필수, v10 신규) ──
+ * row: questionsGet_이 내려준 _row 값 (시트상 실제 행 번호) */
+function answerQuestionPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const sheet = getOrCreateQuestionSheet_();
+  const row = Number(data.row);
+  if (!row || row < 2 || row > sheet.getLastRow()) {
+    return json_({ result: 'error', message: '잘못된 행 번호: ' + data.row });
+  }
+  const answer = String(data.answer == null ? '' : data.answer).trim();
+  if (!answer) return json_({ result: 'error', message: '답변 내용이 비어 있습니다.' });
+
+  sheet.getRange(row, QCOL_ANSWER).setValue(answer);
+  sheet.getRange(row, QCOL_ANSWER_TIME).setValue(new Date());
+  sheet.getRange(row, QCOL_STATUS).setValue('답변완료');
+  return json_({ result: 'success' });
+}
+
+/* ── 공지 새로 게시 (교사, 토큰 필수, v11 신규) ──
+ * grade: "전체" 또는 학년 숫자/문자열. ban: "전체" 또는 반 숫자/문자열. */
+function addAnnouncementPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const content = String(data.content || '').trim();
+  if (!content) return json_({ result: 'error', message: '공지 내용이 비어 있습니다.' });
+
+  const sheet = getOrCreateAnnouncementSheet_();
+  sheet.appendRow([
+    new Date(),
+    String(data.grade || '전체'),
+    String(data.ban || '전체'),
+    content,
+    '게시'
+  ]);
+  return json_({ result: 'success' });
+}
+
+/* ── 공지 게시↔보류 전환 (교사, 토큰 필수, v11 신규) ──
+ * row: announcementsAdminGet_이 내려준 _row 값 (시트상 실제 행 번호) */
+function toggleAnnouncementPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const sheet = getOrCreateAnnouncementSheet_();
+  const row = Number(data.row);
+  if (!row || row < 2 || row > sheet.getLastRow()) {
+    return json_({ result: 'error', message: '잘못된 행 번호: ' + data.row });
+  }
+  const cur = String(sheet.getRange(row, ACOL_STATUS).getValue() || '');
+  sheet.getRange(row, ACOL_STATUS).setValue(cur === '게시' ? '보류' : '게시');
+  return json_({ result: 'success' });
+}
+
+/* ── 커리큘럼: 새 활동 추가 (교사, 토큰 필수, v12 신규) ──
+ * public이 true가 아니면 기본 비공개로 등록됨. */
+function addLessonPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const grade = String(data.grade || '').trim();
+  const id = String(data.id || '').trim();
+  const title = String(data.title || '').trim();
+  if (!grade || !id || !title) {
+    return json_({ result: 'error', message: '학년·활동id·제목은 필수입니다.' });
+  }
+  const sheet = getOrCreateCurriculumSheet_();
+
+  // v13: 같은 학년 내 최대 순서값 + 1을 자동 부여 (맨 뒤에 추가됨)
+  let nextOrder = 1;
+  if (sheet.getLastRow() >= 2) {
+    const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, CURRICULUM_HEADERS.length).getValues();
+    values.forEach(function (row) {
+      if (String(row[1] || '').trim() !== grade) return;
+      const o = Number(row[CLCOL_ORDER - 1]) || 0;
+      if (o >= nextOrder) nextOrder = o + 1;
+    });
+  }
+
+  sheet.appendRow([
+    new Date(),
+    grade,
+    id,
+    title,
+    data.desc || '',
+    data.type || 'module',
+    data.url || '',
+    data.public ? '공개' : '비공개',
+    nextOrder,   // v13: 순서
+    ''           // v13: 지난활동 (기본 아니오)
+  ]);
+  return json_({ result: 'success' });
+}
+
+/* ── 커리큘럼: 활동 공개↔비공개 전환 (교사, 토큰 필수, v12 신규) ──
+ * row: curriculumAdminGet_이 내려준 _row 값 (시트상 실제 행 번호) */
+function toggleLessonPublicPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const sheet = getOrCreateCurriculumSheet_();
+  const row = Number(data.row);
+  if (!row || row < 2 || row > sheet.getLastRow()) {
+    return json_({ result: 'error', message: '잘못된 행 번호: ' + data.row });
+  }
+  const cur = String(sheet.getRange(row, CLCOL_PUBLIC).getValue() || '');
+  sheet.getRange(row, CLCOL_PUBLIC).setValue(cur === '공개' ? '비공개' : '공개');
+  return json_({ result: 'success' });
+}
+
+/* ── 커리큘럼: 지난활동 표시 on/off 전환 (교사, 토큰 필수, v13 신규) ──
+ * 공개여부와는 완전히 별개 컬럼 — 공개 상태를 유지한 채로도 "지난 활동"으로
+ * 표시할 수 있음(예: 복습용으로 계속 열어두는 경우). 대시보드 목록에서
+ * 진행중/예정 그룹과 지난 활동 그룹을 나누는 데만 쓰임. */
+function toggleLessonPastPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const sheet = getOrCreateCurriculumSheet_();
+  const row = Number(data.row);
+  if (!row || row < 2 || row > sheet.getLastRow()) {
+    return json_({ result: 'error', message: '잘못된 행 번호: ' + data.row });
+  }
+  const cur = String(sheet.getRange(row, CLCOL_PAST).getValue() || '');
+  sheet.getRange(row, CLCOL_PAST).setValue(cur === '지난활동' ? '' : '지난활동');
+  return json_({ result: 'success' });
+}
+
+/* ── 커리큘럼: 순서 일괄 재조정 (교사, 토큰 필수, v13 신규) ──
+ * data.items: [{row, order}, ...] — row는 curriculumAdminGet_이 내려준 _row,
+ * order는 새로 매길 순서값(숫자). 시트 행 자체는 이동하지 않고 순서 컬럼만 갱신됨.
+ * 대시보드에서 드래그(또는 위/아래 버튼)로 순서를 바꾸면, 영향받은 항목들만
+ * 이 배열로 묶어 한 번에 보냄. */
+function reorderLessonsPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (!items.length) return json_({ result: 'error', message: '재정렬할 항목이 없습니다.' });
+
+  const sheet = getOrCreateCurriculumSheet_();
+  const lastRow = sheet.getLastRow();
+  items.forEach(function (item) {
+    const row = Number(item.row);
+    const order = Number(item.order);
+    if (!row || row < 2 || row > lastRow || !order) return; // 잘못된 항목은 조용히 건너뜀
+    sheet.getRange(row, CLCOL_ORDER).setValue(order);
+  });
+  return json_({ result: 'success' });
+}
+
+/* ── 학년정보 저장 (교사, 토큰 필수, v12 신규, upsert) ──
+ * 해당 학년 행이 있으면 갱신, 없으면 새로 추가. subject는 기존 값을 유지하고 싶을 때
+ * 프론트가 GRADE_INFO_ADMIN에 있던 값을 그대로 다시 보내는 방식으로 구현돼 있음. */
+function updateGradeInfoPost_(data) {
+  if (data.token !== TEACHER_TOKEN) return json_({ result: 'error', message: '인증 실패' });
+  const grade = String(data.grade || '').trim();
+  if (!grade) return json_({ result: 'error', message: '학년이 필요합니다.' });
+
+  const sheet = getOrCreateGradeInfoSheet_();
+  let targetRow = 0;
+  if (sheet.getLastRow() >= 2) {
+    const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+    for (let i = 0; i < values.length; i++) {
+      if (String(values[i][0] || '').trim() === grade) { targetRow = i + 2; break; }
+    }
+  }
+  const rowData = [
+    grade,
+    data.subject || '',
+    data.unitQuestion || '',
+    data.portfolioTitle || '',
+    data.portfolioDesc || '',
+    data.portfolioUrlText || ''
   ];
-  const esc = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
-  const csv = '\uFEFF' + cols.map(c=>esc(c[0])).join(',') + '\n'
-    + rows.map(r => cols.map(c=>esc(c[1](r))).join(',')).join('\n');
-  const grade = $('selGrade').value, ban = $('selBan').value;
-  const name = `학습기록_${grade}학년${ban? '_'+ban+'반':''}_${new Date().toISOString().slice(0,10)}.csv`;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
-  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  if (targetRow) {
+    sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+  } else {
+    sheet.appendRow(rowData);
+  }
+  return json_({ result: 'success' });
 }
 
-function dashLessonTitle(id){
-  if(id === '전체') return '전체(학기 총평)';
-  return lessonTitle(id);
+/**
+ * ────────────────────────────────────────────────────────
+ * [일회성 마이그레이션 — 처음 한 번만 실행]
+ * 지금 쓰고 있는 config.js의 CURRICULUM 스냅샷을 "커리큘럼"·"학년정보" 시트로
+ * 옮깁니다. 아래 내용은 이 대화에서 확인 가능했던 범위까지만 채워뒀습니다:
+ *   - 2학년: 3개 활동 모두 URL 없음(준비 중) → 비공개로 등록
+ *   - 3학년: 고려거란관계게임(이미 5~8반에 배포됨) → 공개로 등록,
+ *            패들렛 포트폴리오(5~8반 링크, v3 핸드오프 문서 기준) 등록
+ *   - 단원 관통 질문(unitQuestion): 정확한 문구를 확인할 수 없어서 비워뒀습니다.
+ *     ⚠️ 실행 전에 실제 config.js와 대조해서 아래 내용을 맞게 고친 뒤 실행하세요.
+ *     특히 unitQuestion은 반드시 채워 넣어야 배너가 뜹니다.
+ * 실행 방법: Apps Script 편집기 상단 함수 목록에서
+ * "migrateCurriculumFromConfig_"를 선택하고 ▶ 실행.
+ * 재실행하면 중복 행이 쌓이니 한 번만 실행 권장.
+ * ────────────────────────────────────────────────────────
+ */
+function migrateCurriculumFromConfig_() {
+  // [학년, 과목, 단원관통질문, 포트폴리오제목, 포트폴리오설명, 포트폴리오URL(반:URL 줄바꿈 가능)]
+  const GRADE_INFO_SNAPSHOT = [
+    ['2', '세계사', '', '', '', ''],
+    ['3', '한국사', '', '나의 역사 패들렛', '',
+      '5:https://padlet.com/dy_sch03/2026-2-3-5-cewq8vec8p3ew2yn\n' +
+      '6:https://padlet.com/dy_sch03/2026-2-3-6-2xngg3v8pstkvld9\n' +
+      '7:https://padlet.com/dy_sch03/2026-2-3-7-8ssvnriy75f7xwxs\n' +
+      '8:https://padlet.com/dy_sch03/2026-2-3-8-gsrz2i3ca863675l'
+    ]
+  ];
+  // [학년, 활동id, 제목, 설명, 타입, URL(반:URL 줄바꿈 가능), 공개여부]
+  const LESSON_SNAPSHOT = [
+    ['2', '세력권전략시뮬레이션', '세력권 전략 시뮬레이션', '게르만 왕국의 갈림길에서 직접 선택하고, 실제 역사와 비교해요.', 'module', '', '비공개'],
+    ['2', '교황권자원게임', '교황권 자원 게임', '중세 교회와 국왕, 힘의 균형은 어떻게 움직였을까?', 'module', '', '비공개'],
+    ['2', '산업혁명시뮬레이터', '산업혁명 시뮬레이터', '공장과 도시가 생겨나던 시대, 사람들의 삶은 어떻게 바뀌었을까?', 'module', '', '비공개'],
+    ['3', '고려거란관계게임', '고려-거란 관계 게임', '서희의 담판과 귀주대첩의 갈림길에서 직접 선택해요.', 'module', 'https://hyonnie-t.github.io/Goryeo-Khitan/', '공개']
+  ];
+
+  const giSheet = getOrCreateGradeInfoSheet_();
+  GRADE_INFO_SNAPSHOT.forEach(function (row) { giSheet.appendRow(row); });
+
+  // v13: 마이그레이션 시점의 스냅샷 나열 순서를 그대로 학년별 순서(1,2,3…) 값으로 부여.
+  // 지난활동은 전부 기본값(빈 값 = 진행중/예정)으로 시작 — 이미 끝난 활동은 대시보드에서 수동 표시할 것.
+  const orderByGrade = {};
+  const clSheet = getOrCreateCurriculumSheet_();
+  LESSON_SNAPSHOT.forEach(function (row) {
+    const grade = row[0];
+    orderByGrade[grade] = (orderByGrade[grade] || 0) + 1;
+    clSheet.appendRow([new Date()].concat(row).concat([orderByGrade[grade], '']));
+  });
+
+  Logger.log('마이그레이션 완료: 학년정보 ' + GRADE_INFO_SNAPSHOT.length + '행, 커리큘럼 ' + LESSON_SNAPSHOT.length + '행');
 }
-function dashDots(lv){ return lv==='상'?'●●●':lv==='중'?'●●○':lv==='하'?'●○○':'◌'; }
-function dashShorten(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
-
-/* 대시보드 이벤트 */
-$('btnTeacherMode').addEventListener('click', () => {
-  const g = $('teacherGate');
-  const open = g.style.display === 'block';
-  g.style.display = open ? 'none' : 'block';
-  if(!open){
-    const saved = store.get('dash_token');
-    if(saved) $('tokenInput').value = saved;
-    $('tokenInput').focus();
-  }
-});
-
-/* ── 학생 화면 미리보기 (교사용) ──
- * 실제 학생 로그인 없이 특정 학년·반 화면을 바로 확인. 백엔드 조회 없이
- * SESSION·STUDENT_DATA를 클라이언트에서 채워 넣는 방식이라 실제 기록에 영향 없음.
- * 단, 모듈형 활동(게임 등)의 "하러 가기" 링크는 실제 활동 페이지로 이동하므로
- * 거기서 실제로 제출하면 시트에 남을 수 있음 — 화면만 확인하는 용도로 안내함. */
-function previewInitGradeOptions(){
-  const grades = Object.keys(CONFIG.CURRICULUM);
-  $('previewGrade').innerHTML = grades.map(g =>
-    `<option value="${g}">${g}학년 ${CONFIG.CURRICULUM[g].subject}</option>`).join('');
-}
-function startPreview(){
-  const grade = Number($('previewGrade').value);
-  const ban = Math.max(1, Number($('previewBan').value) || 1);
-  const withSample = $('previewSample').checked;
-  const cur = CONFIG.CURRICULUM[grade];
-  if(!cur){ showToast('해당 학년 설정을 찾을 수 없어요.'); return; }
-
-  PREVIEW_MODE = true;
-  SESSION = { studentId: `${grade}${String(ban).padStart(2,'0')}99`, name: '미리보기 학생', grade, ban, num: 99 };
-
-  let activities = [], feedback = [];
-  if(withSample){
-    const sampleLessons = cur.lessons.filter(l => l.url || l.urlByBan).slice(0, 2);
-    activities = sampleLessons.map((l, i) => ({
-      activityId: l.id,
-      achievement: i === 0 ? '상' : '중',
-      summary: '(예시) 자료를 근거로 판단 이유를 구체적으로 서술함',
-      aiComment: '(예시) 두 선택지의 차이를 잘 짚었어요. 다음엔 반대 입장도 함께 고려해보면 더 좋겠어요.',
-      reflection: '(예시 학생 서술) 내가 그 자리였다면 이런 선택을 했을 것 같다. 왜냐하면…',
-      timestamp: new Date().toISOString()
-    }));
-    feedback = [{ timestamp: new Date().toISOString(), activityId: '전체', feedback: '(예시) 이번 학기 전반적으로 성실하게 참여했어요.' }];
-  }
-  STUDENT_DATA = { activities, feedback };
-
-  $('teacherGate').style.display = 'none';
-  $('previewGate').style.display = 'none';
-  openBook(true);
-}
-$('btnPreviewMode').addEventListener('click', () => {
-  const g = $('previewGate');
-  const open = g.style.display === 'block';
-  g.style.display = open ? 'none' : 'block';
-});
-$('btnPreviewStart').addEventListener('click', startPreview);
-$('btnGate').addEventListener('click', () => enterDash($('tokenInput').value.trim()));
-$('tokenInput').addEventListener('keydown', e => { if(e.key==='Enter') $('btnGate').click(); });
-$('selGrade').addEventListener('change', () => { openDetailSid=null; dashRefreshBanOptions(); dashRefreshActivityOptions(); renderDash(); });
-$('selBan').addEventListener('change', () => { openDetailSid=null; renderDash(); });
-$('selActivity').addEventListener('change', () => renderDash());
-$('btnCsv').addEventListener('click', dashDownloadCsv);
-$('btnDashRefresh').addEventListener('click', async () => {
-  showToast('새로고침 중…');
-  try{ await dashLoadData(); renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm(); showToast('최신 기록으로 갱신했어요.'); }
-  catch(e){ showToast('갱신 실패: ' + e.message); }
-});
-$('btnDashOut').addEventListener('click', () => {
-  $('dashView').style.display = 'none';
-  $('loginView').style.display = 'flex';
-  $('teacherGate').style.display = 'none';
-});
-
-/* ── 초기 부팅: 커리큘럼(시트)을 먼저 불러온 뒤에야 로그인·미리보기·대시보드 필터가
- * 의미 있는 CONFIG.CURRICULUM을 참조할 수 있음. 그 전엔 로그인 버튼을 잠가 둠. ── */
-(async function initPortal(){
-  const btn = $('btnLogin');
-  btn.disabled = true; btn.textContent = '커리큘럼 불러오는 중…';
-
-  const ok = await loadCurriculum();
-  if(!ok){
-    showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
-  }
-
-  btn.disabled = false; btn.textContent = '책 펼치기';
-  previewInitGradeOptions();
-
-  /* 자동 로그인 (이전 접속 기억) */
-  const saved = store.get('portal_session');
-  if(saved){
-    try{
-      const { sid, name } = JSON.parse(saved);
-      $('inputId').value = sid; $('inputName').value = name;
-      login(sid, name, true);
-    }catch(e){}
-  }
-})();
-</script>
-</body>
-</html>
