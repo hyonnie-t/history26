@@ -1043,9 +1043,17 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
         <h4 style="font-size:.9rem; font-weight:700; margin-bottom:10px;">🗓 오늘의 체크인 차시 설정</h4>
         <div class="cl-row" style="margin-bottom:8px;">
           <select id="ckSetGrade"></select>
+          <select id="ckSetBan">
+            <option value="전체">전체 반(공통)</option>
+            <option value="1">1반</option><option value="2">2반</option>
+            <option value="3">3반</option><option value="4">4반</option>
+            <option value="5">5반</option><option value="6">6반</option>
+            <option value="7">7반</option><option value="8">8반</option>
+          </select>
           <select id="ckSetLesson" style="flex:1 1 220px;"></select>
           <button class="btn btn-sm" id="btnCkSetApply">적용</button>
         </div>
+        <p class="cl-hint" style="margin-bottom:6px;">"전체 반"은 해당 학년 공통 설정이에요. 특정 반만 진도가 다르면 그 반을 선택해서 따로 지정하면, 그 반엔 이 설정이 우선 적용돼요.</p>
         <p id="ckSetCurrent" style="font-size:.85rem; color:var(--ink-soft);"></p>
       </div>
     </div>
@@ -1188,6 +1196,7 @@ async function maybeStartCheckin(){
   try{
     const url = CONFIG.WEBAPP_URL
       + "?mode=checkinToday&grade=" + encodeURIComponent(SESSION.grade)
+      + "&ban=" + encodeURIComponent(SESSION.ban)
       + "&studentId=" + encodeURIComponent(SESSION.studentId)
       + "&name=" + encodeURIComponent(SESSION.name);
     const res = await fetch(url);
@@ -2043,9 +2052,11 @@ async function dashSaveGradeInfo(grade, btn){
   }
 }
 
-/* ── 웰컴 체크인 (교사) — 핸드오프_웰컴체크인_v2 2-3, 2-4 ──
- * checkin_data.js가 없으면 패널을 조용히 비활성 안내로 대체 (다른 탭엔 영향 없음). */
-let CK_TODAY_LESSON = {}; // grade → 오늘 설정된 lessonId (recall 조회용 캐시)
+/* ── 웰컴 체크인 (교사) — 핸드오프_웰컴체크인_v2 2-3, 2-4 + v16: 반별 차시 ──
+ * checkin_data.js가 없으면 패널을 조용히 비활성 안내로 대체 (다른 탭엔 영향 없음).
+ * v16: 체크인설정이 (학년,반)당 1행으로 바뀜 — 반="전체"는 그 학년 공통,
+ * 특정 반 행이 있으면 그 반에서는 그게 우선(백엔드 checkinTodayGet_와 동일 규칙). */
+let CK_TODAY_LESSON = {}; // "grade-ban" → 오늘 설정된 lessonId (recall 조회용 캐시)
 
 function dashInitCheckinForm(){
   if(typeof CHECKIN_PLAN === 'undefined'){
@@ -2069,15 +2080,20 @@ function dashRefreshCkSetLessons(){
 
 async function dashLoadCkSetCurrent(){
   const grade = $('ckSetGrade').value;
+  const ban = $('ckSetBan').value;
   if(!grade) return;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL + '?mode=checkinToday&grade=' + encodeURIComponent(grade));
+    const res = await fetch(CONFIG.WEBAPP_URL
+      + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban));
     const data = await res.json();
     if(data.result === 'success'){
-      CK_TODAY_LESSON[grade] = data.lessonId || '';
+      CK_TODAY_LESSON[grade + '-' + ban] = data.lessonId || '';
       if(data.lessonId) $('ckSetLesson').value = data.lessonId;
       const lesson = (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === data.lessonId);
-      $('ckSetCurrent').textContent = lesson ? `현재 설정: ${lesson.topic}` : '현재 설정된 차시가 없어요. 아래에서 골라 적용해 주세요.';
+      const scope = ban === '전체' ? '전체 반' : (ban + '반');
+      $('ckSetCurrent').textContent = lesson
+        ? `현재 설정(${scope}): ${lesson.topic}`
+        : `현재 설정된 차시가 없어요(${scope}). 아래에서 골라 적용해 주세요.`;
     }
   }catch(e){
     $('ckSetCurrent').textContent = '현재 설정을 불러오지 못했어요.';
@@ -2086,6 +2102,7 @@ async function dashLoadCkSetCurrent(){
 
 async function dashApplyCkSet(){
   const grade = $('ckSetGrade').value;
+  const ban = $('ckSetBan').value;
   const lessonId = $('ckSetLesson').value;
   if(!lessonId){ showToast('차시를 먼저 골라 주세요.'); return; }
   const btn = $('btnCkSetApply');
@@ -2093,10 +2110,10 @@ async function dashApplyCkSet(){
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'setTodayCheckin', token:TOKEN, grade, lessonId })
+      body: JSON.stringify({ action:'setTodayCheckin', token:TOKEN, grade, ban, lessonId })
     });
-    CK_TODAY_LESSON[grade] = lessonId;
-    showToast('오늘의 체크인 차시를 저장했어요.');
+    CK_TODAY_LESSON[grade + '-' + ban] = lessonId;
+    showToast((ban === '전체' ? '전체 반' : ban + '반') + ' 오늘의 체크인 차시를 저장했어요.');
     await dashLoadCkSetCurrent();
     if($('ckViewGrade').value === grade) dashLoadCheckinAdmin();
   }catch(e){
@@ -2124,15 +2141,29 @@ async function dashLoadCheckinAdmin(){
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     let rows = data.rows || [];
-    const ban = $('ckViewBan').value;
+    const ban = $('ckViewBan').value; // '' = 전체 반 보기
     if(ban) rows = rows.filter(r => { const p = parseStudentId(String(r.studentId)); return p && p.ban === Number(ban); });
 
-    /* 회수 질문 — 오늘 설정된 차시 기준 (교사만 봄) */
-    const lessonId = CK_TODAY_LESSON[grade];
-    const lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
+    /* 회수 질문 — 특정 반을 골랐을 때만 그 반의 "오늘 차시" 기준으로 표시.
+     * "전체 반" 보기에서는 반마다 차시가 다를 수 있어 하나로 특정할 수 없으므로 생략. */
+    let lesson = null;
+    if(ban){
+      const cacheKey = grade + '-' + ban;
+      let lessonId = CK_TODAY_LESSON[cacheKey];
+      if(lessonId === undefined){
+        try{
+          const res2 = await fetch(CONFIG.WEBAPP_URL
+            + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban));
+          const d2 = await res2.json();
+          lessonId = (d2.result === 'success') ? (d2.lessonId || '') : '';
+          CK_TODAY_LESSON[cacheKey] = lessonId;
+        }catch(e){ lessonId = ''; }
+      }
+      lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
+    }
     if(lesson && lesson.recall){
       $('ckRecall').style.display = 'block';
-      $('ckRecall').innerHTML = `<b>회수 질문</b> · ${escapeHtml(lesson.recall)}`;
+      $('ckRecall').innerHTML = `<b>회수 질문</b> (${escapeHtml(ban)}반) · ${escapeHtml(lesson.recall)}`;
     } else {
       $('ckRecall').style.display = 'none';
     }
@@ -2826,6 +2857,7 @@ $('selBan').addEventListener('change', () => { openDetailSid=null; renderDash();
 $('selActivity').addEventListener('change', () => renderDash());
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('ckSetGrade').addEventListener('change', () => { dashRefreshCkSetLessons(); dashLoadCkSetCurrent(); });
+$('ckSetBan').addEventListener('change', dashLoadCkSetCurrent);
 $('btnCkSetApply').addEventListener('click', dashApplyCkSet);
 $('ckViewGrade').addEventListener('change', () => { dashRefreshCkViewBans(); dashLoadCheckinAdmin(); });
 $('ckViewBan').addEventListener('change', dashLoadCheckinAdmin);
@@ -2835,7 +2867,7 @@ $('btnDashRefresh').addEventListener('click', async () => {
   try{
     await dashLoadData();
     renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm();
-    if(typeof CHECKIN_PLAN !== 'undefined'){ await dashLoadCkSetCurrent(); await dashLoadCheckinAdmin(); }
+    if(typeof CHECKIN_PLAN !== 'undefined'){ CK_TODAY_LESSON = {}; await dashLoadCkSetCurrent(); await dashLoadCheckinAdmin(); }
     showToast('최신 기록으로 갱신했어요.');
   }
   catch(e){ showToast('갱신 실패: ' + e.message); }
