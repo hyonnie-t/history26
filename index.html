@@ -3281,7 +3281,7 @@ function previewInitGradeOptions(){
   $('previewGrade').innerHTML = grades.map(g =>
     `<option value="${g}">${g}학년 ${CONFIG.CURRICULUM[g].subject}</option>`).join('');
 }
-function startPreview(){
+async function startPreview(){
   const grade = Number($('previewGrade').value);
   const ban = Math.max(1, Number($('previewBan').value) || 1);
   const withSample = $('previewSample').checked;
@@ -3309,11 +3309,24 @@ function startPreview(){
   $('teacherGate').style.display = 'none';
   $('previewGate').style.display = 'none';
 
-  /* 체크인 문항이 있으면 실제 학생 흐름처럼 체크인 화면부터 보여줌(미리보기 전용 —
-   * submitCheckin이 PREVIEW_MODE를 보고 실제 기록은 남기지 않음). 문항이 없거나
-   * 아직 로딩 전이면 기존처럼 바로 포털로 진입. */
-  const plan = CHECKIN_PLAN && CHECKIN_PLAN[grade];
-  const lesson = plan && plan.lessons && plan.lessons[0];
+  /* v19: "체크인문항"에 등록만 돼 있고 "오늘의 차시"로 지정 안 된 문항까지
+   * lessons[0]로 무조건 집어와서 미리보기가 뜨던 버그 수정. 실제 학생 흐름
+   * (maybeStartCheckin)과 동일하게 checkinToday API로 "오늘 지정된" 차시id를
+   * 확인해서, 그게 있을 때만 체크인 화면을 보여줌. 조회 실패·미지정 시엔
+   * 기존처럼 조용히 바로 포털로 진입. */
+  let lesson = null;
+  if(CHECKIN_PLAN && CHECKIN_PLAN[grade]){
+    try{
+      const res = await fetch(CONFIG.WEBAPP_URL
+        + "?mode=checkinToday&grade=" + encodeURIComponent(grade)
+        + "&ban=" + encodeURIComponent(ban));
+      const data = await res.json();
+      const lessonId = (data.result === 'success') ? data.lessonId : '';
+      if(lessonId){
+        lesson = (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) || null;
+      }
+    }catch(e){ lesson = null; }
+  }
   if(lesson){
     CHECKIN_CTX = { grade, lessonId: lesson.id, lesson, temperature: null };
     enterCheckinFlow();
