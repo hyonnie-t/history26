@@ -1102,6 +1102,7 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
         </div>
         <p id="ckRecall" style="display:none; font-size:.9rem; background:rgba(46,74,122,.06); border-left:3px solid var(--indigo); border-radius:8px; padding:10px 14px; margin-bottom:12px;"></p>
         <p id="ckCounter" style="font-weight:700; margin-bottom:10px;"></p>
+        <div id="ckStats"></div>
         <div id="ckList"></div>
       </div>
     </div>
@@ -1308,11 +1309,12 @@ async function maybeStartCheckin(){
     if(data.result !== 'success') return false;
     const lessonId = data.lessonId;
     if(!lessonId) return false; // 교사가 아직 오늘 차시를 안 골랐을 수 있음 — 에러 아님
+    /* v18: 하루 1번만 체크인하도록 복원. 백엔드는 계속 alreadyChecked를 계산해서
+     * 내려주고 있었는데(v15부터), v17에서 프론트가 이 값을 무시하도록 바뀌어 있던 것.
+     * 이미 오늘 체크인했으면 체크인 화면 없이 바로 포털로 들어감. */
+    if(data.alreadyChecked) return false;
     const lesson = plan.lessons.find(l => l.id === lessonId);
     if(!lesson) return false; // id 불일치 등도 조용히 건너뜀
-    /* v17: 하루 여러 번 다시 체크인 가능하도록 열어둠 — alreadyChecked로 막지 않음.
-     * 실수로 잘못 누르거나 중간에 나가도 다시 로그인하면 또 뜨고, 다시 응답하면
-     * 그날 기록이 최신 값으로 덮어써짐(백엔드 upsert). */
     CHECKIN_CTX = { grade: SESSION.grade, lessonId, lesson, temperature: null };
     return true;
   }catch(e){
@@ -2186,6 +2188,7 @@ async function dashSaveGradeInfo(grade, btn){
  * v16: 체크인설정이 (학년,반)당 1행으로 바뀜 — 반="전체"는 그 학년 공통,
  * 특정 반 행이 있으면 그 반에서는 그게 우선(백엔드 checkinTodayGet_와 동일 규칙). */
 let CK_TODAY_LESSON = {}; // "grade-ban" → 오늘 설정된 lessonId (recall 조회용 캐시)
+const CHECKIN_LOW_TEMP_DISPLAY = 2; // 온도 분포 막대에서 "저온도"로 강조할 기준값 (백엔드 CHECKIN_LOW_TEMP와 동일하게 맞춤)
 
 async function dashInitCheckinForm(){
   await loadCheckinPlan(); // 대시보드 들어올 때마다 시트에서 최신 문항으로 새로고침
@@ -2302,14 +2305,61 @@ async function dashLoadCheckinAdmin(){
       $('ckRecall').style.display = 'none';
     }
 
+    /* 방어적 중복 제거 — 시트에 같은 학번의 중복 행이 남아있어도(재배포 전 데이터 등)
+     * 화면에는 학생당 가장 최근 타임스탬프 응답 1개만 보이게. 진짜 원인 수정(백엔드 upsert)은
+     * 별개로 필요하지만, 이미 쌓인 중복은 코드로 못 지우니 화면에서라도 걸러줌. */
+    const latestByStudent = {};
+    rows.forEach(r => {
+      const prev = latestByStudent[r.studentId];
+      if(!prev || new Date(r.timestamp) >= new Date(prev.timestamp)) latestByStudent[r.studentId] = r;
+    });
+    rows = Object.values(latestByStudent).sort((a,b) => a.temperature - b.temperature);
+
     /* 카운터 — CONFIG.BAN_SIZE가 있으면 분모까지, 없으면 완료 인원만 (config.js에 반별 총원을 추가하면 자동으로 살아남) */
     const total = (CONFIG.BAN_SIZE && CONFIG.BAN_SIZE[grade] && ban) ? CONFIG.BAN_SIZE[grade][ban] : null;
     $('ckCounter').textContent = total ? `${total}명 중 ${rows.length}명 완료` : `${rows.length}명 완료`;
 
     if(!rows.length){
+      $('ckStats').innerHTML = '';
       $('ckList').innerHTML = '<p class="muted">오늘 응답이 아직 없어요.</p>';
       return;
     }
+
+    /* 온도 분포 요약 (1~5) */
+    const tempCount = {1:0,2:0,3:0,4:0,5:0};
+    rows.forEach(r => { if(tempCount[r.temperature] !== undefined) tempCount[r.temperature]++; });
+    const tempLabels = {1:'완전방전',2:'좀처짐',3:'보통',4:'괜찮음',5:'풀충전'};
+    const maxCount = Math.max(1, ...Object.values(tempCount));
+    const tempBarsHtml = [5,4,3,2,1].map(t => {
+      const c = tempCount[t];
+      const pct = Math.round((c / maxCount) * 100);
+      const isLow = t <= CHECKIN_LOW_TEMP_DISPLAY;
+      return `
+        <div style="display:flex; align-items:center; gap:8px; font-size:.8rem; margin-bottom:4px;">
+          <span style="width:64px; color:var(--ink-soft); flex-shrink:0;">${t} · ${tempLabels[t]}</span>
+          <div style="flex:1; background:rgba(0,0,0,.04); border-radius:4px; height:14px; overflow:hidden;">
+            <div style="width:${pct}%; height:100%; background:${isLow ? 'var(--seal)' : 'var(--indigo)'};"></div>
+          </div>
+          <span style="width:26px; text-align:right; font-weight:700;">${c}</span>
+        </div>`;
+    }).join('');
+
+    /* 특이사항 — 연속 저온도 학생만 따로 모음 */
+    const alertRows = rows.filter(r => r.lowStreakAlert);
+    const alertHtml = alertRows.length
+      ? `<div style="background:rgba(176,58,46,.06); border-left:3px solid var(--seal); border-radius:8px; padding:10px 14px; margin-bottom:14px;">
+          <p style="font-size:.82rem; font-weight:700; color:var(--seal); margin-bottom:4px;">⚠ 최근 3회 연속 저온도 (${alertRows.length}명)</p>
+          <p style="font-size:.85rem; color:var(--ink-soft);">${alertRows.map(r => escapeHtml(r.studentName) + '(' + escapeHtml(String(r.studentId)) + ')').join(', ')}</p>
+        </div>`
+      : '';
+
+    $('ckStats').innerHTML = `
+      <div style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+        <p style="font-size:.82rem; font-weight:700; margin-bottom:8px;">온도 분포</p>
+        ${tempBarsHtml}
+      </div>
+      ${alertHtml}`;
+
     $('ckList').innerHTML = rows.map(r => {
       let choiceText;
       if(r.checkinType === 'judgment'){
@@ -2330,6 +2380,7 @@ async function dashLoadCheckinAdmin(){
         </div>`;
     }).join('');
   }catch(e){
+    $('ckStats').innerHTML = '';
     $('ckList').innerHTML = '<p class="muted">불러오지 못했어요: ' + escapeHtml(e.message) + '</p>';
   }
 }
