@@ -131,13 +131,17 @@ button{font-family:inherit; cursor:pointer;}
 .btn-gate:disabled{background:#9AA3B2; cursor:wait;}
 .gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
 
-/* ══════════════ 웰컴 체크인 — 두 페이지 스프레드 ══════════════ */
+/* ══════════════ 웰컴 체크인 — 두 페이지 스프레드 (표지와 같은 책의 다음 페이지처럼) ══════════════ */
 #checkinView{min-height:100vh; display:none; align-items:center; justify-content:center; padding:24px;}
 .checkin-card{
-  display:flex; width:min(720px, 96vw); background:#FBF6EA; border-radius:12px;
-  padding:9px;
+  display:flex; width:min(720px, 96vw); background:#FBF6EA; border-radius:6px 16px 16px 6px;
+  padding:9px 9px 9px 25px;
   box-shadow:0 18px 40px rgba(35,38,44,.28), inset 0 0 0 8px var(--cover-deep), inset 0 0 0 10px rgba(216,164,104,.4);
   overflow:hidden; position:relative; animation:fadeIn .25s ease;
+}
+.checkin-card::before{ /* 표지와 이어지는 책등 — 로그인 화면 .book::before와 동일한 색 */
+  content:''; position:absolute; left:0; top:0; bottom:0; width:16px;
+  background:var(--cover-deep); border-radius:6px 0 0 6px; z-index:2;
 }
 .checkin-card::after{ /* 책 가운데 접힘선 */
   content:''; position:absolute; left:50%; top:9px; bottom:9px; width:18px; margin-left:-9px;
@@ -154,7 +158,7 @@ button{font-family:inherit; cursor:pointer;}
 }
 .book-page-right.locked .ck-lock-hint{display:flex;}
 .book-page-right.locked .ck-right-body{visibility:hidden;}
-.checkin-eyebrow{font-size:.72rem; letter-spacing:.32em; color:#A9762F; font-weight:700; text-align:center; margin-bottom:14px;}
+.checkin-eyebrow{font-size:.72rem; letter-spacing:.4em; color:var(--gold); font-weight:700; text-align:center; margin-bottom:14px; text-shadow:0 1px 0 rgba(255,255,255,.4);}
 .checkin-q{font-family:var(--font-display); font-size:1.05rem; line-height:1.7; text-align:center; margin-bottom:20px;}
 .temp-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
 .temp-btn{
@@ -173,6 +177,9 @@ button{font-family:inherit; cursor:pointer;}
   transition:border-color .15s, background .15s;
 }
 .judg-btn:hover, .judg-btn:active{border-color:var(--indigo);}
+.judg-btn.selected{border-color:var(--indigo); background:rgba(46,74,122,.08); box-shadow:inset 0 0 0 1px var(--indigo);}
+.judg-btn:disabled, .chip-btn:disabled{opacity:.45; cursor:default;}
+.ck-submitting-hint{text-align:center; font-size:.78rem; color:var(--ink-soft); margin-top:10px;}
 .source-box{background:#fff; border-left:4px solid var(--ochre); border-radius:8px; padding:12px 14px; margin-bottom:16px;}
 .source-text{font-family:var(--font-display); font-size:.92rem; line-height:1.75; color:var(--ink);}
 .source-origin{font-size:.74rem; color:var(--ink-soft); margin-top:6px; text-align:right;}
@@ -182,6 +189,7 @@ button{font-family:inherit; cursor:pointer;}
   background:#fff; border:1.5px solid var(--line); border-radius:999px; color:var(--ink);
 }
 .chip-btn:hover, .chip-btn:active{border-color:var(--indigo);}
+.chip-btn.selected{border-color:var(--indigo); background:rgba(46,74,122,.08); box-shadow:inset 0 0 0 1px var(--indigo);}
 .chip-custom{color:var(--ink-soft); border-style:dashed;}
 .custom-input-wrap{margin-top:12px; text-align:center;}
 .custom-input-wrap input{
@@ -191,7 +199,8 @@ button{font-family:inherit; cursor:pointer;}
 .custom-input-wrap .btn-open{width:100%; min-height:44px;}
 .custom-notice{font-size:.74rem; color:var(--ink-soft); margin-bottom:8px;}
 @media (max-width:680px){
-  .checkin-card{flex-direction:column; width:min(420px, 94vw);}
+  .checkin-card{flex-direction:column; width:min(420px, 94vw); padding:25px 9px 9px;}
+  .checkin-card::before{left:0; right:0; top:0; bottom:auto; width:auto; height:16px; border-radius:6px 6px 0 0;}
   .checkin-card::after{left:9px; right:9px; top:50%; bottom:auto; width:auto; height:18px; margin-left:0; margin-top:-9px;
     background:linear-gradient(to bottom, rgba(35,38,44,.10), transparent 45%, transparent 55%, rgba(35,38,44,.10));}
   .book-page-left{border-radius:5px 5px 0 0; border-bottom:1px solid var(--line);}
@@ -1292,6 +1301,7 @@ function showLoginError(msg){
  * 학생이 포털에 못 들어가는 일이 없도록 전부 "실패하면 조용히 건너뛰기"로 처리.
  * ════════════════════════════════════════════════════════ */
 let CHECKIN_CTX = null; // { grade, lessonId, lesson, temperature }
+let CK_SUBMITTING = false; // 응답 전송 중 중복 클릭 방지 — 버튼 반응이 느려도 두 번째 클릭을 무시
 
 async function maybeStartCheckin(){
   if(CHECKIN_PLAN === null) await loadCheckinPlan(); // 아직 백그라운드 로딩 중이면 여기서 기다림
@@ -1323,6 +1333,7 @@ async function maybeStartCheckin(){
 }
 
 function enterCheckinFlow(){
+  CK_SUBMITTING = false;
   $('loginView').style.display = 'none';
   $('checkinView').style.display = 'flex';
   renderCheckinSpread();
@@ -1381,7 +1392,10 @@ function renderCheckinQuestionBody(body, lesson){
       </div>`;
     body.querySelectorAll('.judg-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        if(CHECKIN_CTX.temperature == null) return; // 잠금 상태에서 클릭 방지(키보드 등 우회 대비)
+        if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return; // 잠금 상태 또는 이미 전송 중이면 무시
+        CK_SUBMITTING = true;
+        btn.classList.add('selected');
+        body.querySelectorAll('.judg-btn').forEach(b => b.disabled = true);
         submitCheckin({ checkinType: 'judgment', judgment: btn.dataset.id });
       });
     });
@@ -1410,14 +1424,17 @@ function renderCheckinQuestionBody(body, lesson){
 
   body.querySelectorAll('.chip-btn:not(.chip-custom)').forEach(btn => {
     btn.addEventListener('click', () => {
-      if(CHECKIN_CTX.temperature == null) return;
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
+      CK_SUBMITTING = true;
+      btn.classList.add('selected');
+      body.querySelectorAll('.chip-btn').forEach(b => b.disabled = true);
       submitCheckin({ checkinType: 'source_emotion', word: btn.dataset.word, custom: '' });
     });
   });
   const customBtn = $('chipCustomBtn');
   if(customBtn){
     customBtn.addEventListener('click', () => {
-      if(CHECKIN_CTX.temperature == null) return;
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
       $('customInputWrap').style.display = 'block';
       $('customInputField').focus();
     });
@@ -1425,9 +1442,12 @@ function renderCheckinQuestionBody(body, lesson){
   const customSubmit = $('customInputSubmit');
   if(customSubmit){
     customSubmit.addEventListener('click', () => {
-      if(CHECKIN_CTX.temperature == null) return;
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
       const val = $('customInputField').value.trim();
       if(!val){ $('customInputField').focus(); return; }
+      CK_SUBMITTING = true;
+      customSubmit.disabled = true;
+      body.querySelectorAll('.chip-btn').forEach(b => b.disabled = true);
       submitCheckin({ checkinType: 'source_emotion', word: '기타', custom: val });
     });
     $('customInputField').addEventListener('keydown', e => {
@@ -1445,6 +1465,11 @@ async function submitCheckin(fields){
     temperature: CHECKIN_CTX.temperature,
     judgment: '', word: '', custom: ''
   }, fields);
+  if(PREVIEW_MODE){
+    /* 교사용 미리보기 — 화면 흐름만 보여주고 실제 시트에는 기록하지 않음 */
+    finishCheckinFlow();
+    return;
+  }
   try{
     await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(payload) });
   }catch(e){
@@ -2353,12 +2378,47 @@ async function dashLoadCheckinAdmin(){
         </div>`
       : '';
 
+    /* 역사적 선택 분포 — judgment는 옵션A/B, source_emotion은 단어칩별로 학생 이름과 함께 묶어서 표시.
+     * "전체 반" 보기처럼 반마다 다른 차시가 섞여 있을 수 있으므로 lessonId 단위로 따로 묶는다. */
+    const choiceGroups = {};
+    rows.forEach(r => {
+      const l = (CHECKIN_PLAN[grade] && CHECKIN_PLAN[grade].lessons || []).find(x => x.id === r.lessonId);
+      if(!choiceGroups[r.lessonId]) choiceGroups[r.lessonId] = { topic: l ? l.topic : r.lessonId, buckets: {} };
+      const g = choiceGroups[r.lessonId];
+      let key, label;
+      if(r.checkinType === 'judgment'){
+        const opt = l ? (l.options || []).find(o => o.id === r.judgment) : null;
+        key = r.judgment || '—';
+        label = opt ? opt.label : (r.judgment || '—');
+      } else {
+        key = r.word || '—';
+        label = (r.word === '기타') ? `기타: ${r.custom || ''}` : (r.word || '—');
+      }
+      if(!g.buckets[key]) g.buckets[key] = { label, students: [] };
+      g.buckets[key].students.push(`${escapeHtml(r.studentName)}(${escapeHtml(String(r.studentId))})`);
+    });
+    const choiceHtml = Object.values(choiceGroups).map(g => {
+      const bucketsHtml = Object.values(g.buckets)
+        .sort((a,b) => b.students.length - a.students.length)
+        .map(b => `
+          <div style="margin-bottom:8px;">
+            <p style="font-size:.85rem; font-weight:700; margin-bottom:2px;">${escapeHtml(b.label)} <span style="color:var(--ink-soft); font-weight:400;">(${b.students.length}명)</span></p>
+            <p style="font-size:.78rem; color:var(--ink-soft);">${b.students.join(', ')}</p>
+          </div>`).join('');
+      return `
+        <div style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+          <p style="font-size:.82rem; font-weight:700; margin-bottom:8px;">${escapeHtml(g.topic)} — 선택 분포</p>
+          ${bucketsHtml}
+        </div>`;
+    }).join('');
+
     $('ckStats').innerHTML = `
       <div style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
         <p style="font-size:.82rem; font-weight:700; margin-bottom:8px;">온도 분포</p>
         ${tempBarsHtml}
       </div>
-      ${alertHtml}`;
+      ${alertHtml}
+      ${choiceHtml}`;
 
     $('ckList').innerHTML = rows.map(r => {
       let choiceText;
@@ -3248,7 +3308,18 @@ function startPreview(){
 
   $('teacherGate').style.display = 'none';
   $('previewGate').style.display = 'none';
-  openBook(true);
+
+  /* 체크인 문항이 있으면 실제 학생 흐름처럼 체크인 화면부터 보여줌(미리보기 전용 —
+   * submitCheckin이 PREVIEW_MODE를 보고 실제 기록은 남기지 않음). 문항이 없거나
+   * 아직 로딩 전이면 기존처럼 바로 포털로 진입. */
+  const plan = CHECKIN_PLAN && CHECKIN_PLAN[grade];
+  const lesson = plan && plan.lessons && plan.lessons[0];
+  if(lesson){
+    CHECKIN_CTX = { grade, lessonId: lesson.id, lesson, temperature: null };
+    enterCheckinFlow();
+  } else {
+    openBook(true);
+  }
 }
 $('btnPreviewMode').addEventListener('click', () => {
   const g = $('previewGate');
