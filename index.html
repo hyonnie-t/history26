@@ -130,6 +130,54 @@ button{font-family:inherit; cursor:pointer;}
 .btn-gate:disabled{background:#9AA3B2; cursor:wait;}
 .gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
 
+/* ══════════════ 웰컴 체크인 ══════════════ */
+#checkinView{min-height:100vh; display:none; align-items:center; justify-content:center; padding:24px;}
+.checkin-card{
+  width:min(440px, 94vw); background:var(--card); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:32px 26px; border:1px solid var(--line);
+  animation:fadeIn .25s ease;
+}
+.checkin-eyebrow{font-size:.78rem; letter-spacing:.3em; color:var(--indigo); font-weight:600; text-align:center; margin-bottom:16px;}
+.checkin-q{font-family:var(--font-display); font-size:1.15rem; line-height:1.75; text-align:center; margin-bottom:22px;}
+.temp-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:8px;}
+.temp-btn{
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  min-height:76px; padding:10px 4px; background:var(--paper); border:1.5px solid var(--line);
+  border-radius:12px; transition:border-color .15s, background .15s;
+}
+.temp-btn:hover, .temp-btn:active{border-color:var(--indigo); background:#fff;}
+.temp-num{font-family:var(--font-display); font-size:1.3rem; font-weight:700; color:var(--indigo);}
+.temp-label{font-size:.72rem; color:var(--ink-soft); text-align:center; line-height:1.3;}
+.judg-options{display:flex; flex-direction:column; gap:12px;}
+.judg-btn{
+  min-height:58px; padding:14px 18px; font-size:1rem; font-weight:600; text-align:left;
+  background:var(--paper); border:1.5px solid var(--line); border-radius:12px; color:var(--ink);
+  transition:border-color .15s, background .15s;
+}
+.judg-btn:hover, .judg-btn:active{border-color:var(--indigo); background:#fff;}
+.source-box{background:var(--paper); border-left:4px solid var(--ochre); border-radius:8px; padding:14px 16px; margin-bottom:18px;}
+.source-text{font-family:var(--font-display); font-size:1rem; line-height:1.8; color:var(--ink);}
+.source-origin{font-size:.78rem; color:var(--ink-soft); margin-top:8px; text-align:right;}
+.chip-grid{display:flex; flex-wrap:wrap; gap:8px; justify-content:center;}
+.chip-btn{
+  min-height:42px; padding:9px 18px; font-size:.92rem; font-weight:600;
+  background:var(--paper); border:1.5px solid var(--line); border-radius:999px; color:var(--ink);
+}
+.chip-btn:hover, .chip-btn:active{border-color:var(--indigo); background:#fff;}
+.chip-custom{color:var(--ink-soft); border-style:dashed;}
+.custom-input-wrap{margin-top:14px; text-align:center;}
+.custom-input-wrap input{
+  width:100%; min-height:46px; padding:10px 14px; font-size:1rem; border:1.5px solid var(--line);
+  border-radius:10px; background:#FCFBF7; margin-bottom:6px; box-sizing:border-box;
+}
+.custom-input-wrap .btn-open{width:100%;}
+.custom-notice{font-size:.78rem; color:var(--ink-soft); margin-bottom:10px;}
+@media (max-width:420px){
+  .temp-grid{gap:5px;}
+  .temp-btn{min-height:66px; padding:8px 2px;}
+  .temp-label{font-size:.66rem;}
+}
+
 /* ══════════════ 포털 ══════════════ */
 #portalView{display:none; max-width:960px; margin:0 auto; padding:24px 20px 80px; opacity:0;}
 #portalView.shown{opacity:1; transition:opacity .5s ease;}
@@ -738,6 +786,11 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
   </div>
 </div>
 
+<!-- ══════════════ 웰컴 체크인 ══════════════ -->
+<div id="checkinView">
+  <div class="checkin-card" id="checkinCard"></div>
+</div>
+
 <!-- ══════════════ 포털 ══════════════ -->
 <div id="portalView">
   <header class="portal-header">
@@ -860,6 +913,7 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
     <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">💬 질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
     <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">📢 공지 관리</button>
     <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
+    <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">🌡️ 체크인</button>
   </div>
 
   <div class="dash-panel" id="panelRecords">
@@ -977,11 +1031,42 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
       <div id="clList"></div>
     </div>
   </div>
+
+  <div class="dash-panel" id="panelCheckin" style="display:none;">
+    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
+      "오늘의 체크인 차시"를 골라두면 학생이 로그인할 때 감정 온도 + 발문이 뜨고, 응답은 여기서 확인할 수 있어요.
+      학생 화면엔 회수 질문·연속 저온도 표시가 절대 노출되지 않아요.
+    </p>
+
+    <div class="cl-collapse" style="border:1px solid var(--line); margin-bottom:16px;">
+      <div style="padding:14px 16px;">
+        <h4 style="font-size:.9rem; font-weight:700; margin-bottom:10px;">🗓 오늘의 체크인 차시 설정</h4>
+        <div class="cl-row" style="margin-bottom:8px;">
+          <select id="ckSetGrade"></select>
+          <select id="ckSetLesson" style="flex:1 1 220px;"></select>
+          <button class="btn btn-sm" id="btnCkSetApply">적용</button>
+        </div>
+        <p id="ckSetCurrent" style="font-size:.85rem; color:var(--ink-soft);"></p>
+      </div>
+    </div>
+
+    <div class="dash-questions">
+      <div class="cl-row" style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--line);">
+        <select id="ckViewGrade"></select>
+        <select id="ckViewBan"></select>
+        <button class="btn btn-ghost btn-sm" id="btnCkViewRefresh">새로고침</button>
+      </div>
+      <p id="ckRecall" style="display:none; font-size:.9rem; background:rgba(46,74,122,.06); border-left:3px solid var(--indigo); border-radius:8px; padding:10px 14px; margin-bottom:12px;"></p>
+      <p id="ckCounter" style="font-weight:700; margin-bottom:10px;"></p>
+      <div id="ckList"></div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
+<script src="checkin_data.js"></script>
 <script>
 /* 설정은 config.js에서 불러옵니다 (같은 폴더에 있어야 함) */
 const CONFIG = window.PORTAL_CONFIG;
@@ -1034,7 +1119,13 @@ async function login(sid, name, silent){
     STUDENT_DATA = data;
     STUDENT_DATA.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
     store.set('portal_session', JSON.stringify({ sid, name }));
-    openBook(silent);
+
+    const needsCheckin = await maybeStartCheckin();
+    if(needsCheckin){
+      enterCheckinFlow();
+    } else {
+      openBook(silent);
+    }
   }catch(e){
     if(!silent) showLoginError("기록을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.");
   }finally{
@@ -1081,6 +1172,153 @@ function openBook(instant){
 function showLoginError(msg){
   const err = $('loginError');
   err.textContent = msg; err.style.display = 'block';
+}
+
+/* ════════════════════════════════════════════════════════
+ * 웰컴 체크인 (v15 백엔드 연동) — 핸드오프_웰컴체크인_v2 2-2
+ * checkin_data.js(CHECKIN_CONFIG, CHECKIN_PLAN)가 없거나 서버 오류가 나도
+ * 학생이 포털에 못 들어가는 일이 없도록 전부 "실패하면 조용히 건너뛰기"로 처리.
+ * ════════════════════════════════════════════════════════ */
+let CHECKIN_CTX = null; // { grade, lessonId, lesson, temperature }
+
+async function maybeStartCheckin(){
+  if(typeof CHECKIN_PLAN === 'undefined') return false; // checkin_data.js 미로딩
+  const plan = CHECKIN_PLAN[SESSION.grade];
+  if(!plan) return false;
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=checkinToday&grade=" + encodeURIComponent(SESSION.grade)
+      + "&studentId=" + encodeURIComponent(SESSION.studentId)
+      + "&name=" + encodeURIComponent(SESSION.name);
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.result !== 'success') return false;
+    if(data.alreadyChecked) return false;
+    const lessonId = data.lessonId;
+    if(!lessonId) return false; // 교사가 아직 오늘 차시를 안 골랐을 수 있음 — 에러 아님
+    const lesson = plan.lessons.find(l => l.id === lessonId);
+    if(!lesson) return false; // id 불일치 등도 조용히 건너뜀
+    CHECKIN_CTX = { grade: SESSION.grade, lessonId, lesson, temperature: null };
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function enterCheckinFlow(){
+  $('loginView').style.display = 'none';
+  $('checkinView').style.display = 'flex';
+  renderCheckinStep('temperature');
+}
+
+function finishCheckinFlow(){
+  $('checkinView').style.display = 'none';
+  openBook(true); // 이미 체크인으로 한 번 화면 전환을 거쳤으니 책 애니메이션 없이 바로 포털
+}
+
+function renderCheckinStep(step){
+  const card = $('checkinCard');
+  if(step === 'temperature'){
+    const cfg = CHECKIN_CONFIG.temperature;
+    card.innerHTML = `
+      <p class="checkin-eyebrow">웰컴 체크인</p>
+      <p class="checkin-q">${escapeHtml(cfg.prompt)}</p>
+      <div class="temp-grid">
+        ${[1,2,3,4,5].map(n => `
+          <button class="temp-btn" data-temp="${n}" type="button">
+            <span class="temp-num">${n}</span>
+            <span class="temp-label">${escapeHtml(cfg.labels[n] || '')}</span>
+          </button>`).join('')}
+      </div>`;
+    card.querySelectorAll('.temp-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        CHECKIN_CTX.temperature = Number(btn.dataset.temp);
+        renderCheckinStep('type');
+      });
+    });
+  } else if(step === 'type'){
+    const lesson = CHECKIN_CTX.lesson;
+    if(lesson.type === 'judgment') renderCheckinJudgment(card, lesson);
+    else renderCheckinSourceEmotion(card, lesson);
+  }
+}
+
+function renderCheckinJudgment(card, lesson){
+  card.innerHTML = `
+    <p class="checkin-eyebrow">웰컴 체크인</p>
+    <p class="checkin-q" style="white-space:pre-wrap;">${escapeHtml(lesson.prompt)}</p>
+    <div class="judg-options">
+      ${lesson.options.map(o => `
+        <button class="judg-btn" data-id="${escapeHtml(o.id)}" type="button">${escapeHtml(o.label)}</button>`).join('')}
+    </div>`;
+  card.querySelectorAll('.judg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      submitCheckin({ checkinType: 'judgment', judgment: btn.dataset.id });
+    });
+  });
+}
+
+function renderCheckinSourceEmotion(card, lesson){
+  const chips = lesson.wordChips || CHECKIN_CONFIG.defaultWordChips;
+  const customOn = CHECKIN_CONFIG.customInput && CHECKIN_CONFIG.customInput.enabled;
+  card.innerHTML = `
+    <p class="checkin-eyebrow">웰컴 체크인</p>
+    <div class="source-box">
+      <p class="source-text">${escapeHtml(lesson.source.text).replace(/\n/g,'<br>')}</p>
+      ${lesson.source.origin ? `<p class="source-origin">— ${escapeHtml(lesson.source.origin)}</p>` : ''}
+    </div>
+    <p class="checkin-q" style="white-space:pre-wrap;">${escapeHtml(lesson.prompt)}</p>
+    <div class="chip-grid">
+      ${chips.map(w => `<button class="chip-btn" data-word="${escapeHtml(w)}" type="button">${escapeHtml(w)}</button>`).join('')}
+      ${customOn ? `<button class="chip-btn chip-custom" id="chipCustomBtn" type="button">기타</button>` : ''}
+    </div>
+    ${customOn ? `
+    <div class="custom-input-wrap" id="customInputWrap" style="display:none;">
+      <input type="text" id="customInputField" maxlength="${CHECKIN_CONFIG.customInput.maxLength}" placeholder="${escapeHtml(CHECKIN_CONFIG.customInput.placeholder)}">
+      <p class="custom-notice">${escapeHtml(CHECKIN_CONFIG.customInput.notice)}</p>
+      <button class="btn-open" id="customInputSubmit" type="button" style="background:var(--indigo); color:#fff;">확인</button>
+    </div>` : ''}`;
+
+  card.querySelectorAll('.chip-btn:not(.chip-custom)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      submitCheckin({ checkinType: 'source_emotion', word: btn.dataset.word, custom: '' });
+    });
+  });
+  const customBtn = $('chipCustomBtn');
+  if(customBtn){
+    customBtn.addEventListener('click', () => {
+      $('customInputWrap').style.display = 'block';
+      $('customInputField').focus();
+    });
+  }
+  const customSubmit = $('customInputSubmit');
+  if(customSubmit){
+    customSubmit.addEventListener('click', () => {
+      const val = $('customInputField').value.trim();
+      if(!val){ $('customInputField').focus(); return; }
+      submitCheckin({ checkinType: 'source_emotion', word: '기타', custom: val });
+    });
+    $('customInputField').addEventListener('keydown', e => {
+      if(e.key === 'Enter') customSubmit.click();
+    });
+  }
+}
+
+async function submitCheckin(fields){
+  const payload = Object.assign({
+    action: 'checkin',
+    studentId: SESSION.studentId,
+    studentName: SESSION.name,
+    lessonId: CHECKIN_CTX.lessonId,
+    temperature: CHECKIN_CTX.temperature,
+    judgment: '', word: '', custom: ''
+  }, fields);
+  try{
+    await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(payload) });
+  }catch(e){
+    /* 체크인 기록 실패는 학생 흐름을 막지 않음 — 조용히 포털로 진입 */
+  }
+  finishCheckinFlow();
 }
 
 /* ── 탐구 나무 SVG ──
@@ -1593,9 +1831,10 @@ $('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
 
 function exitToLogin(){
   store.del('portal_session');
-  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false;
+  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; CHECKIN_CTX = null;
   $('portalView').style.display = 'none';
   $('portalView').classList.remove('shown');
+  $('checkinView').style.display = 'none';
   $('bookCover').classList.remove('opening');
   $('loginView').style.display = 'flex';
   $('inputId').value = ''; $('inputName').value = '';
@@ -1651,6 +1890,7 @@ async function enterDash(token){
     dashRenderAnnouncements();
     dashRenderLessons();
     dashRenderGradeInfoForm();
+    dashInitCheckinForm();
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
     $('gateError').style.display = 'block';
@@ -1661,7 +1901,7 @@ async function enterDash(token){
 
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
-  ['records','questions','announce','curriculum'].forEach(t => {
+  ['records','questions','announce','curriculum','checkin'].forEach(t => {
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -1800,6 +2040,132 @@ async function dashSaveGradeInfo(grade, btn){
     showToast('저장하지 못했어요. 다시 시도해 주세요.');
   }finally{
     btn.disabled = false; btn.textContent = '저장';
+  }
+}
+
+/* ── 웰컴 체크인 (교사) — 핸드오프_웰컴체크인_v2 2-3, 2-4 ──
+ * checkin_data.js가 없으면 패널을 조용히 비활성 안내로 대체 (다른 탭엔 영향 없음). */
+let CK_TODAY_LESSON = {}; // grade → 오늘 설정된 lessonId (recall 조회용 캐시)
+
+function dashInitCheckinForm(){
+  if(typeof CHECKIN_PLAN === 'undefined'){
+    $('panelCheckin').innerHTML = '<p style="color:var(--ink-soft); padding:16px;">checkin_data.js가 로드되지 않았어요. index.html과 같은 폴더에 파일이 있는지 확인해 주세요.</p>';
+    return;
+  }
+  const grades = Object.keys(CHECKIN_PLAN);
+  $('ckSetGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  $('ckViewGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  dashRefreshCkSetLessons();
+  dashRefreshCkViewBans();
+  dashLoadCkSetCurrent();
+  dashLoadCheckinAdmin();
+}
+
+function dashRefreshCkSetLessons(){
+  const grade = $('ckSetGrade').value;
+  const lessons = (CHECKIN_PLAN[grade] && CHECKIN_PLAN[grade].lessons) || [];
+  $('ckSetLesson').innerHTML = lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.topic)}</option>`).join('');
+}
+
+async function dashLoadCkSetCurrent(){
+  const grade = $('ckSetGrade').value;
+  if(!grade) return;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL + '?mode=checkinToday&grade=' + encodeURIComponent(grade));
+    const data = await res.json();
+    if(data.result === 'success'){
+      CK_TODAY_LESSON[grade] = data.lessonId || '';
+      if(data.lessonId) $('ckSetLesson').value = data.lessonId;
+      const lesson = (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === data.lessonId);
+      $('ckSetCurrent').textContent = lesson ? `현재 설정: ${lesson.topic}` : '현재 설정된 차시가 없어요. 아래에서 골라 적용해 주세요.';
+    }
+  }catch(e){
+    $('ckSetCurrent').textContent = '현재 설정을 불러오지 못했어요.';
+  }
+}
+
+async function dashApplyCkSet(){
+  const grade = $('ckSetGrade').value;
+  const lessonId = $('ckSetLesson').value;
+  if(!lessonId){ showToast('차시를 먼저 골라 주세요.'); return; }
+  const btn = $('btnCkSetApply');
+  btn.disabled = true; btn.textContent = '적용 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'setTodayCheckin', token:TOKEN, grade, lessonId })
+    });
+    CK_TODAY_LESSON[grade] = lessonId;
+    showToast('오늘의 체크인 차시를 저장했어요.');
+    await dashLoadCkSetCurrent();
+    if($('ckViewGrade').value === grade) dashLoadCheckinAdmin();
+  }catch(e){
+    showToast('저장하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '적용';
+  }
+}
+
+function dashRefreshCkViewBans(){
+  const grade = Number($('ckViewGrade').value);
+  const bans = [...new Set(ROWS.map(r => parseStudentId(String(r.studentId)))
+    .filter(p => p && p.grade === grade).map(p => p.ban))].sort((a,b)=>a-b);
+  $('ckViewBan').innerHTML = '<option value="">전체 반</option>'
+    + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
+}
+
+async function dashLoadCheckinAdmin(){
+  const grade = $('ckViewGrade').value;
+  if(!grade) return;
+  $('ckList').innerHTML = '<p class="muted">불러오는 중…</p>';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL
+      + '?mode=checkinAdmin&token=' + encodeURIComponent(TOKEN) + '&grade=' + encodeURIComponent(grade));
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+    let rows = data.rows || [];
+    const ban = $('ckViewBan').value;
+    if(ban) rows = rows.filter(r => { const p = parseStudentId(String(r.studentId)); return p && p.ban === Number(ban); });
+
+    /* 회수 질문 — 오늘 설정된 차시 기준 (교사만 봄) */
+    const lessonId = CK_TODAY_LESSON[grade];
+    const lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
+    if(lesson && lesson.recall){
+      $('ckRecall').style.display = 'block';
+      $('ckRecall').innerHTML = `<b>회수 질문</b> · ${escapeHtml(lesson.recall)}`;
+    } else {
+      $('ckRecall').style.display = 'none';
+    }
+
+    /* 카운터 — CONFIG.BAN_SIZE가 있으면 분모까지, 없으면 완료 인원만 (config.js에 반별 총원을 추가하면 자동으로 살아남) */
+    const total = (CONFIG.BAN_SIZE && CONFIG.BAN_SIZE[grade] && ban) ? CONFIG.BAN_SIZE[grade][ban] : null;
+    $('ckCounter').textContent = total ? `${total}명 중 ${rows.length}명 완료` : `${rows.length}명 완료`;
+
+    if(!rows.length){
+      $('ckList').innerHTML = '<p class="muted">오늘 응답이 아직 없어요.</p>';
+      return;
+    }
+    $('ckList').innerHTML = rows.map(r => {
+      let choiceText;
+      if(r.checkinType === 'judgment'){
+        const l = (CHECKIN_PLAN[grade].lessons || []).find(x => x.id === r.lessonId);
+        const opt = l ? (l.options || []).find(o => o.id === r.judgment) : null;
+        choiceText = opt ? opt.label : (r.judgment || '—');
+      } else {
+        choiceText = (r.word === '기타') ? `기타: ${r.custom || ''}` : (r.word || '—');
+      }
+      return `
+        <div class="q-item">
+          <div class="q-meta">
+            ${escapeHtml(r.studentName)} (${escapeHtml(String(r.studentId))})
+            ${r.lowStreakAlert ? '<span title="최근 3회 연속 저온도" style="color:var(--seal); font-size:.7rem;">●</span>' : ''}
+            <span style="margin-left:auto; font-weight:700; color:var(--indigo);">온도 ${r.temperature}</span>
+          </div>
+          <div class="q-text">${escapeHtml(choiceText)}</div>
+        </div>`;
+    }).join('');
+  }catch(e){
+    $('ckList').innerHTML = '<p class="muted">불러오지 못했어요: ' + escapeHtml(e.message) + '</p>';
   }
 }
 
@@ -2459,9 +2825,19 @@ $('selGrade').addEventListener('change', () => { openDetailSid=null; dashRefresh
 $('selBan').addEventListener('change', () => { openDetailSid=null; renderDash(); });
 $('selActivity').addEventListener('change', () => renderDash());
 $('btnCsv').addEventListener('click', dashDownloadCsv);
+$('ckSetGrade').addEventListener('change', () => { dashRefreshCkSetLessons(); dashLoadCkSetCurrent(); });
+$('btnCkSetApply').addEventListener('click', dashApplyCkSet);
+$('ckViewGrade').addEventListener('change', () => { dashRefreshCkViewBans(); dashLoadCheckinAdmin(); });
+$('ckViewBan').addEventListener('change', dashLoadCheckinAdmin);
+$('btnCkViewRefresh').addEventListener('click', dashLoadCheckinAdmin);
 $('btnDashRefresh').addEventListener('click', async () => {
   showToast('새로고침 중…');
-  try{ await dashLoadData(); renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm(); showToast('최신 기록으로 갱신했어요.'); }
+  try{
+    await dashLoadData();
+    renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm();
+    if(typeof CHECKIN_PLAN !== 'undefined'){ await dashLoadCkSetCurrent(); await dashLoadCheckinAdmin(); }
+    showToast('최신 기록으로 갱신했어요.');
+  }
   catch(e){ showToast('갱신 실패: ' + e.message); }
 });
 $('btnDashOut').addEventListener('click', () => {
