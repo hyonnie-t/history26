@@ -199,6 +199,10 @@
       <label for="selActivity">활동</label>
       <select id="selActivity"></select>
       <span class="spacer"></span>
+      <div class="student-search" id="studentSearchWrap">
+        <input type="text" id="studentSearch" placeholder="학번 또는 이름 검색" autocomplete="off">
+        <div class="student-search-results" id="studentSearchResults" style="display:none;"></div>
+      </div>
       <span id="rowCount" style="font-size:.85rem;color:var(--ink-soft);"></span>
     </div>
 
@@ -2220,6 +2224,60 @@ function dashRefreshActivityOptions(){
     + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
 }
 
+/* v25 — 학생 검색 (2-1)
+ * 현재 선택된 학년·반과 무관하게 ROWS 전체에서 학번/이름으로 찾은 뒤,
+ * 클릭하면 그 학생의 학년·반으로 필터를 자동 전환하고 상세 카드를 열어줌.
+ * 드롭다운 필터로는 "지금 보고 있는 범위 안"에서만 찾을 수 있었는데,
+ * 이 검색은 범위를 몰라도 이름/학번만 알면 바로 찾을 수 있게 하는 게 목적. */
+function dashBuildStudentIndex_(){
+  const map = {};
+  ROWS.forEach(r => {
+    const sid = String(r.studentId);
+    if(!map[sid]) map[sid] = { sid, name: String(r.studentName||''), p: parseStudentId(sid) };
+  });
+  return Object.values(map);
+}
+function dashSearchStudents_(query){
+  const q = query.trim().toLowerCase();
+  if(!q) return [];
+  const all = dashBuildStudentIndex_();
+  return all.filter(s => s.sid.includes(q) || s.name.toLowerCase().includes(q))
+    .sort((a,b) => a.p.grade - b.p.grade || a.p.ban - b.p.ban || a.p.num - b.p.num)
+    .slice(0, 8);
+}
+function dashRenderSearchResults_(matches){
+  const box = $('studentSearchResults');
+  if(!matches.length){
+    box.innerHTML = '<div class="ssr-empty">일치하는 학생이 없어요</div>';
+    box.style.display = 'block';
+    return;
+  }
+  box.innerHTML = matches.map(s =>
+    `<div class="ssr-item" data-sid="${s.sid}">
+       <span class="ssr-name">${escapeHtml(s.name)}</span>
+       <span class="ssr-meta">${s.p.grade}학년 ${s.p.ban}반 · ${s.sid}</span>
+     </div>`).join('');
+  box.style.display = 'block';
+  box.querySelectorAll('.ssr-item').forEach(el => {
+    el.addEventListener('click', () => dashJumpToStudent_(el.dataset.sid));
+  });
+}
+function dashJumpToStudent_(sid){
+  const p = parseStudentId(sid);
+  if(!p) return;
+  $('selGrade').value = String(p.grade);
+  dashRefreshBanOptions();
+  $('selBan').value = String(p.ban);
+  dashRefreshActivityOptions();
+  $('selActivity').value = '';
+  openDetailSid = sid;
+  $('studentSearch').value = '';
+  $('studentSearchResults').style.display = 'none';
+  renderDash();
+  const tr = document.querySelector(`tr.student-row[data-sid="${sid}"]`);
+  if(tr) tr.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
 function dashFilteredRows(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
@@ -2683,6 +2741,19 @@ $('tokenInput').addEventListener('keydown', e => { if(e.key==='Enter') $('btnGat
 $('selGrade').addEventListener('change', () => { openDetailSid=null; dashRefreshBanOptions(); dashRefreshActivityOptions(); renderDash(); });
 $('selBan').addEventListener('change', () => { openDetailSid=null; renderDash(); });
 $('selActivity').addEventListener('change', () => renderDash());
+$('studentSearch').addEventListener('input', () => {
+  const matches = dashSearchStudents_($('studentSearch').value);
+  if(!$('studentSearch').value.trim()){ $('studentSearchResults').style.display = 'none'; return; }
+  dashRenderSearchResults_(matches);
+});
+$('studentSearch').addEventListener('keydown', ev => {
+  if(ev.key !== 'Enter') return;
+  const matches = dashSearchStudents_($('studentSearch').value);
+  if(matches.length === 1) dashJumpToStudent_(matches[0].sid);
+});
+document.addEventListener('click', ev => {
+  if(!$('studentSearchWrap').contains(ev.target)) $('studentSearchResults').style.display = 'none';
+});
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('btnClCancelEdit').addEventListener('click', dashResetLessonForm);
 $('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
