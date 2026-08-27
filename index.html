@@ -2355,44 +2355,73 @@ function renderDash(){
 
 function dashDetailRowHtml(s, lessons, colspan){
   const act = $('selActivity').value;
-  const recs = s.records
-    .filter(r => !act || String(r.gameName) === act)
-    .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const recs = s.records.filter(r => !act || String(r.gameName) === act);
 
-  const recHtml = recs.length ? recs.map(r => {
-    const aiComment = String(r['AI코멘트']||'').trim();
-    const aiChecked = String(r['AI코멘트확인']||'').trim();
-    const rowNum = r._row || '';
-    let aiBox = '';
-    if (aiComment && rowNum) {
-      aiBox = `
-        <div class="ai-box" data-row="${rowNum}">
-          <div class="ai-head">
-            <span class="ai-title">🤖 AI 코멘트 (학생에게 표시 중)</span>
-            <span class="ai-chip ${aiChecked ? 'ok' : 'wait'}">${aiChecked ? '검토 완료' : '미검토'}</span>
-            <span class="ai-actions">
-              ${aiChecked ? '' : `<button class="btn-tiny ai-confirm" data-row="${rowNum}">확인</button>`}
-              <button class="btn-tiny ai-editbtn" data-row="${rowNum}">수정</button>
-              <button class="btn-tiny ai-hide" data-row="${rowNum}">숨기기</button>
-            </span>
-          </div>
-          <div class="ai-text">${escapeHtml(aiComment)}</div>
-        </div>`;
-    }
-    return `
-    <div class="rec">
-      <div class="rec-head">
-        <span class="rec-title">${escapeHtml(dashLessonTitle(String(r.gameName)))}</span>
-        <span class="rec-meta">${formatDate(r.timestamp)} · 성취 ${escapeHtml(String(r['성취수준']||'분석 전'))}</span>
-      </div>
-      <dl>
-        <dt>선택 요약</dt><dd>${escapeHtml(String(r.choiceSummary||'—'))}</dd>
-        <dt>학생 서술</dt><dd>${escapeHtml(String(r.reflection||'—'))}</dd>
-        <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
-        <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
-      </dl>
-      ${aiBox}
-    </div>`;
+  /* v24: 세로로 쭉 나열되던 걸 활동별로 묶은 접이식(<details>) 카드로 변경.
+   * 1) 같은 활동끼리 묶어서(그 안에서는 최신순) 보여주면 중복 제출이 자연스럽게
+   *    옆에 붙어 비교하기 쉬움 — 예전엔 시간순 전체 나열이라 다른 활동이 사이에 끼었음.
+   * 2) 기본은 접혀 있고 클릭해야 펼쳐지므로, 활동 개수가 많아도 목록 자체는 짧게 유지됨.
+   * 3) 같은 활동에 제출이 2건 이상이면 "중복 N건" 배지 + 각 카드에 삭제 버튼을 붙여서
+   *    바로 정리할 수 있게 함(dashDeleteActivityRow, 백엔드 action=deleteActivityRow). */
+  const byGame = {};
+  recs.forEach(r => { const g = String(r.gameName); (byGame[g] = byGame[g] || []).push(r); });
+  Object.values(byGame).forEach(list => list.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)));
+
+  // 커리큘럼에 정의된 순서를 우선으로 정렬(수업 순서대로 보이게), 없는 게임명(옛 활동 등)은 뒤에 붙임
+  const orderedGameNames = [
+    ...lessons.map(l => l.id).filter(id => byGame[id]),
+    ...Object.keys(byGame).filter(g => !lessons.some(l => l.id === g))
+  ];
+
+  const recHtml = orderedGameNames.length ? orderedGameNames.map(gameName => {
+    const group = byGame[gameName];
+    const dupCount = group.length;
+    return group.map((r, idx) => {
+      const aiComment = String(r['AI코멘트']||'').trim();
+      const aiChecked = String(r['AI코멘트확인']||'').trim();
+      const rowNum = r._row || '';
+      let aiBox = '';
+      if (aiComment && rowNum) {
+        aiBox = `
+          <div class="ai-box" data-row="${rowNum}">
+            <div class="ai-head">
+              <span class="ai-title">🤖 AI 코멘트 (학생에게 표시 중)</span>
+              <span class="ai-chip ${aiChecked ? 'ok' : 'wait'}">${aiChecked ? '검토 완료' : '미검토'}</span>
+              <span class="ai-actions">
+                ${aiChecked ? '' : `<button class="btn-tiny ai-confirm" data-row="${rowNum}">확인</button>`}
+                <button class="btn-tiny ai-editbtn" data-row="${rowNum}">수정</button>
+                <button class="btn-tiny ai-hide" data-row="${rowNum}">숨기기</button>
+              </span>
+            </div>
+            <div class="ai-text">${escapeHtml(aiComment)}</div>
+          </div>`;
+      }
+      const dupBadge = dupCount > 1
+        ? `<span class="dup-badge" title="같은 활동에 제출이 ${dupCount}건 있어요">중복 ${idx+1}/${dupCount}${idx===0 ? ' · 최신' : ''}</span>`
+        : '';
+      return `
+      <details class="rec-collapse${dupCount > 1 ? ' rec-dup' : ''}">
+        <summary class="rec-summary">
+          <span class="rec-summary-main">
+            <span class="rec-title">${escapeHtml(dashLessonTitle(gameName))}</span>
+            ${dupBadge}
+          </span>
+          <span class="rec-summary-side">
+            <span class="rec-meta">${formatDate(r.timestamp)} · 성취 ${escapeHtml(String(r['성취수준']||'분석 전'))}</span>
+            ${rowNum ? `<button class="btn-tiny rec-delete" data-row="${rowNum}" onclick="dashDeleteActivityRow(event, this)">삭제</button>` : ''}
+          </span>
+        </summary>
+        <div class="rec-body">
+          <dl>
+            <dt>선택 요약</dt><dd>${escapeHtml(String(r.choiceSummary||'—'))}</dd>
+            <dt>학생 서술</dt><dd>${escapeHtml(String(r.reflection||'—'))}</dd>
+            <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
+            <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
+          </dl>
+          ${aiBox}
+        </div>
+      </details>`;
+    }).join('');
   }).join('') : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
 
   const fbHtml = s.feedbacks.length ? `<div class="fb-history">${
@@ -2413,6 +2442,31 @@ function dashDetailRowHtml(s, lessons, colspan){
         <button class="btn btn-sm fb-send" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">보내기</button>
       </div>
     </td></tr>`;
+}
+
+/* ── 중복/오류 제출 삭제 (v18-3) ──
+ * event.preventDefault()로 <summary> 안 버튼을 눌러도 <details>가 열리지
+ * 않게 막음(안 막으면 삭제 버튼 클릭이 아코디언 토글도 같이 실행시킴). */
+async function dashDeleteActivityRow(ev, btn){
+  ev.preventDefault();
+  ev.stopPropagation();
+  const row = btn.dataset.row;
+  const rec = dashFindRowRec(row);
+  const label = rec ? dashLessonTitle(String(rec.gameName)) : '이';
+  if(!confirm(`"${label}" 제출 기록을 삭제할까요? 되돌릴 수 없고, 학생 포털에서도 즉시 사라져요.`)) return;
+  btn.disabled = true; btn.textContent = '삭제 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'deleteActivityRow', token:TOKEN, row })
+    });
+    ROWS = ROWS.filter(r => String(r._row) !== String(row));
+    showToast('기록을 삭제했어요.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false; btn.textContent = '삭제';
+    showToast('삭제하지 못했어요. 다시 시도해 주세요.');
+  }
 }
 
 /* ── AI 코멘트 관리 ── */
