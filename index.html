@@ -298,6 +298,48 @@
           링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
         </label>
         <textarea id="clUrl" rows="2" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
+
+        <label style="font-size:.85rem; display:flex; align-items:center; gap:6px; margin-top:4px;">
+          <input type="checkbox" id="clMulti" style="width:auto;"> 이 차시에 활동 2개 넣기
+        </label>
+        <p class="cl-hint" style="margin-top:-4px;">
+          켜면 위 타입·URL 대신 아래 활동1·활동2를 각각 입력해요. 활동id·제목·설명은 "차시" 전체를 대표하는 값으로 남아요
+          (체크인·피드백·CSV에서 차시 단위로 쓰임). 각 활동의 id는 그 활동 게임의 CONFIG.GAME_NAME과 같아야 해요.
+        </p>
+        <div id="clMultiWrap" style="display:none;">
+          <div class="cl-activity-block">
+            <p class="cl-activity-label">1활동</p>
+            <div class="cl-row">
+              <input id="clAct1Id" type="text" placeholder="활동id" style="flex:1 1 140px;">
+              <select id="clAct1Type">
+                <option value="module">module</option>
+                <option value="padlet">padlet</option>
+                <option value="link">link</option>
+              </select>
+            </div>
+            <input id="clAct1Title" type="text" placeholder="1활동 제목 (예: 1활동: 사료 읽기)">
+            <input id="clAct1Desc" type="text" placeholder="1활동 한 줄 설명 — 선택">
+            <textarea id="clAct1Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea>
+          </div>
+          <div class="cl-activity-block">
+            <p class="cl-activity-label">2활동</p>
+            <div class="cl-row">
+              <input id="clAct2Id" type="text" placeholder="활동id" style="flex:1 1 140px;">
+              <select id="clAct2Type">
+                <option value="module">module</option>
+                <option value="padlet">padlet</option>
+                <option value="link">link</option>
+              </select>
+            </div>
+            <input id="clAct2Title" type="text" placeholder="2활동 제목 (예: 2활동: 선택 판단)">
+            <input id="clAct2Desc" type="text" placeholder="2활동 한 줄 설명 — 선택">
+            <textarea id="clAct2Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea>
+          </div>
+          <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="clSequential" style="width:auto;"> 순차 진행 (1활동을 끝내야 2활동이 열려요)
+          </label>
+        </div>
+
         <label id="clPublicRow" style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
           <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
         </label>
@@ -861,29 +903,40 @@ function renderPortal(){
     }
   });
 
-  /* KPI: 진행률 */
-  const active = cur.lessons.filter(l => l.url || l.urlByBan);
-  const doneCount = active.filter(l => doneIds.has(l.id)).length;
+  /* v27: 차시 하나에 활동이 여러 개(cur.lessons[].activities) 있을 수 있음.
+   * "완료했다"는 그 차시의 activities를 전부 doneIds에 넣었을 때만 인정 —
+   * 진행률·나무·포인트 계산에서 "차시" 단위 숫자는 전부 이 기준으로 통일. */
+  function lessonHasUrl(l){ return l.activities.some(a => a.url || a.urlByBan); }
+  function lessonDone(l){ return l.activities.every(a => doneIds.has(a.id)); }
+
+  /* KPI: 진행률 (차시 단위) */
+  const active = cur.lessons.filter(lessonHasUrl);
+  const doneCount = active.filter(lessonDone).length;
   const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
   $('progressDone').textContent = doneCount;
   $('progressTotal').textContent = active.length;
   requestAnimationFrame(() => { $('progressFill').style.width = pct + '%'; });
 
   /* 포인트·칭호·나무 (참여·노력 기반 — 달성도와 무관)
-   * 첫 완료 FIRST점 + 재도전 1회당 RETRY점 (활동당 RETRY_MAX회까지) */
+   * v27: 포인트는 활동 단위로 지급(첫 완료 FIRST점 + 재도전 1회당 RETRY점, 활동당
+   * RETRY_MAX회까지) — 차시에 활동이 2개면 둘 다 채워야 그만큼 포인트가 쌓임.
+   * 나무 잎(leaves)·칭호 단계는 기존처럼 "완료한 차시" 개수 기준 유지. */
   const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 };
-  const doneLessons = cur.lessons.filter(l => doneIds.has(l.id));
   const attemptCnt = {};
   STUDENT_DATA.activities.forEach(a => {
     const id = String(a.activityId);
     attemptCnt[id] = (attemptCnt[id] || 0) + 1;
   });
   let points = 0;
-  doneLessons.forEach(l => {
-    points += P.FIRST;
-    const retries = Math.max((attemptCnt[l.id] || 1) - 1, 0);
-    points += Math.min(retries, P.RETRY_MAX) * P.RETRY;
+  cur.lessons.forEach(l => {
+    l.activities.forEach(act => {
+      if (!doneIds.has(act.id)) return;
+      points += P.FIRST;
+      const retries = Math.max((attemptCnt[act.id] || 1) - 1, 0);
+      points += Math.min(retries, P.RETRY_MAX) * P.RETRY;
+    });
   });
+  const doneLessonsCount = cur.lessons.filter(lessonDone).length;
   let rank = CONFIG.RANKS[0], rankIdx = 0;
   CONFIG.RANKS.forEach((r, i) => { if (points >= r.min) { rank = r; rankIdx = i; } });
   const nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
@@ -900,9 +953,9 @@ function renderPortal(){
     $('rankNext').textContent = '최고 칭호에 도달했어요!';
     requestAnimationFrame(() => { $('rankFill').style.width = '100%'; });
   }
-  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessons.length);
+  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessonsCount);
   $('treeBox').setAttribute('aria-label',
-    `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessons.length}개`);
+    `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessonsCount}개`);
 
   /* 단원 관통 질문 배너 */
   const uq = (cur.unitQuestion || '').trim();
@@ -940,16 +993,22 @@ function renderPortal(){
   /* 질문함 (학생 ↔ 교사) */
   renderQuestions();
 
-  /* 달성도 모아보기 */
-  const analyzed = cur.lessons
-    .map(l => ({ lesson: l, rec: achieveMap[l.id] }))
-    .filter(x => x.rec && x.rec.achievement && String(x.rec.achievement).trim());
-  if (analyzed.length) {
+  /* 달성도 모아보기 — v27: 활동 단위로 나열(차시에 활동이 2개면 각각 따로 뜸) */
+  const analyzedActs = [];
+  cur.lessons.forEach(l => {
+    l.activities.forEach(act => {
+      const rec = achieveMap[act.id];
+      if (rec && rec.achievement && String(rec.achievement).trim()) {
+        analyzedActs.push({ lesson: l, act, rec });
+      }
+    });
+  });
+  if (analyzedActs.length) {
     $('overviewCard').style.display = 'block';
-    $('overviewList').innerHTML = analyzed.map(x => `
+    $('overviewList').innerHTML = analyzedActs.map(x => `
       <div class="overview-item">
         <span class="dots">${achieveDots(x.rec.achievement)}</span>
-        <span class="ov-title">${escapeHtml(x.lesson.title)}</span>
+        <span class="ov-title">${escapeHtml(activityDisplayTitle(x.lesson, x.act))}</span>
       </div>`).join('');
   } else {
     $('overviewCard').style.display = 'none';
@@ -980,102 +1039,9 @@ function renderPortal(){
   }
   $('statusLine').style.display = 'none';
 
-  tl.innerHTML = cur.lessons.map((l, i) => {
-    const done = doneIds.has(l.id);
-    const url = lessonUrl(l);
-    const building = !url;
-    const rec = achieveMap[l.id];
-    const latest = latestMap[l.id];
-    const typeLabel = { module:"탐구 활동", padlet:"패들렛 글쓰기", link:"외부 활동" }[l.type] || "활동";
-    const typeClass = { padlet:"t-padlet", link:"t-link" }[l.type] || "";
-
-    /* 분석 상태 판정 (module 활동만 — 자가체크형은 서술이 없어 분석 대상 아님) */
-    const recAnalyzed = !!(rec && rec.achievement && String(rec.achievement).trim());
-    const latestAnalyzed = !!(latest && latest.achievement && String(latest.achievement).trim());
-    const isModule = l.type === 'module';
-    const pendingNew = isModule && done && recAnalyzed && latest && !latestAnalyzed
-      && String(latest.timestamp) !== String(rec.timestamp);
-    const pendingFirst = isModule && done && !recAnalyzed;
-
-    let achieveHtml = '';
-    if(done && recAnalyzed){
-      achieveHtml = `
-        <div class="achieve">
-          <span>달성도</span>
-          <span class="dots">${achieveDots(rec.achievement)}</span>
-          <span>${escapeHtml(String(rec.achievement))}${pendingNew ? ' <small>(이전 도전 기준)</small>' : ''}</span>
-        </div>
-        ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}`;
-    }
-
-    /* 분석 대기 안내 */
-    let pendingHtml = '';
-    if(pendingNew){
-      pendingHtml = `<div class="pending-note">🕐 ${formatDate(latest.timestamp)} 새 도전 기록이 저장됐어요. AI 분석이 끝나면 달성도와 코멘트가 새로 표시돼요.</div>`;
-    } else if(pendingFirst){
-      pendingHtml = `<div class="pending-note">🕐 기록이 저장됐어요! AI 분석이 끝나면 달성도와 코멘트가 표시돼요.</div>`;
-    }
-
-    /* AI 분석 코멘트 (출처를 명확히 구분해 표시) */
-    let aiHtml = '';
-    if(done && rec && rec.aiComment && String(rec.aiComment).trim()){
-      aiHtml = `
-        <div class="note note-ai">
-          <div class="note-label">🤖 AI 분석 코멘트
-            <span class="note-date">${formatDate(rec.timestamp)}</span>
-          </div>
-          <div class="note-text">${escapeHtml(String(rec.aiComment))}</div>
-        </div>`;
-    }
-
-    /* 이 활동에 대한 선생님 피드백 (인라인) */
-    let teaHtml = '';
-    const fbs = fbByLesson[l.id] || [];
-    if(fbs.length){
-      teaHtml = fbs.map(f => `
-        <div class="note note-teacher">
-          <div class="note-label">👩‍🏫 선생님 피드백
-            <span class="note-date">${formatDate(f.timestamp)}</span>
-          </div>
-          <div class="note-text">${escapeHtml(String(f.feedback))}</div>
-        </div>`).join('');
-    }
-
-    const retryHtml = (done && recAnalyzed && !building && !pendingNew
-      && ['중','하'].includes(String(rec.achievement).trim()))
-      ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : '';
-
-    let actions = '';
-    if(building){
-      actions = `<span class="badge-wait">🔨 준비 중이에요</span>`;
-    } else if(l.type === 'module'){
-      actions = `<a class="btn-go" href="${withStudentParams(url)}" target="_blank" rel="noopener">
-        ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
-    } else {
-      actions = `<a class="btn-go" href="${url}" target="_blank" rel="noopener">활동 열기 →</a>`
-        + (done ? '' : `<button class="btn-check" data-lesson="${escapeHtml(l.id)}">활동을 끝냈어요 ✓</button>`);
-    }
-
-    return `
-      <div class="lesson ${done ? 'done' : ''} ${building ? 'pending-build' : ''}">
-        <div class="lesson-card">
-          <div class="lesson-top">
-            <div class="lesson-info">
-              <span class="lesson-type ${typeClass}">${i+1}차시 · ${typeLabel}</span>
-              <h2 class="lesson-title">${escapeHtml(l.title)}</h2>
-              ${l.desc ? `<p class="lesson-desc">${escapeHtml(l.desc)}</p>` : ''}
-            </div>
-            ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
-          </div>
-          ${achieveHtml}
-          ${pendingHtml}
-          ${aiHtml}
-          ${teaHtml}
-          ${retryHtml}
-          <div class="lesson-actions">${actions}</div>
-        </div>
-      </div>`;
-  }).reverse().join(''); // v20: 화면 노출 순서만 최신순(역순)으로. "N차시" 라벨은 위 map에서
+  tl.innerHTML = cur.lessons.map((l, i) => renderLessonCard(l, i, {
+    doneIds, achieveMap, latestMap, fbByLesson, lessonDone, lessonHasUrl
+  })).reverse().join(''); // v20: 화면 노출 순서만 최신순(역순)으로. "N차시" 라벨은 위 map에서
                           // 원래 순서 기준 i+1로 이미 계산돼 있으므로 번호는 그대로 유지됨.
 
   tl.querySelectorAll('.btn-check').forEach(btn => {
@@ -1083,13 +1049,147 @@ function renderPortal(){
   });
 }
 
-/* ── 자가체크 (패들렛·외부 활동) ── */
+/* v27 — 활동 하나를 화면에 보여줄 이름. 차시에 활동이 1개뿐이면 차시 제목 그대로,
+ * 2개 이상이면 활동 자체 제목(없으면 "N활동")을 붙여서 구분되게 함. */
+function activityDisplayTitle(l, act, idx){
+  if(l.activities.length <= 1) return l.title;
+  const label = act.title && act.title.trim() ? act.title.trim() : `${(idx!=null?idx:l.activities.indexOf(act))+1}활동`;
+  return `${l.title} · ${label}`;
+}
+
+/* v27 — 차시 카드 하나를 통째로 렌더링. 활동이 1개면 기존(v26 이전)과 동일한 모양,
+ * 2개 이상이면 카드 하나 안에 활동별 블록을 순서대로 나열.
+ * 순차 진행(l.sequential)이 켜져 있으면 앞 활동을 끝내야 다음 활동 버튼이 열림. */
+function renderLessonCard(l, i, ctx){
+  const { doneIds, achieveMap, latestMap, fbByLesson, lessonDone, lessonHasUrl } = ctx;
+  const done = lessonDone(l);
+  const building = !lessonHasUrl(l);
+  const multi = l.activities.length > 1;
+  const typeLabel = { module:"탐구 활동", padlet:"패들렛 글쓰기", link:"외부 활동" };
+  const typeClass = { padlet:"t-padlet", link:"t-link" };
+
+  const headerTypeLabel = multi ? `활동 ${l.activities.length}개` : (typeLabel[l.activities[0].type] || "활동");
+  const headerTypeClass = multi ? '' : (typeClass[l.activities[0].type] || '');
+
+  const activitiesHtml = l.activities.map((act, idx) => {
+    const locked = !!(l.sequential && idx > 0 && !doneIds.has(l.activities[idx - 1].id));
+    return renderActivityBlock(l, act, idx, { multi, locked, doneIds, achieveMap, latestMap });
+  }).join('');
+
+  /* 이 차시에 대한 선생님 피드백 (활동이 아니라 차시 단위 — 기존과 동일) */
+  let teaHtml = '';
+  const fbs = fbByLesson[l.id] || [];
+  if(fbs.length){
+    teaHtml = fbs.map(f => `
+      <div class="note note-teacher">
+        <div class="note-label">👩‍🏫 선생님 피드백
+          <span class="note-date">${formatDate(f.timestamp)}</span>
+        </div>
+        <div class="note-text">${escapeHtml(String(f.feedback))}</div>
+      </div>`).join('');
+  }
+
+  return `
+    <div class="lesson ${done ? 'done' : ''} ${building ? 'pending-build' : ''}">
+      <div class="lesson-card">
+        <div class="lesson-top">
+          <div class="lesson-info">
+            <span class="lesson-type ${headerTypeClass}">${i+1}차시 · ${headerTypeLabel}</span>
+            <h2 class="lesson-title">${escapeHtml(l.title)}</h2>
+            ${l.desc ? `<p class="lesson-desc">${escapeHtml(l.desc)}</p>` : ''}
+          </div>
+          ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
+        </div>
+        ${activitiesHtml}
+        ${teaHtml}
+      </div>
+    </div>`;
+}
+
+/* v27 — 활동 하나의 블록(제목·달성도·AI코멘트·버튼)을 렌더링.
+ * multi가 false면 기존과 완전히 동일한 모양(활동 소제목·wrapper 없이 바로 내용). */
+function renderActivityBlock(l, act, idx, opts){
+  const { multi, locked, doneIds, achieveMap, latestMap } = opts;
+  const done = doneIds.has(act.id);
+  const url = lessonActivityUrl(act);
+  const building = !url;
+  const rec = achieveMap[act.id];
+  const latest = latestMap[act.id];
+
+  const recAnalyzed = !!(rec && rec.achievement && String(rec.achievement).trim());
+  const latestAnalyzed = !!(latest && latest.achievement && String(latest.achievement).trim());
+  const isModule = act.type === 'module';
+  const pendingNew = isModule && done && recAnalyzed && latest && !latestAnalyzed
+    && String(latest.timestamp) !== String(rec.timestamp);
+  const pendingFirst = isModule && done && !recAnalyzed;
+
+  let achieveHtml = '';
+  if(done && recAnalyzed){
+    achieveHtml = `
+      <div class="achieve">
+        <span>달성도</span>
+        <span class="dots">${achieveDots(rec.achievement)}</span>
+        <span>${escapeHtml(String(rec.achievement))}${pendingNew ? ' <small>(이전 도전 기준)</small>' : ''}</span>
+      </div>
+      ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}`;
+  }
+
+  let pendingHtml = '';
+  if(pendingNew){
+    pendingHtml = `<div class="pending-note">🕐 ${formatDate(latest.timestamp)} 새 도전 기록이 저장됐어요. AI 분석이 끝나면 달성도와 코멘트가 새로 표시돼요.</div>`;
+  } else if(pendingFirst){
+    pendingHtml = `<div class="pending-note">🕐 기록이 저장됐어요! AI 분석이 끝나면 달성도와 코멘트가 표시돼요.</div>`;
+  }
+
+  let aiHtml = '';
+  if(done && rec && rec.aiComment && String(rec.aiComment).trim()){
+    aiHtml = `
+      <div class="note note-ai">
+        <div class="note-label">🤖 AI 분석 코멘트
+          <span class="note-date">${formatDate(rec.timestamp)}</span>
+        </div>
+        <div class="note-text">${escapeHtml(String(rec.aiComment))}</div>
+      </div>`;
+  }
+
+  const retryHtml = (done && recAnalyzed && !building && !pendingNew
+    && ['중','하'].includes(String(rec.achievement).trim()))
+    ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : '';
+
+  let actions = '';
+  if(locked){
+    actions = `<span class="badge-wait">🔒 ${idx}활동을 먼저 끝내면 열려요</span>`;
+  } else if(building){
+    actions = `<span class="badge-wait">🔨 준비 중이에요</span>`;
+  } else if(act.type === 'module'){
+    actions = `<a class="btn-go" href="${withStudentParams(url)}" target="_blank" rel="noopener">
+      ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
+  } else {
+    actions = `<a class="btn-go" href="${url}" target="_blank" rel="noopener">활동 열기 →</a>`
+      + (done ? '' : `<button class="btn-check" data-activity="${escapeHtml(act.id)}">활동을 끝냈어요 ✓</button>`);
+  }
+
+  const label = multi ? (act.title && act.title.trim() ? act.title.trim() : `${idx+1}활동`) : '';
+
+  return `
+    <div class="activity-block${multi ? ' activity-block-multi' : ''}${locked ? ' activity-locked' : ''}">
+      ${multi ? `<p class="activity-label">${escapeHtml(label)}${act.desc ? ' — ' + escapeHtml(act.desc) : ''}</p>` : ''}
+      ${achieveHtml}
+      ${pendingHtml}
+      ${aiHtml}
+      ${retryHtml}
+      <div class="lesson-actions">${actions}</div>
+    </div>`;
+}
+
+/* ── 자가체크 (패들렛·외부 활동) ──
+ * v27: 차시가 아니라 "활동"(activityId) 단위로 기록됨 — data-activity 사용. */
 async function selfCheck(btn){
   if(PREVIEW_MODE){
     showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
     return;
   }
-  const lessonId = btn.dataset.lesson;
+  const activityId = btn.dataset.activity;
   btn.disabled = true; btn.textContent = "기록하는 중…";
   try{
     await fetch(CONFIG.WEBAPP_URL, {
@@ -1097,11 +1197,11 @@ async function selfCheck(btn){
       body: JSON.stringify({
         studentId: SESSION.studentId,
         studentName: SESSION.name,
-        gameName: lessonId,
+        gameName: activityId,
         choiceSummary: '자가체크'
       })
     });
-    STUDENT_DATA.activities.push({ activityId: lessonId, achievement:'', summary:'', aiComment:'', reflection:'', timestamp:new Date().toISOString() });
+    STUDENT_DATA.activities.push({ activityId: activityId, achievement:'', summary:'', aiComment:'', reflection:'', timestamp:new Date().toISOString() });
     showToast("완료로 기록했어요! 도장이 찍혔어요 🎉");
     renderPortal();
   }catch(e){
@@ -1197,10 +1297,11 @@ function withStudentParams(url){
 
 /* 반마다 링크가 다른 활동(urlByBan) 지원 —
  * urlByBan이 있으면 로그인한 학생의 반(SESSION.ban) 링크를 골라 쓰고,
- * 없으면 기존처럼 공통 url을 그대로 씁니다. 해당 반 링크가 없으면 '준비 중'으로 처리됩니다. */
-function lessonUrl(l){
-  if (l.urlByBan) return l.urlByBan[SESSION.ban] || '';
-  return l.url || '';
+ * 없으면 기존처럼 공통 url을 그대로 씁니다. 해당 반 링크가 없으면 '준비 중'으로 처리됩니다.
+ * v27: 차시(l)가 아니라 활동(act) 하나를 받음 — url/urlByBan이 이제 활동 레벨에 있음. */
+function lessonActivityUrl(act){
+  if (act.urlByBan) return act.urlByBan[SESSION.ban] || '';
+  return act.url || '';
 }
 
 /* ── 유틸 ── */
@@ -1216,10 +1317,15 @@ function formatDate(ts){
   if(isNaN(d)) return '';
   return `${d.getMonth()+1}월 ${d.getDate()}일`;
 }
+/* v27 — id가 차시id와 같으면(단일활동 차시) 차시 제목, 활동id로 매칭되면
+ * "차시제목 · 활동제목" 형태로. 어느 쪽도 안 걸리면 id 그대로 돌려줌(안전망). */
 function lessonTitle(id){
   for(const g of Object.keys(CONFIG.CURRICULUM)){
-    const l = CONFIG.CURRICULUM[g].lessons.find(x => x.id === id);
-    if(l) return l.title;
+    for(const l of CONFIG.CURRICULUM[g].lessons){
+      if(l.id === id) return l.title;
+      const idx = l.activities.findIndex(a => a.id === id);
+      if(idx !== -1) return activityDisplayTitle(l, l.activities[idx], idx);
+    }
   }
   return id;
 }
@@ -1932,12 +2038,18 @@ function dashRenderLessons(){
   bindClListEvents();
 }
 
+/* v27: 활동목록JSON이 있는(활동 2개 이상) 차시는 목록에서 "활동 2개" 배지 +
+ * 순차진행이면 🔒 표시를 덧붙임. urlText 대신 활동 개수/타입을 요약해서 보여줌. */
 function clLessonItemHtml(l, isPastItem){
+  const multi = (l.activitiesCount || 1) > 1;
+  const metaText = multi
+    ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}`
+    : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}`;
   return `
     <div class="cl-item" ${isPastItem ? '' : 'draggable="true"'} data-row="${l._row}" data-grade="${escapeHtml(l.grade)}">
       ${isPastItem ? '' : '<span class="cl-drag-handle" title="드래그해서 순서 바꾸기">⠿</span>'}
       <div class="cl-item-body">
-        <div class="cl-meta">${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}</div>
+        <div class="cl-meta">${metaText}</div>
         <div class="cl-title">${escapeHtml(l.title)}</div>
       </div>
       <div class="cl-item-actions">
@@ -2052,6 +2164,33 @@ async function dashToggleLessonPast(btn){
   }
 }
 
+/* ── v27: 커리큘럼 "새 활동 추가" 폼 — 활동 2개 모드 토글 ──
+ * 체크하면 기존 타입·URL 필드를 숨기고 활동1·활동2 각각의 id·타입·제목·설명·URL을
+ * 따로 입력받음. 활동id·제목·설명(clId/clTitle/clDesc)은 이 경우 "차시 전체"를
+ * 대표하는 값(체크인·피드백·CSV에서 차시 단위로 쓰임)으로 의미가 바뀐다. */
+function clToggleMulti(){
+  const on = $('clMulti').checked;
+  $('clMultiWrap').style.display = on ? 'block' : 'none';
+  // clType은 clGrade·clId와 같은 cl-row 안에 있어서 row 전체를 숨기면 안 됨 — select만 토글.
+  $('clType').style.display = on ? 'none' : '';
+  $('clUrl').previousElementSibling.style.display = on ? 'none' : 'block'; // 힌트 라벨
+  $('clUrl').style.display = on ? 'none' : 'block';
+  $('clId').placeholder = on ? '차시id (체크인·피드백·CSV에서 이 차시를 가리킬 때 씀)' : '활동id (게임 CONFIG.GAME_NAME과 동일해야 함)';
+}
+
+function clCollectActivitiesFromForm(){
+  if(!$('clMulti').checked) return null;
+  const act1 = {
+    id: $('clAct1Id').value.trim(), title: $('clAct1Title').value.trim(),
+    desc: $('clAct1Desc').value.trim(), type: $('clAct1Type').value, url: $('clAct1Url').value.trim()
+  };
+  const act2 = {
+    id: $('clAct2Id').value.trim(), title: $('clAct2Title').value.trim(),
+    desc: $('clAct2Desc').value.trim(), type: $('clAct2Type').value, url: $('clAct2Url').value.trim()
+  };
+  return [act1, act2];
+}
+
 /* v17: 폼 하나를 추가/수정 공용으로 씀. clEditRow가 비어있으면 추가, 값이 있으면 수정. */
 async function dashSubmitLessonForm(btn){
   const editRow = $('clEditRow').value;
@@ -2068,11 +2207,20 @@ async function dashAddLesson(btn){
   const url = $('clUrl').value.trim();
   const isPublic = $('clPublic').checked;
   if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
+
+  const activities = clCollectActivitiesFromForm();
+  if(activities){
+    if(!activities[0].id || !activities[0].title || !activities[1].id || !activities[1].title){
+      showToast('활동 2개 모드에서는 각 활동의 id·제목이 필수예요.'); return;
+    }
+  }
+  const sequential = activities ? $('clSequential').checked : false;
+
   btn.disabled = true; btn.textContent = '추가하는 중…';
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic })
+      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential })
     });
     dashResetLessonForm();
     showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
@@ -2086,7 +2234,8 @@ async function dashAddLesson(btn){
 }
 
 /* v17: 등록된 활동 목록에서 "수정" 클릭 — 폼에 기존 값 채워넣고 새 활동 추가 서브탭으로 전환.
- * 활동id는 CONFIG.GAME_NAME과 연결돼 있어 여기서는 바꾸지 못하게 잠가둠(비활성화). */
+ * 활동id는 CONFIG.GAME_NAME과 연결돼 있어 여기서는 바꾸지 못하게 잠가둠(비활성화).
+ * v27: 활동목록JSON이 있으면(activitiesRaw) 활동 2개 모드로 자동 전환해서 채워 넣음. */
 function dashEditLesson(btn){
   const row = btn.dataset.row;
   const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
@@ -2102,6 +2251,28 @@ function dashEditLesson(btn){
   $('clPublicRow').style.display = 'none'; // 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
   $('clEditBanner').style.display = 'block';
   $('btnAddLesson').textContent = '수정 저장';
+
+  let acts = [];
+  if(l.activitiesRaw){
+    try{ acts = JSON.parse(l.activitiesRaw); }catch(e){ acts = []; }
+  }
+  if(acts.length >= 2){
+    $('clMulti').checked = true;
+    $('clAct1Id').value = acts[0].id || ''; $('clAct1Title').value = acts[0].title || '';
+    $('clAct1Desc').value = acts[0].desc || ''; $('clAct1Type').value = acts[0].type || 'module';
+    $('clAct1Url').value = acts[0].url || '';
+    $('clAct2Id').value = acts[1].id || ''; $('clAct2Title').value = acts[1].title || '';
+    $('clAct2Desc').value = acts[1].desc || ''; $('clAct2Type').value = acts[1].type || 'module';
+    $('clAct2Url').value = acts[1].url || '';
+    $('clSequential').checked = !!l.sequential;
+  } else {
+    $('clMulti').checked = false;
+    ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
+      .forEach(id => { $(id).value = ''; });
+    $('clSequential').checked = false;
+  }
+  clToggleMulti();
+
   switchClSubtab('add');
   $('clTitle').focus();
 }
@@ -2110,6 +2281,11 @@ function dashResetLessonForm(){
   $('clEditRow').value = '';
   $('clId').value = ''; $('clId').disabled = false;
   $('clTitle').value = ''; $('clDesc').value = ''; $('clUrl').value = ''; $('clPublic').checked = false;
+  $('clMulti').checked = false;
+  ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
+    .forEach(id => { $(id).value = ''; });
+  $('clSequential').checked = false;
+  clToggleMulti();
   $('clEditBanner').style.display = 'none';
   $('clPublicRow').style.display = 'flex';
   $('btnAddLesson').textContent = '활동 추가';
@@ -2121,11 +2297,20 @@ async function dashUpdateLesson(btn, row){
   const type = $('clType').value;
   const url = $('clUrl').value.trim();
   if(!title){ showToast('제목은 필수예요.'); return; }
+
+  const activities = clCollectActivitiesFromForm();
+  if(activities){
+    if(!activities[0].id || !activities[0].title || !activities[1].id || !activities[1].title){
+      showToast('활동 2개 모드에서는 각 활동의 id·제목이 필수예요.'); return;
+    }
+  }
+  const sequential = activities ? $('clSequential').checked : false;
+
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url })
+      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential })
     });
     dashResetLessonForm();
     showToast('활동 내용을 수정했어요.');
@@ -2227,11 +2412,23 @@ function dashRefreshBanOptions(){
   $('selBan').innerHTML = '<option value="">전체 반</option>'
     + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
 }
+/* v27: 활동 드롭다운은 "차시"가 아니라 "활동" 단위로 나열 — ROWS의 gameName은
+ * 항상 활동 자신의 id(다중활동 차시라면 activities[i].id)와 일치하므로, 필터가
+ * 실제로 걸리려면 여기 옵션도 활동 id를 값으로 가져야 함. */
 function dashRefreshActivityOptions(){
   const grade = Number($('selGrade').value);
   const lessons = CONFIG.CURRICULUM[grade].lessons;
+  const opts = [];
+  lessons.forEach(l => {
+    l.activities.forEach((act, idx) => {
+      const label = l.activities.length > 1
+        ? `${l.title} · ${act.title && act.title.trim() ? act.title.trim() : (idx+1)+'활동'}`
+        : l.title;
+      opts.push({ id: act.id, label });
+    });
+  });
   $('selActivity').innerHTML = '<option value="">전체 활동</option>'
-    + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
+    + opts.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join('');
 }
 
 /* v25 — 학생 검색 (2-1)
@@ -2308,12 +2505,18 @@ function aiUnreviewedCount(){
   ).length;
 }
 
+/* v27 — 차시(l) 전체 activities id의 Set. 학생별 doneIds/achieve 계산에서
+ * "이 차시를 다 끝냈는지" 판정할 때 반복해서 쓰여서 헬퍼로 뺌. */
+function lessonAllActivityIds_(l){
+  return l.activities.map(a => a.id);
+}
+
 function renderDash(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
   const act = $('selActivity').value;
   const lessons = CONFIG.CURRICULUM[grade].lessons;
-  const activeLessons = lessons.filter(l => l.url || l.urlByBan);
+  const activeLessons = lessons.filter(l => l.activities.some(a => a.url || a.urlByBan));
   const rows = dashFilteredRows();
 
   /* 미검토 AI 코멘트 알림 */
@@ -2342,7 +2545,8 @@ function renderDash(){
       const prev = s.achieve[id];
       if(!prev || lv || !String(prev['성취수준']||'').trim()) s.achieve[id] = r;
     });
-    const done = activeLessons.filter(l => s.doneIds.has(l.id)).length;
+    // v27: "완료한 차시"는 그 차시의 활동 id를 전부 doneIds에 갖고 있어야 인정.
+    const done = activeLessons.filter(l => lessonAllActivityIds_(l).every(id => s.doneIds.has(id))).length;
     s.pct = activeLessons.length ? Math.round(done/activeLessons.length*100) : 0;
     s.doneCount = done;
     s.feedbacks = FEEDBACKS.filter(f => String(f.studentId).trim() === s.sid);
@@ -2442,10 +2646,12 @@ function dashDetailRowHtml(s, lessons, colspan){
   recs.forEach(r => { const g = String(r.gameName); (byGame[g] = byGame[g] || []).push(r); });
   Object.values(byGame).forEach(list => list.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)));
 
-  // 커리큘럼에 정의된 순서를 우선으로 정렬(수업 순서대로 보이게), 없는 게임명(옛 활동 등)은 뒤에 붙임
+  // v27: 커리큘럼 정의 순서를 우선으로 정렬(수업 순서대로 보이게) — 이제 lesson.id가 아니라
+  // 차시 안의 각 activity.id 기준으로 펼쳐서 순서를 만든다. 없는 게임명(옛 활동 등)은 뒤에 붙임.
+  const knownActIds = lessons.flatMap(l => l.activities.map(a => a.id));
   const orderedGameNames = [
-    ...lessons.map(l => l.id).filter(id => byGame[id]),
-    ...Object.keys(byGame).filter(g => !lessons.some(l => l.id === g))
+    ...knownActIds.filter(id => byGame[id]),
+    ...Object.keys(byGame).filter(g => !knownActIds.includes(g))
   ];
 
   /* v26(2-2) — 활동 개수가 많아지면 접힌 카드가 세로로 계속 쌓여서 가독성이
@@ -2745,9 +2951,11 @@ async function startPreview(){
 
   let activities = [], feedback = [];
   if(withSample){
-    const sampleLessons = cur.lessons.filter(l => l.url || l.urlByBan).slice(0, 2);
-    activities = sampleLessons.map((l, i) => ({
-      activityId: l.id,
+    // v27: 활동 배열에서 URL 있는 활동만 최대 2개 뽑아 예시로 채움(차시 단위가 아니라 활동 단위).
+    const sampleActs = [];
+    cur.lessons.forEach(l => { l.activities.forEach(a => { if(a.url || a.urlByBan) sampleActs.push(a); }); });
+    activities = sampleActs.slice(0, 2).map((a, i) => ({
+      activityId: a.id,
       achievement: i === 0 ? '상' : '중',
       summary: '(예시) 자료를 근거로 판단 이유를 구체적으로 서술함',
       aiComment: '(예시) 두 선택지의 차이를 잘 짚었어요. 다음엔 반대 입장도 함께 고려해보면 더 좋겠어요.',
@@ -2812,6 +3020,7 @@ document.addEventListener('click', ev => {
 });
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('btnClCancelEdit').addEventListener('click', dashResetLessonForm);
+$('clMulti').addEventListener('change', clToggleMulti);
 $('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
 $('ckqFormType').addEventListener('change', ckqToggleTypeFields);
 $('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);
