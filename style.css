@@ -1,822 +1,3080 @@
-/* ══════════════ 디자인 토큰 ══════════════ */
-:root{
-  --paper:#F6F3EB;        /* 배접지 */
-  --ink:#23262C;          /* 먹 */
-  --ink-soft:#5A5F6A;
-  --indigo:#2E4A7A;       /* 쪽빛 — 주 색 */
-  --indigo-deep:#1F3457;
-  --seal:#B03A2E;         /* 낙관 인주색 */
-  --jade:#3E7C59;         /* 완료 보조 */
-  --ochre:#C9972E;        /* 달성 강조 */
-  --line:#D9D3C4;
-  --card:#FFFFFF;
-  --cover:#5C241C;        /* 책 표지 */
-  --cover-deep:#471B15;
-  --cover-cream:#F3E7D0;  /* 표지 위 글자 */
-  --gold:#D8A468;         /* 표지 금박 액센트 */
-  --radius:14px;
-  --shadow:0 2px 10px rgba(35,38,44,.07);
-  --font-display:'Gowun Batang', serif;
-  --font-body:'Pretendard', -apple-system, sans-serif;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2학기 역사 탐구 기록</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-  /* spacing 스케일 (v1: 신규 토큰 확장) */
-  --space-xs:4px;
-  --space-sm:8px;
-  --space-md:14px;
-  --space-lg:22px;
-  --space-xl:32px;
-  --space-2xl:48px;
+<!-- ══════════════ 오프닝 — 책 표지 ══════════════ -->
+<div id="loginView">
+  <div class="book-wrap">
+    <div class="book" id="bookCover">
+      <div class="book-frame">
+        <p class="book-eyebrow">2026 · 2학기</p>
+        <h1 class="book-title">역사 탐구 기록</h1>
+        <p class="book-sub">학번과 이름을 쓰면 나의 역사책이 펼쳐져요.</p>
+        <div class="field">
+          <label for="inputId">학번</label>
+          <input id="inputId" type="text" inputmode="numeric" maxlength="5" placeholder="예: 30512" autocomplete="off">
+          <p class="hint">학년·반·번호 5자리 (3학년 5반 12번 → 30512)</p>
+        </div>
+        <div class="field">
+          <label for="inputName">이름</label>
+          <input id="inputName" type="text" placeholder="이름을 입력하세요" autocomplete="off">
+        </div>
+        <button class="btn-open" id="btnLogin">책 펼치기</button>
+        <div class="login-error" id="loginError"></div>
+      </div>
+    </div>
+  </div>
+  <div class="teacher-entry">
+    <button class="teacher-link" id="btnTeacherMode">🔑 교사용 대시보드</button>
+    <div id="teacherGate">
+      <input id="tokenInput" type="password" placeholder="교사 토큰" autocomplete="off">
+      <button class="btn-gate" id="btnGate">대시보드 열기</button>
+      <p class="gate-error" id="gateError"></p>
+    </div>
+    <button class="teacher-link" id="btnPreviewMode">👀 학생 화면 미리보기</button>
+    <div id="previewGate">
+      <label for="previewGrade" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">학년</label>
+      <select id="previewGrade"></select>
+      <label for="previewBan" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">반 (숫자만)</label>
+      <input id="previewBan" type="number" min="1" max="20" value="1">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-soft);margin-bottom:12px;">
+        <input type="checkbox" id="previewSample" style="width:auto;min-height:auto;margin:0;">
+        완료·AI코멘트 예시도 같이 보기
+      </label>
+      <button class="btn-gate" id="btnPreviewStart">미리보기 시작</button>
+    </div>
+  </div>
+</div>
 
-  /* font-size 스케일 (v1: 신규 토큰 확장) */
-  --fs-xs:.75rem;
-  --fs-sm:.86rem;
-  --fs-base:1rem;
-  --fs-lg:1.2rem;
-  --fs-xl:1.6rem;
-  --fs-display:2rem;
+<!-- ══════════════ 웰컴 체크인 ══════════════ -->
+<div id="checkinView">
+  <div class="checkin-card" id="checkinCard"></div>
+</div>
 
-  /* 터치 타겟 최소값 — 학생 활동 버튼은 전부 이 값 이상 유지 */
-  --tap-min:44px;
-}
+<!-- ══════════════ 포털 ══════════════ -->
+<div id="portalView">
+  <header class="portal-header">
+    <div>
+      <p class="portal-eyebrow" id="portalEyebrow">2학기 · 역사</p>
+      <h1 class="portal-title" id="portalTitle">나의 역사책</h1>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-logout" id="btnPortalRefresh">↻ 새로고침</button>
+      <button class="btn-logout" id="btnLogout">책 덮기</button>
+    </div>
+  </header>
 
-/* ══════════════ 브레이크포인트 안내 ══════════════
- * 모바일 <640px / 태블릿 640~1024px / 데스크톱 >1024px, 세 구간 고정.
- * CSS @media 조건 안에서는 var() 사용이 불가(브라우저 제약)라서
- * 아래 두 값(640 / 1024)은 변수화하지 않고 리터럴 숫자로 반복 사용한다.
- * 새 미디어쿼리 추가 시에도 이 두 값만 쓸 것 — 480/560/600/680/760 같은
- * 임의 값 추가 금지(과거엔 그때그때 필요할 때 추가돼서 태블릿 구간이 비어 있었음). */
-*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
-html{font-size:16px;}
-body{
-  font-family:var(--font-body);
-  background:var(--paper);
-  color:var(--ink);
-  min-height:100vh;
-  line-height:1.6;
-}
-button{font-family:inherit; cursor:pointer;}
-:focus-visible{outline:3px solid var(--indigo); outline-offset:2px; border-radius:4px;}
-@media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{animation:none!important; transition:none!important;}
-}
+  <div id="previewBanner" style="display:none; align-items:center; justify-content:space-between; gap:10px; background:var(--seal); color:#fff; padding:10px 16px; border-radius:10px; margin-bottom:14px; font-size:.88rem; font-weight:700;">
+    <span>👀 미리보기 모드 — 실제 학생 기록이 아니에요. 활동 페이지를 열어도 실제로 제출하지 마세요.</span>
+    <button id="btnExitPreview" style="background:#fff; color:var(--seal); border:none; border-radius:999px; padding:6px 14px; font-size:.82rem; font-weight:700; cursor:pointer; flex-shrink:0;">종료</button>
+  </div>
 
-/* ══════════════ 오프닝 — 책 표지 ══════════════ */
-#loginView{
-  min-height:100vh; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; padding:24px; gap:18px;
-}
-.book-wrap{perspective:1400px;}
-.book{
-  position:relative; width:min(400px, 92vw);
-  background:var(--cover);
-  border-radius:6px 16px 16px 6px;
-  padding:44px 32px 36px 44px;
-  box-shadow:
-    0 18px 40px rgba(35,38,44,.28),
-    inset 0 0 0 1px rgba(243,231,208,.08);
-  transform-origin:left center;
-  transition:transform .7s cubic-bezier(.5,0,.3,1), opacity .45s ease .3s;
-}
-.book::before{ /* 책등 */
-  content:''; position:absolute; left:0; top:0; bottom:0; width:16px;
-  background:var(--cover-deep); border-radius:6px 0 0 6px;
-}
-.book::after{ /* 책배(페이지 단면) */
-  content:''; position:absolute; right:5px; top:7px; bottom:7px; width:5px;
-  background:repeating-linear-gradient(to bottom, #EFE6D2 0 2px, #DCD0B6 2px 4px);
-  border-radius:0 8px 8px 0;
-}
-.book.opening{transform:rotateY(-72deg); opacity:0;}
-.book-frame{ /* 표지 금선 테두리 */
-  border:1.5px solid rgba(243,231,208,.45); border-radius:8px;
-  padding:26px 22px 24px;
-}
-.book-eyebrow{
-  font-size:.82rem; letter-spacing:.4em; color:var(--gold);
-  text-align:center; margin-bottom:10px; font-weight:600;
-}
-.book-title{
-  font-family:var(--font-display); font-size:2rem; font-weight:700;
-  color:var(--cover-cream); text-align:center; line-height:1.35; margin-bottom:6px;
-}
-.book-sub{
-  color:rgba(243,231,208,.75); font-size:.9rem; text-align:center; margin-bottom:24px;
-}
-.book .field{margin-bottom:14px;}
-.book .field label{
-  display:block; font-size:.85rem; font-weight:600; margin-bottom:5px;
-  color:rgba(243,231,208,.85);
-}
-.book .field input{
-  width:100%; min-height:52px; font-size:1.1rem; padding:12px 16px;
-  border:1.5px solid rgba(243,231,208,.35); border-radius:10px;
-  background:#FBF6EA; font-family:var(--font-body); color:var(--ink);
-}
-.book .field input:focus{border-color:var(--gold); outline:none; box-shadow:0 0 0 3px rgba(216,164,104,.25);}
-.book .hint{font-size:.8rem; color:rgba(243,231,208,.6); margin-top:4px;}
-.btn-open{
-  width:100%; min-height:54px; font-size:1.1rem; font-weight:700;
-  background:var(--gold); color:var(--cover-deep); border:none; border-radius:10px;
-  margin-top:6px; transition:background .15s;
-}
-.btn-open:hover{background:#E4B67F;}
-.btn-open:disabled{background:#A78E6E; cursor:wait;}
-.login-error{
-  margin-top:14px; padding:12px 14px; border-radius:8px;
-  background:rgba(243,231,208,.14); color:#F3C9B8; font-size:.9rem; display:none;
-}
-.teacher-entry{text-align:center;}
-.teacher-link{
-  background:none; border:none; color:var(--ink-soft); font-size:.86rem;
-  text-decoration:underline; padding:8px;
-}
-.teacher-link:hover{color:var(--indigo);}
-#teacherGate, #previewGate{
-  display:none; margin-top:10px; text-align:left;
-  background:var(--card); border:1px solid var(--line); border-radius:12px;
-  padding:16px; width:min(340px, 90vw); box-shadow:var(--shadow);
-}
-#teacherGate input, #previewGate input, #previewGate select{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
-  border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7; margin-bottom:10px;}
-#teacherGate input:focus, #previewGate input:focus, #previewGate select:focus{border-color:var(--indigo); outline:none;}
-.btn-gate{
-  width:100%; min-height:48px; font-size:1rem; font-weight:700;
-  background:var(--indigo); color:#fff; border:none; border-radius:10px;
-}
-.btn-gate:hover{background:var(--indigo-deep);}
-.btn-gate:disabled{background:#9AA3B2; cursor:wait;}
-.gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
+  <div class="layout">
+    <!-- 좌측: 내 서재 -->
+    <aside class="side-card" aria-label="내 탐구 나무">
+      <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
+      <p class="side-name" id="sideName">—</p>
+      <p class="side-class" id="sideClass">—</p>
+      <span class="rank-badge">🏷️ <span id="rankName">견습 사관</span></span>
+      <p class="side-points"><span id="pointsNum">0</span>점 <small>탐구 포인트</small></p>
+      <div class="rank-track"><div class="rank-fill" id="rankFill"></div></div>
+      <p class="rank-next" id="rankNext"></p>
+      <p class="tree-note">활동을 완료하면 나무에 잎이 돋고,<br>다시 도전하면 포인트가 더 쌓여요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
+    </aside>
 
-/* ══════════════ 웰컴 체크인 — 두 페이지 스프레드 (표지와 같은 책의 다음 페이지처럼) ══════════════ */
-#checkinView{min-height:100vh; display:none; align-items:center; justify-content:center; padding:24px;}
-.checkin-card{
-  display:flex; width:min(720px, 96vw); background:#FBF6EA; border-radius:6px 16px 16px 6px;
-  padding:9px 9px 9px 25px;
-  box-shadow:0 18px 40px rgba(35,38,44,.28), inset 0 0 0 8px var(--cover-deep), inset 0 0 0 10px rgba(216,164,104,.4);
-  overflow:hidden; position:relative; animation:fadeIn .25s ease;
-}
-.checkin-card::before{ /* 표지와 이어지는 책등 — 로그인 화면 .book::before와 동일한 색 */
-  content:''; position:absolute; left:0; top:0; bottom:0; width:16px;
-  background:var(--cover-deep); border-radius:6px 0 0 6px; z-index:2;
-}
-.checkin-card::after{ /* 책 가운데 접힘선 */
-  content:''; position:absolute; left:50%; top:9px; bottom:9px; width:18px; margin-left:-9px;
-  background:linear-gradient(to right, rgba(35,38,44,.10), transparent 45%, transparent 55%, rgba(35,38,44,.10));
-  pointer-events:none; z-index:1;
-}
-.book-page{flex:1 1 50%; min-width:0; padding:28px 24px; position:relative;}
-.book-page-left{background:#F7F1DF; border-radius:5px 0 0 5px;}
-.book-page-right{background:#FBF6EA; transition:opacity .2s; border-radius:0 5px 5px 0;}
-.book-page-right.locked{opacity:.4; pointer-events:none;}
-.ck-lock-hint{
-  display:none; position:absolute; inset:0; z-index:2; align-items:center; justify-content:center;
-  text-align:center; padding:20px; font-family:var(--font-display); font-size:.95rem; color:var(--ink-soft);
-}
-.book-page-right.locked .ck-lock-hint{display:flex;}
-.book-page-right.locked .ck-right-body{visibility:hidden;}
-.checkin-eyebrow{font-size:.72rem; letter-spacing:.4em; color:var(--gold); font-weight:700; text-align:center; margin-bottom:14px; text-shadow:0 1px 0 rgba(255,255,255,.4);}
-.checkin-q{font-family:var(--font-display); font-size:1.05rem; line-height:1.7; text-align:center; margin-bottom:20px;}
-.temp-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
-.temp-btn{
-  display:flex; flex-direction:column; align-items:center; gap:5px;
-  min-height:72px; padding:8px 2px; background:#fff; border:1.5px solid var(--line);
-  border-radius:10px; transition:border-color .15s, background .15s;
-}
-.temp-btn:hover, .temp-btn:active{border-color:var(--indigo);}
-.temp-btn.selected{border-color:var(--indigo); background:rgba(46,74,122,.08); box-shadow:inset 0 0 0 1px var(--indigo);}
-.temp-num{font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--indigo);}
-.temp-label{font-size:.68rem; color:var(--ink-soft); text-align:center; line-height:1.25;}
-.judg-options{display:flex; flex-direction:column; gap:10px;}
-.judg-btn{
-  min-height:54px; padding:12px 16px; font-size:.95rem; font-weight:600; text-align:left;
-  background:#fff; border:1.5px solid var(--line); border-radius:10px; color:var(--ink);
-  transition:border-color .15s, background .15s;
-}
-.judg-btn:hover, .judg-btn:active{border-color:var(--indigo);}
-.judg-btn.selected{border-color:var(--indigo); background:rgba(46,74,122,.08); box-shadow:inset 0 0 0 1px var(--indigo);}
-.judg-btn:disabled, .chip-btn:disabled{opacity:.45; cursor:default;}
-.ck-submitting-hint{text-align:center; font-size:.78rem; color:var(--ink-soft); margin-top:10px;}
-.source-box{background:#fff; border-left:4px solid var(--ochre); border-radius:8px; padding:12px 14px; margin-bottom:16px;}
-.source-text{font-family:var(--font-display); font-size:.92rem; line-height:1.75; color:var(--ink);}
-.source-origin{font-size:.74rem; color:var(--ink-soft); margin-top:6px; text-align:right;}
-.chip-grid{display:flex; flex-wrap:wrap; gap:6px; justify-content:center;}
-.chip-btn{
-  min-height:var(--tap-min); padding:8px 14px; font-size:.86rem; font-weight:600;
-  background:#fff; border:1.5px solid var(--line); border-radius:999px; color:var(--ink);
-}
-.chip-btn:hover, .chip-btn:active{border-color:var(--indigo);}
-.chip-btn.selected{border-color:var(--indigo); background:rgba(46,74,122,.08); box-shadow:inset 0 0 0 1px var(--indigo);}
-.chip-custom{color:var(--ink-soft); border-style:dashed;}
-.custom-input-wrap{margin-top:12px; text-align:center;}
-.custom-input-wrap input{
-  width:100%; min-height:44px; padding:10px 12px; font-size:.95rem; border:1.5px solid var(--line);
-  border-radius:10px; background:#FCFBF7; margin-bottom:6px; box-sizing:border-box;
-}
-.custom-input-wrap .btn-open{width:100%; min-height:44px;}
-.custom-notice{font-size:.74rem; color:var(--ink-soft); margin-bottom:8px;}
-@media (max-width:640px){
-  .checkin-card{flex-direction:column; width:min(420px, 94vw); padding:25px 9px 9px;}
-  .checkin-card::before{left:0; right:0; top:0; bottom:auto; width:auto; height:16px; border-radius:6px 6px 0 0;}
-  .checkin-card::after{left:9px; right:9px; top:50%; bottom:auto; width:auto; height:18px; margin-left:0; margin-top:-9px;
-    background:linear-gradient(to bottom, rgba(35,38,44,.10), transparent 45%, transparent 55%, rgba(35,38,44,.10));}
-  .book-page-left{border-radius:5px 5px 0 0; border-bottom:1px solid var(--line);}
-  .book-page-right{border-radius:0 0 5px 5px;}
-}
-@media (max-width:640px){
-  .temp-grid{gap:4px;}
-  .temp-btn{min-height:62px; padding:6px 2px;}
-  .temp-label{font-size:.62rem;}
-}
+    <!-- 우측 메인 -->
+    <main>
+      <section class="announce-card" id="announceCard" aria-label="공지사항">
+        <h2>📢 공지사항</h2>
+        <div id="announceList"></div>
+      </section>
 
-/* ══════════════ 포털 ══════════════ */
-#portalView{display:none; max-width:960px; margin:0 auto; padding:24px 20px 80px; opacity:0;}
-#portalView.shown{opacity:1; transition:opacity .5s ease;}
-.portal-header{
-  display:flex; align-items:flex-end; justify-content:space-between;
-  gap:12px; margin-bottom:18px; flex-wrap:wrap;
-}
-.portal-eyebrow{font-size:.8rem; letter-spacing:.3em; color:var(--indigo); font-weight:600;}
-.portal-title{font-family:var(--font-display); font-size:1.7rem; font-weight:700;}
-.btn-logout{
-  min-height:var(--tap-min); padding:8px 16px; font-size:.88rem;
-  background:var(--card); border:1px solid var(--line); border-radius:999px; color:var(--ink-soft);
-}
-.btn-logout:hover{border-color:var(--ink-soft);}
+      <div class="kpi-grid">
+        <div class="kpi">
+          <h3>완료한 활동</h3>
+          <div class="big"><span id="progressDone">0</span><small> / <span id="progressTotal">0</span> 차시</small></div>
+          <div class="mini-track"><div class="mini-fill" id="progressFill"></div></div>
+        </div>
+        <div class="kpi">
+          <h3>탐구 포인트</h3>
+          <div class="big"><span id="kpiPoints">0</span><small> 점</small></div>
+        </div>
+        <div class="kpi">
+          <h3>선생님 피드백</h3>
+          <div class="big"><span id="kpiFeedback">0</span><small> 개</small></div>
+        </div>
+      </div>
 
-/* 2단 레이아웃 */
-.layout{display:grid; grid-template-columns:250px minmax(0,1fr); gap:18px; align-items:start;}
-@media (max-width:1024px){ .layout{grid-template-columns:1fr;} }
+      <section class="unit-banner" id="unitBanner" aria-label="이번 학기의 질문">
+        <p class="ub-label">이번 학기의 질문</p>
+        <p class="ub-q" id="unitQuestion"></p>
+      </section>
 
-/* ── 좌측: 내 서재 ── */
-.side-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:22px 20px; text-align:center;
-  position:sticky; top:16px;
-}
-@media (max-width:1024px){ .side-card{position:static;} }
-.tree-box{margin:0 auto 6px; width:170px;}
-.tree-box svg{width:100%; height:auto; display:block;}
-.side-name{font-family:var(--font-display); font-size:1.35rem; font-weight:700;}
-.side-class{font-size:.86rem; color:var(--ink-soft); margin-bottom:12px;}
-.rank-badge{
-  display:inline-flex; align-items:center; gap:6px;
-  background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25);
-  color:var(--indigo); border-radius:999px; padding:6px 16px;
-  font-weight:700; font-size:.95rem; margin-bottom:10px;
-}
-.side-points{
-  font-family:var(--font-display); font-size:1.15rem; color:var(--ochre);
-  font-weight:700; margin-bottom:8px;
-}
-.side-points small{font-family:var(--font-body); font-size:.8rem; color:var(--ink-soft); font-weight:400;}
-.rank-track{height:9px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-bottom:6px;}
-.rank-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--jade), var(--ochre)); border-radius:999px; transition:width .6s ease;}
-.rank-next{font-size:.82rem; color:var(--ink-soft); margin-bottom:12px;}
-.tree-note{
-  font-size:.78rem; color:var(--ink-soft); border-top:1px dashed var(--line);
-  padding-top:10px; line-height:1.5;
-}
+      <section class="portfolio-card" id="portfolioCard" aria-label="나의 패들렛 포트폴리오">
+        <div>
+          <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
+          <p class="pf-title" id="portfolioTitle"></p>
+          <p class="pf-desc" id="portfolioDesc"></p>
+        </div>
+        <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
+      </section>
 
-/* ── 우측 메인 ── */
-.kpi-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:14px;}
-@media (max-width:640px){ .kpi-grid{grid-template-columns:1fr 1fr;} .kpi-grid .kpi:first-child{grid-column:1/-1;} }
-.kpi{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px 16px;
-}
-.kpi h3{font-size:.82rem; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
-.kpi .big{font-family:var(--font-display); font-size:1.55rem; font-weight:700; color:var(--indigo); line-height:1.2;}
-.kpi .big small{font-size:.85rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
-.kpi .mini-track{height:8px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:8px;}
-.kpi .mini-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); transition:width .6s ease;}
+      <section class="feedback-card" id="feedbackCard" aria-label="선생님의 학기 총평">
+        <h2>📮 선생님이 남긴 총평</h2>
+        <div id="feedbackList"></div>
+      </section>
 
-/* 단원 관통 질문 배너 */
-.unit-banner{
-  display:none; background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--seal); border-radius:12px;
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
-}
-.unit-banner .ub-label{
-  font-size:.76rem; letter-spacing:.22em; color:var(--seal); font-weight:700; margin-bottom:2px;
-}
-.unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
+      <section class="question-card" aria-label="질문함">
+        <h2>💬 선생님께 질문하기</h2>
+        <p class="q-hint">수업이나 활동 중 궁금한 게 있으면 여기 남겨 주세요. 답이 오면 여기서 확인할 수 있어요.</p>
+        <div class="q-form">
+          <textarea id="questionInput" placeholder="궁금한 점을 적어주세요…"></textarea>
+          <button id="btnAskQuestion" onclick="askQuestion()">질문 보내기</button>
+        </div>
+        <div id="questionList"></div>
+      </section>
 
-/* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 */
-.portfolio-card{
-  display:none; background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--jade); border-radius:12px;
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
-  align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-}
-.portfolio-card .pf-label{
-  font-size:.76rem; letter-spacing:.22em; color:var(--jade); font-weight:700; margin-bottom:2px;
-}
-.portfolio-card .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
-.portfolio-card .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
+      <section class="overview-card" id="overviewCard" aria-label="나의 달성도">
+        <h2>📜 나의 달성도</h2>
+        <div id="overviewList"></div>
+      </section>
 
-/* 공지사항(학년+반별) */
-.announce-card{
-  display:none; background:#FFF6E9; border:1px solid #EBD6A8;
-  border-left:5px solid var(--ochre); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
-}
-.announce-card h2{
-  font-family:var(--font-display); font-size:.98rem; margin-bottom:8px; color:#8A6A14;
-}
-.announce-item{padding:8px 0; border-top:1px dashed #EBD6A8; font-size:.92rem; line-height:1.5;}
-.announce-item:first-of-type{border-top:none; padding-top:0;}
-.announce-item .an-meta{font-size:.76rem; color:var(--ink-soft); margin-bottom:2px;}
+      <details class="archive-card" id="archiveCard">
+        <summary>🗂 내 기록 보관함 <span class="arch-arrow">▶</span></summary>
+        <div class="archive-body">
+          <p class="archive-hint">활동에서 내가 직접 쓴 글이 모여요. 학기 말 자기평가에 활용해 보세요.</p>
+          <div id="archiveList"></div>
+        </div>
+      </details>
 
-/* 질문함 — 학생 ↔ 교사 */
-.question-card{
-  background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--indigo); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px;
-}
-.question-card h2{
-  font-family:var(--font-display); font-size:1.02rem; margin-bottom:4px; color:var(--indigo-deep);
-}
-.question-card .q-hint{font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;}
-.question-card .q-form{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
-.question-card .q-form textarea{
-  flex:1 1 220px; min-height:60px; resize:vertical; border:1px solid var(--line);
-  border-radius:10px; padding:9px 11px; font-family:var(--font-body); font-size:.92rem;
-}
-.question-card .q-form button{
-  align-self:flex-end; background:var(--indigo); color:#fff; border:none;
-  border-radius:999px; padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer; flex-shrink:0;
-}
-.question-card .q-form button:disabled{opacity:.6; cursor:default;}
-.q-item{padding:10px 0; border-top:1px dashed var(--line); font-size:.93rem;}
-.q-item:first-of-type{border-top:none; padding-top:0;}
-.q-item .q-meta{font-size:.78rem; color:var(--ink-soft); margin-bottom:2px; display:flex; align-items:center; gap:6px;}
-.q-item .q-text{margin-bottom:6px; line-height:1.5;}
-.q-status{
-  display:inline-block; font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 9px;
-}
-.q-status.wait{background:#F3EFE3; color:#8A6A14;}
-.q-status.done{background:#E4EEE8; color:var(--jade);}
-.q-answer{
-  margin-top:6px; background:#F3F5FA; border-radius:10px; padding:8px 12px;
-  font-size:.9rem; line-height:1.5; border-left:3px solid var(--indigo);
-}
-.q-answer b{color:var(--indigo-deep);}
+      <p class="timeline-eyebrow">학습 연표</p>
+      <div class="timeline" id="timeline"></div>
+      <p class="status-line" id="statusLine"></p>
+    </main>
+  </div>
+</div>
 
-/* 학기 총평 피드백 */
-.feedback-card{
-  background:#FFF9EC; border:1px solid #EAD9A8; border-radius:var(--radius);
-  padding:16px 20px; margin-bottom:14px; display:none;
-}
-.feedback-card h2{
-  font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px; color:#8A6A14;
-}
-.feedback-item{padding:9px 0; border-top:1px dashed #EAD9A8; font-size:.95rem;}
-.feedback-item:first-of-type{border-top:none; padding-top:0;}
-.feedback-item .fb-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:2px;}
+<!-- ══════════════ 교사 대시보드 ══════════════ -->
+<div id="dashView">
+  <div class="dash-top">
+    <div>
+      <p class="eyebrow">2학기 · 통합 학습 포털</p>
+      <h1>교사 대시보드</h1>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-ghost btn-sm" id="btnCsv">CSV 다운로드</button>
+      <button class="btn btn-ghost btn-sm" id="btnDashRefresh">새로고침</button>
+      <button class="btn btn-ghost btn-sm" id="btnDashOut">나가기</button>
+    </div>
+  </div>
 
-/* 달성도 모아보기 */
-.overview-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px; display:none;
-}
-.overview-card h2{font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px;}
-.overview-item{
-  display:flex; align-items:center; gap:10px; padding:7px 0;
-  border-top:1px dashed var(--line); font-size:.93rem;
-}
-.overview-item:first-of-type{border-top:none; padding-top:0;}
-.overview-item .dots{letter-spacing:2px; color:var(--ochre); flex-shrink:0;}
-.overview-item .ov-title{font-weight:600;}
+  <div class="dash-tabs">
+    <button class="dash-tab active" data-tab="records" onclick="switchDashTab('records')">📋 학생 기록</button>
+    <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">💬 질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
+    <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">📢 공지 관리</button>
+    <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
+    <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">🌡️ 체크인</button>
+  </div>
 
-/* 내 기록 보관함 */
-.archive-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); margin-bottom:14px; display:none; overflow:hidden;
-}
-.archive-card summary{
-  list-style:none; cursor:pointer; padding:15px 20px;
-  font-family:var(--font-display); font-size:1.02rem; font-weight:700;
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-}
-.archive-card summary::-webkit-details-marker{display:none;}
-.archive-card summary .arch-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.85rem;}
-.archive-card[open] summary .arch-arrow{transform:rotate(90deg);}
-.archive-card summary:hover{background:#FBFAF4;}
-.archive-body{padding:0 20px 16px;}
-.archive-hint{font-size:.84rem; color:var(--ink-soft); margin-bottom:10px;}
-.archive-item{
-  border:1px solid var(--line); border-radius:10px; background:#FCFBF7;
-  padding:12px 14px; margin-bottom:10px;
-}
-.archive-item .ar-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:4px;}
-.archive-item .ar-meta b{color:var(--indigo); font-weight:700;}
-.archive-item .ar-text{
-  font-size:.94rem; white-space:pre-wrap; word-break:break-word;
-  font-family:var(--font-display); line-height:1.7;
-}
+  <div class="dash-panel" id="panelRecords">
+    <div class="ai-notice" id="aiNotice">
+      🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b> — 학생 화면에 이미 표시되고 있어요.
+      학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
+    </div>
 
-/* ══════════════ 연표 ══════════════ */
-.timeline-eyebrow{
-  font-size:.78rem; letter-spacing:.28em; color:var(--indigo); font-weight:600;
-  margin:6px 0 10px 2px;
-}
-.timeline{position:relative; padding-left:34px;}
-.timeline::before{
-  content:''; position:absolute; left:11px; top:8px; bottom:8px;
-  width:2px; background:var(--line);
-}
-.lesson{position:relative; margin-bottom:18px;}
-.lesson::before{
-  content:''; position:absolute; left:-30px; top:26px;
-  width:12px; height:12px; border-radius:50%;
-  background:var(--paper); border:2.5px solid var(--ink-soft);
-}
-.lesson.done::before{background:var(--jade); border-color:var(--jade);}
-.lesson.pending-build::before{border-style:dashed; border-color:var(--line);}
+    <div class="filters">
+      <label for="selGrade">학년</label>
+      <select id="selGrade"></select>
+      <label for="selBan">반</label>
+      <select id="selBan"></select>
+      <label for="selActivity">활동</label>
+      <select id="selActivity"></select>
+      <span class="spacer"></span>
+      <div class="student-search" id="studentSearchWrap">
+        <input type="text" id="studentSearch" placeholder="학번 또는 이름 검색" autocomplete="off">
+        <div class="student-search-results" id="studentSearchResults" style="display:none;"></div>
+      </div>
+      <span id="rowCount" style="font-size:.85rem;color:var(--ink-soft);"></span>
+    </div>
 
-.lesson-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:20px 22px; position:relative; overflow:hidden;
-}
-.lesson.pending-build .lesson-card{opacity:.62; background:#FBFAF5;}
-.lesson-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
-.lesson-info{min-width:0;}
-.lesson-type{
-  display:inline-block; font-size:.75rem; font-weight:700; letter-spacing:.06em;
-  padding:3px 10px; border-radius:999px; margin-bottom:8px;
-  background:rgba(46,74,122,.1); color:var(--indigo);
-}
-.lesson-type.t-padlet{background:rgba(62,124,89,.12); color:var(--jade);}
-.lesson-type.t-link{background:rgba(201,151,46,.14); color:#8A6A14;}
-.lesson-title{
-  font-family:var(--font-display); font-size:1.2rem; font-weight:700; line-height:1.4;
-}
-.lesson-desc{font-size:.92rem; color:var(--ink-soft); margin-top:4px;}
+    <div class="summary">
+      <div class="sum-card">
+        <h3>기록이 있는 학생</h3>
+        <div class="big"><span id="sumStudents">0</span><small>명</small></div>
+      </div>
+      <div class="sum-card">
+        <h3>평균 진행률</h3>
+        <div class="big"><span id="sumProgress">0</span><small>%</small></div>
+      </div>
+      <div class="sum-card">
+        <h3>성취수준 분포 <small id="distScope"></small></h3>
+        <div class="dist-bar" id="distBar"></div>
+        <div class="dist-legend">
+          <span><i class="dist-sang"></i>상 <b id="cntSang">0</b></span>
+          <span><i class="dist-jung"></i>중 <b id="cntJung">0</b></span>
+          <span><i class="dist-ha"></i>하 <b id="cntHa">0</b></span>
+        </div>
+      </div>
+      <div class="sum-card">
+        <h3>분류태그 상위</h3>
+        <div class="tag-list" id="tagList"><span class="muted">—</span></div>
+      </div>
+    </div>
 
-/* 낙관 도장 */
-.seal-stamp{
-  flex-shrink:0; width:56px; height:56px; border-radius:8px;
-  border:2.5px solid var(--seal); color:var(--seal);
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-size:1.5rem; font-weight:700;
-  transform:rotate(-6deg);
-  background:
-    radial-gradient(circle at 30% 30%, rgba(176,58,46,.12), transparent 60%),
-    rgba(176,58,46,.05);
-  box-shadow:inset 0 0 0 1px rgba(176,58,46,.25);
-  animation:stampIn .35s ease-out;
-}
-@keyframes stampIn{
-  0%{transform:rotate(-6deg) scale(1.6); opacity:0;}
-  100%{transform:rotate(-6deg) scale(1); opacity:1;}
+    <div class="table-wrap">
+      <table>
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="dash-panel" id="panelQuestions" style="display:none;">
+    <div id="dqList"></div>
+  </div>
+
+  <div class="dash-panel" id="panelAnnounce" style="display:none;">
+    <div class="an-add-form">
+      <select id="anGrade"></select>
+      <select id="anBan">
+        <option value="전체">전체 반</option>
+        <option value="1">1반</option><option value="2">2반</option>
+        <option value="3">3반</option><option value="4">4반</option>
+        <option value="5">5반</option><option value="6">6반</option>
+        <option value="7">7반</option><option value="8">8반</option>
+      </select>
+      <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
+      <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
+    </div>
+    <div id="anList"></div>
+  </div>
+
+  <div class="dash-panel" id="panelCurriculum" style="display:none;">
+    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
+      오타 수정처럼 간단한 건 시트를 직접 열어 고쳐도 돼요. 여기는 "새 활동 추가"와 "공개/비공개 전환" 전용이에요.
+      새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
+    </p>
+
+    <details class="cl-collapse">
+      <summary>🏫 학년 정보 (단원 관통 질문 · 포트폴리오) <span class="cl-arrow">▶</span></summary>
+      <div class="cl-collapse-body">
+        <div id="giForm"></div>
+      </div>
+    </details>
+
+    <div class="cl-subtabs">
+      <button class="cl-subtab active" data-sub="add" onclick="switchClSubtab('add')">➕ 새 활동 추가</button>
+      <button class="cl-subtab" data-sub="list" onclick="switchClSubtab('list')">📋 등록된 활동</button>
+    </div>
+
+    <div class="cl-subpanel" id="clSubAdd">
+      <div class="cl-form">
+        <input type="hidden" id="clEditRow" value="">
+        <p id="clEditBanner" style="display:none; font-size:.85rem; color:var(--indigo); font-weight:600; margin:0 0 4px;">
+          ✏️ 활동 수정 중 — 활동id는 여기서 못 바꿔요.
+          <button type="button" id="btnClCancelEdit" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-size:.85rem; padding:0;">취소하고 새로 작성</button>
+        </p>
+        <div class="cl-row">
+          <select id="clGrade"></select>
+          <select id="clType">
+            <option value="module">module (게임·HTML 활동)</option>
+            <option value="padlet">padlet (패들렛 글쓰기)</option>
+            <option value="link">link (기타 외부 링크)</option>
+          </select>
+          <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px;">
+        </div>
+        <input id="clTitle" type="text" placeholder="제목">
+        <input id="clDesc" type="text" placeholder="한 줄 설명">
+        <label class="cl-hint">
+          링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
+        </label>
+        <textarea id="clUrl" rows="2" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
+
+        <label style="font-size:.85rem; display:flex; align-items:center; gap:6px; margin-top:4px;">
+          <input type="checkbox" id="clMulti" style="width:auto;"> 이 차시에 활동 2개 넣기
+        </label>
+        <p class="cl-hint" style="margin-top:-4px;">
+          켜면 위 타입·URL 대신 아래 활동1·활동2를 각각 입력해요. 활동id·제목·설명은 "차시" 전체를 대표하는 값으로 남아요
+          (체크인·피드백·CSV에서 차시 단위로 쓰임). 각 활동의 id는 그 활동 게임의 CONFIG.GAME_NAME과 같아야 해요.
+        </p>
+        <div id="clMultiWrap" style="display:none;">
+          <div class="cl-activity-block">
+            <p class="cl-activity-label">1활동</p>
+            <div class="cl-row">
+              <input id="clAct1Id" type="text" placeholder="활동id" style="flex:1 1 140px;">
+              <select id="clAct1Type">
+                <option value="module">module</option>
+                <option value="padlet">padlet</option>
+                <option value="link">link</option>
+              </select>
+            </div>
+            <input id="clAct1Title" type="text" placeholder="1활동 제목 (예: 1활동: 사료 읽기)">
+            <input id="clAct1Desc" type="text" placeholder="1활동 한 줄 설명 — 선택">
+            <textarea id="clAct1Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea>
+          </div>
+          <div class="cl-activity-block">
+            <p class="cl-activity-label">2활동</p>
+            <div class="cl-row">
+              <input id="clAct2Id" type="text" placeholder="활동id" style="flex:1 1 140px;">
+              <select id="clAct2Type">
+                <option value="module">module</option>
+                <option value="padlet">padlet</option>
+                <option value="link">link</option>
+              </select>
+            </div>
+            <input id="clAct2Title" type="text" placeholder="2활동 제목 (예: 2활동: 선택 판단)">
+            <input id="clAct2Desc" type="text" placeholder="2활동 한 줄 설명 — 선택">
+            <textarea id="clAct2Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea>
+          </div>
+          <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="clSequential" style="width:auto;"> 순차 진행 (1활동을 끝내야 2활동이 열려요)
+          </label>
+        </div>
+
+        <label id="clPublicRow" style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
+        </label>
+        <button id="btnAddLesson" onclick="dashSubmitLessonForm(this)">활동 추가</button>
+      </div>
+    </div>
+
+    <div class="cl-subpanel" id="clSubList" style="display:none;">
+      <div id="clList"></div>
+    </div>
+  </div>
+
+  <div class="dash-panel" id="panelCheckin" style="display:none;">
+    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
+      "오늘의 체크인 차시"를 골라두면 학생이 로그인할 때 감정 온도 + 발문이 뜨고, 응답은 여기서 확인할 수 있어요.
+      학생 화면엔 회수 질문·연속 저온도 표시가 절대 노출되지 않아요.
+    </p>
+
+    <div class="cl-subtabs">
+      <button class="cl-subtab active" data-sub="today" onclick="switchCkSubtab('today')">🗓 오늘/현황</button>
+      <button class="cl-subtab" data-sub="lessons" onclick="switchCkSubtab('lessons')">📝 문항 관리</button>
+    </div>
+
+    <div class="cl-subpanel" id="ckSubToday">
+      <div class="cl-collapse" style="border:1px solid var(--line); margin-bottom:16px;">
+        <div style="padding:14px 16px;">
+          <h4 style="font-size:.9rem; font-weight:700; margin-bottom:10px;">🗓 오늘의 체크인 차시 설정</h4>
+          <div class="cl-row" style="margin-bottom:8px;">
+            <select id="ckSetGrade"></select>
+            <select id="ckSetBan">
+              <option value="전체">전체 반(공통)</option>
+              <option value="1">1반</option><option value="2">2반</option>
+              <option value="3">3반</option><option value="4">4반</option>
+              <option value="5">5반</option><option value="6">6반</option>
+              <option value="7">7반</option><option value="8">8반</option>
+            </select>
+            <select id="ckSetLesson" style="flex:1 1 220px;"></select>
+            <button class="btn btn-sm" id="btnCkSetApply">적용</button>
+          </div>
+          <p class="cl-hint" style="margin-bottom:6px;">"전체 반"은 해당 학년 공통 설정이에요. 특정 반만 진도가 다르면 그 반을 선택해서 따로 지정하면, 그 반엔 이 설정이 우선 적용돼요.</p>
+          <p id="ckSetCurrent" style="font-size:.85rem; color:var(--ink-soft);"></p>
+        </div>
+      </div>
+
+      <div class="dash-questions">
+        <div class="cl-row" style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--line);">
+          <select id="ckViewGrade"></select>
+          <select id="ckViewBan"></select>
+          <button class="btn btn-ghost btn-sm" id="btnCkViewRefresh">새로고침</button>
+        </div>
+        <p id="ckRecall" style="display:none; font-size:.9rem; background:rgba(46,74,122,.06); border-left:3px solid var(--indigo); border-radius:8px; padding:10px 14px; margin-bottom:12px;"></p>
+        <p id="ckCounter" style="font-weight:700; margin-bottom:10px;"></p>
+        <div id="ckStats"></div>
+        <div id="ckList"></div>
+      </div>
+    </div>
+
+    <div class="cl-subpanel" id="ckSubLessons" style="display:none;">
+      <div class="cl-row" style="margin-bottom:12px;">
+        <select id="ckqGrade"></select>
+        <span style="flex:1;"></span>
+      </div>
+      <div id="ckqList" style="margin-bottom:18px;"></div>
+
+      <div class="cl-collapse" style="border:1px solid var(--line);">
+        <div style="padding:14px 16px;">
+          <input type="hidden" id="ckqEditRow" value="">
+          <h4 id="ckqFormTitle" style="font-size:.9rem; font-weight:700; margin-bottom:10px;">➕ 새 문항 추가</h4>
+          <div class="cl-form">
+            <div class="cl-row">
+              <select id="ckqFormGrade"></select>
+              <select id="ckqFormType">
+                <option value="judgment">judgment (판단형 2지선다)</option>
+                <option value="source_emotion">source_emotion (사료+단어칩)</option>
+              </select>
+              <input id="ckqFormId" type="text" placeholder="차시id (예: w13-1)" style="flex:1 1 160px;">
+            </div>
+            <input id="ckqFormTopic" type="text" placeholder="제목(topic)">
+            <input id="ckqFormTextbook" type="text" placeholder="교과서 위치 (예: 주제13 / 01) — 선택">
+            <textarea id="ckqFormPrompt" rows="2" placeholder="발문 (줄바꿈 가능)"></textarea>
+
+            <div id="ckqJudgmentFields">
+              <div class="cl-row">
+                <input id="ckqFormOptionA" type="text" placeholder="옵션A 라벨" style="flex:1;">
+                <input id="ckqFormOptionB" type="text" placeholder="옵션B 라벨" style="flex:1;">
+              </div>
+            </div>
+            <div id="ckqSourceFields" style="display:none;">
+              <textarea id="ckqFormSourceText" rows="2" placeholder="사료 텍스트 (줄바꿈 가능)"></textarea>
+              <input id="ckqFormSourceOrigin" type="text" placeholder="사료 출처 (예: 『선화봉사고려도경』 (12세기, 서긍))">
+              <input id="ckqFormWordChips" type="text" placeholder="단어칩 — 쉼표로 구분 (비우면 기본 6개 사용)">
+            </div>
+
+            <textarea id="ckqFormRecall" rows="2" placeholder="회수 질문 (교사만 봄, 학생 화면엔 안 뜸) — 선택"></textarea>
+            <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="ckqFormVerify" style="width:auto;"> 수업 전 사실관계 재확인 필요
+            </label>
+            <input id="ckqFormVerifyNote" type="text" placeholder="검증 메모 — 위 체크박스 켰을 때만 의미 있음">
+            <input id="ckqFormNote" type="text" placeholder="교사 메모 (설계 의도 등, 학생에게 안 보임) — 선택">
+            <div class="cl-row">
+              <button id="btnCkqSave" onclick="dashSubmitCheckinLessonForm(this)">문항 추가</button>
+              <button type="button" id="btnCkqCancel" class="btn-ghost btn" style="display:none;">취소하고 새로 작성</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+  
+<script src="config.js"></script>
+<script src="checkin_data.js"></script>
+<script>
+/* 설정은 config.js에서 불러옵니다 (같은 폴더에 있어야 함) */
+const CONFIG = window.PORTAL_CONFIG;
+if (!CONFIG) {
+  document.body.innerHTML = '<div style="max-width:420px;margin:80px auto;padding:24px;font-family:sans-serif;line-height:1.6">'
+    + '<h2>config.js를 찾을 수 없어요</h2>'
+    + '<p>config.js 파일이 이 HTML과 같은 폴더에 있는지 확인해 주세요.</p></div>';
+  throw new Error('config.js 없음');
 }
 
-/* 달성도 */
-.achieve{
-  display:flex; align-items:center; gap:8px; margin-top:14px;
-  padding-top:12px; border-top:1px dashed var(--line);
-  font-size:.9rem; color:var(--ink-soft);
-}
-.achieve .dots{letter-spacing:2px; font-size:1rem; color:var(--ochre);}
-.achieve-summary{
-  margin-top:8px; font-size:.9rem; color:var(--ink-soft);
-  background:var(--paper); border-radius:8px; padding:10px 14px;
+/* ════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+let SESSION = null;      // { studentId, name, grade, ban, num }
+let STUDENT_DATA = null; // 서버 응답 { activities, feedback }
+let PREVIEW_MODE = false; // 교사용 "학생 화면 미리보기"에서 true — 실제 기록/조회 없이 화면만 확인
+let CHECKIN_PLAN = null; // v17: 이제 checkin_data.js 정적 값이 아니라 mode=checkinPlan API로 채움 (loadCheckinPlan)
+
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+function parseStudentId(sid){
+  if(!/^\d{5}$/.test(sid)) return null;
+  return { grade: Number(sid[0]), ban: Number(sid.slice(1,3)), num: Number(sid.slice(3,5)) };
 }
 
-/* 카드 안 피드백 (인라인) */
-.note{
-  margin-top:10px; border-radius:10px; padding:10px 14px; font-size:.92rem;
-}
-.note .note-label{
-  display:flex; align-items:center; gap:6px;
-  font-size:.78rem; font-weight:700; margin-bottom:3px;
-}
-.note .note-date{font-weight:400; color:var(--ink-soft); font-size:.76rem; margin-left:auto;}
-.note-ai{background:rgba(46,74,122,.06); border:1px solid rgba(46,74,122,.18);}
-.note-ai .note-label{color:var(--indigo);}
-.note-teacher{background:#EAF4EE; border:1px solid #C4DECF;}
-.note-teacher .note-label{color:var(--jade);}
-.note-teacher .note-text{color:#254A37;}
-
-/* 재도전 배지 */
-.retry-hint{
-  margin-top:10px; font-size:.85rem; color:var(--indigo);
-  background:rgba(46,74,122,.07); border-radius:8px; padding:8px 12px;
-}
-/* 분석 대기 안내 */
-.pending-note{
-  margin-top:10px; font-size:.85rem; color:#8A6A14;
-  background:rgba(201,151,46,.1); border-radius:8px; padding:8px 12px;
-}
-.achieve small{font-size:.78rem; color:var(--ink-soft); font-weight:400;}
-
-/* 카드 하단 액션 */
-.lesson-actions{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;}
-.btn-go{
-  min-height:46px; padding:10px 22px; font-size:1rem; font-weight:700;
-  background:var(--indigo); color:#fff; border:none; border-radius:10px;
-  text-decoration:none; display:inline-flex; align-items:center; gap:6px;
-}
-.btn-go:hover{background:var(--indigo-deep);}
-.btn-check{
-  min-height:46px; padding:10px 20px; font-size:.95rem; font-weight:600;
-  background:var(--card); color:var(--jade); border:1.5px solid var(--jade); border-radius:10px;
-}
-.btn-check:hover{background:rgba(62,124,89,.08);}
-.btn-check:disabled{opacity:.5; cursor:wait;}
-.badge-wait{
-  display:inline-block; font-size:.85rem; color:var(--ink-soft);
-  padding:8px 14px; border:1px dashed var(--line); border-radius:10px;
+/* v22: 공용 재시도 fetch 헬퍼 — Apps Script 재배포 직후 script.googleusercontent.com
+ * 리다이렉트가 순간적으로 404를 뱉거나(엣지 캐시 전파 지연), 네트워크가 잠깐
+ * 끊기는 경우를 흡수. HTTP status 비정상이거나 JSON 파싱 실패 시 재시도.
+ * maxAttempts회, 시도 사이 delayMs*attempt 만큼 대기(기본 3회, 700ms 간격). */
+async function fetchJsonRetry_(url, maxAttempts, delayMs){
+  maxAttempts = maxAttempts || 3;
+  delayMs = delayMs || 700;
+  let lastErr;
+  for(let attempt = 1; attempt <= maxAttempts; attempt++){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }catch(e){
+      lastErr = e;
+      if(attempt < maxAttempts) await new Promise(r => setTimeout(r, delayMs * attempt));
+    }
+  }
+  throw lastErr;
 }
 
-.status-line{margin-top:22px; text-align:center; color:var(--ink-soft); font-size:.95rem; display:none;}
-.toast{
-  position:fixed; left:50%; bottom:28px; transform:translateX(-50%);
-  background:var(--ink); color:#fff; padding:12px 22px; border-radius:999px;
-  font-size:.95rem; box-shadow:0 4px 16px rgba(0,0,0,.25);
-  opacity:0; pointer-events:none; transition:opacity .25s;
-  max-width:90vw; text-align:center; z-index:50;
-}
-.toast.show{opacity:1;}
+/* ── 로그인 ── */
+async function login(sid, name, silent){
+  const parsed = parseStudentId(sid);
+  if(!parsed){ showLoginError("학번은 숫자 5자리예요. 예: 30512"); return; }
+  if(!name){ showLoginError("이름을 입력해 주세요."); return; }
 
-@media (max-width:640px){
-  .book{padding:34px 22px 28px 34px;}
-  #portalView{padding:18px 14px 70px;}
-  .lesson-card{padding:16px 16px;}
-  .seal-stamp{width:48px; height:48px; font-size:1.3rem;}
-}
+  /* v22: 커리큘럼이 아예 안 불러와진 상태(로딩 실패)와, 학번은 맞는데 해당
+   * 학년 자체가 없는 경우(진짜 오타)를 구분. 전자를 "학번을 다시 확인해 주세요"로
+   * 보여주면 학생이 자기 학번이 잘못된 줄 알고 헤맴 — 실제로는 서버 통신 문제. */
+  if(Object.keys(CONFIG.CURRICULUM).length === 0){
+    showLoginError("커리큘럼 정보를 불러오는 중이에요. 잠시만 기다려 주세요…");
+    const reloaded = await loadCurriculum();
+    if(!reloaded){
+      showLoginError("커리큘럼 정보를 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.");
+      return;
+    }
+    $('loginError').style.display = 'none';
+  }
 
-/* ══════════════ 교사 대시보드 ══════════════ */
-#dashView{display:none; max-width:1100px; margin:0 auto; padding:22px 20px 80px;}
-.btn{min-height:46px; padding:10px 20px; font-size:.95rem; font-weight:700;
-  background:var(--indigo); color:#fff; border:none; border-radius:10px;}
-.btn:hover{background:var(--indigo-deep);}
-.btn:disabled{background:#9AA3B2; cursor:wait;}
-.btn-ghost{background:var(--card); color:var(--ink-soft); border:1px solid var(--line); font-weight:600;}
-.btn-ghost:hover{background:var(--paper); color:var(--ink);}
-.btn-sm{min-height:38px; padding:6px 14px; font-size:.86rem;}
-.dash-top{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
-.dash-top h1{font-family:var(--font-display); font-size:1.5rem;}
-.dash-top .eyebrow{font-size:.78rem; letter-spacing:.28em; color:var(--indigo); font-weight:600;}
-.top-actions{display:flex; gap:8px;}
-.ai-notice{
-  display:none; background:rgba(46,74,122,.07); border:1px solid rgba(46,74,122,.22);
-  border-radius:12px; padding:12px 16px; margin-bottom:14px;
-  font-size:.92rem; color:var(--indigo);
-}
-.ai-notice b{font-weight:700;}
+  if(!CONFIG.CURRICULUM[parsed.grade]){
+    showLoginError("이 학번의 학년 정보를 찾을 수 없어요. 학번을 다시 확인해 주세요."); return;
+  }
 
-/* 대시보드 탭 */
-.dash-tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; border-bottom:1px solid var(--line);}
-.dash-tab{
-  position:relative; background:transparent; border:none; cursor:pointer;
-  font-family:inherit; font-size:.92rem; font-weight:600; color:var(--ink-soft);
-  padding:10px 16px; border-bottom:3px solid transparent; margin-bottom:-1px;
-}
-.dash-tab:hover{color:var(--ink);}
-.dash-tab.active{color:var(--indigo); border-bottom-color:var(--indigo);}
-.dash-tab .dq-badge{position:relative; top:-1px; margin-left:2px;}
-.dash-panel{animation:fadeIn .15s ease;}
-@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+  const btn = $('btnLogin');
+  btn.disabled = true; btn.textContent = "책을 펼치는 중…";
+  $('loginError').style.display = 'none';
 
-.dash-questions{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 18px; margin-bottom:14px;
-}
-.dq-badge{
-  background:var(--seal); color:#fff; font-size:.74rem; font-weight:700;
-  border-radius:999px; padding:1px 9px; margin-left:2px;
-}
-.dq-item{padding:12px 0; border-top:1px dashed var(--line);}
-.dq-item:first-of-type{border-top:none; padding-top:10px;}
-.dq-item .dq-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:4px;}
-.dq-item .dq-text{font-size:.94rem; margin-bottom:8px; line-height:1.5;}
-.dq-item .dq-answer{
-  background:#F3F5FA; border-left:3px solid var(--indigo); border-radius:8px;
-  padding:8px 12px; font-size:.9rem; margin-bottom:6px;
-}
-.dq-reply-form{display:flex; gap:8px; flex-wrap:wrap;}
-.dq-reply-form textarea{
-  flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line);
-  border-radius:8px; font-family:inherit; font-size:.9rem;
-}
-.dq-reply-form button{
-  background:var(--indigo); color:#fff; border:none; border-radius:999px;
-  padding:8px 16px; font-size:.85rem; font-weight:700; cursor:pointer;
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=student&studentId=" + encodeURIComponent(sid)
+      + "&name=" + encodeURIComponent(name);
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+
+    SESSION = { studentId: sid, name, ...parsed };
+    STUDENT_DATA = data;
+    store.set('portal_session', JSON.stringify({ sid, name }));
+
+    /* v23: 공지사항 조회와 체크인 확인은 서로 독립적인 요청이라(둘 다
+     * SESSION만 있으면 됨, STUDENT_DATA와 무관) 순차로 기다리지 않고
+     * 병렬로 쏨. Apps Script 호출 하나당 콜드스타트·동시접속 지연이
+     * 붙는 구조라, 순차 2번을 병렬 1번 분량으로 줄여서 로그인 체감
+     * 속도를 개선 — 특히 반 전체가 한꺼번에 로그인하는 순간에 효과가 큼. */
+    const [announcements, needsCheckin] = await Promise.all([
+      fetchAnnouncements(parsed.grade, parsed.ban),
+      maybeStartCheckin()
+    ]);
+    STUDENT_DATA.announcements = announcements;
+
+    if(needsCheckin){
+      enterCheckinFlow();
+    } else {
+      openBook(silent);
+    }
+  }catch(e){
+    if(!silent) showLoginError("기록을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.");
+  }finally{
+    btn.disabled = false; btn.textContent = "책 펼치기";
+  }
 }
 
-/* 공지 관리 (교사 대시보드) — .dash-questions 스타일 재사용 */
-.an-add-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed var(--line);}
-.an-add-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
-.an-add-form textarea{flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;}
-.an-add-form button{
-  background:var(--ochre); color:#fff; border:none; border-radius:999px;
-  padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer;
+/* 공지사항 조회 — 실패해도 로그인 자체는 막지 않도록 별도 try/catch */
+async function fetchAnnouncements(grade, ban){
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=announcements&grade=" + encodeURIComponent(grade)
+      + "&ban=" + encodeURIComponent(ban);
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.result === 'success') ? (data.rows || []) : [];
+  }catch(e){
+    return [];
+  }
 }
-.an-item{padding:10px 0; border-top:1px dashed var(--line); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;}
-.an-item:first-of-type{border-top:none; padding-top:0;}
-.an-item .an-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:3px;}
-.an-item .an-text{font-size:.92rem; line-height:1.5;}
-.an-item .an-status{
-  font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 9px; margin-left:6px;
-}
-.an-item .an-status.live{background:#E4EEE8; color:var(--jade);}
-.an-item .an-status.hidden{background:#EFEDE6; color:var(--ink-soft);}
-.an-item .an-toggle{
-  background:transparent; border:1.5px solid var(--line); border-radius:999px;
-  padding:6px 14px; font-size:.8rem; font-weight:600; cursor:pointer; color:var(--ink-soft); flex-shrink:0;
-}
-.an-item .an-toggle:hover{border-color:var(--ochre); color:var(--ochre);}
 
-/* 커리큘럼 관리 (교사 대시보드) */
-.cl-collapse{
-  background:#FAFAF6; border:1px solid var(--line); border-radius:10px; margin-bottom:14px;
+/* 커리큘럼 로딩 (시트 기반) — CONFIG.CURRICULUM을 API 응답으로 채움.
+ * v21: 재시도 추가(fetchJsonRetry_ 공용화, v22). 재시도 없이 CONFIG.CURRICULUM이
+ * 빈 채로 남으면 login()에서 학번 자체가 잘못된 것처럼("학년 정보를 찾을 수 없어요")
+ * 오해를 주는 메시지가 떴음. */
+async function loadCurriculum(){
+  try{
+    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + "?mode=curriculum");
+    if(data.result === 'success' && data.grades){
+      CONFIG.CURRICULUM = data.grades;
+      return true;
+    }
+  }catch(e){}
+  return false;
 }
-.cl-collapse summary{
-  list-style:none; cursor:pointer; display:flex; align-items:center; gap:6px;
-  padding:12px 14px; font-size:.9rem; font-weight:700;
-}
-.cl-collapse summary::-webkit-details-marker{display:none;}
-.cl-collapse summary .cl-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.8rem;}
-.cl-collapse[open] summary .cl-arrow{transform:rotate(90deg);}
-.cl-collapse .cl-collapse-body{padding:0 14px 14px;}
-.gi-block{
-  background:var(--card); border:1px solid var(--line); border-radius:10px;
-  padding:12px 14px; margin-bottom:10px;
-}
-.gi-block h4{font-size:.9rem; font-weight:700; margin-bottom:8px;}
-.gi-block label{font-size:.8rem; color:var(--ink-soft); display:block; margin:8px 0 3px;}
-.gi-block input[type=text], .gi-block textarea{
-  width:100%; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;
-  font-family:inherit; font-size:.88rem; box-sizing:border-box;
-}
-.gi-block textarea{min-height:42px;}
-.gi-block button{
-  margin-top:8px; background:var(--indigo); color:#fff; border:none; border-radius:999px;
-  padding:7px 16px; font-size:.83rem; font-weight:700; cursor:pointer;
-}
-.cl-form{display:flex; flex-direction:column; gap:8px; margin-bottom:6px;}
-.cl-form .cl-row{display:flex; gap:8px; flex-wrap:wrap;}
-.cl-form input[type=text], .cl-form select{
-  min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px;
-  font-family:inherit; font-size:.9rem; box-sizing:border-box;
-}
-.cl-form textarea{
-  min-height:52px; max-height:140px; padding:9px 11px; border:1.5px solid var(--line);
-  border-radius:8px; font-family:inherit; font-size:.9rem; box-sizing:border-box; resize:vertical;
-}
-.cl-form .cl-hint{font-size:.8rem; color:var(--ink-soft);}
-.cl-form button{
-  align-self:flex-start; background:var(--ochre); color:#fff; border:none; border-radius:999px;
-  padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer;
-}
-.cl-grade-head{
-  font-family:var(--font-display); font-size:.9rem; font-weight:700; color:var(--ochre);
-  margin:14px 0 4px; padding-top:10px; border-top:1px solid var(--line);
-}
-.cl-grade-head:first-child{margin-top:0; padding-top:0; border-top:none;}
-/* 커리큘럼 관리 — 서브탭 (새 활동 추가 / 등록된 활동) v13 */
-.cl-subtabs{display:flex; gap:6px; margin-bottom:14px; border-bottom:1px solid var(--line);}
-.cl-subtab{
-  background:transparent; border:none; cursor:pointer; font-family:inherit;
-  font-size:.88rem; font-weight:600; color:var(--ink-soft);
-  padding:8px 14px; border-bottom:3px solid transparent; margin-bottom:-1px;
-}
-.cl-subtab:hover{color:var(--ink);}
-.cl-subtab.active{color:var(--ochre); border-bottom-color:var(--ochre);}
 
-/* 등록된 활동 목록 — 드래그 정렬 지원 v13 */
-.cl-active-list{margin-bottom:4px;}
-.cl-item{
-  display:flex; align-items:center; gap:8px;
-  padding:9px 4px; border-top:1px dashed var(--line); flex-wrap:wrap;
+/* v17: CHECKIN_PLAN(체크인 문항)을 "체크인문항" 시트에서 불러옴. 실패해도 체크인 기능만
+ * 조용히 꺼질 뿐 로그인 자체는 막지 않음(loadCurriculum과 달리 필수 아님).
+ * v22: fetchJsonRetry_로 공용화. */
+async function loadCheckinPlan(){
+  try{
+    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + "?mode=checkinPlan");
+    if(data.result === 'success' && data.plan){
+      CHECKIN_PLAN = data.plan;
+      return true;
+    }
+  }catch(e){}
+  return false;
 }
-.cl-item:first-of-type{border-top:none; padding-top:0;}
-.cl-item.dragging{opacity:.35;}
-.cl-drag-handle{
-  cursor:grab; color:var(--ink-soft); font-size:1.05rem; flex-shrink:0;
-  padding:2px 3px; user-select:none; line-height:1;
-}
-.cl-drag-handle:active{cursor:grabbing;}
-.cl-item-body{flex:1 1 160px; min-width:0;}
-.cl-item .cl-meta{font-size:.78rem; color:var(--ink-soft);}
-.cl-item .cl-title{font-size:.92rem; font-weight:600;}
-.cl-item-actions{display:flex; gap:6px; flex-wrap:wrap; align-items:center; flex-shrink:0;}
-.cl-move{padding:3px 9px; font-size:.85rem; line-height:1;}
 
-.cl-past-collapse{
-  background:#FAFAF6; border:1px solid var(--line); border-radius:10px; margin-bottom:16px;
+/* 책 펼침 연출 → 포털 진입 */
+function openBook(instant){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(instant || reduce){ renderPortal(); return; }
+  $('bookCover').classList.add('opening');
+  setTimeout(renderPortal, 650);
 }
-.cl-past-collapse summary{
-  list-style:none; cursor:pointer; padding:10px 14px; font-size:.86rem;
-  font-weight:600; color:var(--ink-soft); display:flex; align-items:center; gap:6px;
-}
-.cl-past-collapse summary::-webkit-details-marker{display:none;}
-.cl-past-collapse .cl-arrow{transition:transform .2s; font-size:.75rem;}
-.cl-past-collapse[open] summary .cl-arrow{transform:rotate(90deg);}
-.cl-past-collapse .cl-past-list{padding:0 14px 12px;}
-.cl-past-list .cl-item{opacity:.68;}
-.cl-past-hint{color:var(--ink-soft); font-size:.85rem; padding:8px 0;}
 
-.filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
-  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
-.filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
-.filters select{min-height:42px; font-size:.93rem; padding:8px 12px; border:1.5px solid var(--line);
-  border-radius:8px; background:#FCFBF7; font-family:inherit;}
-.filters .spacer{flex:1;}
-.student-search{position:relative; min-width:200px;}
-.student-search input{min-height:42px; font-size:.93rem; padding:8px 12px; border:1.5px solid var(--line);
-  border-radius:8px; background:#FCFBF7; font-family:inherit; width:100%; box-sizing:border-box;}
-.student-search input:focus{outline:none; border-color:var(--indigo);}
-.student-search-results{position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
-  background:var(--card); border:1.5px solid var(--line); border-radius:8px; box-shadow:var(--shadow);
-  max-height:260px; overflow-y:auto;}
-.ssr-item{padding:9px 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
-.ssr-item:hover{background:#F3F1EA;}
-.ssr-item + .ssr-item{border-top:1px solid var(--line);}
-.ssr-name{font-weight:600; font-size:.92rem;}
-.ssr-meta{font-size:.8rem; color:var(--ink-soft); white-space:nowrap;}
-.ssr-empty{padding:10px 12px; font-size:.85rem; color:var(--ink-soft);}
-.summary{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-bottom:14px;}
-.sum-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 18px;}
-.sum-card h3{font-size:.85rem; color:var(--ink-soft); font-weight:600; margin-bottom:6px;}
-.sum-card .big{font-family:var(--font-display); font-size:1.7rem; font-weight:700; color:var(--indigo);}
-.sum-card .big small{font-size:.9rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
-.dist-bar{display:flex; height:14px; border-radius:999px; overflow:hidden; margin:8px 0 6px; border:1px solid var(--line);}
-.dist-sang{background:var(--ochre);} .dist-jung{background:var(--indigo);} .dist-ha{background:#B9BFC9;}
-.dist-legend{display:flex; gap:12px; font-size:.82rem; color:var(--ink-soft); flex-wrap:wrap;}
-.dist-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px;}
-.tag-list{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
-.tag-chip{font-size:.82rem; background:rgba(46,74,122,.08); color:var(--indigo);
-  border-radius:999px; padding:3px 11px; font-weight:600;}
-.tag-chip small{color:var(--ink-soft); font-weight:400;}
-/* 교사 대시보드 테이블: 태블릿/모바일 대응 방식 확정 — 카드형 대신 가로스크롤 유지.
- * min-width로 표 최소 폭을 고정해두고 wrap이 overflow-x:auto로 가로스크롤 처리.
- * 열이 많아질수록(활동 수 증가) 카드형은 세로로 너무 길어져 오히려 비교가 어려워지므로,
- * 학번·이름·진행률+활동별 열을 한 화면에서 비교해야 하는 이 용도엔 가로스크롤이 더 적합. */
-.table-wrap{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); overflow-x:auto; -webkit-overflow-scrolling:touch;}
-.table-wrap table{width:100%; border-collapse:collapse; font-size:.9rem; min-width:640px;}
-.table-wrap th{position:sticky; top:0; background:#F0EDE3; text-align:left; padding:11px 14px;
-  font-size:.82rem; color:var(--ink-soft); border-bottom:1.5px solid var(--line); white-space:nowrap;}
-.table-wrap td{padding:10px 14px; border-bottom:1px solid #EEEBE1; vertical-align:middle;}
-tr.student-row{cursor:pointer;}
-tr.student-row:hover td{background:#FBFAF4;}
-.tbl-dots{letter-spacing:2px; color:var(--ochre); white-space:nowrap;}
-.muted{color:#B0B5BE;}
-.prog-mini{display:inline-flex; align-items:center; gap:8px;}
-.prog-mini .track{width:70px; height:8px; background:var(--paper); border:1px solid var(--line);
-  border-radius:999px; overflow:hidden;}
-.prog-mini .fill{height:100%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); display:block;}
-.fb-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--jade); margin-left:6px;}
-tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
-/* v24: 학생 상세 기록을 세로 나열 대신 접이식(<details>) 카드로 — 기본 접힘,
- * 클릭해서 펼침. 같은 활동에 제출이 여러 건이면(rec-dup) 왼쪽 테두리를
- * 오커색으로 강조해서 중복 정리 대상이 눈에 띄게 함. */
-.rec-collapse{border:1px solid var(--line); border-radius:10px; background:var(--card);
-  margin-bottom:8px; font-size:.9rem; overflow:hidden;}
-.rec-collapse.rec-dup{border-left:3px solid var(--ochre);}
-.rec-collapse summary{list-style:none; cursor:pointer;}
-.rec-collapse summary::-webkit-details-marker{display:none;}
-.rec-summary{display:flex; justify-content:space-between; align-items:center; gap:10px;
-  flex-wrap:wrap; padding:10px 14px;}
-.rec-summary:hover{background:#FBFAF4;}
-.rec-summary-main{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;}
-.rec-summary-side{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
-.rec-title{font-weight:700;}
-.rec-meta{color:var(--ink-soft); font-size:.83rem;}
-.dup-badge{font-size:.72rem; font-weight:700; color:#8A6A14; background:rgba(201,151,46,.16);
-  border-radius:999px; padding:2px 9px; white-space:nowrap;}
-.rec-delete:hover{border-color:var(--seal); color:var(--seal);}
-.rec-body{padding:0 14px 14px;}
-.rec-body dl{display:grid; grid-template-columns:88px 1fr; gap:4px 10px;}
-.rec-body dt{color:var(--ink-soft); font-size:.83rem;}
-.rec-body dd{word-break:break-word;}
-.ai-box{
-  margin-top:10px; border:1px solid rgba(46,74,122,.25); background:rgba(46,74,122,.05);
-  border-radius:10px; padding:10px 12px; font-size:.9rem;
+function showLoginError(msg){
+  const err = $('loginError');
+  err.textContent = msg; err.style.display = 'block';
 }
-.ai-box .ai-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;}
-.ai-box .ai-title{font-size:.78rem; font-weight:700; color:var(--indigo);}
-.ai-chip{font-size:.72rem; font-weight:700; border-radius:999px; padding:2px 9px;}
-.ai-chip.wait{background:rgba(201,151,46,.16); color:#8A6A14;}
-.ai-chip.ok{background:rgba(62,124,89,.14); color:var(--jade);}
-.ai-actions{display:flex; gap:6px; margin-left:auto; flex-wrap:wrap;}
-.btn-tiny{min-height:32px; padding:3px 11px; font-size:.78rem; font-weight:600;
-  background:var(--card); border:1px solid var(--line); border-radius:8px; color:var(--ink-soft);}
-.btn-tiny:hover{border-color:var(--indigo); color:var(--indigo);}
-.btn-tiny:disabled{opacity:.5; cursor:wait;}
-.ai-edit-area{width:100%; min-height:64px; padding:10px 12px; margin-top:6px;
-  border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7;
-  font-family:inherit; font-size:.9rem; resize:vertical;}
-.fb-history{margin:10px 0;}
-.fb-history .fb-item{font-size:.88rem; padding:8px 12px; background:#FFF9EC;
-  border:1px solid #EAD9A8; border-radius:8px; margin-bottom:6px;}
-.fb-item .fb-meta{font-size:.78rem; color:var(--ink-soft);}
-.fb-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-top:8px;}
-.fb-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
-.fb-form textarea{flex:1; min-width:220px; min-height:42px; padding:10px 12px;
-  border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.92rem; resize:vertical;}
-.empty-line{padding:28px; text-align:center; color:var(--ink-soft);}
-@media (max-width:640px){ #dashView{padding:16px 10px 60px;} }
+
+/* ════════════════════════════════════════════════════════
+ * 웰컴 체크인 (v15 백엔드 연동) — 핸드오프_웰컴체크인_v2 2-2
+ * checkin_data.js(CHECKIN_CONFIG, CHECKIN_PLAN)가 없거나 서버 오류가 나도
+ * 학생이 포털에 못 들어가는 일이 없도록 전부 "실패하면 조용히 건너뛰기"로 처리.
+ * ════════════════════════════════════════════════════════ */
+let CHECKIN_CTX = null; // { grade, lessonId, lesson, temperature }
+let CK_SUBMITTING = false; // 응답 전송 중 중복 클릭 방지 — 버튼 반응이 느려도 두 번째 클릭을 무시
+
+async function maybeStartCheckin(){
+  if(CHECKIN_PLAN === null) await loadCheckinPlan(); // 아직 백그라운드 로딩 중이면 여기서 기다림
+  if(!CHECKIN_PLAN) return false; // 시트 로딩 실패 등 — 조용히 건너뜀
+  const plan = CHECKIN_PLAN[SESSION.grade];
+  if(!plan) return false;
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=checkinToday&grade=" + encodeURIComponent(SESSION.grade)
+      + "&ban=" + encodeURIComponent(SESSION.ban)
+      + "&studentId=" + encodeURIComponent(SESSION.studentId)
+      + "&name=" + encodeURIComponent(SESSION.name);
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.result !== 'success') return false;
+    const lessonId = data.lessonId;
+    if(!lessonId) return false; // 교사가 아직 오늘 차시를 안 골랐을 수 있음 — 에러 아님
+    /* v18: 하루 1번만 체크인하도록 복원. 백엔드는 계속 alreadyChecked를 계산해서
+     * 내려주고 있었는데(v15부터), v17에서 프론트가 이 값을 무시하도록 바뀌어 있던 것.
+     * 이미 오늘 체크인했으면 체크인 화면 없이 바로 포털로 들어감. */
+    if(data.alreadyChecked) return false;
+    const lesson = plan.lessons.find(l => l.id === lessonId);
+    if(!lesson) return false; // id 불일치 등도 조용히 건너뜀
+    CHECKIN_CTX = { grade: SESSION.grade, lessonId, lesson, temperature: null };
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function enterCheckinFlow(){
+  CK_SUBMITTING = false;
+  $('loginView').style.display = 'none';
+  $('checkinView').style.display = 'flex';
+  renderCheckinSpread();
+}
+
+function finishCheckinFlow(){
+  $('checkinView').style.display = 'none';
+  openBook(true); // 이미 체크인으로 한 번 화면 전환을 거쳤으니 책 애니메이션 없이 바로 포털
+}
+
+/* v17: 책을 펼치면 왼쪽 페이지=감정 온도, 오른쪽 페이지=발문이 함께 보이는 두 페이지 스프레드.
+ * "온도를 먼저 본다" 원칙은 유지하되(오른쪽은 왼쪽에서 온도를 고르기 전엔 비활성),
+ * 화면 자체는 책의 한 페이지처럼 한 번에 보이게 구성. */
+function renderCheckinSpread(){
+  const spread = $('checkinCard');
+  const lesson = CHECKIN_CTX.lesson;
+  const tempCfg = CHECKIN_CONFIG.temperature;
+
+  spread.innerHTML = `
+    <div class="book-page book-page-left">
+      <p class="checkin-eyebrow">웰컴 체크인</p>
+      <p class="checkin-q">${escapeHtml(tempCfg.prompt)}</p>
+      <div class="temp-grid">
+        ${[1,2,3,4,5].map(n => `
+          <button class="temp-btn" data-temp="${n}" type="button">
+            <span class="temp-num">${n}</span>
+            <span class="temp-label">${escapeHtml(tempCfg.labels[n] || '')}</span>
+          </button>`).join('')}
+      </div>
+    </div>
+    <div class="book-page book-page-right locked" id="ckRightPage">
+      <div class="ck-lock-hint" id="ckLockHint">👈 먼저 왼쪽에서 오늘 상태부터 골라줘</div>
+      <div class="ck-right-body" id="ckRightBody"></div>
+    </div>`;
+
+  renderCheckinQuestionBody($('ckRightBody'), lesson);
+
+  spread.querySelectorAll('.temp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      CHECKIN_CTX.temperature = Number(btn.dataset.temp);
+      spread.querySelectorAll('.temp-btn').forEach(b => b.classList.toggle('selected', b === btn));
+      $('ckRightPage').classList.remove('locked');
+      $('ckLockHint').style.display = 'none';
+    });
+  });
+}
+
+function renderCheckinQuestionBody(body, lesson){
+  if(lesson.type === 'judgment'){
+    body.innerHTML = `
+      <p class="checkin-eyebrow">발문</p>
+      <p class="checkin-q" style="white-space:pre-wrap;">${escapeHtml(lesson.prompt)}</p>
+      <div class="judg-options">
+        ${lesson.options.map(o => `
+          <button class="judg-btn" data-id="${escapeHtml(o.id)}" type="button">${escapeHtml(o.label)}</button>`).join('')}
+      </div>`;
+    body.querySelectorAll('.judg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return; // 잠금 상태 또는 이미 전송 중이면 무시
+        CK_SUBMITTING = true;
+        btn.classList.add('selected');
+        body.querySelectorAll('.judg-btn').forEach(b => b.disabled = true);
+        submitCheckin({ checkinType: 'judgment', judgment: btn.dataset.id });
+      });
+    });
+    return;
+  }
+
+  const chips = lesson.wordChips || CHECKIN_CONFIG.defaultWordChips;
+  const customOn = CHECKIN_CONFIG.customInput && CHECKIN_CONFIG.customInput.enabled;
+  body.innerHTML = `
+    <p class="checkin-eyebrow">발문</p>
+    <div class="source-box">
+      <p class="source-text">${escapeHtml(lesson.source.text).replace(/\n/g,'<br>')}</p>
+      ${lesson.source.origin ? `<p class="source-origin">— ${escapeHtml(lesson.source.origin)}</p>` : ''}
+    </div>
+    <p class="checkin-q" style="white-space:pre-wrap;">${escapeHtml(lesson.prompt)}</p>
+    <div class="chip-grid">
+      ${chips.map(w => `<button class="chip-btn" data-word="${escapeHtml(w)}" type="button">${escapeHtml(w)}</button>`).join('')}
+      ${customOn ? `<button class="chip-btn chip-custom" id="chipCustomBtn" type="button">기타</button>` : ''}
+    </div>
+    ${customOn ? `
+    <div class="custom-input-wrap" id="customInputWrap" style="display:none;">
+      <input type="text" id="customInputField" maxlength="${CHECKIN_CONFIG.customInput.maxLength}" placeholder="${escapeHtml(CHECKIN_CONFIG.customInput.placeholder)}">
+      <p class="custom-notice">${escapeHtml(CHECKIN_CONFIG.customInput.notice)}</p>
+      <button class="btn-open" id="customInputSubmit" type="button" style="background:var(--indigo); color:#fff;">확인</button>
+    </div>` : ''}`;
+
+  body.querySelectorAll('.chip-btn:not(.chip-custom)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
+      CK_SUBMITTING = true;
+      btn.classList.add('selected');
+      body.querySelectorAll('.chip-btn').forEach(b => b.disabled = true);
+      submitCheckin({ checkinType: 'source_emotion', word: btn.dataset.word, custom: '' });
+    });
+  });
+  const customBtn = $('chipCustomBtn');
+  if(customBtn){
+    customBtn.addEventListener('click', () => {
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
+      $('customInputWrap').style.display = 'block';
+      $('customInputField').focus();
+    });
+  }
+  const customSubmit = $('customInputSubmit');
+  if(customSubmit){
+    customSubmit.addEventListener('click', () => {
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
+      const val = $('customInputField').value.trim();
+      if(!val){ $('customInputField').focus(); return; }
+      CK_SUBMITTING = true;
+      customSubmit.disabled = true;
+      body.querySelectorAll('.chip-btn').forEach(b => b.disabled = true);
+      submitCheckin({ checkinType: 'source_emotion', word: '기타', custom: val });
+    });
+    $('customInputField').addEventListener('keydown', e => {
+      if(e.key === 'Enter') customSubmit.click();
+    });
+  }
+}
+
+async function submitCheckin(fields){
+  const payload = Object.assign({
+    action: 'checkin',
+    studentId: SESSION.studentId,
+    studentName: SESSION.name,
+    lessonId: CHECKIN_CTX.lessonId,
+    temperature: CHECKIN_CTX.temperature,
+    judgment: '', word: '', custom: ''
+  }, fields);
+  if(PREVIEW_MODE){
+    /* 교사용 미리보기 — 화면 흐름만 보여주고 실제 시트에는 기록하지 않음 */
+    finishCheckinFlow();
+    return;
+  }
+  try{
+    await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(payload) });
+  }catch(e){
+    /* 체크인 기록 실패는 학생 흐름을 막지 않음 — 조용히 포털로 진입 */
+  }
+  finishCheckinFlow();
+}
+
+/* ── 탐구 나무 SVG ──
+ * stage(0~3) = 칭호 단계 / leaves = 완료 활동 수 (참여 기반만 반영, 달성도와 무관) */
+function treeSvg(stage, leaves){
+  const trunk = '#7A5230', crownA = '#3E7C59', crownB = '#5C9C77', ground = '#E4DECB';
+  const leafSpots = [
+    [64,52],[100,58],[82,38],[52,70],[112,74],[70,66],[94,46],[58,44],[106,50],[82,58]
+  ];
+  const extra = leafSpots.slice(0, Math.min(leaves, leafSpots.length)).map(p =>
+    `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#8FBE72"/>`).join('');
+  const fruits = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
+    `<circle cx="${p[0]+4}" cy="${p[1]+6}" r="3.5" fill="#B03A2E"/>`).join('');
+  const flowers = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
+    `<circle cx="${p[0]+3}" cy="${p[1]+5}" r="3" fill="#E8C77E"/>`).join('');
+
+  let body = '';
+  if(stage <= 0){
+    body = `
+      <path d="M84 118 L84 96" stroke="${crownA}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M84 102 C70 98 64 86 66 78 C78 80 84 90 84 102 Z" fill="${crownB}"/>
+      <path d="M84 96 C98 92 104 80 102 72 C90 74 84 84 84 96 Z" fill="${crownA}"/>`;
+  } else if(stage === 1){
+    body = `
+      <path d="M84 118 L84 74" stroke="${trunk}" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="84" cy="58" r="24" fill="${crownA}"/>
+      <circle cx="66" cy="70" r="14" fill="${crownB}"/>
+      <circle cx="102" cy="68" r="15" fill="${crownB}"/>
+      ${extra}`;
+  } else if(stage === 2){
+    body = `
+      <path d="M84 118 L84 62" stroke="${trunk}" stroke-width="9" stroke-linecap="round"/>
+      <path d="M84 86 L62 72 M84 76 L106 62" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="84" cy="46" r="27" fill="${crownA}"/>
+      <circle cx="58" cy="64" r="17" fill="${crownB}"/>
+      <circle cx="110" cy="60" r="18" fill="${crownB}"/>
+      ${extra}${flowers}`;
+  } else {
+    body = `
+      <path d="M84 118 L84 56" stroke="${trunk}" stroke-width="11" stroke-linecap="round"/>
+      <path d="M84 86 L56 68 M84 74 L112 56 M84 96 L66 88" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="84" cy="40" r="30" fill="${crownA}"/>
+      <circle cx="52" cy="60" r="19" fill="${crownB}"/>
+      <circle cx="116" cy="54" r="20" fill="${crownB}"/>
+      <circle cx="70" cy="30" r="14" fill="${crownB}"/>
+      ${extra}${fruits}`;
+  }
+  return `<svg viewBox="0 0 168 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <ellipse cx="84" cy="120" rx="52" ry="9" fill="${ground}"/>
+    ${body}
+  </svg>`;
+}
+
+/* ── 포털 렌더 ── */
+function renderPortal(){
+  const cur = CONFIG.CURRICULUM[SESSION.grade];
+  $('loginView').style.display = 'none';
+  $('dashView').style.display = 'none';
+  const pv = $('portalView');
+  pv.style.display = 'block';
+  requestAnimationFrame(() => pv.classList.add('shown'));
+
+  $('portalEyebrow').textContent = `2학기 · ${SESSION.grade}학년 ${cur.subject}`;
+  $('previewBanner').style.display = PREVIEW_MODE ? 'flex' : 'none';
+  $('sideName').textContent = SESSION.name;
+  $('sideClass').textContent = `${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
+
+  renderAnnouncements();
+
+  const doneIds = new Set(STUDENT_DATA.activities.map(a => String(a.activityId)));
+  /* 활동별 성취 기록: "성취수준이 있는 가장 최근 기록" 우선 */
+  const achieveMap = {};
+  STUDENT_DATA.activities.forEach(a => {
+    const id = String(a.activityId);
+    const prev = achieveMap[id];
+    const hasA = a.achievement && String(a.achievement).trim();
+    const prevHasA = prev && prev.achievement && String(prev.achievement).trim();
+    if (!prev || hasA || !prevHasA) achieveMap[id] = a;
+  });
+  /* 활동별 진짜 최근 기록 (분석 여부 무관) — "새 기록 분석 대기 중" 표시용 */
+  const latestMap = {};
+  STUDENT_DATA.activities.forEach(a => {
+    const id = String(a.activityId);
+    const prev = latestMap[id];
+    if (!prev || new Date(a.timestamp) - new Date(prev.timestamp) >= 0) latestMap[id] = a;
+  });
+
+  /* 피드백을 활동별로 분류 — 차시 id와 일치하면 인라인, 아니면 총평 */
+  const lessonIds = new Set(cur.lessons.map(l => l.id));
+  const fbAll = STUDENT_DATA.feedback || [];
+  const fbByLesson = {};
+  const fbGeneral = [];
+  fbAll.forEach(f => {
+    const aid = String(f.activityId || '').trim();
+    if (lessonIds.has(aid)) {
+      (fbByLesson[aid] = fbByLesson[aid] || []).push(f);
+    } else {
+      fbGeneral.push(f);
+    }
+  });
+
+  /* v27: 차시 하나에 활동이 여러 개(cur.lessons[].activities) 있을 수 있음.
+   * "완료했다"는 그 차시의 activities를 전부 doneIds에 넣었을 때만 인정 —
+   * 진행률·나무·포인트 계산에서 "차시" 단위 숫자는 전부 이 기준으로 통일. */
+  function lessonHasUrl(l){ return l.activities.some(a => a.url || a.urlByBan); }
+  function lessonDone(l){ return l.activities.every(a => doneIds.has(a.id)); }
+
+  /* KPI: 진행률 (차시 단위) */
+  const active = cur.lessons.filter(lessonHasUrl);
+  const doneCount = active.filter(lessonDone).length;
+  const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
+  $('progressDone').textContent = doneCount;
+  $('progressTotal').textContent = active.length;
+  requestAnimationFrame(() => { $('progressFill').style.width = pct + '%'; });
+
+  /* 포인트·칭호·나무 (참여·노력 기반 — 달성도와 무관)
+   * v27: 포인트는 활동 단위로 지급(첫 완료 FIRST점 + 재도전 1회당 RETRY점, 활동당
+   * RETRY_MAX회까지) — 차시에 활동이 2개면 둘 다 채워야 그만큼 포인트가 쌓임.
+   * 나무 잎(leaves)·칭호 단계는 기존처럼 "완료한 차시" 개수 기준 유지. */
+  const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 };
+  const attemptCnt = {};
+  STUDENT_DATA.activities.forEach(a => {
+    const id = String(a.activityId);
+    attemptCnt[id] = (attemptCnt[id] || 0) + 1;
+  });
+  let points = 0;
+  cur.lessons.forEach(l => {
+    l.activities.forEach(act => {
+      if (!doneIds.has(act.id)) return;
+      points += P.FIRST;
+      const retries = Math.max((attemptCnt[act.id] || 1) - 1, 0);
+      points += Math.min(retries, P.RETRY_MAX) * P.RETRY;
+    });
+  });
+  const doneLessonsCount = cur.lessons.filter(lessonDone).length;
+  let rank = CONFIG.RANKS[0], rankIdx = 0;
+  CONFIG.RANKS.forEach((r, i) => { if (points >= r.min) { rank = r; rankIdx = i; } });
+  const nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
+  $('pointsNum').textContent = points;
+  $('kpiPoints').textContent = points;
+  $('rankName').textContent = rank.name;
+  $('kpiFeedback').textContent = fbAll.length;
+  if (nextRank) {
+    $('rankNext').textContent = `다음 칭호(${nextRank.name})까지 ${nextRank.min - points}점`;
+    const span = nextRank.min - rank.min;
+    const p = span > 0 ? Math.round((points - rank.min) / span * 100) : 0;
+    requestAnimationFrame(() => { $('rankFill').style.width = p + '%'; });
+  } else {
+    $('rankNext').textContent = '최고 칭호에 도달했어요!';
+    requestAnimationFrame(() => { $('rankFill').style.width = '100%'; });
+  }
+  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessonsCount);
+  $('treeBox').setAttribute('aria-label',
+    `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessonsCount}개`);
+
+  /* 단원 관통 질문 배너 */
+  const uq = (cur.unitQuestion || '').trim();
+  if (uq) {
+    $('unitBanner').style.display = 'block';
+    $('unitQuestion').textContent = uq;
+  } else {
+    $('unitBanner').style.display = 'none';
+  }
+
+  /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 (차시가 아니라 완료·포인트 대상 아님) */
+  const pf = cur.portfolio;
+  const pfUrl = pf ? (pf.urlByBan ? (pf.urlByBan[SESSION.ban] || '') : (pf.url || '')) : '';
+  if (pf && pfUrl) {
+    $('portfolioCard').style.display = 'flex';
+    $('portfolioTitle').textContent = pf.title || '나의 패들렛';
+    $('portfolioDesc').textContent = pf.desc || '';
+    $('portfolioLinkBtn').href = pfUrl;
+  } else {
+    $('portfolioCard').style.display = 'none';
+  }
+
+  /* 학기 총평 피드백 (차시에 속하지 않는 피드백) */
+  if (fbGeneral.length) {
+    $('feedbackCard').style.display = 'block';
+    $('feedbackList').innerHTML = fbGeneral.map(f => `
+      <div class="feedback-item">
+        <div class="fb-meta">${formatDate(f.timestamp)}</div>
+        <div>${escapeHtml(f.feedback)}</div>
+      </div>`).join('');
+  } else {
+    $('feedbackCard').style.display = 'none';
+  }
+
+  /* 질문함 (학생 ↔ 교사) */
+  renderQuestions();
+
+  /* 달성도 모아보기 — v27: 활동 단위로 나열(차시에 활동이 2개면 각각 따로 뜸) */
+  const analyzedActs = [];
+  cur.lessons.forEach(l => {
+    l.activities.forEach(act => {
+      const rec = achieveMap[act.id];
+      if (rec && rec.achievement && String(rec.achievement).trim()) {
+        analyzedActs.push({ lesson: l, act, rec });
+      }
+    });
+  });
+  if (analyzedActs.length) {
+    $('overviewCard').style.display = 'block';
+    $('overviewList').innerHTML = analyzedActs.map(x => `
+      <div class="overview-item">
+        <span class="dots">${achieveDots(x.rec.achievement)}</span>
+        <span class="ov-title">${escapeHtml(activityDisplayTitle(x.lesson, x.act))}</span>
+      </div>`).join('');
+  } else {
+    $('overviewCard').style.display = 'none';
+  }
+
+  /* 내 기록 보관함 — 내가 쓴 서술 다시 보기 (백엔드 v5부터 reflection 제공) */
+  const myWritings = STUDENT_DATA.activities
+    .filter(a => a.reflection && String(a.reflection).trim())
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  if (myWritings.length) {
+    $('archiveCard').style.display = 'block';
+    $('archiveList').innerHTML = myWritings.map(a => `
+      <div class="archive-item">
+        <div class="ar-meta"><b>${escapeHtml(lessonTitle(String(a.activityId)))}</b> · ${formatDate(a.timestamp)}</div>
+        <div class="ar-text">${escapeHtml(String(a.reflection))}</div>
+      </div>`).join('');
+  } else {
+    $('archiveCard').style.display = 'none';
+  }
+
+  /* 연표 */
+  const tl = $('timeline');
+  if(cur.lessons.length === 0){
+    tl.innerHTML = '';
+    $('statusLine').style.display = 'block';
+    $('statusLine').textContent = "이번 학기 활동이 준비되면 여기에 하나씩 나타나요.";
+    return;
+  }
+  $('statusLine').style.display = 'none';
+
+  tl.innerHTML = cur.lessons.map((l, i) => renderLessonCard(l, i, {
+    doneIds, achieveMap, latestMap, fbByLesson, lessonDone, lessonHasUrl
+  })).reverse().join(''); // v20: 화면 노출 순서만 최신순(역순)으로. "N차시" 라벨은 위 map에서
+                          // 원래 순서 기준 i+1로 이미 계산돼 있으므로 번호는 그대로 유지됨.
+
+  tl.querySelectorAll('.btn-check').forEach(btn => {
+    btn.addEventListener('click', () => selfCheck(btn));
+  });
+}
+
+/* v27 — 활동 하나를 화면에 보여줄 이름. 차시에 활동이 1개뿐이면 차시 제목 그대로,
+ * 2개 이상이면 활동 자체 제목(없으면 "N활동")을 붙여서 구분되게 함. */
+function activityDisplayTitle(l, act, idx){
+  if(l.activities.length <= 1) return l.title;
+  const label = act.title && act.title.trim() ? act.title.trim() : `${(idx!=null?idx:l.activities.indexOf(act))+1}활동`;
+  return `${l.title} · ${label}`;
+}
+
+/* v27 — 차시 카드 하나를 통째로 렌더링. 활동이 1개면 기존(v26 이전)과 동일한 모양,
+ * 2개 이상이면 카드 하나 안에 활동별 블록을 순서대로 나열.
+ * 순차 진행(l.sequential)이 켜져 있으면 앞 활동을 끝내야 다음 활동 버튼이 열림. */
+function renderLessonCard(l, i, ctx){
+  const { doneIds, achieveMap, latestMap, fbByLesson, lessonDone, lessonHasUrl } = ctx;
+  const done = lessonDone(l);
+  const building = !lessonHasUrl(l);
+  const multi = l.activities.length > 1;
+  const typeLabel = { module:"탐구 활동", padlet:"패들렛 글쓰기", link:"외부 활동" };
+  const typeClass = { padlet:"t-padlet", link:"t-link" };
+
+  const headerTypeLabel = multi ? `활동 ${l.activities.length}개` : (typeLabel[l.activities[0].type] || "활동");
+  const headerTypeClass = multi ? '' : (typeClass[l.activities[0].type] || '');
+
+  const activitiesHtml = l.activities.map((act, idx) => {
+    const locked = !!(l.sequential && idx > 0 && !doneIds.has(l.activities[idx - 1].id));
+    return renderActivityBlock(l, act, idx, { multi, locked, doneIds, achieveMap, latestMap });
+  }).join('');
+
+  /* 이 차시에 대한 선생님 피드백 (활동이 아니라 차시 단위 — 기존과 동일) */
+  let teaHtml = '';
+  const fbs = fbByLesson[l.id] || [];
+  if(fbs.length){
+    teaHtml = fbs.map(f => `
+      <div class="note note-teacher">
+        <div class="note-label">👩‍🏫 선생님 피드백
+          <span class="note-date">${formatDate(f.timestamp)}</span>
+        </div>
+        <div class="note-text">${escapeHtml(String(f.feedback))}</div>
+      </div>`).join('');
+  }
+
+  return `
+    <div class="lesson ${done ? 'done' : ''} ${building ? 'pending-build' : ''}">
+      <div class="lesson-card">
+        <div class="lesson-top">
+          <div class="lesson-info">
+            <span class="lesson-type ${headerTypeClass}">${i+1}차시 · ${headerTypeLabel}</span>
+            <h2 class="lesson-title">${escapeHtml(l.title)}</h2>
+            ${l.desc ? `<p class="lesson-desc">${escapeHtml(l.desc)}</p>` : ''}
+          </div>
+          ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
+        </div>
+        ${activitiesHtml}
+        ${teaHtml}
+      </div>
+    </div>`;
+}
+
+/* v27 — 활동 하나의 블록(제목·달성도·AI코멘트·버튼)을 렌더링.
+ * multi가 false면 기존과 완전히 동일한 모양(활동 소제목·wrapper 없이 바로 내용). */
+function renderActivityBlock(l, act, idx, opts){
+  const { multi, locked, doneIds, achieveMap, latestMap } = opts;
+  const done = doneIds.has(act.id);
+  const url = lessonActivityUrl(act);
+  const building = !url;
+  const rec = achieveMap[act.id];
+  const latest = latestMap[act.id];
+
+  const recAnalyzed = !!(rec && rec.achievement && String(rec.achievement).trim());
+  const latestAnalyzed = !!(latest && latest.achievement && String(latest.achievement).trim());
+  const isModule = act.type === 'module';
+  const pendingNew = isModule && done && recAnalyzed && latest && !latestAnalyzed
+    && String(latest.timestamp) !== String(rec.timestamp);
+  const pendingFirst = isModule && done && !recAnalyzed;
+
+  let achieveHtml = '';
+  if(done && recAnalyzed){
+    achieveHtml = `
+      <div class="achieve">
+        <span>달성도</span>
+        <span class="dots">${achieveDots(rec.achievement)}</span>
+        <span>${escapeHtml(String(rec.achievement))}${pendingNew ? ' <small>(이전 도전 기준)</small>' : ''}</span>
+      </div>
+      ${rec.summary ? `<div class="achieve-summary">💬 ${escapeHtml(String(rec.summary))}</div>` : ''}`;
+  }
+
+  let pendingHtml = '';
+  if(pendingNew){
+    pendingHtml = `<div class="pending-note">🕐 ${formatDate(latest.timestamp)} 새 도전 기록이 저장됐어요. AI 분석이 끝나면 달성도와 코멘트가 새로 표시돼요.</div>`;
+  } else if(pendingFirst){
+    pendingHtml = `<div class="pending-note">🕐 기록이 저장됐어요! AI 분석이 끝나면 달성도와 코멘트가 표시돼요.</div>`;
+  }
+
+  let aiHtml = '';
+  if(done && rec && rec.aiComment && String(rec.aiComment).trim()){
+    aiHtml = `
+      <div class="note note-ai">
+        <div class="note-label">🤖 AI 분석 코멘트
+          <span class="note-date">${formatDate(rec.timestamp)}</span>
+        </div>
+        <div class="note-text">${escapeHtml(String(rec.aiComment))}</div>
+      </div>`;
+  }
+
+  const retryHtml = (done && recAnalyzed && !building && !pendingNew
+    && ['중','하'].includes(String(rec.achievement).trim()))
+    ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : '';
+
+  let actions = '';
+  if(locked){
+    actions = `<span class="badge-wait">🔒 ${idx}활동을 먼저 끝내면 열려요</span>`;
+  } else if(building){
+    actions = `<span class="badge-wait">🔨 준비 중이에요</span>`;
+  } else if(act.type === 'module'){
+    actions = `<a class="btn-go" href="${withStudentParams(url)}" target="_blank" rel="noopener">
+      ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
+  } else {
+    actions = `<a class="btn-go" href="${url}" target="_blank" rel="noopener">활동 열기 →</a>`
+      + (done ? '' : `<button class="btn-check" data-activity="${escapeHtml(act.id)}">활동을 끝냈어요 ✓</button>`);
+  }
+
+  const label = multi ? (act.title && act.title.trim() ? act.title.trim() : `${idx+1}활동`) : '';
+
+  return `
+    <div class="activity-block${multi ? ' activity-block-multi' : ''}${locked ? ' activity-locked' : ''}">
+      ${multi ? `<p class="activity-label">${escapeHtml(label)}${act.desc ? ' — ' + escapeHtml(act.desc) : ''}</p>` : ''}
+      ${achieveHtml}
+      ${pendingHtml}
+      ${aiHtml}
+      ${retryHtml}
+      <div class="lesson-actions">${actions}</div>
+    </div>`;
+}
+
+/* ── 자가체크 (패들렛·외부 활동) ──
+ * v27: 차시가 아니라 "활동"(activityId) 단위로 기록됨 — data-activity 사용. */
+async function selfCheck(btn){
+  if(PREVIEW_MODE){
+    showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
+    return;
+  }
+  const activityId = btn.dataset.activity;
+  btn.disabled = true; btn.textContent = "기록하는 중…";
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        studentId: SESSION.studentId,
+        studentName: SESSION.name,
+        gameName: activityId,
+        choiceSummary: '자가체크'
+      })
+    });
+    STUDENT_DATA.activities.push({ activityId: activityId, achievement:'', summary:'', aiComment:'', reflection:'', timestamp:new Date().toISOString() });
+    showToast("완료로 기록했어요! 도장이 찍혔어요 🎉");
+    renderPortal();
+  }catch(e){
+    btn.disabled = false; btn.textContent = "활동을 끝냈어요 ✓";
+    showToast("기록하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.");
+  }
+}
+
+/* ── 공지사항: 목록 렌더 (서버가 이미 학년+반으로 필터링해 내려줌) ── */
+function renderAnnouncements(){
+  const card = $('announceCard');
+  const list = $('announceList');
+  const items = (STUDENT_DATA && STUDENT_DATA.announcements) || [];
+  if(!items.length){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  const sorted = [...items].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  list.innerHTML = sorted.slice(0, 3).map(a => `
+    <div class="announce-item">
+      <div class="an-meta">${formatDate(a.timestamp)}</div>
+      <div>${escapeHtml(a.content)}</div>
+    </div>`).join('');
+}
+
+/* ── 질문함: 목록 렌더 ── */
+function renderQuestions(){
+  const list = $('questionList');
+  if(!list) return;
+  const qs = (STUDENT_DATA && STUDENT_DATA.questions) || [];
+  if(!qs.length){
+    list.innerHTML = '<p class="q-hint" style="margin:0;">아직 남긴 질문이 없어요.</p>';
+    return;
+  }
+  const sorted = [...qs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  list.innerHTML = sorted.map(q => {
+    const done = q.status === '답변완료';
+    return `
+      <div class="q-item">
+        <div class="q-meta">
+          ${formatDate(q.timestamp)}
+          <span class="q-status ${done ? 'done' : 'wait'}">${done ? '답변완료' : '대기중'}</span>
+        </div>
+        <div class="q-text">${escapeHtml(q.question)}</div>
+        ${done ? `<div class="q-answer"><b>선생님 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+/* ── 질문함: 보내기 ── */
+async function askQuestion(){
+  if(PREVIEW_MODE){
+    showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
+    return;
+  }
+  const input = $('questionInput');
+  const text = input.value.trim();
+  if(!text){ showToast('질문 내용을 입력해 주세요.'); return; }
+  const btn = $('btnAskQuestion');
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'askQuestion',
+        studentId: SESSION.studentId,
+        studentName: SESSION.name,
+        grade: SESSION.grade,
+        ban: SESSION.ban,
+        question: text
+      })
+    });
+    STUDENT_DATA.questions = STUDENT_DATA.questions || [];
+    STUDENT_DATA.questions.push({
+      timestamp: new Date().toISOString(), question: text, answer: '', status: '대기'
+    });
+    input.value = '';
+    showToast('질문을 보냈어요. 답이 오면 여기서 확인할 수 있어요.');
+    renderQuestions();
+  }catch(e){
+    showToast('보내지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '질문 보내기';
+  }
+}
+
+function withStudentParams(url){
+  const sep = url.includes('?') ? '&' : '?';
+  return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
+             + '&name=' + encodeURIComponent(SESSION.name);
+}
+
+/* 반마다 링크가 다른 활동(urlByBan) 지원 —
+ * urlByBan이 있으면 로그인한 학생의 반(SESSION.ban) 링크를 골라 쓰고,
+ * 없으면 기존처럼 공통 url을 그대로 씁니다. 해당 반 링크가 없으면 '준비 중'으로 처리됩니다.
+ * v27: 차시(l)가 아니라 활동(act) 하나를 받음 — url/urlByBan이 이제 활동 레벨에 있음. */
+function lessonActivityUrl(act){
+  if (act.urlByBan) return act.urlByBan[SESSION.ban] || '';
+  return act.url || '';
+}
+
+/* ── 유틸 ── */
+function achieveDots(level){
+  const l = String(level).trim();
+  if(l === '상') return '●●●';
+  if(l === '중') return '●●○';
+  if(l === '하') return '●○○';
+  return '○○○';
+}
+function formatDate(ts){
+  const d = new Date(ts);
+  if(isNaN(d)) return '';
+  return `${d.getMonth()+1}월 ${d.getDate()}일`;
+}
+/* v27 — id가 차시id와 같으면(단일활동 차시) 차시 제목, 활동id로 매칭되면
+ * "차시제목 · 활동제목" 형태로. 어느 쪽도 안 걸리면 id 그대로 돌려줌(안전망). */
+function lessonTitle(id){
+  for(const g of Object.keys(CONFIG.CURRICULUM)){
+    for(const l of CONFIG.CURRICULUM[g].lessons){
+      if(l.id === id) return l.title;
+      const idx = l.activities.findIndex(a => a.id === id);
+      if(idx !== -1) return activityDisplayTitle(l, l.activities[idx], idx);
+    }
+  }
+  return id;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ── 이벤트 바인딩 ── */
+$('btnLogin').addEventListener('click', () => {
+  login($('inputId').value.trim(), $('inputName').value.trim(), false);
+});
+$('inputName').addEventListener('keydown', e => {
+  if(e.key === 'Enter') $('btnLogin').click();
+});
+/* ── 자동 재조회 ──
+ * 포털은 로그인 때 한 번만 데이터를 불러오므로, 학생이 다른 탭에서
+ * 활동을 끝내고 돌아왔을 때를 위해 탭 복귀 시 자동으로 다시 조회한다. */
+let lastRefresh = Date.now();
+async function refreshStudentData(force){
+  if(!SESSION) return;
+  if($('portalView').style.display !== 'block') return;
+  if(!force && Date.now() - lastRefresh < 15000) return; // 15초 쿨다운
+  lastRefresh = Date.now();
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=student&studentId=" + encodeURIComponent(SESSION.studentId)
+      + "&name=" + encodeURIComponent(SESSION.name);
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.result === 'success'){
+      STUDENT_DATA = data;
+      STUDENT_DATA.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
+      renderPortal();
+      if(force) showToast('최신 기록으로 갱신했어요.');
+    }
+  }catch(e){
+    if(force) showToast('갱신하지 못했어요. 인터넷 연결을 확인해 주세요.');
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') refreshStudentData(false);
+});
+window.addEventListener('focus', () => refreshStudentData(false));
+$('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
+
+function exitToLogin(){
+  store.del('portal_session');
+  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; CHECKIN_CTX = null;
+  $('portalView').style.display = 'none';
+  $('portalView').classList.remove('shown');
+  $('checkinView').style.display = 'none';
+  $('bookCover').classList.remove('opening');
+  $('loginView').style.display = 'flex';
+  $('inputId').value = ''; $('inputName').value = '';
+}
+$('btnLogout').addEventListener('click', exitToLogin);
+$('btnExitPreview').addEventListener('click', exitToLogin);
+
+/* ════════════════════════════════════════════════════════
+ * 교사 대시보드
+ * ════════════════════════════════════════════════════════ */
+let TOKEN = '';
+let ROWS = [];
+let FEEDBACKS = [];
+let QUESTIONS = [];
+let ANNOUNCEMENTS_ADMIN = [];
+let LESSONS_ADMIN = [];
+let GRADE_INFO_ADMIN = {};
+let openDetailSid = null;
+
+/* v22: 5개 요청 전부 fetchJsonRetry_로 재시도 처리. 이전엔 fetch 하나라도
+ * 404(재배포 직후 googleusercontent 리다이렉트 불안정) 등으로 실패하면
+ * Promise.all이 그대로 reject → 대시보드가 통째로 0/빈 값으로 뜨는 문제가 있었음. */
+async function dashLoadData(){
+  const base = CONFIG.WEBAPP_URL;
+  const [r1, r2, r3, r4, r5] = await Promise.all([
+    fetchJsonRetry_(base + '?token=' + encodeURIComponent(TOKEN)),
+    fetchJsonRetry_(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)),
+    fetchJsonRetry_(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)),
+    fetchJsonRetry_(base + '?mode=announcementsAdmin&token=' + encodeURIComponent(TOKEN)),
+    fetchJsonRetry_(base + '?mode=curriculumAdmin&token=' + encodeURIComponent(TOKEN))
+  ]);
+  if(r1.result === 'error') throw new Error(r1.message);
+  ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
+  FEEDBACKS = (r2.rows || []);
+  QUESTIONS = (r3.rows || []);
+  ANNOUNCEMENTS_ADMIN = (r4.rows || []);
+  LESSONS_ADMIN = (r5.lessons || []);
+  GRADE_INFO_ADMIN = (r5.gradeInfo || {});
+}
+
+async function enterDash(token){
+  TOKEN = token;
+  const btn = $('btnGate'); btn.disabled = true; btn.textContent = '확인 중…';
+  $('gateError').style.display = 'none';
+  try{
+    await dashLoadData();
+    store.set('dash_token', token);
+    $('loginView').style.display = 'none';
+    $('portalView').style.display = 'none';
+    $('dashView').style.display = 'block';
+    dashInitFilters();
+    dashInitAnnounceForm();
+    dashInitCurriculumForm();
+    renderDash();
+    dashRenderQuestions();
+    dashRenderAnnouncements();
+    dashRenderLessons();
+    dashRenderGradeInfoForm();
+    dashInitCheckinForm();
+  }catch(e){
+    $('gateError').textContent = '들어가지 못했어요: ' + e.message;
+    $('gateError').style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = '대시보드 열기';
+  }
+}
+
+/* ── 대시보드 탭 전환 ── */
+function switchDashTab(tab){
+  ['records','questions','announce','curriculum','checkin'].forEach(t => {
+    $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.dash-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+}
+
+const SEL_APP_URL = 'https://script.google.com/macros/s/AKfycbzQnKFwxatWB8od042GSGVuID9fn2aPy73S5v4v-Eh9EtFjOd7ha6ZUz9DXsdRq2M2H/exec';
+
+function openSelPopup(sid){
+  const url = SEL_APP_URL + '?sid=' + encodeURIComponent(sid);
+  const w = 480, h = 720;
+  const left = (screen.width - w) / 2;
+  const top = (screen.height - h) / 2;
+  window.open(url, 'selProfile', `width=${w},height=${h},left=${left},top=${top}`);
+}
+
+/* ── 커리큘럼 관리 — 서브탭 전환 (새 활동 추가 / 등록된 활동) v13 ── */
+function switchClSubtab(sub){
+  $('clSubAdd').style.display = sub === 'add' ? 'block' : 'none';
+  $('clSubList').style.display = sub === 'list' ? 'block' : 'none';
+  document.querySelectorAll('#panelCurriculum .cl-subtab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sub === sub);
+  });
+}
+
+function switchCkSubtab(sub){
+  $('ckSubToday').style.display = sub === 'today' ? 'block' : 'none';
+  $('ckSubLessons').style.display = sub === 'lessons' ? 'block' : 'none';
+  document.querySelectorAll('#panelCheckin .cl-subtab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sub === sub);
+  });
+}
+
+/* ── 공지 관리 (교사) ── */
+function dashInitAnnounceForm(){
+  const grades = Object.keys(CONFIG.CURRICULUM);
+  $('anGrade').innerHTML = '<option value="전체">전체 학년</option>' +
+    grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+}
+
+function dashRenderAnnouncements(){
+  const list = $('anList');
+  if(!ANNOUNCEMENTS_ADMIN.length){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 공지가 없어요.</p>';
+    return;
+  }
+  const sorted = [...ANNOUNCEMENTS_ADMIN].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  list.innerHTML = sorted.map(a => {
+    const live = a.status === '게시';
+    return `
+      <div class="an-item">
+        <div>
+          <div class="an-meta">${formatDate(a.timestamp)} · ${a.grade}${a.grade==='전체'?'':'학년'} ${a.ban}${a.ban==='전체'?'':'반'}
+            <span class="an-status ${live?'live':'hidden'}">${live?'게시중':'보류'}</span>
+          </div>
+          <div class="an-text">${escapeHtml(a.content)}</div>
+        </div>
+        <button class="an-toggle" data-row="${a._row}" onclick="dashToggleAnnouncement(this)">${live?'보류로 전환':'다시 게시'}</button>
+      </div>`;
+  }).join('');
+}
+
+async function dashAddAnnouncement(btn){
+  const grade = $('anGrade').value;
+  const ban = $('anBan').value;
+  const content = $('anContent').value.trim();
+  if(!content){ showToast('공지 내용을 입력해 주세요.'); return; }
+  btn.disabled = true; btn.textContent = '게시하는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'addAnnouncement', token:TOKEN, grade, ban, content })
+    });
+    $('anContent').value = '';
+    showToast('공지를 게시했어요.');
+    await dashLoadData();
+    dashRenderAnnouncements();
+  }catch(e){
+    showToast('게시하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '게시';
+  }
+}
+
+async function dashToggleAnnouncement(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'toggleAnnouncement', token:TOKEN, row })
+    });
+    const a = ANNOUNCEMENTS_ADMIN.find(x => String(x._row) === String(row));
+    if(a){ a.status = (a.status === '게시') ? '보류' : '게시'; }
+    dashRenderAnnouncements();
+  }catch(e){
+    showToast('처리하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ── 커리큘럼 관리 (교사) ── */
+function dashInitCurriculumForm(){
+  const grades = Object.keys(GRADE_INFO_ADMIN);
+  $('clGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+}
+
+function dashRenderGradeInfoForm(){
+  const wrap = $('giForm');
+  const grades = Object.keys(GRADE_INFO_ADMIN);
+  if(!grades.length){
+    wrap.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">학년정보가 아직 없어요. (마이그레이션이 필요할 수 있어요)</p>';
+    return;
+  }
+  wrap.innerHTML = grades.map(g => {
+    const gi = GRADE_INFO_ADMIN[g];
+    return `
+      <div class="gi-block" data-grade="${g}">
+        <h4>${g}학년 ${escapeHtml(gi.subject || '')}</h4>
+        <label>단원 관통 질문</label>
+        <textarea class="gi-uq">${escapeHtml(gi.unitQuestion || '')}</textarea>
+        <label>포트폴리오 제목</label>
+        <input type="text" class="gi-pf-title" value="${escapeHtml(gi.portfolioTitle || '')}">
+        <label>포트폴리오 설명</label>
+        <input type="text" class="gi-pf-desc" value="${escapeHtml(gi.portfolioDesc || '')}">
+        <label>포트폴리오 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
+        <textarea class="gi-pf-url">${escapeHtml(gi.portfolioUrlText || '')}</textarea>
+        <button onclick="dashSaveGradeInfo('${g}', this)">저장</button>
+      </div>`;
+  }).join('');
+}
+
+async function dashSaveGradeInfo(grade, btn){
+  const block = btn.closest('.gi-block');
+  const payload = {
+    action: 'updateGradeInfo', token: TOKEN, grade,
+    subject: (GRADE_INFO_ADMIN[grade] && GRADE_INFO_ADMIN[grade].subject) || '',
+    unitQuestion: block.querySelector('.gi-uq').value.trim(),
+    portfolioTitle: block.querySelector('.gi-pf-title').value.trim(),
+    portfolioDesc: block.querySelector('.gi-pf-desc').value.trim(),
+    portfolioUrlText: block.querySelector('.gi-pf-url').value.trim()
+  };
+  btn.disabled = true; btn.textContent = '저장하는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
+    Object.assign(GRADE_INFO_ADMIN[grade], {
+      unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
+      portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText
+    });
+    showToast('학년정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.');
+  }catch(e){
+    showToast('저장하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '저장';
+  }
+}
+
+/* ── 웰컴 체크인 (교사) — 핸드오프_웰컴체크인_v2 2-3, 2-4 + v16: 반별 차시 ──
+ * checkin_data.js가 없으면 패널을 조용히 비활성 안내로 대체 (다른 탭엔 영향 없음).
+ * v16: 체크인설정이 (학년,반)당 1행으로 바뀜 — 반="전체"는 그 학년 공통,
+ * 특정 반 행이 있으면 그 반에서는 그게 우선(백엔드 checkinTodayGet_와 동일 규칙). */
+let CK_TODAY_LESSON = {}; // "grade-ban" → 오늘 설정된 lessonId (recall 조회용 캐시)
+const CHECKIN_LOW_TEMP_DISPLAY = 2; // 온도 분포 막대에서 "저온도"로 강조할 기준값 (백엔드 CHECKIN_LOW_TEMP와 동일하게 맞춤)
+
+async function dashInitCheckinForm(){
+  await loadCheckinPlan(); // 대시보드 들어올 때마다 시트에서 최신 문항으로 새로고침
+  if(!CHECKIN_PLAN){
+    $('panelCheckin').innerHTML = '<p style="color:var(--ink-soft); padding:16px;">체크인문항 시트를 불러오지 못했어요. 새로고침해 주세요.</p>';
+    return;
+  }
+  const grades = Object.keys(CHECKIN_PLAN);
+  $('ckSetGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  $('ckViewGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  $('ckqGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  $('ckqFormGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  dashRefreshCkSetLessons();
+  dashRefreshCkViewBans();
+  dashLoadCkSetCurrent();
+  dashLoadCheckinAdmin();
+  await dashLoadCheckinLessonsAdmin();
+  dashRenderCheckinLessonsList();
+}
+
+function dashRefreshCkSetLessons(){
+  const grade = $('ckSetGrade').value;
+  const lessons = (CHECKIN_PLAN[grade] && CHECKIN_PLAN[grade].lessons) || [];
+  $('ckSetLesson').innerHTML = lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.topic)}</option>`).join('');
+}
+
+async function dashLoadCkSetCurrent(){
+  const grade = $('ckSetGrade').value;
+  const ban = $('ckSetBan').value;
+  if(!grade) return;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL
+      + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban));
+    const data = await res.json();
+    if(data.result === 'success'){
+      CK_TODAY_LESSON[grade + '-' + ban] = data.lessonId || '';
+      if(data.lessonId) $('ckSetLesson').value = data.lessonId;
+      const lesson = (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === data.lessonId);
+      const scope = ban === '전체' ? '전체 반' : (ban + '반');
+      $('ckSetCurrent').textContent = lesson
+        ? `현재 설정(${scope}): ${lesson.topic}`
+        : `현재 설정된 차시가 없어요(${scope}). 아래에서 골라 적용해 주세요.`;
+    }
+  }catch(e){
+    $('ckSetCurrent').textContent = '현재 설정을 불러오지 못했어요.';
+  }
+}
+
+async function dashApplyCkSet(){
+  const grade = $('ckSetGrade').value;
+  const ban = $('ckSetBan').value;
+  const lessonId = $('ckSetLesson').value;
+  if(!lessonId){ showToast('차시를 먼저 골라 주세요.'); return; }
+  const btn = $('btnCkSetApply');
+  btn.disabled = true; btn.textContent = '적용 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'setTodayCheckin', token:TOKEN, grade, ban, lessonId })
+    });
+    CK_TODAY_LESSON[grade + '-' + ban] = lessonId;
+    showToast((ban === '전체' ? '전체 반' : ban + '반') + ' 오늘의 체크인 차시를 저장했어요.');
+    await dashLoadCkSetCurrent();
+    if($('ckViewGrade').value === grade) dashLoadCheckinAdmin();
+  }catch(e){
+    showToast('저장하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '적용';
+  }
+}
+
+function dashRefreshCkViewBans(){
+  const grade = Number($('ckViewGrade').value);
+  const bans = [...new Set(ROWS.map(r => parseStudentId(String(r.studentId)))
+    .filter(p => p && p.grade === grade).map(p => p.ban))].sort((a,b)=>a-b);
+  $('ckViewBan').innerHTML = '<option value="">전체 반</option>'
+    + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
+}
+
+async function dashLoadCheckinAdmin(){
+  const grade = $('ckViewGrade').value;
+  if(!grade) return;
+  $('ckList').innerHTML = '<p class="muted">불러오는 중…</p>';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL
+      + '?mode=checkinAdmin&token=' + encodeURIComponent(TOKEN) + '&grade=' + encodeURIComponent(grade));
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+    let rows = data.rows || [];
+    const ban = $('ckViewBan').value; // '' = 전체 반 보기
+    if(ban) rows = rows.filter(r => { const p = parseStudentId(String(r.studentId)); return p && p.ban === Number(ban); });
+
+    /* 회수 질문 — 특정 반을 골랐을 때만 그 반의 "오늘 차시" 기준으로 표시.
+     * "전체 반" 보기에서는 반마다 차시가 다를 수 있어 하나로 특정할 수 없으므로 생략. */
+    let lesson = null;
+    if(ban){
+      const cacheKey = grade + '-' + ban;
+      let lessonId = CK_TODAY_LESSON[cacheKey];
+      if(lessonId === undefined){
+        try{
+          const res2 = await fetch(CONFIG.WEBAPP_URL
+            + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban));
+          const d2 = await res2.json();
+          lessonId = (d2.result === 'success') ? (d2.lessonId || '') : '';
+          CK_TODAY_LESSON[cacheKey] = lessonId;
+        }catch(e){ lessonId = ''; }
+      }
+      lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
+    }
+    if(lesson && lesson.recall){
+      $('ckRecall').style.display = 'block';
+      $('ckRecall').innerHTML = `<b>회수 질문</b> (${escapeHtml(ban)}반) · ${escapeHtml(lesson.recall)}`;
+    } else {
+      $('ckRecall').style.display = 'none';
+    }
+
+    /* 방어적 중복 제거 — 시트에 같은 학번의 중복 행이 남아있어도(재배포 전 데이터 등)
+     * 화면에는 학생당 가장 최근 타임스탬프 응답 1개만 보이게. 진짜 원인 수정(백엔드 upsert)은
+     * 별개로 필요하지만, 이미 쌓인 중복은 코드로 못 지우니 화면에서라도 걸러줌. */
+    const latestByStudent = {};
+    rows.forEach(r => {
+      const prev = latestByStudent[r.studentId];
+      if(!prev || new Date(r.timestamp) >= new Date(prev.timestamp)) latestByStudent[r.studentId] = r;
+    });
+    rows = Object.values(latestByStudent).sort((a,b) => a.temperature - b.temperature);
+
+    /* 카운터 — CONFIG.BAN_SIZE가 있으면 분모까지, 없으면 완료 인원만 (config.js에 반별 총원을 추가하면 자동으로 살아남) */
+    const total = (CONFIG.BAN_SIZE && CONFIG.BAN_SIZE[grade] && ban) ? CONFIG.BAN_SIZE[grade][ban] : null;
+    $('ckCounter').textContent = total ? `${total}명 중 ${rows.length}명 완료` : `${rows.length}명 완료`;
+
+    if(!rows.length){
+      $('ckStats').innerHTML = '';
+      $('ckList').innerHTML = '<p class="muted">오늘 응답이 아직 없어요.</p>';
+      return;
+    }
+
+    /* 온도 분포 요약 (1~5) */
+    const tempCount = {1:0,2:0,3:0,4:0,5:0};
+    rows.forEach(r => { if(tempCount[r.temperature] !== undefined) tempCount[r.temperature]++; });
+    const tempLabels = {1:'완전방전',2:'좀처짐',3:'보통',4:'괜찮음',5:'풀충전'};
+    const maxCount = Math.max(1, ...Object.values(tempCount));
+    const tempBarsHtml = [5,4,3,2,1].map(t => {
+      const c = tempCount[t];
+      const pct = Math.round((c / maxCount) * 100);
+      const isLow = t <= CHECKIN_LOW_TEMP_DISPLAY;
+      return `
+        <div style="display:flex; align-items:center; gap:8px; font-size:.8rem; margin-bottom:4px;">
+          <span style="width:64px; color:var(--ink-soft); flex-shrink:0;">${t} · ${tempLabels[t]}</span>
+          <div style="flex:1; background:rgba(0,0,0,.04); border-radius:4px; height:14px; overflow:hidden;">
+            <div style="width:${pct}%; height:100%; background:${isLow ? 'var(--seal)' : 'var(--indigo)'};"></div>
+          </div>
+          <span style="width:26px; text-align:right; font-weight:700;">${c}</span>
+        </div>`;
+    }).join('');
+
+    /* 특이사항 — 연속 저온도 학생만 따로 모음 */
+    const alertRows = rows.filter(r => r.lowStreakAlert);
+    const alertHtml = alertRows.length
+      ? `<div style="background:rgba(176,58,46,.06); border-left:3px solid var(--seal); border-radius:8px; padding:10px 14px; margin-bottom:14px;">
+          <p style="font-size:.82rem; font-weight:700; color:var(--seal); margin-bottom:4px;">⚠ 최근 3회 연속 저온도 (${alertRows.length}명)</p>
+          <p style="font-size:.85rem; color:var(--ink-soft);">${alertRows.map(r => escapeHtml(r.studentName) + '(' + escapeHtml(String(r.studentId)) + ')').join(', ')}</p>
+        </div>`
+      : '';
+
+    /* 역사적 선택 분포 — judgment는 옵션A/B, source_emotion은 단어칩별로 학생 이름과 함께 묶어서 표시.
+     * "전체 반" 보기처럼 반마다 다른 차시가 섞여 있을 수 있으므로 lessonId 단위로 따로 묶는다. */
+    const choiceGroups = {};
+    rows.forEach(r => {
+      const l = (CHECKIN_PLAN[grade] && CHECKIN_PLAN[grade].lessons || []).find(x => x.id === r.lessonId);
+      if(!choiceGroups[r.lessonId]) choiceGroups[r.lessonId] = { topic: l ? l.topic : r.lessonId, buckets: {} };
+      const g = choiceGroups[r.lessonId];
+      let key, label;
+      if(r.checkinType === 'judgment'){
+        const opt = l ? (l.options || []).find(o => o.id === r.judgment) : null;
+        key = r.judgment || '—';
+        label = opt ? opt.label : (r.judgment || '—');
+      } else {
+        key = r.word || '—';
+        label = (r.word === '기타') ? `기타: ${r.custom || ''}` : (r.word || '—');
+      }
+      if(!g.buckets[key]) g.buckets[key] = { label, students: [] };
+      g.buckets[key].students.push(`${escapeHtml(r.studentName)}(${escapeHtml(String(r.studentId))})`);
+    });
+    const choiceHtml = Object.values(choiceGroups).map(g => {
+      const bucketsHtml = Object.values(g.buckets)
+        .sort((a,b) => b.students.length - a.students.length)
+        .map(b => `
+          <div style="margin-bottom:8px;">
+            <p style="font-size:.85rem; font-weight:700; margin-bottom:2px;">${escapeHtml(b.label)} <span style="color:var(--ink-soft); font-weight:400;">(${b.students.length}명)</span></p>
+            <p style="font-size:.78rem; color:var(--ink-soft);">${b.students.join(', ')}</p>
+          </div>`).join('');
+      return `
+        <div style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+          <p style="font-size:.82rem; font-weight:700; margin-bottom:8px;">${escapeHtml(g.topic)} — 선택 분포</p>
+          ${bucketsHtml}
+        </div>`;
+    }).join('');
+
+    $('ckStats').innerHTML = `
+      <div style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+        <p style="font-size:.82rem; font-weight:700; margin-bottom:8px;">온도 분포</p>
+        ${tempBarsHtml}
+      </div>
+      ${alertHtml}
+      ${choiceHtml}`;
+
+    $('ckList').innerHTML = rows.map(r => {
+      let choiceText;
+      if(r.checkinType === 'judgment'){
+        const l = (CHECKIN_PLAN[grade].lessons || []).find(x => x.id === r.lessonId);
+        const opt = l ? (l.options || []).find(o => o.id === r.judgment) : null;
+        choiceText = opt ? opt.label : (r.judgment || '—');
+      } else {
+        choiceText = (r.word === '기타') ? `기타: ${r.custom || ''}` : (r.word || '—');
+      }
+      return `
+        <div class="q-item">
+          <div class="q-meta">
+            ${escapeHtml(r.studentName)} (${escapeHtml(String(r.studentId))})
+            ${r.lowStreakAlert ? '<span title="최근 3회 연속 저온도" style="color:var(--seal); font-size:.7rem;">●</span>' : ''}
+            <span style="margin-left:auto; font-weight:700; color:var(--indigo);">온도 ${r.temperature}</span>
+          </div>
+          <div class="q-text">${escapeHtml(choiceText)}</div>
+        </div>`;
+    }).join('');
+  }catch(e){
+    $('ckStats').innerHTML = '';
+    $('ckList').innerHTML = '<p class="muted">불러오지 못했어요: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+/* ── 체크인 문항 관리 (v17 신규) ──
+ * CHECKIN_PLAN(학생용, 구조화됨)과 별개로 CHECKIN_LESSONS_ADMIN(교사용, 평평한 배열 + _row)을
+ * 따로 들고 있음 — 커리큘럼 관리와 동일한 이중 구조. */
+let CHECKIN_LESSONS_ADMIN = [];
+
+async function dashLoadCheckinLessonsAdmin(){
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL + '?mode=checkinPlanAdmin&token=' + encodeURIComponent(TOKEN));
+    const data = await res.json();
+    if(data.result === 'success') CHECKIN_LESSONS_ADMIN = data.rows || [];
+  }catch(e){
+    CHECKIN_LESSONS_ADMIN = [];
+  }
+}
+
+function dashRenderCheckinLessonsList(){
+  const grade = $('ckqGrade').value;
+  const list = $('ckqList');
+  const rows = CHECKIN_LESSONS_ADMIN.filter(l => l.grade === grade);
+  if(!rows.length){
+    list.innerHTML = '<p class="cl-past-hint">이 학년에 등록된 문항이 없어요.</p>';
+    return;
+  }
+  const typeLabel = { judgment: '판단형', source_emotion: '사료+단어칩' };
+  list.innerHTML = rows.map(l => `
+    <div class="cl-item" data-row="${l._row}">
+      <div class="cl-item-body">
+        <div class="cl-meta">${escapeHtml(l.id)} · ${escapeHtml(typeLabel[l.type] || l.type)}${l.verify ? ' · ⚠️ 사실검증 필요' : ''}</div>
+        <div class="cl-title">${escapeHtml(l.topic)}</div>
+      </div>
+      <div class="cl-item-actions">
+        <button class="an-toggle" data-row="${l._row}" onclick="dashEditCheckinLesson(this)">수정</button>
+        <button class="an-toggle" data-row="${l._row}" onclick="dashDeleteCheckinLesson(this)">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+function ckqToggleTypeFields(){
+  const isJudgment = $('ckqFormType').value === 'judgment';
+  $('ckqJudgmentFields').style.display = isJudgment ? 'block' : 'none';
+  $('ckqSourceFields').style.display = isJudgment ? 'none' : 'block';
+}
+
+function dashResetCheckinLessonForm(){
+  $('ckqEditRow').value = '';
+  ['ckqFormId','ckqFormTopic','ckqFormTextbook','ckqFormPrompt','ckqFormOptionA','ckqFormOptionB',
+   'ckqFormSourceText','ckqFormSourceOrigin','ckqFormWordChips','ckqFormRecall','ckqFormVerifyNote','ckqFormNote']
+    .forEach(id => { $(id).value = ''; });
+  $('ckqFormVerify').checked = false;
+  $('ckqFormId').disabled = false;
+  $('ckqFormTitle').textContent = '➕ 새 문항 추가';
+  $('btnCkqSave').textContent = '문항 추가';
+  $('btnCkqCancel').style.display = 'none';
+  ckqToggleTypeFields();
+}
+
+function dashEditCheckinLesson(btn){
+  const row = btn.dataset.row;
+  const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
+  if(!l){ showToast('문항을 찾지 못했어요.'); return; }
+  $('ckqEditRow').value = row;
+  $('ckqFormGrade').value = l.grade;
+  $('ckqFormType').value = l.type;
+  $('ckqFormId').value = l.id;
+  $('ckqFormId').disabled = true; // 이미 "오늘 차시"로 지정돼 있을 수 있어 id는 잠가둠
+  $('ckqFormTopic').value = l.topic;
+  $('ckqFormTextbook').value = l.textbook || '';
+  $('ckqFormPrompt').value = l.prompt || '';
+  $('ckqFormOptionA').value = l.optionA || '';
+  $('ckqFormOptionB').value = l.optionB || '';
+  $('ckqFormSourceText').value = l.sourceText || '';
+  $('ckqFormSourceOrigin').value = l.sourceOrigin || '';
+  $('ckqFormWordChips').value = l.wordChips || '';
+  $('ckqFormRecall').value = l.recall || '';
+  $('ckqFormVerify').checked = !!l.verify;
+  $('ckqFormVerifyNote').value = l.verifyNote || '';
+  $('ckqFormNote').value = l.note || '';
+  ckqToggleTypeFields();
+  $('ckqFormTitle').textContent = '✏️ 문항 수정';
+  $('btnCkqSave').textContent = '수정 저장';
+  $('btnCkqCancel').style.display = 'inline-block';
+  $('ckqFormTopic').focus();
+}
+
+async function dashDeleteCheckinLesson(btn){
+  const row = btn.dataset.row;
+  const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
+  if(!confirm(`"${l ? l.topic : row}" 문항을 삭제할까요? 되돌릴 수 없어요.`)) return;
+  btn.disabled = true;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'deleteCheckinLesson', token:TOKEN, row }) });
+    showToast('문항을 삭제했어요.');
+    await loadCheckinPlan();
+    await dashLoadCheckinLessonsAdmin();
+    dashRenderCheckinLessonsList();
+  }catch(e){
+    btn.disabled = false;
+    showToast('삭제하지 못했어요. 다시 시도해 주세요.');
+  }
+}
+
+function ckqCollectFormData(){
+  return {
+    grade: $('ckqFormGrade').value,
+    id: $('ckqFormId').value.trim(),
+    topic: $('ckqFormTopic').value.trim(),
+    textbook: $('ckqFormTextbook').value.trim(),
+    type: $('ckqFormType').value,
+    prompt: $('ckqFormPrompt').value.trim(),
+    optionA: $('ckqFormOptionA').value.trim(),
+    optionB: $('ckqFormOptionB').value.trim(),
+    sourceText: $('ckqFormSourceText').value.trim(),
+    sourceOrigin: $('ckqFormSourceOrigin').value.trim(),
+    wordChips: $('ckqFormWordChips').value.trim(),
+    recall: $('ckqFormRecall').value.trim(),
+    verify: $('ckqFormVerify').checked,
+    verifyNote: $('ckqFormVerifyNote').value.trim(),
+    note: $('ckqFormNote').value.trim()
+  };
+}
+
+async function dashSubmitCheckinLessonForm(btn){
+  const editRow = $('ckqEditRow').value;
+  const payload = ckqCollectFormData();
+  if(!payload.grade || !payload.id || !payload.topic || !payload.prompt){
+    showToast('학년·차시id·제목·발문은 필수예요.'); return;
+  }
+  if(payload.type === 'judgment' && (!payload.optionA || !payload.optionB)){
+    showToast('judgment 타입은 옵션A·옵션B가 필요해요.'); return;
+  }
+  if(payload.type === 'source_emotion' && !payload.sourceText){
+    showToast('source_emotion 타입은 사료 텍스트가 필요해요.'); return;
+  }
+  btn.disabled = true; btn.textContent = editRow ? '저장하는 중…' : '추가하는 중…';
+  try{
+    if(editRow){
+      await fetch(CONFIG.WEBAPP_URL, {
+        method:'POST',
+        body: JSON.stringify(Object.assign({ action:'updateCheckinLesson', token:TOKEN, row:editRow }, payload))
+      });
+      showToast('문항을 수정했어요.');
+    } else {
+      await fetch(CONFIG.WEBAPP_URL, {
+        method:'POST',
+        body: JSON.stringify(Object.assign({ action:'addCheckinLesson', token:TOKEN }, payload))
+      });
+      showToast('문항을 추가했어요.');
+    }
+    dashResetCheckinLessonForm();
+    await loadCheckinPlan();
+    await dashLoadCheckinLessonsAdmin();
+    dashRenderCheckinLessonsList();
+    dashRefreshCkSetLessons();
+  }catch(e){
+    showToast('저장하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = editRow ? '수정 저장' : '문항 추가';
+  }
+}
+
+/* ── 등록된 활동 목록 렌더 (v13: 학년별 → 진행중/예정(드래그 정렬) + 지난 활동(접힘)) ── */
+function dashRenderLessons(){
+  const list = $('clList');
+  if(!LESSONS_ADMIN.length){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 활동이 없어요.</p>';
+    return;
+  }
+  const grades = [...new Set(LESSONS_ADMIN.map(l => l.grade))].sort();
+  let html = '';
+  grades.forEach(g => {
+    const all = LESSONS_ADMIN.filter(l => l.grade === g).sort((a,b) => a.order - b.order);
+    const active = all.filter(l => !l.isPast);
+    const past = all.filter(l => l.isPast);
+    html += `<h4 class="cl-grade-head">${g}학년</h4>`;
+    html += `<div class="cl-active-list" data-grade="${escapeHtml(g)}">`
+      + (active.length ? active.map(l => clLessonItemHtml(l, false)).join('') : '<p class="cl-past-hint">진행중/예정 활동이 없어요.</p>')
+      + `</div>`;
+    html += `
+      <details class="cl-past-collapse">
+        <summary>지난 활동 (${past.length}) <span class="cl-arrow">▶</span></summary>
+        <div class="cl-past-list">
+          ${past.length ? past.map(l => clLessonItemHtml(l, true)).join('') : '<p class="cl-past-hint">지난 활동으로 표시된 항목이 없어요.</p>'}
+        </div>
+      </details>`;
+  });
+  list.innerHTML = html;
+  bindClListEvents();
+}
+
+/* v27: 활동목록JSON이 있는(활동 2개 이상) 차시는 목록에서 "활동 2개" 배지 +
+ * 순차진행이면 🔒 표시를 덧붙임. urlText 대신 활동 개수/타입을 요약해서 보여줌. */
+function clLessonItemHtml(l, isPastItem){
+  const multi = (l.activitiesCount || 1) > 1;
+  const metaText = multi
+    ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}`
+    : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}`;
+  return `
+    <div class="cl-item" ${isPastItem ? '' : 'draggable="true"'} data-row="${l._row}" data-grade="${escapeHtml(l.grade)}">
+      ${isPastItem ? '' : '<span class="cl-drag-handle" title="드래그해서 순서 바꾸기">⠿</span>'}
+      <div class="cl-item-body">
+        <div class="cl-meta">${metaText}</div>
+        <div class="cl-title">${escapeHtml(l.title)}</div>
+      </div>
+      <div class="cl-item-actions">
+        ${isPastItem ? '' : `
+          <button class="btn-tiny cl-move" data-row="${l._row}" data-dir="up" title="위로 이동">▲</button>
+          <button class="btn-tiny cl-move" data-row="${l._row}" data-dir="down" title="아래로 이동">▼</button>`}
+        <button class="an-toggle" data-row="${l._row}" onclick="dashEditLesson(this)">수정</button>
+        <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
+        <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPast(this)">${isPastItem ? '진행중으로 되돌리기' : '지난 활동으로 표시'}</button>
+      </div>
+    </div>`;
+}
+
+/* 위/아래 버튼 + 드래그 이벤트 바인딩 (매 렌더 후 재호출) */
+function bindClListEvents(){
+  document.querySelectorAll('.cl-move').forEach(btn => {
+    btn.addEventListener('click', () => dashMoveLesson(btn.dataset.row, btn.dataset.dir));
+  });
+
+  document.querySelectorAll('.cl-active-list').forEach(listEl => {
+    listEl.addEventListener('dragover', e => {
+      e.preventDefault();
+      const dragging = listEl.querySelector('.cl-item.dragging');
+      if(!dragging) return;
+      const after = clDragAfterElement(listEl, e.clientY);
+      if(after == null) listEl.appendChild(dragging);
+      else listEl.insertBefore(dragging, after);
+    });
+  });
+
+  document.querySelectorAll('.cl-active-list .cl-item[draggable="true"]').forEach(item => {
+    item.addEventListener('dragstart', () => { item.classList.add('dragging'); });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      dashCommitReorder(item.closest('.cl-active-list'));
+    });
+  });
+}
+
+function clDragAfterElement(container, y){
+  const els = [...container.querySelectorAll('.cl-item:not(.dragging)')];
+  return els.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if(offset < 0 && offset > closest.offset) return { offset, element: child };
+    return closest;
+  }, { offset: -Infinity, element: null }).element;
+}
+
+/* 드래그가 끝난 뒤 현재 DOM 순서를 그대로 순서값(1,2,3…)으로 매겨 서버에 일괄 반영 */
+async function dashCommitReorder(listEl){
+  if(!listEl) return;
+  const rowsInOrder = [...listEl.querySelectorAll('.cl-item')].map(el => Number(el.dataset.row));
+  const items = rowsInOrder.map((row, idx) => ({ row, order: idx + 1 }));
+  items.forEach(it => {
+    const l = LESSONS_ADMIN.find(x => x._row === it.row);
+    if(l) l.order = it.order;
+  });
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'reorderLessons', token: TOKEN, items })
+    });
+    showToast('순서를 저장했어요.');
+  }catch(e){
+    showToast('순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
+  }
+  dashRenderLessons();
+}
+
+/* 위/아래 버튼 — 같은 학년의 진행중/예정 목록 안에서 바로 옆 항목과 순서를 맞바꿈 */
+async function dashMoveLesson(row, dir){
+  const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
+  if(!l) return;
+  const siblings = LESSONS_ADMIN
+    .filter(x => x.grade === l.grade && !x.isPast)
+    .sort((a,b) => a.order - b.order);
+  const idx = siblings.findIndex(x => String(x._row) === String(row));
+  const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+  if(idx === -1 || swapIdx < 0 || swapIdx >= siblings.length) return;
+  const other = siblings[swapIdx];
+
+  const items = [{ row: l._row, order: other.order }, { row: other._row, order: l.order }];
+  const tmp = l.order; l.order = other.order; other.order = tmp;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'reorderLessons', token: TOKEN, items })
+    });
+  }catch(e){
+    showToast('순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
+  }
+  dashRenderLessons();
+}
+
+/* 지난 활동 표시 on/off — 공개여부와 별개 (v13) */
+async function dashToggleLessonPast(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'toggleLessonPast', token:TOKEN, row })
+    });
+    const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
+    if(l){ l.isPast = !l.isPast; }
+    dashRenderLessons();
+  }catch(e){
+    showToast('처리하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ── v27: 커리큘럼 "새 활동 추가" 폼 — 활동 2개 모드 토글 ──
+ * 체크하면 기존 타입·URL 필드를 숨기고 활동1·활동2 각각의 id·타입·제목·설명·URL을
+ * 따로 입력받음. 활동id·제목·설명(clId/clTitle/clDesc)은 이 경우 "차시 전체"를
+ * 대표하는 값(체크인·피드백·CSV에서 차시 단위로 쓰임)으로 의미가 바뀐다. */
+function clToggleMulti(){
+  const on = $('clMulti').checked;
+  $('clMultiWrap').style.display = on ? 'block' : 'none';
+  // clType은 clGrade·clId와 같은 cl-row 안에 있어서 row 전체를 숨기면 안 됨 — select만 토글.
+  $('clType').style.display = on ? 'none' : '';
+  $('clUrl').previousElementSibling.style.display = on ? 'none' : 'block'; // 힌트 라벨
+  $('clUrl').style.display = on ? 'none' : 'block';
+  $('clId').placeholder = on ? '차시id (체크인·피드백·CSV에서 이 차시를 가리킬 때 씀)' : '활동id (게임 CONFIG.GAME_NAME과 동일해야 함)';
+}
+
+function clCollectActivitiesFromForm(){
+  if(!$('clMulti').checked) return null;
+  const act1 = {
+    id: $('clAct1Id').value.trim(), title: $('clAct1Title').value.trim(),
+    desc: $('clAct1Desc').value.trim(), type: $('clAct1Type').value, url: $('clAct1Url').value.trim()
+  };
+  const act2 = {
+    id: $('clAct2Id').value.trim(), title: $('clAct2Title').value.trim(),
+    desc: $('clAct2Desc').value.trim(), type: $('clAct2Type').value, url: $('clAct2Url').value.trim()
+  };
+  return [act1, act2];
+}
+
+/* v17: 폼 하나를 추가/수정 공용으로 씀. clEditRow가 비어있으면 추가, 값이 있으면 수정. */
+async function dashSubmitLessonForm(btn){
+  const editRow = $('clEditRow').value;
+  if(editRow) return dashUpdateLesson(btn, editRow);
+  return dashAddLesson(btn);
+}
+
+async function dashAddLesson(btn){
+  const grade = $('clGrade').value;
+  const id = $('clId').value.trim();
+  const title = $('clTitle').value.trim();
+  const desc = $('clDesc').value.trim();
+  const type = $('clType').value;
+  const url = $('clUrl').value.trim();
+  const isPublic = $('clPublic').checked;
+  if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
+
+  const activities = clCollectActivitiesFromForm();
+  if(activities){
+    if(!activities[0].id || !activities[0].title || !activities[1].id || !activities[1].title){
+      showToast('활동 2개 모드에서는 각 활동의 id·제목이 필수예요.'); return;
+    }
+  }
+  const sequential = activities ? $('clSequential').checked : false;
+
+  btn.disabled = true; btn.textContent = '추가하는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential })
+    });
+    dashResetLessonForm();
+    showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
+    await dashLoadData();
+    dashRenderLessons();
+  }catch(e){
+    showToast('추가하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '활동 추가';
+  }
+}
+
+/* v17: 등록된 활동 목록에서 "수정" 클릭 — 폼에 기존 값 채워넣고 새 활동 추가 서브탭으로 전환.
+ * 활동id는 CONFIG.GAME_NAME과 연결돼 있어 여기서는 바꾸지 못하게 잠가둠(비활성화).
+ * v27: 활동목록JSON이 있으면(activitiesRaw) 활동 2개 모드로 자동 전환해서 채워 넣음. */
+function dashEditLesson(btn){
+  const row = btn.dataset.row;
+  const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
+  if(!l){ showToast('활동 정보를 찾지 못했어요.'); return; }
+  $('clEditRow').value = row;
+  $('clGrade').value = l.grade;
+  $('clType').value = l.type;
+  $('clId').value = l.id;
+  $('clId').disabled = true;
+  $('clTitle').value = l.title;
+  $('clDesc').value = l.desc || '';
+  $('clUrl').value = l.urlText || '';
+  $('clPublicRow').style.display = 'none'; // 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
+  $('clEditBanner').style.display = 'block';
+  $('btnAddLesson').textContent = '수정 저장';
+
+  let acts = [];
+  if(l.activitiesRaw){
+    try{ acts = JSON.parse(l.activitiesRaw); }catch(e){ acts = []; }
+  }
+  if(acts.length >= 2){
+    $('clMulti').checked = true;
+    $('clAct1Id').value = acts[0].id || ''; $('clAct1Title').value = acts[0].title || '';
+    $('clAct1Desc').value = acts[0].desc || ''; $('clAct1Type').value = acts[0].type || 'module';
+    $('clAct1Url').value = acts[0].url || '';
+    $('clAct2Id').value = acts[1].id || ''; $('clAct2Title').value = acts[1].title || '';
+    $('clAct2Desc').value = acts[1].desc || ''; $('clAct2Type').value = acts[1].type || 'module';
+    $('clAct2Url').value = acts[1].url || '';
+    $('clSequential').checked = !!l.sequential;
+  } else {
+    $('clMulti').checked = false;
+    ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
+      .forEach(id => { $(id).value = ''; });
+    $('clSequential').checked = false;
+  }
+  clToggleMulti();
+
+  switchClSubtab('add');
+  $('clTitle').focus();
+}
+
+function dashResetLessonForm(){
+  $('clEditRow').value = '';
+  $('clId').value = ''; $('clId').disabled = false;
+  $('clTitle').value = ''; $('clDesc').value = ''; $('clUrl').value = ''; $('clPublic').checked = false;
+  $('clMulti').checked = false;
+  ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
+    .forEach(id => { $(id).value = ''; });
+  $('clSequential').checked = false;
+  clToggleMulti();
+  $('clEditBanner').style.display = 'none';
+  $('clPublicRow').style.display = 'flex';
+  $('btnAddLesson').textContent = '활동 추가';
+}
+
+async function dashUpdateLesson(btn, row){
+  const title = $('clTitle').value.trim();
+  const desc = $('clDesc').value.trim();
+  const type = $('clType').value;
+  const url = $('clUrl').value.trim();
+  if(!title){ showToast('제목은 필수예요.'); return; }
+
+  const activities = clCollectActivitiesFromForm();
+  if(activities){
+    if(!activities[0].id || !activities[0].title || !activities[1].id || !activities[1].title){
+      showToast('활동 2개 모드에서는 각 활동의 id·제목이 필수예요.'); return;
+    }
+  }
+  const sequential = activities ? $('clSequential').checked : false;
+
+  btn.disabled = true; btn.textContent = '저장하는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential })
+    });
+    dashResetLessonForm();
+    showToast('활동 내용을 수정했어요.');
+    await dashLoadData();
+    dashRenderLessons();
+  }catch(e){
+    showToast('저장하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '활동 추가';
+  }
+}
+
+async function dashToggleLessonPublic(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'toggleLessonPublic', token:TOKEN, row })
+    });
+    const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
+    if(l){ l.public = !l.public; }
+    dashRenderLessons();
+  }catch(e){
+    showToast('처리하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ── 질문함 (교사) ── */
+function dashRenderQuestions(){
+  const list = $('dqList');
+  const waiting = QUESTIONS.filter(q => q.status !== '답변완료');
+  const done = QUESTIONS.filter(q => q.status === '답변완료');
+  const sorted = [...waiting, ...done]; // 대기중 먼저
+  const badge = $('dqBadge');
+  if(waiting.length){
+    badge.textContent = waiting.length + '건 대기';
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+  if(!sorted.length){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">아직 들어온 질문이 없어요.</p>';
+    return;
+  }
+  list.innerHTML = sorted.map(q => {
+    const isDone = q.status === '답변완료';
+    return `
+      <div class="dq-item">
+        <div class="dq-meta">${formatDate(q.timestamp)} · ${escapeHtml(q.studentName)} (${escapeHtml(String(q.studentId))}) · ${q.grade}학년 ${q.ban}반
+          <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span>
+        </div>
+        <div class="dq-text">${escapeHtml(q.question)}</div>
+        ${isDone ? `<div class="dq-answer"><b>내 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
+        <div class="dq-reply-form">
+          <textarea class="dq-reply-text" placeholder="${isDone ? '답변을 수정하려면 다시 입력…' : '답변을 입력…'}"></textarea>
+          <button data-row="${q._row}" onclick="dashAnswerQuestion(this)">${isDone ? '답변 수정' : '답변 보내기'}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function dashAnswerQuestion(btn){
+  const wrap = btn.closest('.dq-item');
+  const text = wrap.querySelector('.dq-reply-text').value.trim();
+  if(!text){ showToast('답변 내용을 입력해 주세요.'); return; }
+  const row = btn.dataset.row;
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'answerQuestion', token: TOKEN, row, answer: text })
+    });
+    const q = QUESTIONS.find(x => String(x._row) === String(row));
+    if(q){ q.answer = text; q.status = '답변완료'; }
+    showToast('답변을 보냈어요. 학생 포털의 질문함에 표시됩니다.');
+    dashRenderQuestions();
+  }catch(e){
+    btn.disabled = false; btn.textContent = '답변 보내기';
+    showToast('보내지 못했어요. 다시 시도해 주세요.');
+  }
+}
+
+function dashInitFilters(){
+  const grades = Object.keys(CONFIG.CURRICULUM);
+  $('selGrade').innerHTML = grades.map(g =>
+    `<option value="${g}">${g}학년 ${CONFIG.CURRICULUM[g].subject}</option>`).join('');
+  const withData = grades.find(g => ROWS.some(r => parseStudentId(String(r.studentId)).grade === Number(g)));
+  if(withData) $('selGrade').value = withData;
+  dashRefreshBanOptions();
+  dashRefreshActivityOptions();
+}
+function dashRefreshBanOptions(){
+  const grade = Number($('selGrade').value);
+  const bans = [...new Set(ROWS.map(r => parseStudentId(String(r.studentId)))
+    .filter(p => p.grade === grade).map(p => p.ban))].sort((a,b)=>a-b);
+  $('selBan').innerHTML = '<option value="">전체 반</option>'
+    + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
+}
+/* v27: 활동 드롭다운은 "차시"가 아니라 "활동" 단위로 나열 — ROWS의 gameName은
+ * 항상 활동 자신의 id(다중활동 차시라면 activities[i].id)와 일치하므로, 필터가
+ * 실제로 걸리려면 여기 옵션도 활동 id를 값으로 가져야 함. */
+function dashRefreshActivityOptions(){
+  const grade = Number($('selGrade').value);
+  const lessons = CONFIG.CURRICULUM[grade].lessons;
+  const opts = [];
+  lessons.forEach(l => {
+    l.activities.forEach((act, idx) => {
+      const label = l.activities.length > 1
+        ? `${l.title} · ${act.title && act.title.trim() ? act.title.trim() : (idx+1)+'활동'}`
+        : l.title;
+      opts.push({ id: act.id, label });
+    });
+  });
+  $('selActivity').innerHTML = '<option value="">전체 활동</option>'
+    + opts.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join('');
+}
+
+/* v25 — 학생 검색 (2-1)
+ * 현재 선택된 학년·반과 무관하게 ROWS 전체에서 학번/이름으로 찾은 뒤,
+ * 클릭하면 그 학생의 학년·반으로 필터를 자동 전환하고 상세 카드를 열어줌.
+ * 드롭다운 필터로는 "지금 보고 있는 범위 안"에서만 찾을 수 있었는데,
+ * 이 검색은 범위를 몰라도 이름/학번만 알면 바로 찾을 수 있게 하는 게 목적. */
+function dashBuildStudentIndex_(){
+  const map = {};
+  ROWS.forEach(r => {
+    const sid = String(r.studentId);
+    if(!map[sid]) map[sid] = { sid, name: String(r.studentName||''), p: parseStudentId(sid) };
+  });
+  return Object.values(map);
+}
+function dashSearchStudents_(query){
+  const q = query.trim().toLowerCase();
+  if(!q) return [];
+  const all = dashBuildStudentIndex_();
+  return all.filter(s => s.sid.includes(q) || s.name.toLowerCase().includes(q))
+    .sort((a,b) => a.p.grade - b.p.grade || a.p.ban - b.p.ban || a.p.num - b.p.num)
+    .slice(0, 8);
+}
+function dashRenderSearchResults_(matches){
+  const box = $('studentSearchResults');
+  if(!matches.length){
+    box.innerHTML = '<div class="ssr-empty">일치하는 학생이 없어요</div>';
+    box.style.display = 'block';
+    return;
+  }
+  box.innerHTML = matches.map(s =>
+    `<div class="ssr-item" data-sid="${s.sid}">
+       <span class="ssr-name">${escapeHtml(s.name)}</span>
+       <span class="ssr-meta">${s.p.grade}학년 ${s.p.ban}반 · ${s.sid}</span>
+     </div>`).join('');
+  box.style.display = 'block';
+  box.querySelectorAll('.ssr-item').forEach(el => {
+    el.addEventListener('click', () => dashJumpToStudent_(el.dataset.sid));
+  });
+}
+function dashJumpToStudent_(sid){
+  const p = parseStudentId(sid);
+  if(!p) return;
+  $('selGrade').value = String(p.grade);
+  dashRefreshBanOptions();
+  $('selBan').value = String(p.ban);
+  dashRefreshActivityOptions();
+  $('selActivity').value = '';
+  openDetailSid = sid;
+  $('studentSearch').value = '';
+  $('studentSearchResults').style.display = 'none';
+  renderDash();
+  const tr = document.querySelector(`tr.student-row[data-sid="${sid}"]`);
+  if(tr) tr.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+function dashFilteredRows(){
+  const grade = Number($('selGrade').value);
+  const ban = $('selBan').value;
+  const act = $('selActivity').value;
+  return ROWS.filter(r => {
+    const p = parseStudentId(String(r.studentId));
+    if(p.grade !== grade) return false;
+    if(ban && p.ban !== Number(ban)) return false;
+    if(act && String(r.gameName) !== act) return false;
+    return true;
+  });
+}
+
+/* 미검토 AI 코멘트 수 (전체 기준) */
+function aiUnreviewedCount(){
+  return ROWS.filter(r =>
+    String(r['AI코멘트']||'').trim() && !String(r['AI코멘트확인']||'').trim()
+  ).length;
+}
+
+/* v27 — 차시(l) 전체 activities id의 Set. 학생별 doneIds/achieve 계산에서
+ * "이 차시를 다 끝냈는지" 판정할 때 반복해서 쓰여서 헬퍼로 뺌. */
+function lessonAllActivityIds_(l){
+  return l.activities.map(a => a.id);
+}
+
+function renderDash(){
+  const grade = Number($('selGrade').value);
+  const ban = $('selBan').value;
+  const act = $('selActivity').value;
+  const lessons = CONFIG.CURRICULUM[grade].lessons;
+  const activeLessons = lessons.filter(l => l.activities.some(a => a.url || a.urlByBan));
+  const rows = dashFilteredRows();
+
+  /* 미검토 AI 코멘트 알림 */
+  const unrev = aiUnreviewedCount();
+  $('aiNotice').style.display = unrev ? 'block' : 'none';
+  $('aiNoticeCount').textContent = unrev;
+
+  const gradeRows = ROWS.filter(r => {
+    const p = parseStudentId(String(r.studentId));
+    return p.grade === grade && (!ban || p.ban === Number(ban));
+  });
+  const students = {};
+  gradeRows.forEach(r => {
+    const sid = String(r.studentId);
+    if(!students[sid]) students[sid] = { sid, name:String(r.studentName||''), p:parseStudentId(sid), records:[] };
+    students[sid].records.push(r);
+  });
+  const list = Object.values(students).sort((a,b) => a.p.ban - b.p.ban || a.p.num - b.p.num);
+
+  list.forEach(s => {
+    s.doneIds = new Set(s.records.map(r => String(r.gameName)));
+    s.achieve = {};
+    s.records.forEach(r => {
+      const id = String(r.gameName);
+      const lv = String(r['성취수준']||'').trim();
+      const prev = s.achieve[id];
+      if(!prev || lv || !String(prev['성취수준']||'').trim()) s.achieve[id] = r;
+    });
+    // v27: "완료한 차시"는 그 차시의 활동 id를 전부 doneIds에 갖고 있어야 인정.
+    const done = activeLessons.filter(l => lessonAllActivityIds_(l).every(id => s.doneIds.has(id))).length;
+    s.pct = activeLessons.length ? Math.round(done/activeLessons.length*100) : 0;
+    s.doneCount = done;
+    s.feedbacks = FEEDBACKS.filter(f => String(f.studentId).trim() === s.sid);
+    // v26(2-2): 활동별 열 대신 표에서는 "최근 활동"과 "평균 성취"만 요약해서 보여줌.
+    // 개별 활동 성취는 표에서 빼는 대신 상세 카드(펼쳐보기)에 그대로 남겨둠.
+    s.recentRecord = dashMostRecentRecord_(s.records);
+    s.avgAchieve = dashAvgAchieveInfo_(Object.values(s.achieve));
+  });
+
+  $('sumStudents').textContent = list.length;
+  $('sumProgress').textContent = list.length
+    ? Math.round(list.reduce((a,s)=>a+s.pct,0)/list.length) : 0;
+
+  const cnt = { 상:0, 중:0, 하:0 };
+  rows.forEach(r => { const l = String(r['성취수준']||'').trim(); if(cnt[l]!==undefined) cnt[l]++; });
+  $('cntSang').textContent = cnt['상']; $('cntJung').textContent = cnt['중']; $('cntHa').textContent = cnt['하'];
+  $('distScope').textContent = act ? '(선택한 활동)' : '(전체 활동)';
+  const total = cnt['상']+cnt['중']+cnt['하'];
+  $('distBar').innerHTML = total ?
+    `<div class="dist-sang" style="width:${cnt['상']/total*100}%"></div>
+     <div class="dist-jung" style="width:${cnt['중']/total*100}%"></div>
+     <div class="dist-ha" style="width:${cnt['하']/total*100}%"></div>`
+    : '<div style="width:100%;background:#EEE"></div>';
+
+  const tagCnt = {};
+  rows.forEach(r => { const t = String(r['분류태그']||'').trim(); if(t) tagCnt[t]=(tagCnt[t]||0)+1; });
+  const topTags = Object.entries(tagCnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  $('tagList').innerHTML = topTags.length
+    ? topTags.map(([t,n]) => `<span class="tag-chip">${escapeHtml(t)} <small>${n}</small></span>`).join('')
+    : '<span class="muted">아직 분석된 태그가 없어요</span>';
+
+  $('rowCount').textContent = `기록 ${rows.length}건`;
+
+  $('tableHead').innerHTML =
+    '<tr><th>학번</th><th>이름</th><th>진행률</th><th>최근 활동</th><th>평균 성취</th></tr>';
+
+  if(!list.length){
+    $('tableBody').innerHTML = `<tr><td colspan="5" class="empty-line">아직 이 조건에 해당하는 학생 기록이 없어요.</td></tr>`;
+    return;
+  }
+
+  $('tableBody').innerHTML = list.map(s => {
+    const recentCell = s.recentRecord
+      ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp))}">
+           ${escapeHtml(dashShorten(dashLessonTitle(String(s.recentRecord.gameName)), 10))}
+           <span class="tbl-dots" title="${escapeHtml(String(s.recentRecord['성취수준']||'분석 전'))}">${dashDots(String(s.recentRecord['성취수준']||'').trim())}</span>
+         </span>`
+      : '<span class="muted">—</span>';
+    const avgCell = s.avgAchieve
+      ? `<span class="tbl-dots" title="분석된 활동 ${s.avgAchieve.count}건 기준">${dashDots(s.avgAchieve.label)} ${s.avgAchieve.label} (${s.avgAchieve.avg})</span>`
+      : '<span class="muted">분석 전</span>';
+    return `
+      <tr class="student-row" data-sid="${s.sid}">
+        <td>${s.sid}</td>
+        <td>${escapeHtml(s.name)}${s.feedbacks.length ? '<span class="fb-dot" title="피드백 있음"></span>' : ''}</td>
+        <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${activeLessons.length}</span></td>
+        <td>${recentCell}</td>
+        <td>${avgCell}</td>
+      </tr>
+      ${openDetailSid === s.sid ? dashDetailRowHtml(s, lessons, 5) : ''}`;
+  }).join('');
+
+  document.querySelectorAll('tr.student-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      openDetailSid = (openDetailSid === tr.dataset.sid) ? null : tr.dataset.sid;
+      renderDash();
+    });
+  });
+  document.querySelectorAll('.fb-send').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashSendFeedback(btn); });
+  });
+  document.querySelectorAll('tr.detail-row').forEach(tr => {
+    tr.addEventListener('click', ev => ev.stopPropagation());
+  });
+  document.querySelectorAll('.ai-confirm').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiConfirm(btn); });
+  });
+  document.querySelectorAll('.ai-editbtn').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiEditToggle(btn); });
+  });
+  document.querySelectorAll('.ai-hide').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashAiHide(btn); });
+  });
+}
+
+function dashDetailRowHtml(s, lessons, colspan){
+  const act = $('selActivity').value;
+  const recs = s.records.filter(r => !act || String(r.gameName) === act);
+
+  /* v24: 세로로 쭉 나열되던 걸 활동별로 묶은 접이식(<details>) 카드로 변경.
+   * 1) 같은 활동끼리 묶어서(그 안에서는 최신순) 보여주면 중복 제출이 자연스럽게
+   *    옆에 붙어 비교하기 쉬움 — 예전엔 시간순 전체 나열이라 다른 활동이 사이에 끼었음.
+   * 2) 기본은 접혀 있고 클릭해야 펼쳐지므로, 활동 개수가 많아도 목록 자체는 짧게 유지됨.
+   * 3) 같은 활동에 제출이 2건 이상이면 "중복 N건" 배지 + 각 카드에 삭제 버튼을 붙여서
+   *    바로 정리할 수 있게 함(dashDeleteActivityRow, 백엔드 action=deleteActivityRow). */
+  const byGame = {};
+  recs.forEach(r => { const g = String(r.gameName); (byGame[g] = byGame[g] || []).push(r); });
+  Object.values(byGame).forEach(list => list.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)));
+
+  // v27: 커리큘럼 정의 순서를 우선으로 정렬(수업 순서대로 보이게) — 이제 lesson.id가 아니라
+  // 차시 안의 각 activity.id 기준으로 펼쳐서 순서를 만든다. 없는 게임명(옛 활동 등)은 뒤에 붙임.
+  const knownActIds = lessons.flatMap(l => l.activities.map(a => a.id));
+  const orderedGameNames = [
+    ...knownActIds.filter(id => byGame[id]),
+    ...Object.keys(byGame).filter(g => !knownActIds.includes(g))
+  ];
+
+  /* v26(2-2) — 활동 개수가 많아지면 접힌 카드가 세로로 계속 쌓여서 가독성이
+   * 떨어지던 문제. 활동별 최신 제출 기준으로 가장 최근 3개만 바로 보이게 하고,
+   * 나머지는 curriculum 순서 그대로 "이전 활동 N건 더보기" 안에 묶어둠. */
+  const gameNamesByRecency = [...orderedGameNames]
+    .sort((a, b) => new Date(byGame[b][0].timestamp) - new Date(byGame[a][0].timestamp));
+  const recentGameNames = new Set(gameNamesByRecency.slice(0, 3));
+  const recentOrdered = orderedGameNames.filter(g => recentGameNames.has(g));
+  const pastOrdered = orderedGameNames.filter(g => !recentGameNames.has(g));
+
+  const renderGameGroup = gameName => {
+    const group = byGame[gameName];
+    const dupCount = group.length;
+    return group.map((r, idx) => {
+      const aiComment = String(r['AI코멘트']||'').trim();
+      const aiChecked = String(r['AI코멘트확인']||'').trim();
+      const rowNum = r._row || '';
+      let aiBox = '';
+      if (aiComment && rowNum) {
+        aiBox = `
+          <div class="ai-box" data-row="${rowNum}">
+            <div class="ai-head">
+              <span class="ai-title">🤖 AI 코멘트 (학생에게 표시 중)</span>
+              <span class="ai-chip ${aiChecked ? 'ok' : 'wait'}">${aiChecked ? '검토 완료' : '미검토'}</span>
+              <span class="ai-actions">
+                ${aiChecked ? '' : `<button class="btn-tiny ai-confirm" data-row="${rowNum}">확인</button>`}
+                <button class="btn-tiny ai-editbtn" data-row="${rowNum}">수정</button>
+                <button class="btn-tiny ai-hide" data-row="${rowNum}">숨기기</button>
+              </span>
+            </div>
+            <div class="ai-text">${escapeHtml(aiComment)}</div>
+          </div>`;
+      }
+      const dupBadge = dupCount > 1
+        ? `<span class="dup-badge" title="같은 활동에 제출이 ${dupCount}건 있어요">중복 ${idx+1}/${dupCount}${idx===0 ? ' · 최신' : ''}</span>`
+        : '';
+      return `
+      <details class="rec-collapse${dupCount > 1 ? ' rec-dup' : ''}">
+        <summary class="rec-summary">
+          <span class="rec-summary-main">
+            <span class="rec-title">${escapeHtml(dashLessonTitle(gameName))}</span>
+            ${dupBadge}
+          </span>
+          <span class="rec-summary-side">
+            <span class="rec-meta">${formatDate(r.timestamp)} · 성취 ${escapeHtml(String(r['성취수준']||'분석 전'))}</span>
+            ${rowNum ? `<button class="btn-tiny rec-delete" data-row="${rowNum}" onclick="dashDeleteActivityRow(event, this)">삭제</button>` : ''}
+          </span>
+        </summary>
+        <div class="rec-body">
+          <dl>
+            <dt>선택 요약</dt><dd>${escapeHtml(String(r.choiceSummary||'—'))}</dd>
+            <dt>학생 서술</dt><dd>${escapeHtml(String(r.reflection||'—'))}</dd>
+            <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
+            <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
+          </dl>
+          ${aiBox}
+        </div>
+      </details>`;
+    }).join('');
+  };
+
+  const recentHtml = recentOrdered.map(renderGameGroup).join('');
+  const pastHtml = pastOrdered.length
+    ? `<details class="cl-past-collapse">
+         <summary>이전 활동 ${pastOrdered.length}건 더보기 <span class="cl-arrow">▶</span></summary>
+         <div class="cl-past-list">${pastOrdered.map(renderGameGroup).join('')}</div>
+       </details>`
+    : '';
+  const recHtml = orderedGameNames.length ? (recentHtml + pastHtml) : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
+
+  const fbHtml = s.feedbacks.length ? `<div class="fb-history">${
+    s.feedbacks.map(f => `<div class="fb-item">
+      <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(dashLessonTitle(String(f.activityId)))}</div>
+      ${escapeHtml(String(f.feedback))}</div>`).join('')}</div>` : '';
+
+  const options = '<option value="전체">전체(학기 총평)</option>'
+    + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
+
+const selBtnHtml = `<div style="margin-bottom:10px;">
+  <button class="btn btn-sm" onclick="openSelPopup('${s.sid}')">🧭 SEL 특성 보기</button>
+</div>`;
+
+  return `
+    <tr class="detail-row"><td colspan="${colspan}">
+      ${selBtnHtml}
+      ${recHtml}
+      ${fbHtml}
+      <div class="fb-form">
+        <select class="fb-activity">${options}</select>
+        <textarea class="fb-text" placeholder="${escapeHtml(s.name)} 학생에게 보낼 피드백 — 학생 포털의 해당 활동 카드에 표시됩니다"></textarea>
+        <button class="btn btn-sm fb-send" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">보내기</button>
+      </div>
+    </td></tr>`;
+}
+
+/* ── 중복/오류 제출 삭제 (v18-3) ──
+ * event.preventDefault()로 <summary> 안 버튼을 눌러도 <details>가 열리지
+ * 않게 막음(안 막으면 삭제 버튼 클릭이 아코디언 토글도 같이 실행시킴). */
+async function dashDeleteActivityRow(ev, btn){
+  ev.preventDefault();
+  ev.stopPropagation();
+  const row = btn.dataset.row;
+  const rec = dashFindRowRec(row);
+  const label = rec ? dashLessonTitle(String(rec.gameName)) : '이';
+  if(!confirm(`"${label}" 제출 기록을 삭제할까요? 되돌릴 수 없고, 학생 포털에서도 즉시 사라져요.`)) return;
+  btn.disabled = true; btn.textContent = '삭제 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'deleteActivityRow', token:TOKEN, row })
+    });
+    ROWS = ROWS.filter(r => String(r._row) !== String(row));
+    showToast('기록을 삭제했어요.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false; btn.textContent = '삭제';
+    showToast('삭제하지 못했어요. 다시 시도해 주세요.');
+  }
+}
+
+/* ── AI 코멘트 관리 ── */
+function dashFindRowRec(rowNum){
+  return ROWS.find(r => String(r._row) === String(rowNum));
+}
+async function dashAiPost(payload){
+  const res = await fetch(CONFIG.WEBAPP_URL, {
+    method:'POST',
+    body: JSON.stringify(Object.assign({ token: TOKEN }, payload))
+  });
+  const data = await res.json();
+  if (data.result !== 'success') throw new Error(data.message || '요청 실패');
+}
+async function dashAiConfirm(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await dashAiPost({ action:'aiReview', row });
+    const rec = dashFindRowRec(row);
+    if(rec) rec['AI코멘트확인'] = '확인';
+    showToast('검토 완료로 표시했어요.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false;
+    showToast('처리하지 못했어요: ' + e.message);
+  }
+}
+function dashAiEditToggle(btn){
+  const box = btn.closest('.ai-box');
+  if(box.querySelector('.ai-edit-area')) return;
+  const rec = dashFindRowRec(box.dataset.row);
+  const current = rec ? String(rec['AI코멘트']||'') : '';
+  const textEl = box.querySelector('.ai-text');
+  textEl.innerHTML = `
+    <textarea class="ai-edit-area">${escapeHtml(current)}</textarea>
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <button class="btn-tiny ai-save" data-row="${box.dataset.row}">저장</button>
+      <button class="btn-tiny ai-cancel">취소</button>
+    </div>`;
+  textEl.querySelector('.ai-save').addEventListener('click', async ev => {
+    ev.stopPropagation();
+    const saveBtn = ev.currentTarget;
+    const newText = textEl.querySelector('.ai-edit-area').value.trim();
+    saveBtn.disabled = true;
+    try{
+      await dashAiPost({ action:'aiEdit', row: box.dataset.row, comment: newText });
+      if(rec){ rec['AI코멘트'] = newText; rec['AI코멘트확인'] = '확인'; }
+      showToast('AI 코멘트를 수정했어요. 학생 화면에 바로 반영됩니다.');
+      renderDash();
+    }catch(e){
+      saveBtn.disabled = false;
+      showToast('저장하지 못했어요: ' + e.message);
+    }
+  });
+  textEl.querySelector('.ai-cancel').addEventListener('click', ev => {
+    ev.stopPropagation(); renderDash();
+  });
+}
+async function dashAiHide(btn){
+  if(!confirm('이 AI 코멘트를 학생 화면에서 숨길까요? (내용이 지워집니다)')) return;
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await dashAiPost({ action:'aiEdit', row, comment: '' });
+    const rec = dashFindRowRec(row);
+    if(rec){ rec['AI코멘트'] = ''; rec['AI코멘트확인'] = '확인'; }
+    showToast('AI 코멘트를 숨겼어요.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false;
+    showToast('처리하지 못했어요: ' + e.message);
+  }
+}
+
+async function dashSendFeedback(btn){
+  const wrap = btn.closest('.fb-form');
+  const text = wrap.querySelector('.fb-text').value.trim();
+  const activityId = wrap.querySelector('.fb-activity').value;
+  if(!text){ showToast('피드백 내용을 입력해 주세요.'); return; }
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({
+        action:'feedback', token:TOKEN,
+        studentId:btn.dataset.sid, studentName:btn.dataset.name,
+        activityId, feedback:text
+      })
+    });
+    FEEDBACKS.push({ timestamp:new Date().toISOString(), studentId:btn.dataset.sid,
+      studentName:btn.dataset.name, activityId, feedback:text });
+    showToast('피드백을 보냈어요. 학생 포털의 해당 활동 카드에 표시됩니다.');
+    renderDash();
+  }catch(e){
+    btn.disabled = false; btn.textContent = '보내기';
+    showToast('보내지 못했어요. 다시 시도해 주세요.');
+  }
+}
+
+function dashDownloadCsv(){
+  const rows = dashFilteredRows();
+  if(!rows.length){ showToast('내려받을 기록이 없어요.'); return; }
+  const cols = [
+    ['타임스탬프', r=>{ const d=new Date(r.timestamp); return isNaN(d)?'':d.toLocaleString('ko-KR'); }],
+    ['학번', r=>r.studentId], ['이름', r=>r.studentName],
+    ['활동', r=>dashLessonTitle(String(r.gameName))], ['게임명(원본)', r=>r.gameName],
+    ['선택 요약', r=>r.choiceSummary], ['실제 역사와의 차이', r=>r.diffSummary],
+    ['학생 서술', r=>r.reflection],
+    ['분류태그', r=>r['분류태그']||''], ['1줄요약', r=>r['1줄요약']||''],
+    ['성취수준', r=>r['성취수준']||''], ['판단근거', r=>r['판단근거']||''],
+    ['AI코멘트', r=>r['AI코멘트']||''], ['AI코멘트확인', r=>r['AI코멘트확인']||'']
+  ];
+  const esc = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+  const csv = '\uFEFF' + cols.map(c=>esc(c[0])).join(',') + '\n'
+    + rows.map(r => cols.map(c=>esc(c[1](r))).join(',')).join('\n');
+  const grade = $('selGrade').value, ban = $('selBan').value;
+  const name = `학습기록_${grade}학년${ban? '_'+ban+'반':''}_${new Date().toISOString().slice(0,10)}.csv`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function dashLessonTitle(id){
+  if(id === '전체') return '전체(학기 총평)';
+  return lessonTitle(id);
+}
+function dashDots(lv){ return lv==='상'?'●●●':lv==='중'?'●●○':lv==='하'?'●○○':'◌'; }
+/* v26(2-2) — 평균 성취 계산: 상=3/중=2/하=1로 환산해 평균 낸 뒤 다시 텍스트 등급으로 되돌림.
+ * 미분석(성취수준 빈값) 행은 평균 계산에서 제외한다. */
+const ACHIEVE_SCORE_ = { 상:3, 중:2, 하:1 };
+function dashAvgAchieveInfo_(records){
+  const scored = records.map(r => ACHIEVE_SCORE_[String(r['성취수준']||'').trim()]).filter(v => v !== undefined);
+  if(!scored.length) return null;
+  const avg = scored.reduce((a,b) => a+b, 0) / scored.length;
+  const label = avg >= 2.5 ? '상' : avg >= 1.5 ? '중' : '하';
+  return { label, avg: avg.toFixed(1), count: scored.length };
+}
+/* v26(2-2) — 학생의 records 중 타임스탬프가 가장 최근인 것 하나. 반·활동 순서와 무관하게
+ * 개인별로 계산하므로 반마다 진도가 달라도 문제없음. */
+function dashMostRecentRecord_(records){
+  if(!records.length) return null;
+  return records.reduce((a,b) => new Date(b.timestamp) - new Date(a.timestamp) > 0 ? b : a);
+}
+function dashShorten(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
+
+/* 대시보드 이벤트 */
+$('btnTeacherMode').addEventListener('click', () => {
+  const g = $('teacherGate');
+  const open = g.style.display === 'block';
+  g.style.display = open ? 'none' : 'block';
+  if(!open){
+    const saved = store.get('dash_token');
+    if(saved) $('tokenInput').value = saved;
+    $('tokenInput').focus();
+  }
+});
+
+/* ── 학생 화면 미리보기 (교사용) ──
+ * 실제 학생 로그인 없이 특정 학년·반 화면을 바로 확인. 백엔드 조회 없이
+ * SESSION·STUDENT_DATA를 클라이언트에서 채워 넣는 방식이라 실제 기록에 영향 없음.
+ * 단, 모듈형 활동(게임 등)의 "하러 가기" 링크는 실제 활동 페이지로 이동하므로
+ * 거기서 실제로 제출하면 시트에 남을 수 있음 — 화면만 확인하는 용도로 안내함. */
+function previewInitGradeOptions(){
+  const grades = Object.keys(CONFIG.CURRICULUM);
+  $('previewGrade').innerHTML = grades.map(g =>
+    `<option value="${g}">${g}학년 ${CONFIG.CURRICULUM[g].subject}</option>`).join('');
+}
+async function startPreview(){
+  const grade = Number($('previewGrade').value);
+  const ban = Math.max(1, Number($('previewBan').value) || 1);
+  const withSample = $('previewSample').checked;
+  const cur = CONFIG.CURRICULUM[grade];
+  if(!cur){ showToast('해당 학년 설정을 찾을 수 없어요.'); return; }
+
+  PREVIEW_MODE = true;
+  SESSION = { studentId: `${grade}${String(ban).padStart(2,'0')}99`, name: '미리보기 학생', grade, ban, num: 99 };
+
+  let activities = [], feedback = [];
+  if(withSample){
+    // v27: 활동 배열에서 URL 있는 활동만 최대 2개 뽑아 예시로 채움(차시 단위가 아니라 활동 단위).
+    const sampleActs = [];
+    cur.lessons.forEach(l => { l.activities.forEach(a => { if(a.url || a.urlByBan) sampleActs.push(a); }); });
+    activities = sampleActs.slice(0, 2).map((a, i) => ({
+      activityId: a.id,
+      achievement: i === 0 ? '상' : '중',
+      summary: '(예시) 자료를 근거로 판단 이유를 구체적으로 서술함',
+      aiComment: '(예시) 두 선택지의 차이를 잘 짚었어요. 다음엔 반대 입장도 함께 고려해보면 더 좋겠어요.',
+      reflection: '(예시 학생 서술) 내가 그 자리였다면 이런 선택을 했을 것 같다. 왜냐하면…',
+      timestamp: new Date().toISOString()
+    }));
+    feedback = [{ timestamp: new Date().toISOString(), activityId: '전체', feedback: '(예시) 이번 학기 전반적으로 성실하게 참여했어요.' }];
+  }
+  STUDENT_DATA = { activities, feedback };
+
+  $('teacherGate').style.display = 'none';
+  $('previewGate').style.display = 'none';
+
+  /* v19: "체크인문항"에 등록만 돼 있고 "오늘의 차시"로 지정 안 된 문항까지
+   * lessons[0]로 무조건 집어와서 미리보기가 뜨던 버그 수정. 실제 학생 흐름
+   * (maybeStartCheckin)과 동일하게 checkinToday API로 "오늘 지정된" 차시id를
+   * 확인해서, 그게 있을 때만 체크인 화면을 보여줌. 조회 실패·미지정 시엔
+   * 기존처럼 조용히 바로 포털로 진입. */
+  let lesson = null;
+  if(CHECKIN_PLAN && CHECKIN_PLAN[grade]){
+    try{
+      const res = await fetch(CONFIG.WEBAPP_URL
+        + "?mode=checkinToday&grade=" + encodeURIComponent(grade)
+        + "&ban=" + encodeURIComponent(ban));
+      const data = await res.json();
+      const lessonId = (data.result === 'success') ? data.lessonId : '';
+      if(lessonId){
+        lesson = (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) || null;
+      }
+    }catch(e){ lesson = null; }
+  }
+  if(lesson){
+    CHECKIN_CTX = { grade, lessonId: lesson.id, lesson, temperature: null };
+    enterCheckinFlow();
+  } else {
+    openBook(true);
+  }
+}
+$('btnPreviewMode').addEventListener('click', () => {
+  const g = $('previewGate');
+  const open = g.style.display === 'block';
+  g.style.display = open ? 'none' : 'block';
+});
+$('btnPreviewStart').addEventListener('click', startPreview);
+$('btnGate').addEventListener('click', () => enterDash($('tokenInput').value.trim()));
+$('tokenInput').addEventListener('keydown', e => { if(e.key==='Enter') $('btnGate').click(); });
+$('selGrade').addEventListener('change', () => { openDetailSid=null; dashRefreshBanOptions(); dashRefreshActivityOptions(); renderDash(); });
+$('selBan').addEventListener('change', () => { openDetailSid=null; renderDash(); });
+$('selActivity').addEventListener('change', () => renderDash());
+$('studentSearch').addEventListener('input', () => {
+  const matches = dashSearchStudents_($('studentSearch').value);
+  if(!$('studentSearch').value.trim()){ $('studentSearchResults').style.display = 'none'; return; }
+  dashRenderSearchResults_(matches);
+});
+$('studentSearch').addEventListener('keydown', ev => {
+  if(ev.key !== 'Enter') return;
+  const matches = dashSearchStudents_($('studentSearch').value);
+  if(matches.length === 1) dashJumpToStudent_(matches[0].sid);
+});
+document.addEventListener('click', ev => {
+  if(!$('studentSearchWrap').contains(ev.target)) $('studentSearchResults').style.display = 'none';
+});
+$('btnCsv').addEventListener('click', dashDownloadCsv);
+$('btnClCancelEdit').addEventListener('click', dashResetLessonForm);
+$('clMulti').addEventListener('change', clToggleMulti);
+$('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
+$('ckqFormType').addEventListener('change', ckqToggleTypeFields);
+$('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);
+$('ckSetGrade').addEventListener('change', () => { dashRefreshCkSetLessons(); dashLoadCkSetCurrent(); });
+$('ckSetBan').addEventListener('change', dashLoadCkSetCurrent);
+$('btnCkSetApply').addEventListener('click', dashApplyCkSet);
+$('ckViewGrade').addEventListener('change', () => { dashRefreshCkViewBans(); dashLoadCheckinAdmin(); });
+$('ckViewBan').addEventListener('change', dashLoadCheckinAdmin);
+$('btnCkViewRefresh').addEventListener('click', dashLoadCheckinAdmin);
+$('btnDashRefresh').addEventListener('click', async () => {
+  showToast('새로고침 중…');
+  try{
+    await dashLoadData();
+    renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm();
+    if(CHECKIN_PLAN){
+      CK_TODAY_LESSON = {};
+      await dashLoadCkSetCurrent(); await dashLoadCheckinAdmin();
+      await dashLoadCheckinLessonsAdmin(); dashRenderCheckinLessonsList();
+    }
+    showToast('최신 기록으로 갱신했어요.');
+  }
+  catch(e){ showToast('갱신 실패: ' + e.message); }
+});
+$('btnDashOut').addEventListener('click', () => {
+  $('dashView').style.display = 'none';
+  $('loginView').style.display = 'flex';
+  $('teacherGate').style.display = 'none';
+});
+
+/* ── 초기 부팅: 커리큘럼(시트)을 먼저 불러온 뒤에야 로그인·미리보기·대시보드 필터가
+ * 의미 있는 CONFIG.CURRICULUM을 참조할 수 있음. 그 전엔 로그인 버튼을 잠가 둠. ── */
+(async function initPortal(){
+  const btn = $('btnLogin');
+  btn.disabled = true; btn.textContent = '커리큘럼 불러오는 중…';
+
+  const ok = await loadCurriculum();
+  if(!ok){
+    showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
+  }
+  loadCheckinPlan(); // 실패해도 로그인은 막지 않음 — 백그라운드로 진행, maybeStartCheckin이 필요시 재시도
+
+  btn.disabled = false; btn.textContent = '책 펼치기';
+  previewInitGradeOptions();
+
+  /* 자동 로그인 (이전 접속 기억) */
+  const saved = store.get('portal_session');
+  if(saved){
+    try{
+      const { sid, name } = JSON.parse(saved);
+      $('inputId').value = sid; $('inputName').value = name;
+      login(sid, name, true);
+    }catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
