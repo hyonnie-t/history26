@@ -2336,6 +2336,10 @@ function renderDash(){
     s.pct = activeLessons.length ? Math.round(done/activeLessons.length*100) : 0;
     s.doneCount = done;
     s.feedbacks = FEEDBACKS.filter(f => String(f.studentId).trim() === s.sid);
+    // v26(2-2): 활동별 열 대신 표에서는 "최근 활동"과 "평균 성취"만 요약해서 보여줌.
+    // 개별 활동 성취는 표에서 빼는 대신 상세 카드(펼쳐보기)에 그대로 남겨둠.
+    s.recentRecord = dashMostRecentRecord_(s.records);
+    s.avgAchieve = dashAvgAchieveInfo_(Object.values(s.achieve));
   });
 
   $('sumStudents').textContent = list.length;
@@ -2362,30 +2366,33 @@ function renderDash(){
 
   $('rowCount').textContent = `기록 ${rows.length}건`;
 
-  $('tableHead').innerHTML = '<tr><th>학번</th><th>이름</th><th>진행률</th>'
-    + lessons.map(l => `<th title="${escapeHtml(l.title)}">${escapeHtml(dashShorten(l.title, 8))}</th>`).join('')
-    + '</tr>';
+  $('tableHead').innerHTML =
+    '<tr><th>학번</th><th>이름</th><th>진행률</th><th>최근 활동</th><th>평균 성취</th></tr>';
 
   if(!list.length){
-    $('tableBody').innerHTML = `<tr><td colspan="${3+lessons.length}" class="empty-line">아직 이 조건에 해당하는 학생 기록이 없어요.</td></tr>`;
+    $('tableBody').innerHTML = `<tr><td colspan="5" class="empty-line">아직 이 조건에 해당하는 학생 기록이 없어요.</td></tr>`;
     return;
   }
 
   $('tableBody').innerHTML = list.map(s => {
-    const cells = lessons.map(l => {
-      if(!s.doneIds.has(l.id)) return '<td class="muted">—</td>';
-      const rec = s.achieve[l.id];
-      const lv = rec ? String(rec['성취수준']||'').trim() : '';
-      return `<td><span class="tbl-dots" title="${escapeHtml(lv||'분석 전')}">${dashDots(lv)}</span></td>`;
-    }).join('');
+    const recentCell = s.recentRecord
+      ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp))}">
+           ${escapeHtml(dashShorten(dashLessonTitle(String(s.recentRecord.gameName)), 10))}
+           <span class="tbl-dots" title="${escapeHtml(String(s.recentRecord['성취수준']||'분석 전'))}">${dashDots(String(s.recentRecord['성취수준']||'').trim())}</span>
+         </span>`
+      : '<span class="muted">—</span>';
+    const avgCell = s.avgAchieve
+      ? `<span class="tbl-dots" title="분석된 활동 ${s.avgAchieve.count}건 기준">${dashDots(s.avgAchieve.label)} ${s.avgAchieve.label} (${s.avgAchieve.avg})</span>`
+      : '<span class="muted">분석 전</span>';
     return `
       <tr class="student-row" data-sid="${s.sid}">
         <td>${s.sid}</td>
         <td>${escapeHtml(s.name)}${s.feedbacks.length ? '<span class="fb-dot" title="피드백 있음"></span>' : ''}</td>
         <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${activeLessons.length}</span></td>
-        ${cells}
+        <td>${recentCell}</td>
+        <td>${avgCell}</td>
       </tr>
-      ${openDetailSid === s.sid ? dashDetailRowHtml(s, lessons, 3+lessons.length) : ''}`;
+      ${openDetailSid === s.sid ? dashDetailRowHtml(s, lessons, 5) : ''}`;
   }).join('');
 
   document.querySelectorAll('tr.student-row').forEach(tr => {
@@ -2431,7 +2438,16 @@ function dashDetailRowHtml(s, lessons, colspan){
     ...Object.keys(byGame).filter(g => !lessons.some(l => l.id === g))
   ];
 
-  const recHtml = orderedGameNames.length ? orderedGameNames.map(gameName => {
+  /* v26(2-2) — 활동 개수가 많아지면 접힌 카드가 세로로 계속 쌓여서 가독성이
+   * 떨어지던 문제. 활동별 최신 제출 기준으로 가장 최근 3개만 바로 보이게 하고,
+   * 나머지는 curriculum 순서 그대로 "이전 활동 N건 더보기" 안에 묶어둠. */
+  const gameNamesByRecency = [...orderedGameNames]
+    .sort((a, b) => new Date(byGame[b][0].timestamp) - new Date(byGame[a][0].timestamp));
+  const recentGameNames = new Set(gameNamesByRecency.slice(0, 3));
+  const recentOrdered = orderedGameNames.filter(g => recentGameNames.has(g));
+  const pastOrdered = orderedGameNames.filter(g => !recentGameNames.has(g));
+
+  const renderGameGroup = gameName => {
     const group = byGame[gameName];
     const dupCount = group.length;
     return group.map((r, idx) => {
@@ -2480,14 +2496,23 @@ function dashDetailRowHtml(s, lessons, colspan){
         </div>
       </details>`;
     }).join('');
-  }).join('') : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
+  };
+
+  const recentHtml = recentOrdered.map(renderGameGroup).join('');
+  const pastHtml = pastOrdered.length
+    ? `<details class="cl-past-collapse">
+         <summary>이전 활동 ${pastOrdered.length}건 더보기 <span class="cl-arrow">▶</span></summary>
+         <div class="cl-past-list">${pastOrdered.map(renderGameGroup).join('')}</div>
+       </details>`
+    : '';
+  const recHtml = orderedGameNames.length ? (recentHtml + pastHtml) : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
 
   const fbHtml = s.feedbacks.length ? `<div class="fb-history">${
     s.feedbacks.map(f => `<div class="fb-item">
       <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(dashLessonTitle(String(f.activityId)))}</div>
       ${escapeHtml(String(f.feedback))}</div>`).join('')}</div>` : '';
 
-   const options = '<option value="전체">전체(학기 총평)</option>'
+  const options = '<option value="전체">전체(학기 총평)</option>'
     + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
 
   const selBtnHtml = `<div style="margin-bottom:10px;">
@@ -2660,6 +2685,22 @@ function dashLessonTitle(id){
   return lessonTitle(id);
 }
 function dashDots(lv){ return lv==='상'?'●●●':lv==='중'?'●●○':lv==='하'?'●○○':'◌'; }
+/* v26(2-2) — 평균 성취 계산: 상=3/중=2/하=1로 환산해 평균 낸 뒤 다시 텍스트 등급으로 되돌림.
+ * 미분석(성취수준 빈값) 행은 평균 계산에서 제외한다. */
+const ACHIEVE_SCORE_ = { 상:3, 중:2, 하:1 };
+function dashAvgAchieveInfo_(records){
+  const scored = records.map(r => ACHIEVE_SCORE_[String(r['성취수준']||'').trim()]).filter(v => v !== undefined);
+  if(!scored.length) return null;
+  const avg = scored.reduce((a,b) => a+b, 0) / scored.length;
+  const label = avg >= 2.5 ? '상' : avg >= 1.5 ? '중' : '하';
+  return { label, avg: avg.toFixed(1), count: scored.length };
+}
+/* v26(2-2) — 학생의 records 중 타임스탬프가 가장 최근인 것 하나. 반·활동 순서와 무관하게
+ * 개인별로 계산하므로 반마다 진도가 달라도 문제없음. */
+function dashMostRecentRecord_(records){
+  if(!records.length) return null;
+  return records.reduce((a,b) => new Date(b.timestamp) - new Date(a.timestamp) > 0 ? b : a);
+}
 function dashShorten(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
 
 /* 대시보드 이벤트 */
