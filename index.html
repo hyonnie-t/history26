@@ -1365,8 +1365,9 @@ function switchDashTab(tab){
   document.querySelectorAll('.dash-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
+}
 
-  const SEL_APP_URL = 'https://script.google.com/macros/s/AKfycbzQnKFwxatWB8od042GSGVuID9fn2aPy73S5v4v-Eh9EtFjOd7ha6ZUz9DXsdRq2M2H/exec';
+const SEL_APP_URL = 'https://script.google.com/macros/s/AKfycbzQnKFwxatWB8od042GSGVuID9fn2aPy73S5v4v-Eh9EtFjOd7ha6ZUz9DXsdRq2M2H/exec';
 
 function openSelModal(sid){
   const url = SEL_APP_URL + '?sid=' + encodeURIComponent(sid);
@@ -1377,7 +1378,6 @@ function openSelModal(sid){
 function closeSelModal(){
   $('selModal').style.display = 'none';
   $('selIframe').src = ''; // 닫을 때 비워서 다음에 열 때 새로 로드되게
-}
 }
 
 /* ── 커리큘럼 관리 — 서브탭 전환 (새 활동 추가 / 등록된 활동) v13 ── */
