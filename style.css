@@ -758,13 +758,28 @@ tr.student-row:hover td{background:#FBFAF4;}
 .prog-mini .fill{height:100%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); display:block;}
 .fb-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--jade); margin-left:6px;}
 tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
-.rec{border:1px solid var(--line); border-radius:10px; background:var(--card); padding:12px 14px; margin-bottom:10px; font-size:.9rem;}
-.rec .rec-head{display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:6px;}
-.rec .rec-title{font-weight:700;}
-.rec .rec-meta{color:var(--ink-soft); font-size:.83rem;}
-.rec dl{display:grid; grid-template-columns:88px 1fr; gap:4px 10px;}
-.rec dt{color:var(--ink-soft); font-size:.83rem;}
-.rec dd{word-break:break-word;}
+/* v24: 학생 상세 기록을 세로 나열 대신 접이식(<details>) 카드로 — 기본 접힘,
+ * 클릭해서 펼침. 같은 활동에 제출이 여러 건이면(rec-dup) 왼쪽 테두리를
+ * 오커색으로 강조해서 중복 정리 대상이 눈에 띄게 함. */
+.rec-collapse{border:1px solid var(--line); border-radius:10px; background:var(--card);
+  margin-bottom:8px; font-size:.9rem; overflow:hidden;}
+.rec-collapse.rec-dup{border-left:3px solid var(--ochre);}
+.rec-collapse summary{list-style:none; cursor:pointer;}
+.rec-collapse summary::-webkit-details-marker{display:none;}
+.rec-summary{display:flex; justify-content:space-between; align-items:center; gap:10px;
+  flex-wrap:wrap; padding:10px 14px;}
+.rec-summary:hover{background:#FBFAF4;}
+.rec-summary-main{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;}
+.rec-summary-side{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.rec-title{font-weight:700;}
+.rec-meta{color:var(--ink-soft); font-size:.83rem;}
+.dup-badge{font-size:.72rem; font-weight:700; color:#8A6A14; background:rgba(201,151,46,.16);
+  border-radius:999px; padding:2px 9px; white-space:nowrap;}
+.rec-delete:hover{border-color:var(--seal); color:var(--seal);}
+.rec-body{padding:0 14px 14px;}
+.rec-body dl{display:grid; grid-template-columns:88px 1fr; gap:4px 10px;}
+.rec-body dt{color:var(--ink-soft); font-size:.83rem;}
+.rec-body dd{word-break:break-word;}
 .ai-box{
   margin-top:10px; border:1px solid rgba(46,74,122,.25); background:rgba(46,74,122,.05);
   border-radius:10px; padding:10px 12px; font-size:.9rem;
