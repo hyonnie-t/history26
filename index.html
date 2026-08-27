@@ -494,10 +494,19 @@ async function login(sid, name, silent){
 
     SESSION = { studentId: sid, name, ...parsed };
     STUDENT_DATA = data;
-    STUDENT_DATA.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
     store.set('portal_session', JSON.stringify({ sid, name }));
 
-    const needsCheckin = await maybeStartCheckin();
+    /* v23: 공지사항 조회와 체크인 확인은 서로 독립적인 요청이라(둘 다
+     * SESSION만 있으면 됨, STUDENT_DATA와 무관) 순차로 기다리지 않고
+     * 병렬로 쏨. Apps Script 호출 하나당 콜드스타트·동시접속 지연이
+     * 붙는 구조라, 순차 2번을 병렬 1번 분량으로 줄여서 로그인 체감
+     * 속도를 개선 — 특히 반 전체가 한꺼번에 로그인하는 순간에 효과가 큼. */
+    const [announcements, needsCheckin] = await Promise.all([
+      fetchAnnouncements(parsed.grade, parsed.ban),
+      maybeStartCheckin()
+    ]);
+    STUDENT_DATA.announcements = announcements;
+
     if(needsCheckin){
       enterCheckinFlow();
     } else {
