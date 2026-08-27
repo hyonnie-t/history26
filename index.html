@@ -2487,11 +2487,18 @@ function dashDetailRowHtml(s, lessons, colspan){
       <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(dashLessonTitle(String(f.activityId)))}</div>
       ${escapeHtml(String(f.feedback))}</div>`).join('')}</div>` : '';
 
-  const options = '<option value="전체">전체(학기 총평)</option>'
+   const options = '<option value="전체">전체(학기 총평)</option>'
     + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
+
+  const selBtnHtml = `<div style="margin-bottom:10px;">
+    <a class="btn btn-sm" style="text-decoration:none;"
+       href="https://script.google.com/macros/s/AKfycbzQnKFwxatWB8od042GSGVuID9fn2aPy73S5v4v-Eh9EtFjOd7ha6ZUz9DXsdRq2M2H/exec?sid=${s.sid}"
+       target="_blank" rel="noopener">🧭 SEL 특성 보기</a>
+  </div>`;
 
   return `
     <tr class="detail-row"><td colspan="${colspan}">
+      ${selBtnHtml}
       ${recHtml}
       ${fbHtml}
       <div class="fb-form">
