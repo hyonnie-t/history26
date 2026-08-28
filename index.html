@@ -2295,10 +2295,18 @@ async function dashAddLesson(btn){
 
   btn.disabled = true; btn.textContent = '추가하는 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType })
     });
+    // v23 버그 수정 — 지금까지 여기서 서버 응답을 안 읽어서, 백엔드가 에러를 던져도
+    // 프론트는 무조건 "저장했어요"를 띄웠음(실패가 조용히 묻힘). 이제 result:'success'가
+    // 아니면 실패로 처리하고 실제 에러 메시지를 보여줌 — 아래서 리스트 새로고침도 안 함.
+    const json = await res.json().catch(() => null);
+    if(!json || json.result !== 'success'){
+      showToast('저장하지 못했어요' + (json && json.message ? ': ' + json.message : '') + ' — 다시 시도해 주세요.');
+      return;
+    }
     dashResetLessonForm();
     showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
     await dashLoadData();
@@ -2393,10 +2401,17 @@ async function dashUpdateLesson(btn, row){
 
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential, owner, thinkingType })
     });
+    // v23 버그 수정 — addLesson과 동일: 서버 응답을 확인 안 하면 백엔드가 던진 에러가
+    // 조용히 묻히고 무조건 "저장했어요"가 뜸. result:'success' 아니면 실패로 처리.
+    const json = await res.json().catch(() => null);
+    if(!json || json.result !== 'success'){
+      showToast('저장하지 못했어요' + (json && json.message ? ': ' + json.message : '') + ' — 다시 시도해 주세요.');
+      return;
+    }
     dashResetLessonForm();
     showToast('활동 내용을 수정했어요.');
     await dashLoadData();
