@@ -794,6 +794,8 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .rec-meta{color:var(--ink-soft); font-size:.83rem;}
 .dup-badge{font-size:.72rem; font-weight:700; color:#8A6A14; background:rgba(201,151,46,.16);
   border-radius:999px; padding:2px 9px; white-space:nowrap;}
+.ai-suspect-badge{font-size:.72rem; font-weight:700; color:var(--seal); background:rgba(176,58,46,.12);
+  border-radius:999px; padding:2px 9px; white-space:nowrap;}
 .rec-delete:hover{border-color:var(--seal); color:var(--seal);}
 .rec-body{padding:0 14px 14px;}
 .rec-body dl{display:grid; grid-template-columns:88px 1fr; gap:4px 10px;}

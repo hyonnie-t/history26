@@ -306,6 +306,15 @@
           지금 상태로 저장하면 이 차시는 <b>아무 반에도 안 보여요</b> — 학년 정보부터 채워 주세요.
         </p>
 
+        <label style="font-size:.85rem; display:block; margin-bottom:-2px;">사고유형 — "학습 칭호" 판정에 쓰여요, 자유서술형이면 선택 안 함</label>
+        <select id="clThinkingType">
+          <option value="">(선택 안 함)</option>
+          <option value="판단">판단</option>
+          <option value="비교">비교</option>
+          <option value="해석">해석</option>
+          <option value="관점">관점</option>
+        </select>
+
         <label class="cl-hint">
           링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
         </label>
@@ -2273,6 +2282,7 @@ async function dashAddLesson(btn){
   const url = $('clUrl').value.trim();
   const isPublic = $('clPublic').checked;
   const owner = $('clOwner').value;
+  const thinkingType = $('clThinkingType').value;
   if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -2287,7 +2297,7 @@ async function dashAddLesson(btn){
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner })
+      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType })
     });
     dashResetLessonForm();
     showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
@@ -2317,6 +2327,7 @@ function dashEditLesson(btn){
   $('clUrl').value = l.urlText || '';
   $('clOwner').value = l.owner || '공통';
   clRefreshOwnerHint();
+  $('clThinkingType').value = l.thinkingType || '';
   $('clPublicRow').style.display = 'none'; // 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
   $('clEditBanner').style.display = 'block';
   $('btnAddLesson').textContent = '수정 저장';
@@ -2352,6 +2363,7 @@ function dashResetLessonForm(){
   $('clTitle').value = ''; $('clDesc').value = ''; $('clUrl').value = ''; $('clPublic').checked = false;
   $('clOwner').value = TEACHER_NAME || '공통';
   $('clOwnerHint').style.display = 'none';
+  $('clThinkingType').value = '';
   $('clMulti').checked = false;
   ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
     .forEach(id => { $(id).value = ''; });
@@ -2368,6 +2380,7 @@ async function dashUpdateLesson(btn, row){
   const type = $('clType').value;
   const url = $('clUrl').value.trim();
   const owner = $('clOwner').value;
+  const thinkingType = $('clThinkingType').value;
   if(!title){ showToast('제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -2382,7 +2395,7 @@ async function dashUpdateLesson(btn, row){
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential, owner })
+      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential, owner, thinkingType })
     });
     dashResetLessonForm();
     showToast('활동 내용을 수정했어요.');
@@ -2802,12 +2815,21 @@ function dashDetailRowHtml(s, lessons, colspan){
       const dupBadge = dupCount > 1
         ? `<span class="dup-badge" title="같은 활동에 제출이 ${dupCount}건 있어요">중복 ${idx+1}/${dupCount}${idx===0 ? ' · 최신' : ''}</span>`
         : '';
+      // v23(핸드오프 "AI 작성 판독") — ai_module_v9.gs가 채운 참고용 등급.
+      // "중간" 이상일 때만 노출, 낮음/빈값이면 아예 표시 안 함(과신 방지 — 참고 배지일 뿐 확정 아님).
+      const suspectLevel = String(r['AI작성의심도']||'').trim();
+      const suspectReason = String(r['AI작성의심근거']||'').trim();
+      const showSuspect = suspectLevel === '중간' || suspectLevel === '높음';
+      const suspectBadge = showSuspect
+        ? `<span class="ai-suspect-badge" title="근거는 아래 펼쳐서 확인 — 참고용 판정이며 확정 아님">🔍 확인 요청 · ${escapeHtml(suspectLevel)}</span>`
+        : '';
       return `
       <details class="rec-collapse${dupCount > 1 ? ' rec-dup' : ''}">
         <summary class="rec-summary">
           <span class="rec-summary-main">
             <span class="rec-title">${escapeHtml(dashLessonTitle(gameName))}</span>
             ${dupBadge}
+            ${suspectBadge}
           </span>
           <span class="rec-summary-side">
             <span class="rec-meta">${formatDate(r.timestamp)} · 성취 ${escapeHtml(String(r['성취수준']||'분석 전'))}</span>
@@ -2820,6 +2842,7 @@ function dashDetailRowHtml(s, lessons, colspan){
             <dt>학생 서술</dt><dd>${escapeHtml(String(r.reflection||'—'))}</dd>
             <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
             <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
+            ${showSuspect ? `<dt>🔍 AI 작성 의심 근거</dt><dd>${escapeHtml(suspectReason||'—')} <span class="muted">(참고용 판정 — 확정 아님, 최종 판단은 교사)</span></dd>` : ''}
           </dl>
           ${aiBox}
         </div>
