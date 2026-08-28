@@ -80,6 +80,7 @@
 
   <div class="layout">
     <!-- 좌측: 내 서재 -->
+    <div class="side-col">
     <aside class="side-card" aria-label="내 탐구 나무">
       <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
       <p class="side-name" id="sideName">—</p>
@@ -90,6 +91,15 @@
       <p class="rank-next" id="rankNext"></p>
       <p class="tree-note">활동을 완료하면 나무에 잎이 돋고,<br>다시 도전하면 포인트가 더 쌓여요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
     </aside>
+
+    <!-- 칭호첩(특별 칭호) — 탐구 나무·랭크 카드와는 별개 카드.
+         STUDENT_DATA.badges(backend_v23 computeBadges_ 결과)를 그대로 그림 —
+         필드 자체가 없을 수 있음(교사 미리보기 모드) → renderBadges가 방어적으로 처리. -->
+    <aside class="side-card badge-card" aria-label="칭호첩">
+      <p class="bc-title">🎖️ 칭호첩</p>
+      <div class="bc-groups" id="badgeGroups"></div>
+    </aside>
+    </div>
 
     <!-- 우측 메인 -->
     <main>
@@ -992,6 +1002,11 @@ function renderPortal(){
   $('treeBox').setAttribute('aria-label',
     `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessonsCount}개`);
 
+  /* 칭호첩(특별 칭호) — renderPortal은 로그인 직후·refreshStudentData 재조회 시
+   * 둘 다에서 호출되므로 여기 한 곳에서만 처리하면 두 트리거를 모두 커버한다. */
+  renderBadges(STUDENT_DATA.badges);
+  checkNewBadges(STUDENT_DATA.badges);
+
   /* 단원 관통 질문 배너 */
   const uq = (cur.unitQuestion || '').trim();
   if (uq) {
@@ -1384,6 +1399,83 @@ function showToast(msg){
   t.textContent = msg; t.classList.add('show');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ════════════════════════════════════════════════════════
+ * 칭호첩(특별 칭호) — v23 연동
+ * backend_v23.gs studentGet_이 이미 계산해서 내려주는 badges 배열을 그대로
+ * 그리기만 한다(계산은 백엔드 computeBadges_ 담당, 프론트는 렌더링 전담).
+ * badges[i] = { id, name, emoji, category('learning'|'behavior'|'strength'),
+ *               type('once'|'repeat'), earned, count }
+ * 교사 미리보기 모드는 STUDENT_DATA에 badges 필드 자체가 안 실리므로
+ * (startPreview 참고) badges가 undefined/빈 배열인 경우를 항상 방어적으로 처리.
+ * ════════════════════════════════════════════════════════ */
+const BADGE_CATEGORY_ORDER = ['learning', 'behavior', 'strength'];
+const BADGE_CATEGORY_LABEL = { learning: '학습 칭호', behavior: '행동 칭호', strength: '강점 칭호' };
+const BADGE_CATEGORY_CLASS = { learning: 'bc-blue', behavior: 'bc-orange', strength: 'bc-purple' };
+
+function renderBadgeChip(b){
+  // 1회성(once) 획득 = 골드 테두리 / 반복(repeat) 획득 = 실버 테두리 + ×N / 미획득 = 흐리게
+  const stateClass = !b.earned ? 'bc-locked' : (b.type === 'once' ? 'bc-once' : 'bc-repeat');
+  const colorClass = b.earned ? (BADGE_CATEGORY_CLASS[b.category] || '') : '';
+  const countHtml = (b.earned && b.type === 'repeat' && b.count > 1) ? `<span class="bc-count">×${b.count}</span>` : '';
+  return `
+    <div class="badge-chip ${stateClass} ${colorClass}" title="${escapeHtml(b.name)}">
+      <span class="bc-emoji">${b.emoji}</span>
+      <span class="bc-name">${escapeHtml(b.name)}</span>
+      ${countHtml}
+    </div>`;
+}
+
+function renderBadges(badges){
+  const wrap = $('badgeGroups');
+  if(!wrap) return;
+  const list = badges || [];
+  if(!list.length){
+    wrap.innerHTML = '<p class="bc-empty">칭호 정보가 없어요.</p>';
+    return;
+  }
+  const byCategory = {};
+  list.forEach(b => { (byCategory[b.category] = byCategory[b.category] || []).push(b); });
+  wrap.innerHTML = BADGE_CATEGORY_ORDER
+    .filter(cat => (byCategory[cat] || []).length)
+    .map(cat => `
+      <div class="bc-group">
+        <p class="bc-group-label ${BADGE_CATEGORY_CLASS[cat]}">${escapeHtml(BADGE_CATEGORY_LABEL[cat])}</p>
+        <div class="bc-row">${byCategory[cat].map(renderBadgeChip).join('')}</div>
+      </div>`).join('');
+}
+
+/* 새로 획득한 칭호만 토스트로 알림(상시 노출 안 함). 학번별로 "이전에 이미
+ * 획득 확인한 칭호 id" 목록을 localStorage에 저장해두고, studentGet_ 응답이
+ * 올 때마다(로그인 시 + refreshStudentData 재조회 시 — 둘 다 renderPortal을
+ * 거치므로 여기 한 곳에서 처리하면 충분) 그 기준선에 없던 새 획득만 골라낸다.
+ * - 첫 조회(기준선이 아예 없음, store.get이 null)에는 토스트 없이 기준선만 저장 —
+ *   안 그러면 이미 칭호를 여러 개 가진 학생이 처음 로그인할 때 전부 "신규"로 뜬다.
+ * - 여러 개가 동시에 새로 잡히면(예: 재도전 배지 + 강점 배지 동시 충족) showToast()가
+ *   단일 슬롯이라 하나만 남고 덮어써지므로, 개별 토스트를 띄우는 대신 문구 하나로
+ *   합쳐서 전부 언급되게 한다.
+ * - 미리보기 모드는 실제 기록이 아니므로 토스트도, 기준선 갱신도 하지 않는다. */
+function checkNewBadges(badges){
+  if(!SESSION || PREVIEW_MODE) return;
+  if(!badges || !badges.length) return; // 구버전 응답 등으로 필드 자체가 없으면 조용히 건너뜀
+  const key = 'badges_seen_' + SESSION.studentId;
+  const earnedIds = badges.filter(b => b.earned).map(b => b.id);
+  const raw = store.get(key);
+  if(raw === null){
+    store.set(key, JSON.stringify(earnedIds));
+    return;
+  }
+  let prevIds = [];
+  try{ prevIds = JSON.parse(raw) || []; }catch(e){ prevIds = []; }
+  const prevSet = new Set(prevIds);
+  const newlyEarned = badges.filter(b => b.earned && !prevSet.has(b.id));
+  store.set(key, JSON.stringify(earnedIds));
+  if(!newlyEarned.length) return;
+  const msg = newlyEarned.length === 1
+    ? `🎉 ${newlyEarned[0].name} 획득!`
+    : `🎉 ${newlyEarned[0].name} 외 ${newlyEarned.length - 1}개 칭호 획득!`;
+  showToast(msg);
 }
 
 /* ── 이벤트 바인딩 ── */
