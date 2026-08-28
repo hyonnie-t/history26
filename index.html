@@ -93,8 +93,11 @@
     </aside>
 
     <!-- 칭호첩(특별 칭호) — 탐구 나무·랭크 카드와는 별개 카드.
-         STUDENT_DATA.badges(backend_v23 computeBadges_ 결과)를 그대로 그림 —
-         필드 자체가 없을 수 있음(교사 미리보기 모드) → renderBadges가 방어적으로 처리. -->
+         STUDENT_DATA.badges(backend_v24 computeBadges_ 결과)를 그대로 그림 —
+         필드 자체가 없을 수 있음(교사 미리보기 모드) → renderBadges가 방어적으로 처리.
+         v24: 학습 칭호가 고정 4개가 아니라 활동 단위로 늘어날 수 있게 되면서,
+         미획득까지 다 그리던 이전 방식은 목록이 무한정 길어질 수 있어 "획득한 것만"
+         그리는 방식으로 바꿈(renderBadges 참고). -->
     <aside class="side-card badge-card" aria-label="칭호첩">
       <p class="bc-title">🎖️ 칭호첩</p>
       <div class="bc-groups" id="badgeGroups"></div>
@@ -324,6 +327,12 @@
           <option value="해석">해석</option>
           <option value="관점">관점</option>
         </select>
+
+        <label style="font-size:.85rem; display:block; margin-bottom:-2px;" id="clBadgeNameLabel">
+          칭호명 — 이 활동에서 "상"을 받으면 학생이 얻는 칭호 이름이에요(사고유형 선택 시에만 사용)
+        </label>
+        <input id="clBadgeName" type="text" placeholder="예: 저울질의 고수" list="clBadgeNameOptions">
+        <datalist id="clBadgeNameOptions"></datalist>
 
         <label class="cl-hint">
           링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
@@ -1402,23 +1411,27 @@ function showToast(msg){
 }
 
 /* ════════════════════════════════════════════════════════
- * 칭호첩(특별 칭호) — v23 연동
- * backend_v23.gs studentGet_이 이미 계산해서 내려주는 badges 배열을 그대로
+ * 칭호첩(특별 칭호) — v23 연동, v24에서 렌더링 방식 변경
+ * backend_v24.gs studentGet_이 이미 계산해서 내려주는 badges 배열을 그대로
  * 그리기만 한다(계산은 백엔드 computeBadges_ 담당, 프론트는 렌더링 전담).
  * badges[i] = { id, name, emoji, category('learning'|'behavior'|'strength'),
  *               type('once'|'repeat'), earned, count }
  * 교사 미리보기 모드는 STUDENT_DATA에 badges 필드 자체가 안 실리므로
  * (startPreview 참고) badges가 undefined/빈 배열인 경우를 항상 방어적으로 처리.
+ * [v24] 학습 칭호가 사고유형 4종 고정이 아니라 활동(activityId) 단위로 늘어나는
+ * 구조로 바뀌면서, 이전처럼 미획득 배지까지 흐리게(bc-locked) 다 그리면 활동이
+ * 늘어날수록 칭호첩 목록이 한없이 길어짐 — "획득한 것만" 그리는 방식으로 변경.
  * ════════════════════════════════════════════════════════ */
 const BADGE_CATEGORY_ORDER = ['learning', 'behavior', 'strength'];
 const BADGE_CATEGORY_LABEL = { learning: '학습 칭호', behavior: '행동 칭호', strength: '강점 칭호' };
 const BADGE_CATEGORY_CLASS = { learning: 'bc-blue', behavior: 'bc-orange', strength: 'bc-purple' };
 
 function renderBadgeChip(b){
-  // 1회성(once) 획득 = 골드 테두리 / 반복(repeat) 획득 = 실버 테두리 + ×N / 미획득 = 흐리게
-  const stateClass = !b.earned ? 'bc-locked' : (b.type === 'once' ? 'bc-once' : 'bc-repeat');
-  const colorClass = b.earned ? (BADGE_CATEGORY_CLASS[b.category] || '') : '';
-  const countHtml = (b.earned && b.type === 'repeat' && b.count > 1) ? `<span class="bc-count">×${b.count}</span>` : '';
+  // 1회성(once) = 골드 테두리 / 반복(repeat) = 실버 테두리 + ×N. 여기 들어오는 건
+  // 전부 획득한 배지뿐이라(renderBadges에서 미리 걸러냄) 미획득(bc-locked) 케이스는 없음.
+  const stateClass = b.type === 'once' ? 'bc-once' : 'bc-repeat';
+  const colorClass = BADGE_CATEGORY_CLASS[b.category] || '';
+  const countHtml = (b.type === 'repeat' && b.count > 1) ? `<span class="bc-count">×${b.count}</span>` : '';
   return `
     <div class="badge-chip ${stateClass} ${colorClass}" title="${escapeHtml(b.name)}">
       <span class="bc-emoji">${b.emoji}</span>
@@ -1430,9 +1443,11 @@ function renderBadgeChip(b){
 function renderBadges(badges){
   const wrap = $('badgeGroups');
   if(!wrap) return;
-  const list = badges || [];
+  // v24: 획득한 것만 그린다 — 활동 수만큼 배지가 늘어날 수 있어서 미획득까지
+  // 다 나열하면 목록이 무한정 길어짐(고정 4개일 땐 안 보이던 문제).
+  const list = (badges || []).filter(b => b.earned);
   if(!list.length){
-    wrap.innerHTML = '<p class="bc-empty">칭호 정보가 없어요.</p>';
+    wrap.innerHTML = '<p class="bc-empty">아직 획득한 칭호가 없어요.</p>';
     return;
   }
   const byCategory = {};
@@ -1541,6 +1556,12 @@ let QUESTIONS = [];
 let ANNOUNCEMENTS_ADMIN = [];
 let LESSONS_ADMIN = [];
 let GRADE_INFO_ADMIN = {};
+// v24: 칭호명 자동완성 후보 — backend_v24.gs curriculumAdminGet_의 badgeNamePool을 그대로 씀.
+// 강제 목록이 아니라 참고용 datalist라, 옛 백엔드(badgeNamePool 필드 없음)에도 안전하게
+// 동작하도록 기본값(사고유형 4그룹의 대표 이름만)을 미리 채워둔다.
+let BADGE_NAME_POOL = {
+  '판단': ['결정왕'], '비교': ['비교왕'], '해석': ['해석왕'], '관점': ['다른 눈으로 본 사람']
+};
 let openDetailSid = null;
 
 /* v22: 5개 요청 전부 fetchJsonRetry_로 재시도 처리. 이전엔 fetch 하나라도
@@ -1563,6 +1584,7 @@ async function dashLoadData(){
   ANNOUNCEMENTS_ADMIN = (r4.rows || []);
   LESSONS_ADMIN = (r5.lessons || []);
   GRADE_INFO_ADMIN = (r5.gradeInfo || {});
+  if(r5.badgeNamePool) BADGE_NAME_POOL = r5.badgeNamePool; // v24
 }
 
 async function enterDash(token){
@@ -1706,6 +1728,7 @@ function dashInitCurriculumForm(){
   // 만드는 활동은 기본으로 내 반 것으로 잡히고, 공통으로 등록하려면 직접 바꾸면 됨.
   if(TEACHER_NAME) $('clOwner').value = TEACHER_NAME;
   clRefreshOwnerHint();
+  clRefreshBadgeNameOptions(); // v24 — 데이터 로드 후 최신 BADGE_NAME_POOL로 초기 상태 맞춤
 }
 
 function dashRenderGradeInfoForm(){
@@ -2335,6 +2358,20 @@ function clRefreshOwnerHint(){
   $('clOwnerHint').style.display = (owner !== '공통' && !configured) ? 'block' : 'none';
 }
 
+/* v24: 사고유형 선택에 맞춰 칭호명 자동완성(datalist) 후보를 갈아끼운다.
+ * 사고유형이 "(선택 안 함)"이면 칭호명 필드 자체가 의미 없으므로(백엔드가 항상
+ * 빈칸으로 되돌림) 비활성화 + 값 비움 — 실수로 입력해도 저장 안 되는 걸 미리 보여줌. */
+function clRefreshBadgeNameOptions(){
+  const thinkingType = $('clThinkingType').value;
+  const dl = $('clBadgeNameOptions');
+  const input = $('clBadgeName');
+  const pool = BADGE_NAME_POOL[thinkingType] || [];
+  dl.innerHTML = pool.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
+  input.disabled = !thinkingType;
+  if(!thinkingType) input.value = '';
+  else if(!input.value.trim()) input.placeholder = pool[0] ? `예: ${pool[0]}` : '예: 저울질의 고수';
+}
+
 function clToggleMulti(){
   const on = $('clMulti').checked;
   $('clMultiWrap').style.display = on ? 'block' : 'none';
@@ -2375,6 +2412,7 @@ async function dashAddLesson(btn){
   const isPublic = $('clPublic').checked;
   const owner = $('clOwner').value;
   const thinkingType = $('clThinkingType').value;
+  const badgeName = $('clBadgeName').value.trim(); // v24
   if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -2389,7 +2427,7 @@ async function dashAddLesson(btn){
   try{
     const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType })
+      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType, badgeName })
     });
     // v23 버그 수정 — 지금까지 여기서 서버 응답을 안 읽어서, 백엔드가 에러를 던져도
     // 프론트는 무조건 "저장했어요"를 띄웠음(실패가 조용히 묻힘). 이제 result:'success'가
@@ -2428,6 +2466,8 @@ function dashEditLesson(btn){
   $('clOwner').value = l.owner || '공통';
   clRefreshOwnerHint();
   $('clThinkingType').value = l.thinkingType || '';
+  clRefreshBadgeNameOptions();
+  $('clBadgeName').value = l.badgeName || ''; // v24
   $('clPublicRow').style.display = 'none'; // 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
   $('clEditBanner').style.display = 'block';
   $('btnAddLesson').textContent = '수정 저장';
@@ -2464,6 +2504,8 @@ function dashResetLessonForm(){
   $('clOwner').value = TEACHER_NAME || '공통';
   $('clOwnerHint').style.display = 'none';
   $('clThinkingType').value = '';
+  $('clBadgeName').value = ''; // v24
+  clRefreshBadgeNameOptions();
   $('clMulti').checked = false;
   ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
     .forEach(id => { $(id).value = ''; });
@@ -2481,6 +2523,7 @@ async function dashUpdateLesson(btn, row){
   const url = $('clUrl').value.trim();
   const owner = $('clOwner').value;
   const thinkingType = $('clThinkingType').value;
+  const badgeName = $('clBadgeName').value.trim(); // v24
   if(!title){ showToast('제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -2495,7 +2538,7 @@ async function dashUpdateLesson(btn, row){
   try{
     const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential, owner, thinkingType })
+      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential, owner, thinkingType, badgeName })
     });
     // v23 버그 수정 — addLesson과 동일: 서버 응답을 확인 안 하면 백엔드가 던진 에러가
     // 조용히 묻히고 무조건 "저장했어요"가 뜸. result:'success' 아니면 실패로 처리.
@@ -3268,6 +3311,7 @@ $('btnClCancelEdit').addEventListener('click', dashResetLessonForm);
 $('clMulti').addEventListener('change', clToggleMulti);
 $('clOwner').addEventListener('change', clRefreshOwnerHint);
 $('clGrade').addEventListener('change', clRefreshOwnerHint);
+$('clThinkingType').addEventListener('change', clRefreshBadgeNameOptions);
 $('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
 $('ckqFormType').addEventListener('change', ckqToggleTypeFields);
 $('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);
