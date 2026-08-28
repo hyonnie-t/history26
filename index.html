@@ -294,6 +294,18 @@
         </div>
         <input id="clTitle" type="text" placeholder="제목">
         <input id="clDesc" type="text" placeholder="한 줄 설명">
+
+        <label style="font-size:.85rem; display:block; margin-bottom:-2px;">담당 — 특정 반에만 보이게 하려면 선택</label>
+        <select id="clOwner">
+          <option value="공통">공통 (모든 반에 보임 — 기본값)</option>
+          <option value="효니">효니 담당 반만</option>
+          <option value="미현쌤">미현쌤 담당 반만</option>
+        </select>
+        <p class="cl-hint" id="clOwnerHint" style="display:none;">
+          ⚠️ 위쪽 "🏫 학년 정보"에서 이 학년의 효니/미현쌤 담당 반이 아직 안 정해져 있어요.
+          지금 상태로 저장하면 이 차시는 <b>아무 반에도 안 보여요</b> — 학년 정보부터 채워 주세요.
+        </p>
+
         <label class="cl-hint">
           링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
         </label>
@@ -855,9 +867,23 @@ function treeSvg(stage, leaves){
   </svg>`;
 }
 
+/* v28 — 반 트랙(효니/미현쌤) 필터. 학년정보에 hyoBans/mihyunBans가 설정돼 있으면
+ * 그 반이 어느 트랙인지 판정하고, 커리큘럼도 "공통" + "본인 트랙"만 걸러서 보여준다.
+ * 둘 다 비어있는 학년(트랙 구분을 아직 안 쓰는 학년)은 전부 그대로 보임. */
+function myTrackOf(cur, ban){
+  if((cur.hyoBans||[]).includes(ban)) return '효니';
+  if((cur.mihyunBans||[]).includes(ban)) return '미현쌤';
+  return null;
+}
+function filterLessonsForBan(cur, ban){
+  const track = myTrackOf(cur, ban);
+  return cur.lessons.filter(l => !l.owner || l.owner === track);
+}
+
 /* ── 포털 렌더 ── */
 function renderPortal(){
   const cur = CONFIG.CURRICULUM[SESSION.grade];
+  const lessons = filterLessonsForBan(cur, SESSION.ban); // v28: 담당 트랙 필터링된 차시 목록
   $('loginView').style.display = 'none';
   $('dashView').style.display = 'none';
   const pv = $('portalView');
@@ -890,7 +916,7 @@ function renderPortal(){
   });
 
   /* 피드백을 활동별로 분류 — 차시 id와 일치하면 인라인, 아니면 총평 */
-  const lessonIds = new Set(cur.lessons.map(l => l.id));
+  const lessonIds = new Set(lessons.map(l => l.id));
   const fbAll = STUDENT_DATA.feedback || [];
   const fbByLesson = {};
   const fbGeneral = [];
@@ -910,7 +936,7 @@ function renderPortal(){
   function lessonDone(l){ return l.activities.every(a => doneIds.has(a.id)); }
 
   /* KPI: 진행률 (차시 단위) */
-  const active = cur.lessons.filter(lessonHasUrl);
+  const active = lessons.filter(lessonHasUrl);
   const doneCount = active.filter(lessonDone).length;
   const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
   $('progressDone').textContent = doneCount;
@@ -928,7 +954,7 @@ function renderPortal(){
     attemptCnt[id] = (attemptCnt[id] || 0) + 1;
   });
   let points = 0;
-  cur.lessons.forEach(l => {
+  lessons.forEach(l => {
     l.activities.forEach(act => {
       if (!doneIds.has(act.id)) return;
       points += P.FIRST;
@@ -936,7 +962,7 @@ function renderPortal(){
       points += Math.min(retries, P.RETRY_MAX) * P.RETRY;
     });
   });
-  const doneLessonsCount = cur.lessons.filter(lessonDone).length;
+  const doneLessonsCount = lessons.filter(lessonDone).length;
   let rank = CONFIG.RANKS[0], rankIdx = 0;
   CONFIG.RANKS.forEach((r, i) => { if (points >= r.min) { rank = r; rankIdx = i; } });
   const nextRank = CONFIG.RANKS.find(r => r.min > points) || null;
@@ -995,7 +1021,7 @@ function renderPortal(){
 
   /* 달성도 모아보기 — v27: 활동 단위로 나열(차시에 활동이 2개면 각각 따로 뜸) */
   const analyzedActs = [];
-  cur.lessons.forEach(l => {
+  lessons.forEach(l => {
     l.activities.forEach(act => {
       const rec = achieveMap[act.id];
       if (rec && rec.achievement && String(rec.achievement).trim()) {
@@ -1031,7 +1057,7 @@ function renderPortal(){
 
   /* 연표 */
   const tl = $('timeline');
-  if(cur.lessons.length === 0){
+  if(lessons.length === 0){
     tl.innerHTML = '';
     $('statusLine').style.display = 'block';
     $('statusLine').textContent = "이번 학기 활동이 준비되면 여기에 하나씩 나타나요.";
@@ -1039,7 +1065,7 @@ function renderPortal(){
   }
   $('statusLine').style.display = 'none';
 
-  tl.innerHTML = cur.lessons.map((l, i) => renderLessonCard(l, i, {
+  tl.innerHTML = lessons.map((l, i) => renderLessonCard(l, i, {
     doneIds, achieveMap, latestMap, fbByLesson, lessonDone, lessonHasUrl
   })).reverse().join(''); // v20: 화면 노출 순서만 최신순(역순)으로. "N차시" 라벨은 위 map에서
                           // 원래 순서 기준 i+1로 이미 계산돼 있으므로 번호는 그대로 유지됨.
@@ -1394,6 +1420,8 @@ $('btnExitPreview').addEventListener('click', exitToLogin);
  * 교사 대시보드
  * ════════════════════════════════════════════════════════ */
 let TOKEN = '';
+let TEACHER_NAME = null; // v29 — 로그인 토큰으로 식별된 교사('효니'/'미현쌤'). 서버 권한엔 영향 없고,
+                          // 대시보드 기본 필터·커리큘럼 "담당" 기본값을 여기에 맞춰 보여주는 용도.
 let ROWS = [];
 let FEEDBACKS = [];
 let QUESTIONS = [];
@@ -1416,6 +1444,7 @@ async function dashLoadData(){
   ]);
   if(r1.result === 'error') throw new Error(r1.message);
   ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
+  TEACHER_NAME = r1.teacher || null; // v29
   FEEDBACKS = (r2.rows || []);
   QUESTIONS = (r3.rows || []);
   ANNOUNCEMENTS_ADMIN = (r4.rows || []);
@@ -1560,6 +1589,10 @@ async function dashToggleAnnouncement(btn){
 function dashInitCurriculumForm(){
   const grades = Object.keys(GRADE_INFO_ADMIN);
   $('clGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  // v29: "담당" 기본값을 로그인한 교사 이름으로 — 수동으로 매번 고를 필요 없이, 내가
+  // 만드는 활동은 기본으로 내 반 것으로 잡히고, 공통으로 등록하려면 직접 바꾸면 됨.
+  if(TEACHER_NAME) $('clOwner').value = TEACHER_NAME;
+  clRefreshOwnerHint();
 }
 
 function dashRenderGradeInfoForm(){
@@ -1571,6 +1604,7 @@ function dashRenderGradeInfoForm(){
   }
   wrap.innerHTML = grades.map(g => {
     const gi = GRADE_INFO_ADMIN[g];
+    const trackConfigured = (gi.hyoBansText || '').trim() || (gi.mihyunBansText || '').trim();
     return `
       <div class="gi-block" data-grade="${g}">
         <h4>${g}학년 ${escapeHtml(gi.subject || '')}</h4>
@@ -1582,6 +1616,11 @@ function dashRenderGradeInfoForm(){
         <input type="text" class="gi-pf-desc" value="${escapeHtml(gi.portfolioDesc || '')}">
         <label>포트폴리오 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
         <textarea class="gi-pf-url">${escapeHtml(gi.portfolioUrlText || '')}</textarea>
+        <label>효니 담당 반 (쉼표로 구분, 예: 1,2,3,4) — 커리큘럼에서 "효니" 담당으로 지정한 차시가 이 반에만 보여요</label>
+        <input type="text" class="gi-hyo-bans" placeholder="예: 1,2,3,4" value="${escapeHtml(gi.hyoBansText || '')}">
+        <label>미현쌤 담당 반 (쉼표로 구분, 예: 5,6,7,8)</label>
+        <input type="text" class="gi-mihyun-bans" placeholder="예: 5,6,7,8" value="${escapeHtml(gi.mihyunBansText || '')}">
+        ${!trackConfigured ? '<p class="cl-hint">⚠️ 아직 비어있어요 — 이 상태에서 커리큘럼 "담당"을 효니/미현쌤으로 지정하면 그 차시는 <b>아무 반에도 안 보여요</b>. 담당을 나누려면 여기부터 채워야 해요.</p>' : ''}
         <button onclick="dashSaveGradeInfo('${g}', this)">저장</button>
       </div>`;
   }).join('');
@@ -1595,16 +1634,20 @@ async function dashSaveGradeInfo(grade, btn){
     unitQuestion: block.querySelector('.gi-uq').value.trim(),
     portfolioTitle: block.querySelector('.gi-pf-title').value.trim(),
     portfolioDesc: block.querySelector('.gi-pf-desc').value.trim(),
-    portfolioUrlText: block.querySelector('.gi-pf-url').value.trim()
+    portfolioUrlText: block.querySelector('.gi-pf-url').value.trim(),
+    hyoBans: block.querySelector('.gi-hyo-bans').value.trim(),       // v28
+    mihyunBans: block.querySelector('.gi-mihyun-bans').value.trim() // v28
   };
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
     await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
     Object.assign(GRADE_INFO_ADMIN[grade], {
       unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
-      portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText
+      portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText,
+      hyoBansText: payload.hyoBans, mihyunBansText: payload.mihyunBans
     });
     showToast('학년정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.');
+    dashRenderGradeInfoForm();
   }catch(e){
     showToast('저장하지 못했어요. 다시 시도해 주세요.');
   }finally{
@@ -2042,9 +2085,10 @@ function dashRenderLessons(){
  * 순차진행이면 🔒 표시를 덧붙임. urlText 대신 활동 개수/타입을 요약해서 보여줌. */
 function clLessonItemHtml(l, isPastItem){
   const multi = (l.activitiesCount || 1) > 1;
+  const ownerTag = (l.owner && l.owner !== '공통') ? ` · 👤 ${escapeHtml(l.owner)} 담당` : '';
   const metaText = multi
-    ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}`
-    : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}`;
+    ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}${ownerTag}`
+    : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}${ownerTag}`;
   return `
     <div class="cl-item" ${isPastItem ? '' : 'draggable="true"'} data-row="${l._row}" data-grade="${escapeHtml(l.grade)}">
       ${isPastItem ? '' : '<span class="cl-drag-handle" title="드래그해서 순서 바꾸기">⠿</span>'}
@@ -2168,6 +2212,16 @@ async function dashToggleLessonPast(btn){
  * 체크하면 기존 타입·URL 필드를 숨기고 활동1·활동2 각각의 id·타입·제목·설명·URL을
  * 따로 입력받음. 활동id·제목·설명(clId/clTitle/clDesc)은 이 경우 "차시 전체"를
  * 대표하는 값(체크인·피드백·CSV에서 차시 단위로 쓰임)으로 의미가 바뀐다. */
+/* v28 — "담당"을 공통이 아닌 값으로 골랐는데 그 학년의 반 트랙(효니/미현쌤담당반)이
+ * 아직 비어있으면 저장해도 그 차시가 아무 반에도 안 보이게 되므로, 폼에서 미리 경고. */
+function clRefreshOwnerHint(){
+  const grade = $('clGrade').value;
+  const owner = $('clOwner').value;
+  const gi = GRADE_INFO_ADMIN[grade];
+  const configured = gi && ((gi.hyoBansText || '').trim() || (gi.mihyunBansText || '').trim());
+  $('clOwnerHint').style.display = (owner !== '공통' && !configured) ? 'block' : 'none';
+}
+
 function clToggleMulti(){
   const on = $('clMulti').checked;
   $('clMultiWrap').style.display = on ? 'block' : 'none';
@@ -2206,6 +2260,7 @@ async function dashAddLesson(btn){
   const type = $('clType').value;
   const url = $('clUrl').value.trim();
   const isPublic = $('clPublic').checked;
+  const owner = $('clOwner').value;
   if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -2220,7 +2275,7 @@ async function dashAddLesson(btn){
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential })
+      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner })
     });
     dashResetLessonForm();
     showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
@@ -2248,6 +2303,8 @@ function dashEditLesson(btn){
   $('clTitle').value = l.title;
   $('clDesc').value = l.desc || '';
   $('clUrl').value = l.urlText || '';
+  $('clOwner').value = l.owner || '공통';
+  clRefreshOwnerHint();
   $('clPublicRow').style.display = 'none'; // 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
   $('clEditBanner').style.display = 'block';
   $('btnAddLesson').textContent = '수정 저장';
@@ -2281,6 +2338,8 @@ function dashResetLessonForm(){
   $('clEditRow').value = '';
   $('clId').value = ''; $('clId').disabled = false;
   $('clTitle').value = ''; $('clDesc').value = ''; $('clUrl').value = ''; $('clPublic').checked = false;
+  $('clOwner').value = TEACHER_NAME || '공통';
+  $('clOwnerHint').style.display = 'none';
   $('clMulti').checked = false;
   ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
     .forEach(id => { $(id).value = ''; });
@@ -2296,6 +2355,7 @@ async function dashUpdateLesson(btn, row){
   const desc = $('clDesc').value.trim();
   const type = $('clType').value;
   const url = $('clUrl').value.trim();
+  const owner = $('clOwner').value;
   if(!title){ showToast('제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -2310,7 +2370,7 @@ async function dashUpdateLesson(btn, row){
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential })
+      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential, owner })
     });
     dashResetLessonForm();
     showToast('활동 내용을 수정했어요.');
@@ -2396,6 +2456,34 @@ async function dashAnswerQuestion(btn){
   }
 }
 
+/* v29 — 로그인한 교사(TEACHER_NAME)가 이 학년에서 담당하는 반 번호 배열.
+ * 학년정보에 트랙이 설정 안 돼 있거나 TEACHER_NAME을 모르면 null. */
+function dashMyBans_(grade){
+  if(!TEACHER_NAME) return null;
+  const cur = CONFIG.CURRICULUM[grade];
+  if(!cur) return null;
+  if(TEACHER_NAME === '효니') return (cur.hyoBans && cur.hyoBans.length) ? cur.hyoBans : null;
+  if(TEACHER_NAME === '미현쌤') return (cur.mihyunBans && cur.mihyunBans.length) ? cur.mihyunBans : null;
+  return null;
+}
+/* v29 — selBan 값 하나로 "전체 반"(''), "내 담당 반"('mine'), 특정 반(숫자 문자열)을
+ * 모두 처리하기 위한 판정 함수. 'mine'인데 트랙이 아직 설정 안 돼 있으면 안전하게
+ * 전체로 취급(아무도 안 걸러지는 쪽이 "내 반만 봤다고 착각"보다 낫다). */
+function banMatches_(banValue, grade, studentBan){
+  if(!banValue) return true;
+  if(banValue === 'mine'){
+    const mine = dashMyBans_(grade);
+    return mine ? mine.includes(studentBan) : true;
+  }
+  return studentBan === Number(banValue);
+}
+/* v29 — selBan 값에 대응하는 커리큘럼 차시 목록(활동 드롭다운 구성용). */
+function lessonsForBanSelection_(cur, banValue){
+  if(!banValue) return cur.lessons;
+  if(banValue === 'mine') return cur.lessons.filter(l => !l.owner || l.owner === TEACHER_NAME);
+  return filterLessonsForBan(cur, Number(banValue));
+}
+
 function dashInitFilters(){
   const grades = Object.keys(CONFIG.CURRICULUM);
   $('selGrade').innerHTML = grades.map(g =>
@@ -2405,19 +2493,29 @@ function dashInitFilters(){
   dashRefreshBanOptions();
   dashRefreshActivityOptions();
 }
+/* v29 — "내 담당 반" 옵션을 맨 위(전체 반 다음)에 추가하고, 있으면 기본 선택으로 씀.
+ * 학년을 바꿀 때마다 다시 호출되므로, 학년이 바뀌어도 항상 "내 반부터" 보이게 됨. */
 function dashRefreshBanOptions(){
   const grade = Number($('selGrade').value);
   const bans = [...new Set(ROWS.map(r => parseStudentId(String(r.studentId)))
     .filter(p => p.grade === grade).map(p => p.ban))].sort((a,b)=>a-b);
-  $('selBan').innerHTML = '<option value="">전체 반</option>'
+  const mine = dashMyBans_(grade);
+  const mineOpt = mine ? `<option value="mine">내 담당 반 (${mine.join(',')})</option>` : '';
+  $('selBan').innerHTML = '<option value="">전체 반</option>' + mineOpt
     + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
+  if(mine) $('selBan').value = 'mine';
 }
 /* v27: 활동 드롭다운은 "차시"가 아니라 "활동" 단위로 나열 — ROWS의 gameName은
  * 항상 활동 자신의 id(다중활동 차시라면 activities[i].id)와 일치하므로, 필터가
- * 실제로 걸리려면 여기 옵션도 활동 id를 값으로 가져야 함. */
+ * 실제로 걸리려면 여기 옵션도 활동 id를 값으로 가져야 함.
+ * v28: 특정 반이 선택돼 있으면 그 반 트랙에 맞는 차시만 나열(다른 트랙 차시는 애초에
+ * 그 반 학생 누구도 할 수 없으니 필터 옵션에 있을 이유가 없음). "전체 반"이면 트랙
+ * 구분 없이 전부 보여줌(여러 트랙 학생이 섞여 있을 수 있으므로). v29: "내 담당 반" 처리 추가. */
 function dashRefreshActivityOptions(){
   const grade = Number($('selGrade').value);
-  const lessons = CONFIG.CURRICULUM[grade].lessons;
+  const ban = $('selBan').value;
+  const cur = CONFIG.CURRICULUM[grade];
+  const lessons = lessonsForBanSelection_(cur, ban);
   const opts = [];
   lessons.forEach(l => {
     l.activities.forEach((act, idx) => {
@@ -2492,7 +2590,7 @@ function dashFilteredRows(){
   return ROWS.filter(r => {
     const p = parseStudentId(String(r.studentId));
     if(p.grade !== grade) return false;
-    if(ban && p.ban !== Number(ban)) return false;
+    if(!banMatches_(ban, grade, p.ban)) return false;
     if(act && String(r.gameName) !== act) return false;
     return true;
   });
@@ -2515,8 +2613,7 @@ function renderDash(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
   const act = $('selActivity').value;
-  const lessons = CONFIG.CURRICULUM[grade].lessons;
-  const activeLessons = lessons.filter(l => l.activities.some(a => a.url || a.urlByBan));
+  const cur = CONFIG.CURRICULUM[grade];
   const rows = dashFilteredRows();
 
   /* 미검토 AI 코멘트 알림 */
@@ -2526,7 +2623,7 @@ function renderDash(){
 
   const gradeRows = ROWS.filter(r => {
     const p = parseStudentId(String(r.studentId));
-    return p.grade === grade && (!ban || p.ban === Number(ban));
+    return p.grade === grade && banMatches_(ban, grade, p.ban);
   });
   const students = {};
   gradeRows.forEach(r => {
@@ -2545,10 +2642,14 @@ function renderDash(){
       const prev = s.achieve[id];
       if(!prev || lv || !String(prev['성취수준']||'').trim()) s.achieve[id] = r;
     });
+    // v28: 진행률 분모는 이 학생 반의 트랙(효니/미현쌤/공통 없음)에 맞는 차시만 —
+    // 트랙이 갈리면 반마다 "전체 차시 개수" 자체가 달라지므로 학생별로 따로 계산.
+    const myActive = filterLessonsForBan(cur, s.p.ban).filter(l => l.activities.some(a => a.url || a.urlByBan));
     // v27: "완료한 차시"는 그 차시의 활동 id를 전부 doneIds에 갖고 있어야 인정.
-    const done = activeLessons.filter(l => lessonAllActivityIds_(l).every(id => s.doneIds.has(id))).length;
-    s.pct = activeLessons.length ? Math.round(done/activeLessons.length*100) : 0;
+    const done = myActive.filter(l => lessonAllActivityIds_(l).every(id => s.doneIds.has(id))).length;
+    s.pct = myActive.length ? Math.round(done/myActive.length*100) : 0;
     s.doneCount = done;
+    s.totalLessons = myActive.length; // v28
     s.feedbacks = FEEDBACKS.filter(f => String(f.studentId).trim() === s.sid);
     // v26(2-2): 활동별 열 대신 표에서는 "최근 활동"과 "평균 성취"만 요약해서 보여줌.
     // 개별 활동 성취는 표에서 빼는 대신 상세 카드(펼쳐보기)에 그대로 남겨둠.
@@ -2602,11 +2703,11 @@ function renderDash(){
       <tr class="student-row" data-sid="${s.sid}">
         <td>${s.sid}</td>
         <td>${escapeHtml(s.name)}${s.feedbacks.length ? '<span class="fb-dot" title="피드백 있음"></span>' : ''}</td>
-        <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${activeLessons.length}</span></td>
+        <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${s.totalLessons}</span></td>
         <td>${recentCell}</td>
         <td>${avgCell}</td>
       </tr>
-      ${openDetailSid === s.sid ? dashDetailRowHtml(s, lessons, 5) : ''}`;
+      ${openDetailSid === s.sid ? dashDetailRowHtml(s, filterLessonsForBan(cur, s.p.ban), 5) : ''}`;
   }).join('');
 
   document.querySelectorAll('tr.student-row').forEach(tr => {
@@ -2888,7 +2989,8 @@ function dashDownloadCsv(){
   const csv = '\uFEFF' + cols.map(c=>esc(c[0])).join(',') + '\n'
     + rows.map(r => cols.map(c=>esc(c[1](r))).join(',')).join('\n');
   const grade = $('selGrade').value, ban = $('selBan').value;
-  const name = `학습기록_${grade}학년${ban? '_'+ban+'반':''}_${new Date().toISOString().slice(0,10)}.csv`;
+  const banLabel = ban === 'mine' ? '내담당반' : (ban ? ban+'반' : '');
+  const name = `학습기록_${grade}학년${banLabel? '_'+banLabel:''}_${new Date().toISOString().slice(0,10)}.csv`;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
   a.download = name; a.click(); URL.revokeObjectURL(a.href);
@@ -2952,8 +3054,9 @@ async function startPreview(){
   let activities = [], feedback = [];
   if(withSample){
     // v27: 활동 배열에서 URL 있는 활동만 최대 2개 뽑아 예시로 채움(차시 단위가 아니라 활동 단위).
+    // v28: 반 트랙 필터를 거친 차시에서만 뽑아야 미리보기 화면에도 실제로 나타남.
     const sampleActs = [];
-    cur.lessons.forEach(l => { l.activities.forEach(a => { if(a.url || a.urlByBan) sampleActs.push(a); }); });
+    filterLessonsForBan(cur, ban).forEach(l => { l.activities.forEach(a => { if(a.url || a.urlByBan) sampleActs.push(a); }); });
     activities = sampleActs.slice(0, 2).map((a, i) => ({
       activityId: a.id,
       achievement: i === 0 ? '상' : '중',
@@ -3003,7 +3106,7 @@ $('btnPreviewStart').addEventListener('click', startPreview);
 $('btnGate').addEventListener('click', () => enterDash($('tokenInput').value.trim()));
 $('tokenInput').addEventListener('keydown', e => { if(e.key==='Enter') $('btnGate').click(); });
 $('selGrade').addEventListener('change', () => { openDetailSid=null; dashRefreshBanOptions(); dashRefreshActivityOptions(); renderDash(); });
-$('selBan').addEventListener('change', () => { openDetailSid=null; renderDash(); });
+$('selBan').addEventListener('change', () => { openDetailSid=null; dashRefreshActivityOptions(); renderDash(); });
 $('selActivity').addEventListener('change', () => renderDash());
 $('studentSearch').addEventListener('input', () => {
   const matches = dashSearchStudents_($('studentSearch').value);
@@ -3021,6 +3124,8 @@ document.addEventListener('click', ev => {
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('btnClCancelEdit').addEventListener('click', dashResetLessonForm);
 $('clMulti').addEventListener('change', clToggleMulti);
+$('clOwner').addEventListener('change', clRefreshOwnerHint);
+$('clGrade').addEventListener('change', clRefreshOwnerHint);
 $('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
 $('ckqFormType').addEventListener('change', ckqToggleTypeFields);
 $('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);
