@@ -256,15 +256,24 @@
   </div>
 
   <div class="dash-panel" id="panelAnnounce" style="display:none;">
+    <!-- v30: 대상 선택을 "담당 학급반 / 전체 / 개별 반" 3분류 라디오로 개편.
+         담당 학급반은 anGrade에서 고른 학년 기준으로 dashMyBans_()가 돌려주는 콤마 리스트를
+         그대로 ban 필드에 실어 한 번에 담당 반 전체에 보낸다(서버 announcementsGet_이
+         콤마 리스트 매칭을 지원해야 함 — dashAddAnnouncement 주석 참고). -->
     <div class="an-add-form">
-      <select id="anGrade"></select>
-      <select id="anBan">
-        <option value="전체">전체 반</option>
+      <select id="anGrade" onchange="dashOnAnnounceGradeChange_()"></select>
+      <div class="an-target-group" role="radiogroup" aria-label="공지 대상">
+        <label><input type="radio" name="anTargetType" value="mine" checked onchange="dashOnAnnounceTargetChange_()"> 담당 학급반</label>
+        <label><input type="radio" name="anTargetType" value="all" onchange="dashOnAnnounceTargetChange_()"> 전체</label>
+        <label><input type="radio" name="anTargetType" value="one" onchange="dashOnAnnounceTargetChange_()"> 개별 반</label>
+      </div>
+      <select id="anBanSingle" style="display:none;">
         <option value="1">1반</option><option value="2">2반</option>
         <option value="3">3반</option><option value="4">4반</option>
         <option value="5">5반</option><option value="6">6반</option>
         <option value="7">7반</option><option value="8">8반</option>
       </select>
+      <p class="an-target-hint" id="anTargetHint"></p>
       <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
       <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
     </div>
@@ -1656,6 +1665,32 @@ function dashInitAnnounceForm(){
   const grades = Object.keys(CONFIG.CURRICULUM);
   $('anGrade').innerHTML = '<option value="전체">전체 학년</option>' +
     grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  dashOnAnnounceTargetChange_();
+}
+
+/* v30: "담당 학급반" 대상 라디오가 선택된 상태에서 학년을 바꾸면 힌트 문구(담당 반 목록)도
+ * 같이 갱신돼야 하므로 학년 변경 시에도 힌트 갱신 함수를 다시 호출한다. */
+function dashOnAnnounceGradeChange_(){
+  dashOnAnnounceTargetChange_();
+}
+
+/* v30: 대상 라디오 선택에 따라 "개별 반" select 표시 여부와 안내 문구를 갱신.
+ * "담당 학급반"은 anGrade에서 고른 학년 기준으로 dashMyBans_()가 담당 반을 돌려줄 때만
+ * 쓸 수 있음 — 학년을 "전체 학년"으로 두었거나 그 학년에 트랙(담당 구분) 자체가 없으면
+ * 게시 시점에 안내하고 막는다(여기서는 힌트로만 미리 알려줌). */
+function dashOnAnnounceTargetChange_(){
+  const type = document.querySelector('input[name="anTargetType"]:checked').value;
+  $('anBanSingle').style.display = (type === 'one') ? '' : 'none';
+  const hint = $('anTargetHint');
+  if(type === 'mine'){
+    const grade = $('anGrade').value;
+    const mine = (grade !== '전체') ? dashMyBans_(grade) : null;
+    hint.textContent = mine
+      ? `${grade}학년 ${mine.join(',')}반에 게시돼요.`
+      : (grade === '전체' ? '학년을 하나 선택해야 담당 학급반을 알 수 있어요.' : '이 학년은 담당 구분이 없어요 — "전체"를 선택해 주세요.');
+  } else {
+    hint.textContent = '';
+  }
 }
 
 function dashRenderAnnouncements(){
@@ -1667,10 +1702,15 @@ function dashRenderAnnouncements(){
   const sorted = [...ANNOUNCEMENTS_ADMIN].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
   list.innerHTML = sorted.map(a => {
     const live = a.status === '게시';
+    // v30: "담당 학급반"으로 게시하면 ban이 "5,6,7,8" 같은 콤마 리스트로 저장됨 — 목록에서는
+    // 읽기 좋게 "5·6·7·8반"으로 표시(기존 단일 반·전체 표기는 그대로 유지).
+    const banLabel = (a.ban === '전체') ? '전체'
+      : String(a.ban).includes(',') ? String(a.ban).split(',').map(b => b.trim()).join('·') + '반'
+      : a.ban + '반';
     return `
       <div class="an-item">
         <div>
-          <div class="an-meta">${formatDate(a.timestamp)} · ${a.grade}${a.grade==='전체'?'':'학년'} ${a.ban}${a.ban==='전체'?'':'반'}
+          <div class="an-meta">${formatDate(a.timestamp)} · ${a.grade}${a.grade==='전체'?'':'학년'} ${banLabel}
             <span class="an-status ${live?'live':'hidden'}">${live?'게시중':'보류'}</span>
           </div>
           <div class="an-text">${escapeHtml(a.content)}</div>
@@ -1680,9 +1720,25 @@ function dashRenderAnnouncements(){
   }).join('');
 }
 
+/* v30: 대상 3분류("담당 학급반"/"전체"/"개별 반")를 ban 필드 하나로 환원해서 기존
+ * addAnnouncement 액션 그대로 재사용. "담당 학급반"은 dashMyBans_()가 돌려주는 콤마 리스트
+ * 문자열(예: "5,6,7,8")을 그대로 ban에 실어 보낸다 — 서버 announcementsGet_이 ban 필드의
+ * 콤마 리스트를 parseBanListField_()로 풀어 매칭하도록 함께 바뀌어야 의도대로 동작한다
+ * (기존 단일 반·"전체" 공지는 콤마가 없으니 하위 호환 그대로 유지되어야 함). */
 async function dashAddAnnouncement(btn){
   const grade = $('anGrade').value;
-  const ban = $('anBan').value;
+  const targetType = document.querySelector('input[name="anTargetType"]:checked').value;
+  let ban;
+  if(targetType === 'all'){
+    ban = '전체';
+  } else if(targetType === 'one'){
+    ban = $('anBanSingle').value;
+  } else { // 'mine'
+    if(grade === '전체'){ showToast('담당 학급반은 학년을 하나 선택한 뒤 사용해 주세요.'); return; }
+    const mine = dashMyBans_(grade);
+    if(!mine){ showToast('이 학년은 담당 구분이 없어요 — "전체"를 선택해 주세요.'); return; }
+    ban = mine.join(',');
+  }
   const content = $('anContent').value.trim();
   if(!content){ showToast('공지 내용을 입력해 주세요.'); return; }
   btn.disabled = true; btn.textContent = '게시하는 중…';
@@ -2577,10 +2633,21 @@ async function dashToggleLessonPublic(btn){
 }
 
 /* ── 질문함 (교사) ── */
+/* v30: 로그인한 교사가 담당하지 않는 반의 질문은 목록에서 아예 제외.
+ * "전체 보기" 토글은 두지 않음(다른 반 질문을 볼 필요가 없다는 전제) — 필요해지면 그때 추가.
+ * dashMyBans_()가 null이면 그 학년은 "담당 구분 없음"이라 필터링하지 않고 전부 노출(기존
+ * 학생 화면 필터링 규칙과 동일). */
+function dashVisibleQuestions_(){
+  return QUESTIONS.filter(q => {
+    const mine = dashMyBans_(q.grade);
+    return mine ? mine.includes(Number(q.ban)) : true;
+  });
+}
 function dashRenderQuestions(){
   const list = $('dqList');
-  const waiting = QUESTIONS.filter(q => q.status !== '답변완료');
-  const done = QUESTIONS.filter(q => q.status === '답변완료');
+  const visible = dashVisibleQuestions_();
+  const waiting = visible.filter(q => q.status !== '답변완료');
+  const done = visible.filter(q => q.status === '답변완료');
   const sorted = [...waiting, ...done]; // 대기중 먼저
   const badge = $('dqBadge');
   if(waiting.length){

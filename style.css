@@ -655,6 +655,11 @@ button{font-family:inherit; cursor:pointer;}
 .an-add-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed var(--line);}
 .an-add-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
 .an-add-form textarea{flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:.9rem;}
+/* v30: 공지 대상 3분류(담당 학급반/전체/개별 반) 라디오 그룹 + 안내 문구 */
+.an-target-group{display:flex; gap:14px; align-items:center; flex-wrap:wrap; min-height:42px;}
+.an-target-group label{display:inline-flex; align-items:center; gap:5px; font-size:.86rem; cursor:pointer; white-space:nowrap;}
+.an-target-group input[type=radio]{width:18px; height:18px; accent-color:var(--indigo); cursor:pointer;}
+.an-target-hint{flex-basis:100%; font-size:.78rem; color:var(--ink-soft); margin:-4px 0 0;}
 .an-add-form button{
   background:var(--ochre); color:#fff; border:none; border-radius:999px;
   padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer;
