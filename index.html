@@ -81,26 +81,35 @@
   <div class="layout">
     <!-- 좌측: 내 서재 -->
     <div class="side-col">
-    <aside class="side-card" aria-label="내 탐구 나무">
-      <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
-      <p class="side-name" id="sideName">—</p>
-      <p class="side-class" id="sideClass">—</p>
-      <span class="rank-badge">🏷️ <span id="rankName">견습 사관</span></span>
-      <p class="side-points"><span id="pointsNum">0</span>점 <small>탐구 포인트</small></p>
-      <div class="rank-track"><div class="rank-fill" id="rankFill"></div></div>
-      <p class="rank-next" id="rankNext"></p>
-      <p class="tree-note">활동을 완료하면 나무에 잎이 돋고,<br>다시 도전하면 포인트가 더 쌓여요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
-    </aside>
+    <!-- v30: 탐구 나무 카드와 칭호첩을 하나의 sticky 카드로 통합.
+         이전엔 두 카드가 세로로 쌓여 있었고, 나무 카드만 sticky/칭호첩은 static이라
+         (겹쳐 보이는 문제 회피 목적) 스크롤해서 활동 목록을 보러 내려가면 칭호첩이
+         화면에서 완전히 사라졌음(효니 피드백 — "미리보기에서 활동 하려고 스크롤하면
+         칭호첩 배경이 사라짐"). 이제 카드 전체가 함께 고정되고, 칭호가 많아져
+         카드가 뷰포트보다 커질 상황에서만 칭호첩 부분(.bc-groups)만 내부 스크롤되게
+         해서 카드 자체는 항상 화면에 남는다(데스크톱, 1025px 이상 — 모바일은 아래
+         .side-card 미디어쿼리대로 static 유지, 기존과 동일하게 페이지 스크롤로 처리). -->
+    <aside class="side-card side-combined" aria-label="내 탐구 나무 · 칭호첩">
+      <div class="side-fixed">
+        <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
+        <p class="side-name" id="sideName">—</p>
+        <p class="side-class" id="sideClass">—</p>
+        <span class="rank-badge">🏷️ <span id="rankName">견습 사관</span></span>
+        <p class="side-points"><span id="pointsNum">0</span>점 <small>탐구 포인트</small></p>
+        <div class="rank-track"><div class="rank-fill" id="rankFill"></div></div>
+        <p class="rank-next" id="rankNext"></p>
+        <p class="tree-note">활동을 완료하면 나무에 잎이 돋고,<br>다시 도전하면 포인트가 더 쌓여요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
+      </div>
 
-    <!-- 칭호첩(특별 칭호) — 탐구 나무·랭크 카드와는 별개 카드.
-         STUDENT_DATA.badges(backend_v24 computeBadges_ 결과)를 그대로 그림 —
-         필드 자체가 없을 수 있음(교사 미리보기 모드) → renderBadges가 방어적으로 처리.
-         v24: 학습 칭호가 고정 4개가 아니라 활동 단위로 늘어날 수 있게 되면서,
-         미획득까지 다 그리던 이전 방식은 목록이 무한정 길어질 수 있어 "획득한 것만"
-         그리는 방식으로 바꿈(renderBadges 참고). -->
-    <aside class="side-card badge-card" aria-label="칭호첩">
-      <p class="bc-title">🎖️ 칭호첩</p>
-      <div class="bc-groups" id="badgeGroups"></div>
+      <!-- 칭호첩(특별 칭호) — STUDENT_DATA.badges(backend_v24 computeBadges_ 결과)를
+           그대로 그림. 필드 자체가 없을 수 있음(교사 미리보기 모드) → renderBadges가
+           방어적으로 처리. v24: 학습 칭호가 고정 4개가 아니라 활동 단위로 늘어날 수
+           있게 되면서, 미획득까지 다 그리던 이전 방식은 목록이 무한정 길어질 수 있어
+           "획득한 것만" 그리는 방식으로 바꿈(renderBadges 참고). -->
+      <div class="badge-section" role="region" aria-label="칭호첩">
+        <p class="bc-title">🎖️ 칭호첩</p>
+        <div class="bc-groups bc-scroll" id="badgeGroups"></div>
+      </div>
     </aside>
     </div>
 

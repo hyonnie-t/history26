@@ -262,9 +262,25 @@ button{font-family:inherit; cursor:pointer;}
 }
 @media (max-width:1024px){ .side-card{position:static;} }
 
-/* ── 칭호첩(특별 칭호) — 탐구 나무 카드와는 별개 카드 ──
- * 카드 두 개가 세로로 쌓이므로 둘 다 sticky면 스크롤 시 겹쳐 보임 — 이 카드는 static으로. */
-.badge-card{position:static; text-align:left;}
+/* ── 탐구 나무 + 칭호첩 통합 sticky 카드 (v30) ──
+ * 이전엔 나무 카드만 sticky, 칭호첩 카드는 별개 static 카드라 스크롤해서 활동
+ * 목록까지 내려가면 칭호첩이 화면에서 통째로 사라졌음. 이제 한 카드 안에서
+ * 위(.side-fixed)는 고정, 아래(칭호첩)만 필요할 때 내부 스크롤되게 해서 카드
+ * 자체는 계속 화면에 남는다. 데스크톱(1025px 이상, sticky가 실제로 걸리는
+ * 구간)에서만 높이를 뷰포트로 제한 — 모바일은 아래 .side-card 미디어쿼리대로
+ * static이라 원래처럼 페이지 스크롤로 자연스럽게 흘러가면 되므로 그대로 둠. */
+.side-fixed{flex:0 0 auto;}
+.badge-section{
+  margin-top:16px; padding-top:16px; border-top:1px dashed var(--line);
+  text-align:left; display:flex; flex-direction:column; min-height:0;
+}
+.badge-section .bc-title{flex:0 0 auto;}
+.bc-groups.bc-scroll{min-height:0;}
+@media (min-width:1025px){
+  .side-combined{display:flex; flex-direction:column; max-height:calc(100vh - 32px); overflow:hidden;}
+  .badge-section{flex:1 1 auto; overflow:hidden;}
+  .bc-groups.bc-scroll{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;}
+}
 .bc-title{font-size:.92rem; font-weight:700; color:var(--ink); text-align:center; margin-bottom:12px;}
 .bc-empty{font-size:.8rem; color:var(--ink-soft); text-align:center; margin:0;}
 .bc-group{margin-bottom:12px;}
