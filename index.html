@@ -208,6 +208,7 @@
     <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">📢 공지 관리</button>
     <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
     <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">🌡️ 체크인</button>
+    <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">🎤 탐구포인트</button>
   </div>
 
   <div class="dash-panel" id="panelRecords">
@@ -508,6 +509,29 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- v33(핸드오프 "발표 탐구포인트 빠른 지급"): 학생 기록 탭에서 반/학생을
+       찾아 상세를 펼쳐야만 있던 "+ 탐구포인트" 버튼을, 검색 한 번으로 바로
+       지급할 수 있는 전용 탭으로 분리. 학생 검색은 v25에 이미 있던
+       dashSearchStudents_/dashRenderSearchResults_(학번/이름, 학년·반 무관
+       전체 검색)를 그대로 재사용 — 이 탭에서는 결과를 클릭하면 상세 카드로
+       점프하는 대신 그 자리에서 바로 지급 폼을 펼친다(ppPickStudent_).
+       오늘 지급 내역은 서버에 별도 조회 API가 없어서(grantPresentationPoint가
+       행 정보를 안 돌려줌) 세션 메모리에만 쌓아 보여주는 "방금 지급함" 확인용
+       — 새로고침하면 비워짐, 영구 기록은 학생 상세 카드에서 그대로 확인 가능. -->
+  <div class="dash-panel" id="panelPoints" style="display:none;">
+    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
+      발표처럼 웹앱 밖에서 있었던 활동에 포인트를 즉시 지급해요. 학번 또는 이름으로 학생을 검색해서 바로 지급할 수 있어요.
+    </p>
+    <div class="filters">
+      <div class="student-search" id="ppSearchWrap" style="flex:1 1 320px; max-width:420px;">
+        <input type="text" id="ppSearch" placeholder="학번 또는 이름 검색" autocomplete="off">
+        <div class="student-search-results" id="ppSearchResults" style="display:none;"></div>
+      </div>
+    </div>
+    <div id="ppSelected"></div>
+    <div id="ppRecent"></div>
   </div>
 </div>
 
@@ -1705,6 +1729,11 @@ let BADGE_NAME_POOL = {
   '판단': ['결정왕'], '비교': ['비교왕'], '해석': ['해석왕'], '관점': ['다른 눈으로 본 사람']
 };
 let openDetailSid = null;
+// v33 — 발표 탐구포인트 "빠른 지급" 탭에서 방금 지급한 내역을 세션 메모리에만
+// 쌓아두는 목록(새로고침하면 비워짐 — 영구 기록은 아니고 "방금 확실히 지급됐다"는
+// 확인용). grantPresentationPoint 응답이 새로 만든 행 정보를 안 돌려주므로
+// 서버 재조회 없이 클라이언트에서만 관리.
+let PP_RECENT = [];
 
 /* v22: 5개 요청 전부 fetchJsonRetry_로 재시도 처리. 이전엔 fetch 하나라도
  * 404(재배포 직후 googleusercontent 리다이렉트 불안정) 등으로 실패하면
@@ -1758,7 +1787,7 @@ async function enterDash(token){
 
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
-  ['records','questions','announce','curriculum','checkin'].forEach(t => {
+  ['records','questions','announce','curriculum','checkin','points'].forEach(t => {
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -3117,17 +3146,25 @@ function renderDash(){
   });
 }
 
-/* ── 발표 탐구포인트 지급 (v31 핸드오프) ──
+/* ── 발표 탐구포인트 지급 (v31 핸드오프, v33에서 빠른 지급 탭 추가) ──
  * 발표처럼 웹앱 밖에서 일어나는 즉흥 활동에 포인트를 즉시 지급하는 통로.
  * 발표는 1회성(재도전 없음) — 사고유형 선택 시 6점 + 해당 유형 배지 집계용 기록,
  * 무선택("유형 없이 지급")이면 배지 집계와 무관한 순수 포인트만 적립.
  * 실제 achievement 컬럼/게임활동_로그 기록 방식은 백엔드(grantPresentationPoint
- * action) 책임 — 이 레포엔 없음, Apps Script 쪽에서 별도 확인·구현 필요. */
+ * action) 책임 — 이 레포엔 없음, Apps Script 쪽에서 별도 확인·구현 필요.
+ *
+ * v33: 이 상자(pp-box)는 두 군데서 쓰인다 — ① 학생 상세 카드 안(접힌 채 시작,
+ * 토글 버튼으로 펼침), ② "탐구포인트" 탭에서 학생 검색으로 고른 직후(처음부터
+ * 펼쳐진 채로 렌더링, 토글 버튼 없음 — openByDefault=true). 어느 쪽인지는
+ * DOM 위치(#ppSelected 안인지)로 dashGrantPresentationPoint가 판단해서,
+ * 지급 성공 시 ①은 폼만 접고 ②는 선택 자체를 지워 다음 학생 검색으로 돌아간다. */
 const PP_THINKING_TYPES = ['판단', '비교', '해석', '관점'];
-function dashPointBoxHtml_(s){
+function dashPointBoxHtml_(s, openByDefault){
+  const toggleBtn = openByDefault ? '' : `<button type="button" class="btn btn-sm pp-toggle">🎤 + 탐구포인트</button>`;
+  const formHidden = openByDefault ? '' : ' hidden';
   return `<div class="pp-box" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">
-    <button type="button" class="btn btn-sm pp-toggle">🎤 + 탐구포인트</button>
-    <div class="pp-form" hidden>
+    ${toggleBtn}
+    <div class="pp-form"${formHidden}>
       <div class="pp-types">
         ${PP_THINKING_TYPES.map(t => `<button type="button" class="pp-type-btn" data-type="${t}">${t}</button>`).join('')}
         <button type="button" class="pp-type-btn pp-type-none is-selected" data-type="">유형 없이 지급</button>
@@ -3151,6 +3188,7 @@ async function dashGrantPresentationPoint(btn){
   const typeBtn = box.querySelector('.pp-type-btn.is-selected');
   const thinkingType = typeBtn ? typeBtn.dataset.type : '';
   const reason = box.querySelector('.pp-reason').value.trim();
+  const inQuickTab = !!box.closest('#ppSelected');
   btn.disabled = true; btn.textContent = '지급 중…';
   try{
     const res = await fetch(CONFIG.WEBAPP_URL, {
@@ -3163,6 +3201,14 @@ async function dashGrantPresentationPoint(btn){
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '지급 실패');
     showToast(`${name} 학생에게 ${thinkingType ? thinkingType + ' ' : ''}탐구포인트를 지급했어요.`);
+    // v33 — "방금 지급함" 목록에 추가(세션 메모리만, 새로고침하면 비워짐).
+    PP_RECENT.unshift({ sid, name, thinkingType, timestamp: new Date().toISOString() });
+    if(PP_RECENT.length > 20) PP_RECENT.length = 20;
+    ppRenderRecent_();
+    if(inQuickTab){
+      $('ppSelected').innerHTML = ''; // 다음 학생 검색으로 바로 이어가게 비움
+      return;
+    }
     box.querySelector('.pp-reason').value = '';
     box.querySelectorAll('.pp-type-btn').forEach(b => b.classList.remove('is-selected'));
     box.querySelector('.pp-type-none').classList.add('is-selected');
@@ -3172,6 +3218,63 @@ async function dashGrantPresentationPoint(btn){
   }finally{
     btn.disabled = false; btn.textContent = '지급 (+6점)';
   }
+}
+
+/* ── 탐구포인트 빠른 지급 탭 (v33 신규) ──
+ * 학생 기록 탭에서 학년·반 드롭다운으로 걸러 표 안에서 행을 찾고, 그 상세
+ * 카드를 펼쳐야만 있던 "+ 탐구포인트" 버튼을 전용 탭으로 분리 — 발표는 수업
+ * 중 바로바로 눌러야 하는데 그 경로가 너무 길었음(효니 피드백). 학생 검색은
+ * v25에 이미 있던 dashSearchStudents_(학번/이름, 학년·반 몰라도 전체에서 찾음)를
+ * 그대로 재사용하고, 결과를 클릭하면 dashJumpToStudent_처럼 상세로 점프하는
+ * 대신 이 자리에서 바로 펼쳐진 지급 폼을 보여준다. */
+function ppRenderSearchResults_(matches){
+  const box = $('ppSearchResults');
+  if(!matches.length){
+    box.innerHTML = '<div class="ssr-empty">일치하는 학생이 없어요</div>';
+    box.style.display = 'block';
+    return;
+  }
+  box.innerHTML = matches.map(s =>
+    `<div class="ssr-item" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">
+       <span class="ssr-name">${escapeHtml(s.name)}</span>
+       <span class="ssr-meta">${s.p.grade}학년 ${s.p.ban}반 · ${s.sid}</span>
+     </div>`).join('');
+  box.style.display = 'block';
+  box.querySelectorAll('.ssr-item').forEach(el => {
+    el.addEventListener('click', () => ppPickStudent_(el.dataset.sid, el.dataset.name));
+  });
+}
+function ppPickStudent_(sid, name){
+  $('ppSearch').value = '';
+  $('ppSearchResults').style.display = 'none';
+  $('ppSelected').innerHTML = `
+    <div class="pp-picked">
+      <span class="pp-picked-name">${escapeHtml(name)}</span>
+      <span class="pp-picked-meta">${escapeHtml(sid)}</span>
+      <button type="button" class="btn-tiny" onclick="ppClearSelected_()">다른 학생 검색</button>
+    </div>
+    ${dashPointBoxHtml_({ sid, name }, true)}`;
+  document.querySelectorAll('#ppSelected .pp-type-btn').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashPointTypeSelect(btn); });
+  });
+  document.querySelectorAll('#ppSelected .pp-send').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashGrantPresentationPoint(btn); });
+  });
+}
+function ppClearSelected_(){
+  $('ppSelected').innerHTML = '';
+}
+function ppRenderRecent_(){
+  const el = $('ppRecent');
+  if(!el) return;
+  if(!PP_RECENT.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<p class="pp-recent-title">✅ 방금 지급함 (이 화면을 새로고침하면 목록만 비워져요 — 지급 기록 자체는 그대로 남아있어요)</p>`
+    + PP_RECENT.slice(0, 8).map(g => `
+      <div class="pp-recent-item">
+        <span class="pp-recent-name">${escapeHtml(g.name)} <small>(${escapeHtml(g.sid)})</small></span>
+        <span class="pp-recent-type">${g.thinkingType ? escapeHtml(g.thinkingType) : '유형 없음'}</span>
+        <span class="pp-recent-time">${formatDate(g.timestamp)}</span>
+      </div>`).join('');
 }
 
 function dashDetailRowHtml(s, lessons, colspan){
@@ -3572,6 +3675,21 @@ $('studentSearch').addEventListener('keydown', ev => {
 });
 document.addEventListener('click', ev => {
   if(!$('studentSearchWrap').contains(ev.target)) $('studentSearchResults').style.display = 'none';
+});
+// v33 — 탐구포인트 탭 학생 검색. dashSearchStudents_는 학년·반 무관 전체 검색이라
+// 반 필터를 안 건드리는 이 탭에도 그대로 재사용 가능.
+$('ppSearch').addEventListener('input', () => {
+  const matches = dashSearchStudents_($('ppSearch').value);
+  if(!$('ppSearch').value.trim()){ $('ppSearchResults').style.display = 'none'; return; }
+  ppRenderSearchResults_(matches);
+});
+$('ppSearch').addEventListener('keydown', ev => {
+  if(ev.key !== 'Enter') return;
+  const matches = dashSearchStudents_($('ppSearch').value);
+  if(matches.length === 1) ppPickStudent_(matches[0].sid, matches[0].name);
+});
+document.addEventListener('click', ev => {
+  if(!$('ppSearchWrap').contains(ev.target)) $('ppSearchResults').style.display = 'none';
 });
 $('btnCsv').addEventListener('click', dashDownloadCsv);
 $('btnClCancelEdit').addEventListener('click', dashResetLessonForm);

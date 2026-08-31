@@ -919,4 +919,38 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .pp-popup-card .pp-popup-ok{width:100%; margin-top:10px; background:var(--indigo); color:#fff; border:none;}
 .pp-popup-card .pp-popup-ok:hover{background:var(--indigo-deep);}
 
+/* 학생 검색(v25 "학생 기록" 탭 상단 검색창 + v33 "탐구포인트" 탭 검색창이 공유) —
+ * 지금까지 스타일이 아예 없어서 브라우저 기본 입력창에 결과 목록도 플로팅 없이
+ * 문서 흐름에 끼어드는 상태였음(기능은 동작하지만 눈에 잘 안 띔). 탐구포인트
+ * 빠른 지급 탭을 만들면서 이 검색창이 핵심 진입점이 되므로 이번에 같이 스타일링. */
+.student-search{position:relative;}
+.student-search input{width:100%; box-sizing:border-box; min-height:42px; padding:8px 12px;
+  border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.93rem;}
+.student-search input:focus{border-color:var(--indigo); outline:none;}
+.student-search-results{
+  position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
+  background:var(--card); border:1.5px solid var(--line); border-radius:10px; box-shadow:var(--shadow);
+  max-height:260px; overflow-y:auto;
+}
+.ssr-item{padding:10px 14px; cursor:pointer; display:flex; justify-content:space-between;
+  align-items:center; gap:10px; border-bottom:1px solid var(--line);}
+.ssr-item:last-child{border-bottom:none;}
+.ssr-item:hover{background:var(--paper);}
+.ssr-name{font-weight:600;}
+.ssr-meta{font-size:.82rem; color:var(--ink-soft); white-space:nowrap;}
+.ssr-empty{padding:14px; color:var(--ink-soft); font-size:.88rem; text-align:center;}
+
+/* 탐구포인트 빠른 지급 탭 (v33) */
+.pp-picked{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 4px;
+  padding:10px 14px; background:rgba(46,74,122,.06); border:1px solid rgba(46,74,122,.2); border-radius:10px;}
+.pp-picked-name{font-weight:700; font-family:var(--font-display);}
+.pp-picked-meta{font-size:.85rem; color:var(--ink-soft);}
+.pp-recent-title{font-size:.82rem; color:var(--ink-soft); margin:22px 0 8px;}
+.pp-recent-item{display:flex; justify-content:space-between; gap:10px; padding:8px 12px;
+  font-size:.88rem; border-bottom:1px solid var(--line);}
+.pp-recent-item:last-child{border-bottom:none;}
+.pp-recent-name small{color:var(--ink-soft); font-weight:400;}
+.pp-recent-type{color:var(--indigo); font-weight:600;}
+.pp-recent-time{color:var(--ink-soft); font-size:.8rem; white-space:nowrap;}
+
 @media (max-width:640px){ #dashView{padding:16px 10px 60px;} }
