@@ -864,32 +864,63 @@ async function submitCheckin(fields){
 
 /* ── 탐구 나무 SVG ──
  * stage(0~3) = 칭호 단계 / leaves = 완료 활동 수 (참여 기반만 반영, 달성도와 무관) */
-function treeSvg(stage, leaves){
+/* v31(핸드오프 "나무 8단계 전환"): RANK가 학년별 8단계로 늘어나면서(v30) 나무도
+ * stage 0~7까지 8단계로 확장 — RANK가 오르는 시점 = 나무 stage가 오르는 시점(1:1).
+ * 기존 4단계(0/1/2/"3 이상") 중 0·1·"3 이상"의 손그림 좌표는 그대로 두고(검증된
+ * 모양), 그 사이 5단계를 같은 원·가지 문법으로 보간해 채웠다.
+ * leaves(완료 차시 수)는 원래 원시 개수를 그대로 썼는데, 이제 학년마다 분모(2학년
+ * 30차시·3학년 15차시)가 달라 원시 개수로는 나무가 꽉 차는 시점이 학년마다 어긋난다
+ * — totalLessons(그 학생 트랙의 "웹앱 활동 있는 차시" 수, active.length)를 받아
+ * leaves/totalLessons 비율로 0~10(leafSpots 풀 크기)에 정규화한 뒤, 단계별 캡
+ * (dotCap/flowerCap/fruitCap)으로 한 번 더 눌러 어린 나무엔 조금만, 큰 나무엔
+ * 넉넉히 붙게 했다. */
+function treeSvg(stage, leaves, totalLessons){
+  stage = Math.max(0, Math.min(7, stage || 0));
+  leaves = leaves || 0;
+  totalLessons = totalLessons || 0;
   const trunk = '#7A5230', crownA = '#3E7C59', crownB = '#5C9C77', ground = '#E4DECB';
   const leafSpots = [
     [64,52],[100,58],[82,38],[52,70],[112,74],[70,66],[94,46],[58,44],[106,50],[82,58]
   ];
-  const extra = leafSpots.slice(0, Math.min(leaves, leafSpots.length)).map(p =>
+  const ratio = totalLessons > 0 ? Math.min(leaves / totalLessons, 1) : 0;
+  const leafCount = Math.round(ratio * leafSpots.length);
+  const dotCap    = [0, 0, 4, 5, 6, 7, 9, 10][stage];
+  const flowerCap = [0, 0, 0, 3, 4, 0, 0, 0][stage]; // 겸춘추 문턱 부근에서만 개화
+  const fruitCap  = [0, 0, 0, 0, 0, 3, 4, 6][stage]; // 편수관 이후로는 결실
+  const extra = leafSpots.slice(0, Math.min(leafCount, dotCap)).map(p =>
     `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#8FBE72"/>`).join('');
-  const fruits = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
+  const fruits = leafSpots.slice(0, Math.min(leafCount, fruitCap)).map(p =>
     `<circle cx="${p[0]+4}" cy="${p[1]+6}" r="3.5" fill="#B03A2E"/>`).join('');
-  const flowers = leafSpots.slice(0, Math.min(leaves, 6)).map(p =>
+  const flowers = leafSpots.slice(0, Math.min(leafCount, flowerCap)).map(p =>
     `<circle cx="${p[0]+3}" cy="${p[1]+5}" r="3" fill="#E8C77E"/>`).join('');
 
   let body = '';
-  if(stage <= 0){
+  if(stage === 0){
     body = `
       <path d="M84 118 L84 96" stroke="${crownA}" stroke-width="5" stroke-linecap="round"/>
       <path d="M84 102 C70 98 64 86 66 78 C78 80 84 90 84 102 Z" fill="${crownB}"/>
       <path d="M84 96 C98 92 104 80 102 72 C90 74 84 84 84 96 Z" fill="${crownA}"/>`;
   } else if(stage === 1){
     body = `
+      <path d="M84 118 L84 88" stroke="${trunk}" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="84" cy="72" r="16" fill="${crownA}"/>
+      <circle cx="70" cy="80" r="9" fill="${crownB}"/>`;
+  } else if(stage === 2){
+    body = `
       <path d="M84 118 L84 74" stroke="${trunk}" stroke-width="7" stroke-linecap="round"/>
       <circle cx="84" cy="58" r="24" fill="${crownA}"/>
       <circle cx="66" cy="70" r="14" fill="${crownB}"/>
       <circle cx="102" cy="68" r="15" fill="${crownB}"/>
       ${extra}`;
-  } else if(stage === 2){
+  } else if(stage === 3){
+    body = `
+      <path d="M84 118 L84 68" stroke="${trunk}" stroke-width="8" stroke-linecap="round"/>
+      <path d="M84 82 L68 70" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="84" cy="52" r="26" fill="${crownA}"/>
+      <circle cx="62" cy="66" r="16" fill="${crownB}"/>
+      <circle cx="106" cy="64" r="16" fill="${crownB}"/>
+      ${extra}${flowers}`;
+  } else if(stage === 4){
     body = `
       <path d="M84 118 L84 62" stroke="${trunk}" stroke-width="9" stroke-linecap="round"/>
       <path d="M84 86 L62 72 M84 76 L106 62" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
@@ -897,6 +928,23 @@ function treeSvg(stage, leaves){
       <circle cx="58" cy="64" r="17" fill="${crownB}"/>
       <circle cx="110" cy="60" r="18" fill="${crownB}"/>
       ${extra}${flowers}`;
+  } else if(stage === 5){
+    body = `
+      <path d="M84 118 L84 59" stroke="${trunk}" stroke-width="10" stroke-linecap="round"/>
+      <path d="M84 84 L60 70 M84 74 L108 60 M84 98 L72 92" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="84" cy="43" r="28" fill="${crownA}"/>
+      <circle cx="55" cy="62" r="18" fill="${crownB}"/>
+      <circle cx="113" cy="57" r="19" fill="${crownB}"/>
+      ${extra}${fruits}`;
+  } else if(stage === 6){
+    body = `
+      <path d="M84 118 L84 57" stroke="${trunk}" stroke-width="10" stroke-linecap="round"/>
+      <path d="M84 84 L58 69 M84 73 L110 58 M84 97 L69 90" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="84" cy="41" r="29" fill="${crownA}"/>
+      <circle cx="53" cy="61" r="18.5" fill="${crownB}"/>
+      <circle cx="115" cy="55" r="19.5" fill="${crownB}"/>
+      <circle cx="72" cy="32" r="11" fill="${crownB}"/>
+      ${extra}${fruits}`;
   } else {
     body = `
       <path d="M84 118 L84 56" stroke="${trunk}" stroke-width="11" stroke-linecap="round"/>
@@ -1029,7 +1077,7 @@ function renderPortal(){
     $('rankNext').textContent = '최고 칭호에 도달했어요!';
     requestAnimationFrame(() => { $('rankFill').style.width = '100%'; });
   }
-  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessonsCount);
+  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessonsCount, active.length);
   $('treeBox').setAttribute('aria-label',
     `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessonsCount}개`);
 
