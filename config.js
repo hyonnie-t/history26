@@ -11,14 +11,37 @@ window.PORTAL_CONFIG = {
   WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyXSjCfWY_HiZFqW_OBR-FQDoIfF1z_STqyKWUI31MacHeY3u7hbirFSFDvW-5yuUHaJQ/exec",
 
   // 탐구 포인트: 활동 "완료"마다 적립 (달성도와 무관 — 참여 기반)
+  // ⚠️ 미사용 죽은 값 — 실제 배점은 index.html renderPortal()의
+  // `const P = CONFIG.POINTS || { FIRST:10, RETRY:5, RETRY_MAX:2 }`가 담당.
   POINTS_PER_LESSON: 100,
-  // 누적 포인트 → 칭호. 조선의 역사 기록 관직에서 따옴. 이름·기준점 자유롭게 수정 가능.
-  RANKS: [
-    { min: 0,   name: "견습 사관" },
-    { min: 100, name: "사관" },
-    { min: 300, name: "편수관" },
-    { min: 600, name: "대제학" }
-  ],
+  // 누적 포인트 → 칭호. 조선의 역사 기록 관직(춘추관·홍문관 계열)에서 이름만 따옴 —
+  // 이 8단계가 실제 조선 품계 서열이라는 사학적 고증은 하지 않았음(게임 진행 단계용 임의 배열).
+  // v30(발표 탐구포인트 + RANK 재설계, 2026-08-31 핸드오프): 학년마다 진도(차시 수)가
+  // 크게 달라(2학년 30차시 vs 3학년 15차시) 단일 스케일로는 문턱이 안 맞아 학년별로 분리.
+  // 아래 min 값은 "2학년 웹앱활동 있는 차시 약 20회·3학년 약 10회, 페어당(글쓰기10+발표6)
+  // 재도전 없이 16점" 가정의 추정치 — 실제 진도표 확보되면 재계산 필요.
+  RANKS: {
+    2: [
+      { min: 0,   name: "권지 사관" },
+      { min: 40,  name: "가주서" },
+      { min: 90,  name: "주서" },
+      { min: 150, name: "사관" },
+      { min: 220, name: "겸춘추" },
+      { min: 300, name: "편수관" },
+      { min: 380, name: "직제학" },
+      { min: 460, name: "대제학" }
+    ],
+    3: [
+      { min: 0,   name: "권지 사관" },
+      { min: 20,  name: "가주서" },
+      { min: 45,  name: "주서" },
+      { min: 75,  name: "사관" },
+      { min: 110, name: "겸춘추" },
+      { min: 150, name: "편수관" },
+      { min: 190, name: "직제학" },
+      { min: 230, name: "대제학" }
+    ]
+  },
 
   // 페이지 로딩 시 loadCurriculum()이 mode=curriculum 응답으로 이 값을 채웁니다.
   // (시트가 비어 있거나 API 실패 시 빈 상태로 남아 로그인 시 오류로 이어짐)
