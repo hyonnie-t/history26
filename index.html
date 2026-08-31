@@ -98,6 +98,9 @@
         <p class="side-points"><span id="pointsNum">0</span>점 <small>탐구 포인트</small></p>
         <div class="rank-track"><div class="rank-fill" id="rankFill"></div></div>
         <p class="rank-next" id="rankNext"></p>
+        <!-- v31: 발표 탐구포인트 — 선생님이 즉시 지급한 만큼만 있을 때 보이는 투명성 라인.
+             지급 없으면 hidden 유지(renderPortal에서 토글). -->
+        <p class="side-pp" id="sidePp" hidden></p>
         <p class="tree-note">활동을 완료하면 나무에 잎이 돋고,<br>다시 도전하면 포인트가 더 쌓여요.<br>칭호는 조선의 역사 기록 관직에서 따온 놀이용 이름이에요.</p>
       </div>
 
@@ -863,8 +866,9 @@ async function submitCheckin(fields){
 }
 
 /* ── 탐구 나무 SVG ──
- * stage(0~3) = 칭호 단계 / leaves = 완료 활동 수 (참여 기반만 반영, 달성도와 무관) */
-/* v31(핸드오프 "나무 8단계 전환"): RANK가 학년별 8단계로 늘어나면서(v30) 나무도
+ * stage(0~7) = 칭호 단계 / leaves·totalLessons = 완료 활동 수·전체 차시 수
+ * (참여 기반만 반영, 달성도와 무관) */
+/* v32(핸드오프 "나무 8단계 전환"): RANK가 학년별 8단계로 늘어나면서(v31) 나무도
  * stage 0~7까지 8단계로 확장 — RANK가 오르는 시점 = 나무 stage가 오르는 시점(1:1).
  * 기존 4단계(0/1/2/"3 이상") 중 0·1·"3 이상"의 손그림 좌표는 그대로 두고(검증된
  * 모양), 그 사이 5단계를 같은 원·가지 문법으로 보간해 채웠다.
@@ -1056,8 +1060,24 @@ function renderPortal(){
       points += Math.min(retries, P.RETRY_MAX) * P.RETRY;
     });
   });
+  /* v31: 발표 탐구포인트(교사 대시보드 "+ 탐구포인트") — 커리큘럼의 lessons/activities
+   * 순회에 안 걸리는 별도 지급이라(가상 활동이라 학생 화면 차시 목록엔 없음) 여기서
+   * STUDENT_DATA.presentationGrants를 따로 합산해 points에 얹는다. 필드 자체가 없는
+   * 경우(구버전 백엔드, 미리보기 모드) 방어적으로 빈 배열 처리. */
+  const ppGrants = STUDENT_DATA.presentationGrants || [];
+  const presentationPoints = ppGrants.reduce((sum, g) => sum + (Number(g.points) || 6), 0);
+  points += presentationPoints;
+  const sidePpEl = $('sidePp');
+  if (sidePpEl) {
+    if (ppGrants.length) {
+      sidePpEl.hidden = false;
+      sidePpEl.textContent = `🎤 발표 인정 ${ppGrants.length}회 · +${presentationPoints}점`;
+    } else {
+      sidePpEl.hidden = true;
+    }
+  }
   const doneLessonsCount = lessons.filter(lessonDone).length;
-  /* v30: RANKS가 학년 공통 배열 → 학년별 배열(2/3)로 바뀜(핸드오프 "발표 탐구포인트 +
+  /* v31: RANKS가 학년 공통 배열 → 학년별 배열(2/3)로 바뀜(핸드오프 "발표 탐구포인트 +
    * RANK 재설계") — 2학년 30차시·3학년 15차시로 진도량이 달라 문턱을 분리했기 때문.
    * 학생 학년에 해당하는 배열이 없으면(설정 누락 방어) 2학년 스케일로 폴백. */
   const ranks = CONFIG.RANKS[SESSION.grade] || CONFIG.RANKS[2] || [{ min: 0, name: '견습 사관' }];
@@ -1085,6 +1105,7 @@ function renderPortal(){
    * 둘 다에서 호출되므로 여기 한 곳에서만 처리하면 두 트리거를 모두 커버한다. */
   renderBadges(STUDENT_DATA.badges);
   checkNewBadges(STUDENT_DATA.badges);
+  checkNewPresentationGrants(ppGrants);
 
   /* 단원 관통 질문 배너 */
   const uq = (cur.unitQuestion || '').trim();
@@ -1561,6 +1582,57 @@ function checkNewBadges(badges){
     ? `🎉 ${newlyEarned[0].name} 획득!`
     : `🎉 ${newlyEarned[0].name} 외 ${newlyEarned.length - 1}개 칭호 획득!`;
   showToast(msg);
+}
+
+/* v31(핸드오프 "발표 탐구포인트 학생 화면 반영") — checkNewBadges와 같은 패턴:
+ * 학번별로 "이미 확인한 발표 지급 id" 목록을 localStorage에 저장해두고, 새로
+ * studentGet_ 응답이 올 때마다 기준선에 없던 지급만 골라 팝업으로 1회 보여준다.
+ * 토스트(showToast)는 2.6초면 사라지는 배경 알림이라 "선생님이 방금 인정해준
+ * 포인트"라는 무게에 안 맞아서, 확인 버튼을 눌러야 닫히는 별도 팝업(showPresentationPopup)을
+ * 씀. 배지와 동일하게 첫 조회(기준선 없음)엔 팝업 없이 기준선만 저장 — 안 그러면
+ * 이미 여러 번 지급받은 학생이 처음 로그인할 때 전부 "신규"로 뜬다.
+ * grants[i].id가 없는 응답(백엔드 구버전 등)을 대비해 timestamp를 폴백 키로 씀. */
+function ppGrantKey_(g){ return String(g.id != null ? g.id : g.timestamp); }
+function checkNewPresentationGrants(grants){
+  if(!SESSION || PREVIEW_MODE) return;
+  if(!grants || !grants.length) return;
+  const key = 'pp_seen_' + SESSION.studentId;
+  const ids = grants.map(ppGrantKey_);
+  const raw = store.get(key);
+  if(raw === null){
+    store.set(key, JSON.stringify(ids));
+    return;
+  }
+  let prevIds = [];
+  try{ prevIds = JSON.parse(raw) || []; }catch(e){ prevIds = []; }
+  const prevSet = new Set(prevIds);
+  const newlyGranted = grants.filter(g => !prevSet.has(ppGrantKey_(g)));
+  store.set(key, JSON.stringify(ids));
+  if(!newlyGranted.length) return;
+  showPresentationPopup(newlyGranted);
+}
+function showPresentationPopup(grants){
+  document.querySelectorAll('.pp-popup-overlay').forEach(el => el.remove()); // 중복 방지
+  const totalPts = grants.reduce((sum, g) => sum + (Number(g.points) || 6), 0);
+  const descLine = grants.length === 1
+    ? (grants[0].thinkingType ? `‘${escapeHtml(grants[0].thinkingType)}’ 유형으로 선생님이 인정해 주셨어요.` : '선생님이 발표를 인정해 주셨어요.')
+    : `발표 ${grants.length}건을 선생님이 인정해 주셨어요.`;
+  const reasonHtml = (grants.length === 1 && grants[0].reason)
+    ? `<p class="pp-popup-reason">“${escapeHtml(String(grants[0].reason))}”</p>` : '';
+  const overlay = document.createElement('div');
+  overlay.className = 'pp-popup-overlay';
+  overlay.innerHTML = `
+    <div class="pp-popup-card" role="dialog" aria-modal="true" aria-label="발표 탐구포인트 획득">
+      <p class="pp-popup-emoji">🎤</p>
+      <p class="pp-popup-title">발표 탐구포인트 +${totalPts}점</p>
+      <p class="pp-popup-desc">${descLine}</p>
+      ${reasonHtml}
+      <button type="button" class="btn btn-sm pp-popup-ok">확인</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.pp-popup-ok').addEventListener('click', close);
+  overlay.addEventListener('click', ev => { if(ev.target === overlay) close(); });
 }
 
 /* ── 이벤트 바인딩 ── */
@@ -3045,7 +3117,7 @@ function renderDash(){
   });
 }
 
-/* ── 발표 탐구포인트 지급 (v30 핸드오프) ──
+/* ── 발표 탐구포인트 지급 (v31 핸드오프) ──
  * 발표처럼 웹앱 밖에서 일어나는 즉흥 활동에 포인트를 즉시 지급하는 통로.
  * 발표는 1회성(재도전 없음) — 사고유형 선택 시 6점 + 해당 유형 배지 집계용 기록,
  * 무선택("유형 없이 지급")이면 배지 집계와 무관한 순수 포인트만 적립.

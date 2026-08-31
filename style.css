@@ -322,6 +322,12 @@ button{font-family:inherit; cursor:pointer;}
 .rank-track{height:9px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-bottom:6px;}
 .rank-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--jade), var(--ochre)); border-radius:999px; transition:width .6s ease;}
 .rank-next{font-size:.82rem; color:var(--ink-soft); margin-bottom:12px;}
+.side-pp{
+  display:inline-flex; align-items:center; gap:4px;
+  background:rgba(176,58,46,.08); border:1px solid rgba(176,58,46,.25);
+  color:var(--seal); border-radius:999px; padding:4px 12px;
+  font-weight:700; font-size:.8rem; margin:-4px 0 12px;
+}
 .tree-note{
   font-size:.78rem; color:var(--ink-soft); border-top:1px dashed var(--line);
   padding-top:10px; line-height:1.5;
@@ -883,7 +889,7 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
   border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.92rem; resize:vertical;}
 .empty-line{padding:28px; text-align:center; color:var(--ink-soft);}
 
-/* 발표 탐구포인트 지급 (v30) */
+/* 발표 탐구포인트 지급 (v31) */
 .pp-box{align-self:stretch;}
 .pp-form{margin-top:8px; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7;}
 .pp-types{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;}
@@ -895,4 +901,22 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .pp-type-btn.pp-type-none.is-selected{background:var(--ink-soft); border-color:var(--ink-soft); color:#fff;}
 .pp-reason{width:100%; min-height:42px; padding:10px 12px; margin-bottom:8px;
   border:1.5px solid var(--line); border-radius:8px; background:#fff; font-family:inherit; font-size:.9rem; resize:vertical; box-sizing:border-box;}
+
+/* 발표 탐구포인트 획득 팝업(학생 화면, v31) — 토스트보다 무게감 있게, 확인을
+ * 눌러야 닫히는 모달. 배경 클릭으로도 닫힘(overlay 클릭 핸들러, index.html). */
+.pp-popup-overlay{
+  position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+  background:rgba(35,38,44,.55); padding:20px; animation:fadeIn .2s ease;
+}
+.pp-popup-card{
+  width:min(340px, 100%); background:var(--card); border-radius:16px; padding:28px 24px 22px;
+  text-align:center; box-shadow:0 20px 48px rgba(0,0,0,.3);
+}
+.pp-popup-emoji{font-size:2.2rem; margin-bottom:6px;}
+.pp-popup-title{font-family:var(--font-display); font-size:1.25rem; font-weight:700; color:var(--seal); margin-bottom:8px;}
+.pp-popup-desc{font-size:.92rem; color:var(--ink); margin-bottom:6px;}
+.pp-popup-reason{font-size:.86rem; color:var(--ink-soft); font-style:italic; margin-bottom:14px;}
+.pp-popup-card .pp-popup-ok{width:100%; margin-top:10px; background:var(--indigo); color:#fff; border:none;}
+.pp-popup-card .pp-popup-ok:hover{background:var(--indigo-deep);}
+
 @media (max-width:640px){ #dashView{padding:16px 10px 60px;} }
