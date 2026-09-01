@@ -429,7 +429,7 @@ button{font-family:inherit; cursor:pointer;}
 .feedback-item{padding:9px 0; border-top:1px dashed #EAD9A8; font-size:.95rem;}
 .feedback-item:first-of-type{border-top:none; padding-top:0;}
 .feedback-item .fb-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:2px;}
-.feedback-item .fb-ask-btn{margin-top:8px;} /* v37 — 피드백 모아보기 카드 전용, 학기 총평 카드엔 안 뜸 */
+.feedback-item .fb-ask-btn{margin-top:8px;} /* v38 — 피드백 모아보기 카드 전용, 학기 총평 카드엔 안 뜸 */
 
 /* 달성도 모아보기 */
 .overview-card{
@@ -940,7 +940,7 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .pp-popup-card .pp-popup-ok{width:100%; margin-top:10px; background:var(--indigo); color:#fff; border:none;}
 .pp-popup-card .pp-popup-ok:hover{background:var(--indigo-deep);}
 
-/* 선생님 피드백 도착 팝업(학생 화면, v34) — pp-popup과 같은 이유로 토스트 대신
+/* 선생님 피드백 도착 팝업(학생 화면, v36) — pp-popup과 같은 이유로 토스트 대신
  * 확인 버튼을 눌러야 닫히는 모달. 여러 건이 한 번에 올 수 있어 pp-popup과 달리
  * 항목 리스트를 스크롤 가능하게 둠(fb-popup-list). */
 .fb-popup-overlay{
