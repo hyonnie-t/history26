@@ -1055,6 +1055,16 @@ function renderPortal(){
     }
   });
 
+  /* v35 — 학급 공통 피드백(교사 대시보드에서 반+활동 단위로 생성) 중 학생용 문구만
+   * activityId 기준 맵으로. 개인 AI 코멘트·개인 피드백과 달리 이 학생 개인 기록이
+   * 아니라 "이 반 전체"에 대한 문구라 STUDENT_DATA.activities가 아니라 서버가 이미
+   * 이 학생의 반으로 걸러서 내려준 STUDENT_DATA.classFeedback을 그대로 씀. */
+  const classFeedbackMap = {};
+  (STUDENT_DATA.classFeedback || []).forEach(f => {
+    const aid = String(f.activityId || '').trim();
+    if (aid) classFeedbackMap[aid] = f;
+  });
+
   /* v27: 차시 하나에 활동이 여러 개(cur.lessons[].activities) 있을 수 있음.
    * "완료했다"는 그 차시의 activities를 전부 doneIds에 넣었을 때만 인정 —
    * 진행률·나무·포인트 계산에서 "차시" 단위 숫자는 전부 이 기준으로 통일. */
@@ -1218,7 +1228,7 @@ function renderPortal(){
   $('statusLine').style.display = 'none';
 
   tl.innerHTML = lessons.map((l, i) => renderLessonCard(l, i, {
-    doneIds, achieveMap, latestMap, fbByLesson, lessonDone, lessonHasUrl
+    doneIds, achieveMap, latestMap, fbByLesson, classFeedbackMap, lessonDone, lessonHasUrl
   })).reverse().join(''); // v20: 화면 노출 순서만 최신순(역순)으로. "N차시" 라벨은 위 map에서
                           // 원래 순서 기준 i+1로 이미 계산돼 있으므로 번호는 그대로 유지됨.
 
@@ -1239,7 +1249,7 @@ function activityDisplayTitle(l, act, idx){
  * 2개 이상이면 카드 하나 안에 활동별 블록을 순서대로 나열.
  * 순차 진행(l.sequential)이 켜져 있으면 앞 활동을 끝내야 다음 활동 버튼이 열림. */
 function renderLessonCard(l, i, ctx){
-  const { doneIds, achieveMap, latestMap, fbByLesson, lessonDone, lessonHasUrl } = ctx;
+  const { doneIds, achieveMap, latestMap, fbByLesson, classFeedbackMap, lessonDone, lessonHasUrl } = ctx;
   const done = lessonDone(l);
   const building = !lessonHasUrl(l);
   const multi = l.activities.length > 1;
@@ -1251,7 +1261,7 @@ function renderLessonCard(l, i, ctx){
 
   const activitiesHtml = l.activities.map((act, idx) => {
     const locked = !!(l.sequential && idx > 0 && !doneIds.has(l.activities[idx - 1].id));
-    return renderActivityBlock(l, act, idx, { multi, locked, doneIds, achieveMap, latestMap });
+    return renderActivityBlock(l, act, idx, { multi, locked, doneIds, achieveMap, latestMap, classFeedbackMap });
   }).join('');
 
   /* 이 차시에 대한 선생님 피드백 (활동이 아니라 차시 단위 — 기존과 동일) */
@@ -1287,7 +1297,7 @@ function renderLessonCard(l, i, ctx){
 /* v27 — 활동 하나의 블록(제목·달성도·AI코멘트·버튼)을 렌더링.
  * multi가 false면 기존과 완전히 동일한 모양(활동 소제목·wrapper 없이 바로 내용). */
 function renderActivityBlock(l, act, idx, opts){
-  const { multi, locked, doneIds, achieveMap, latestMap } = opts;
+  const { multi, locked, doneIds, achieveMap, latestMap, classFeedbackMap } = opts;
   const done = doneIds.has(act.id);
   const url = lessonActivityUrl(act);
   const building = !url;
@@ -1330,6 +1340,21 @@ function renderActivityBlock(l, act, idx, opts){
       </div>`;
   }
 
+  // v35 — 학급 공통 피드백(학생용 문구). 개인 AI 코멘트·개인 피드백과 별도로,
+  // "이 반 전체"에 대한 문구가 있을 때만 뜬다 — 교사가 대시보드에서 생성한 게 있을
+  // 때만(선택), 이 활동을 완료한 학생에게만(done) 보여준다.
+  let classFbHtml = '';
+  const cf = classFeedbackMap && classFeedbackMap[act.id];
+  if(done && cf && cf.studentText){
+    classFbHtml = `
+      <div class="note note-class">
+        <div class="note-label">🏫 학급 공통 피드백
+          <span class="note-date">${formatDate(cf.timestamp)}</span>
+        </div>
+        <div class="note-text">${escapeHtml(String(cf.studentText))}</div>
+      </div>`;
+  }
+
   const retryHtml = (done && recAnalyzed && !building && !pendingNew
     && ['중','하'].includes(String(rec.achievement).trim()))
     ? `<div class="retry-hint">🔄 다시 도전하면 달성도가 새로 기록돼요</div>` : '';
@@ -1355,6 +1380,7 @@ function renderActivityBlock(l, act, idx, opts){
       ${achieveHtml}
       ${pendingHtml}
       ${aiHtml}
+      ${classFbHtml}
       ${retryHtml}
       <div class="lesson-actions">${actions}</div>
     </div>`;
@@ -3050,10 +3076,29 @@ function dashRenderClassFeedback(){
   const activityLabel = dashLessonTitle(act);
   const existing = dashClassFeedbackFind_(grade, ban, act);
 
-  const bodyHtml = existing
-    ? `<div class="class-fb-text">${escapeHtml(existing.feedback)}</div>
-       <div class="class-fb-meta">${formatDate(existing.timestamp)} 생성 · 학생 글 ${existing.studentCount || studentCount}건 기반</div>`
-    : `<p class="muted" style="margin:0 0 10px;">아직 이 반·활동에 대한 학급 공통 피드백이 없어요.</p>`;
+  // v35 — 교사용 리포트와 학생 공지용 문구를 나눠서 보여줌. 학생용 문구는
+  // studentGet_이 자동으로 학생 포털(활동 완료 카드)에도 실어 보내므로, 여기서는
+  // "이미 학생에게 보이고 있다"는 걸 함께 알려주고 복사 버튼으로 패들렛·학급 공지
+  // 등 다른 곳에 옮겨 붙일 수 있게 한다.
+  let bodyHtml;
+  if(existing){
+    const studentText = String(existing.studentText || '').trim();
+    const studentSection = studentText
+      ? `<div class="class-fb-section-label">학생 공지용 문구 <span class="class-fb-live-badge">🟢 학생 포털에 표시 중</span></div>
+         <div class="class-fb-text class-fb-student-text">${escapeHtml(studentText)}</div>
+         <button type="button" class="btn-tiny class-fb-copy">📋 복사</button>`
+      : `<div class="class-fb-section-label">학생 공지용 문구</div>
+         <p class="muted" style="margin:0;font-size:.85rem;">⚠️ 생성에 실패했어요 — "다시 생성"을 눌러보세요. (학생 포털엔 안 보이는 상태예요)</p>`;
+    bodyHtml = `
+      <div class="class-fb-section">
+        <div class="class-fb-section-label">교사용 리포트</div>
+        <div class="class-fb-text">${escapeHtml(existing.feedback)}</div>
+      </div>
+      <div class="class-fb-section">${studentSection}</div>
+      <div class="class-fb-meta">${formatDate(existing.timestamp)} 생성 · 학생 글 ${existing.studentCount || studentCount}건 기반</div>`;
+  } else {
+    bodyHtml = `<p class="muted" style="margin:0 0 10px;">아직 이 반·활동에 대한 학급 공통 피드백이 없어요.</p>`;
+  }
 
   const genLabel = existing ? '🔄 다시 생성' : '🤖 학급 공통 피드백 생성';
   const disabled = studentCount ? '' : 'disabled';
@@ -3068,6 +3113,20 @@ function dashRenderClassFeedback(){
     ${studentCount ? '' : '<p class="muted" style="margin:6px 0 0;font-size:.82rem;">이 조건에 해당하는 학생 글이 아직 없어요.</p>'}
   `;
   box.querySelector('.class-fb-gen').addEventListener('click', dashGenerateClassFeedback);
+  const copyBtn = box.querySelector('.class-fb-copy');
+  if(copyBtn) copyBtn.addEventListener('click', () => dashCopyClassFeedbackText_(existing.studentText, copyBtn));
+}
+/* v35 — 클립보드 복사(패들렛·학급 공지 등에 바로 붙여넣기용). Clipboard API가
+ * 막혀있는 환경(권한 거부, 구형 브라우저)도 있어 실패하면 조용히 넘기지 않고
+ * 안내 토스트로 대체 — 학생 공지용 문구는 위 class-fb-student-text에서 직접
+ * 드래그해서 복사할 수 있으니 완전히 막히진 않는다. */
+async function dashCopyClassFeedbackText_(text, btn){
+  try{
+    await navigator.clipboard.writeText(String(text || ''));
+    showToast('학생 공지용 문구를 복사했어요.');
+  }catch(e){
+    showToast('복사에 실패했어요 — 문구를 직접 드래그해서 복사해 주세요.');
+  }
 }
 async function dashGenerateClassFeedback(ev){
   const btn = ev.currentTarget;
@@ -3088,7 +3147,9 @@ async function dashGenerateClassFeedback(ev){
     const idx = CLASS_FEEDBACKS.findIndex(f =>
       Number(f.grade) === grade && String(f.ban) === String(ban) && String(f.activityId) === String(act));
     if(idx >= 0) CLASS_FEEDBACKS[idx] = data.entry; else CLASS_FEEDBACKS.push(data.entry);
-    showToast('학급 공통 피드백을 생성했어요.');
+    showToast(data.studentTextMissing
+      ? '교사용 리포트는 생성됐지만 학생용 문구는 실패했어요 — 다시 생성해 보세요.'
+      : '학급 공통 피드백을 생성했어요. (학생 포털에도 바로 표시돼요)');
     dashRenderClassFeedback();
   }catch(e){
     showToast('생성하지 못했어요: ' + e.message);

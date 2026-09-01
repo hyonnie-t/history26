@@ -553,6 +553,9 @@ button{font-family:inherit; cursor:pointer;}
 .note-teacher{background:#EAF4EE; border:1px solid #C4DECF;}
 .note-teacher .note-label{color:var(--jade);}
 .note-teacher .note-text{color:#254A37;}
+.note-class{background:#FFF9EC; border:1px solid #EAD9A8;} /* v35 — 학급 공통 피드백. 대시보드 .fb-history와 같은 골드 계열로 통일 */
+.note-class .note-label{color:#8A6A14;}
+.note-class .note-text{color:#5C4A16;}
 
 /* 재도전 배지 */
 .retry-hint{
@@ -900,6 +903,11 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .class-fb-text{white-space:pre-wrap; font-size:.92rem; line-height:1.6; background:var(--card);
   border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:6px;}
 .class-fb-meta{font-size:.78rem; color:var(--ink-soft); margin-bottom:10px;}
+/* v35 — 교사용 리포트 / 학생 공지용 문구 구분 섹션 */
+.class-fb-section{margin-bottom:10px;}
+.class-fb-section-label{font-size:.78rem; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.class-fb-live-badge{font-size:.72rem; font-weight:700; color:var(--jade); background:rgba(62,124,89,.12); border-radius:999px; padding:2px 9px;}
+.class-fb-student-text{background:#FFF9EC; border-color:#EAD9A8;}
 
 /* 발표 탐구포인트 지급 (v31) */
 .pp-box{align-self:stretch;}
