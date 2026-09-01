@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `#loginView` — 학생 로그인(책 표지 컨셉) + 교사 토큰 게이트 + 학생 화면 미리보기 진입점
   - `#checkinView` — 웰컴 체크인(감정 온도·단어칩·문항 응답)
   - `#portalView` — 학생용 메인 포털("나의 역사책": 탐구 나무, 타임라인, 자가체크, 공지사항, 질문함)
-  - `#dashView` — 교사 대시보드(탭: 학생 기록 / 질문함 / 공지 관리 / 커리큘럼 관리 / 체크인)
+  - `#dashView` — 교사 대시보드(탭: 학생 기록 / 질문함 / 공지 관리 / 커리큘럼 관리 / 체크인 / 탐구포인트)
   - `<script>` 블록(469번째 줄부터, `initPortal()` IIFE로 부팅)이 전체 로직을 담고 있으며 파일 내 주석
     구분선(`/* ══...`, `/* ──...`)이 섹션 경계 역할을 한다. 새 기능을 찾을 때는 이 구분선 주석을 먼저 훑는 것이
     빠르다.
@@ -34,9 +34,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `lessonAllActivityIds_()`(`index.html:2740`, `renderDash()`의 학생별 진행률 계산에서 재사용)가 각자
   같은 기준을 구현한다 — 진행률·완료 뱃지·포인트 관련 로직을 고칠 땐 이 AND 조건이 두 곳 모두에서 깨지지
   않는지 확인할 것.
+- **발표 탐구포인트 (v31~)**: 발표처럼 웹앱 밖에서 일어나는 즉흥 활동에 포인트를 즉시 지급하는 별도 통로.
+  교사가 학생 상세 카드(접힌 `.pp-box`) 또는 전용 "탐구포인트" 탭(`dashPointBoxHtml_()`,
+  `index.html:3455` 부근 — 학생 검색 후 펼쳐진 채로 뜸, v33 신규)에서 사고유형(판단/비교/해석/관점) 또는
+  "유형 없이"를 골라 지급하면 `grantPresentationPoint` action이 호출된다. 학생 화면에서는
+  `STUDENT_DATA.presentationGrants`를 커리큘럼 순회와 별도로 합산해 포인트에 얹는다(`index.html:1113`
+  부근). **이 action의 서버 구현(achievement 컬럼/로그 기록 방식)은 이 저장소에 없다** — Apps Script 쪽
+  확인·구현이 필요하다.
 - `config.js` — `window.PORTAL_CONFIG`. Apps Script 웹앱 URL(`WEBAPP_URL`), 누적 포인트 기반 칭호 체계
-  (`RANKS`), 반별 총원(`BAN_SIZE`) 등 정적 설정. **`CURRICULUM`은 여기서 비워둔 채로 두고 페이지 로딩 시
-  `mode=curriculum` API 응답으로 채워진다** — 커리큘럼(차시 목록·단원 질문·포트폴리오)의 실제 소스는 이 파일이
+  (`RANKS`), 반별 총원(`BAN_SIZE`) 등 정적 설정. `RANKS`는 v31부터 학년 공통 단일 배열이 아니라
+  `{ 2: [...], 3: [...] }` 형태의 **학년별 8단계** 배열이다(2학년 30차시·3학년 15차시로 진도량이 달라
+  문턱을 분리) — `renderPortal()`이 `CONFIG.RANKS[SESSION.grade]`로 골라 쓰고, 없으면 2학년 배열로
+  폴백한다. 탐구 나무도 4단계에서 8단계로 늘어(v32) RANK 8단계와 1:1로 매칭된다.
+  **`CURRICULUM`은 여기서 비워둔 채로 두고 페이지 로딩 시 `mode=curriculum` API 응답으로 채워진다** —
+  커리큘럼(차시 목록·단원 질문·포트폴리오)의 실제 소스는 이 파일이
   아니라 Google Sheets이며, 교사 대시보드 "커리큘럼 관리" 탭에서 편집한다. `BAN_SIZE`는 현재 2학년 1~4반과
   3학년 5~8반에만 실제 인원수가 채워져 있고(2학년 5~8반은 0, 3학년 1~4반은 항목 자체가 없음) — 숫자가 채워진
   반이 실제 수업을 맡은 반이다. 담당 반이 바뀌면 이 표도 함께 갱신해야 체크인 탭의 "OO명 중 XX명 완료" 분모가
@@ -45,7 +56,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   담는다. 문항 자체(`CHECKIN_PLAN`)는 마찬가지로 Google Sheets("체크인문항" 탭)에서 관리되며
   `mode=checkinPlan` API로 채워진다.
 - `style.css` — 전체 스타일. 상단 `:root`에 디자인 토큰(색상 `--paper`/`--ink`/`--indigo`/`--seal` 등,
-  spacing/font-size 스케일, `--tap-min: 44px` 터치 타겟 최소값)을 정의하고 이후 섹션별로 이어진다.
+  spacing/font-size 스케일, `--tap-min: 44px` 터치 타겟 최소값)을 정의하고 이후 섹션별로 이어진다. v39에서
+  시맨틱 색상 토큰(amber/jade/indigo-bg 등)과 border-radius 4단계 스케일(`--radius-xs/sm/lg` 등)을
+  추가해 기능별로 조금씩 다르던 하드코딩 hex/반경 리터럴을 통일했고, 흰 배경+옅은 테두리+카드 반경+옅은
+  그림자를 반복 선언하던 카드 성격 선택자 13곳(`.side-card`/`.kpi`/`.question-card` 등)을 공통 베이스
+  규칙 하나로 모았다(베이스가 소스상 개별 규칙보다 앞에 있어야 `border-left` 같은 override가 정상 동작).
+  새 카드류 UI를 추가할 때는 이 공통 베이스를 재사용하는 게 먼저다.
+- **학급 공통 피드백 & 피드백 알림 (v34~v38)**: 교사 대시보드 "학생 기록" 탭에서 학년+반(숫자 하나, "전체"나
+  "담당 학급반mine" 묶음 아님)+활동(하나)을 모두 골랐을 때만 `#classFbBox`가 나타나(`dashRenderClassFeedback()`,
+  `index.html:3165` 부근) 그 조합에 해당하는 학생 글을 모아 AI로 "교사용 리포트"와 "학생 공지용 문구"를
+  생성한다(`generateClassFeedback` action, 조회는 `mode=classFeedback`). 학생 공지용 문구는 자동으로
+  학생 포털 활동 완료 카드에도 표시된다. **`generateClassFeedback`/`mode=classFeedback` 모두 이 저장소에
+  없는 백엔드**이며, 배포 전까지 이 박스는 "아직 없음" 상태로만 보이거나 생성 버튼이 실패 토스트를 낸다.
+  학생 쪽은 개인 AI 코멘트·학급 공통 피드백을 합쳐 최신순으로 보여주는 "피드백 모아보기" 카드(v36)와 도착
+  1회 알림 팝업(v34)이 있고, 확인 여부는 v35부터 로컬스토리지가 아니라 `ackFeedback` action으로 서버에
+  남긴다. v38(Phase 3)에서 모아보기 각 항목에 "이 피드백에 대해 질문하기" 버튼(`askAboutFeedback_()`)이
+  붙었는데, 이는 질문함 입력창에 피드백을 인용구로 미리 채워주는 **순수 프론트 UX 연결**일 뿐 — 백엔드에
+  피드백과 질문을 실제로 연결하는 참조 필드는 없다.
+- **공지 대상 3분류 / 질문함 담당 반 필터링 (v30)**: 공지 작성 시 대상을 "담당 학급반"(로그인한 교사가 맡은
+  반들, `dashMyBans_()`가 콤마 리스트로 반환)/"전체"/"개별 반" 3분류 라디오로 고르며, "담당 학급반"으로
+  게시하면 `ban` 필드에 `"5,6,7,8"`처럼 콤마 리스트가 저장된다(서버 `parseBanListField_()`가 풀어서 매칭
+  — 콤마 없는 기존 단일 반/전체 공지와 하위 호환). 질문함 목록도 로그인한 교사가 담당하지 않는 반의 질문은
+  아예 제외하고 보여준다.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
@@ -79,9 +111,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   확인 안 하던 버그 수정" 등).
 - 코드 곳곳의 주석에 `v12`, `v17`, `v22`, `v27`, `v29`처럼 버전 표기가 붙어 있고, 그 버전에서 왜 그렇게
   바꿨는지(버그, 성능, UX 이유)를 짧게 설명하는 스타일이다(예: v27 = 차시당 활동 2개·순차진행 도입, v28 =
-  담당 교사별 트랙 필터링, v29 = 대시보드 반 선택 UI 개편 — 확인 시점 기준 `index.html`에서 가장 높은
-  버전 표기는 v29). 관련 로직을 고칠 때는 기존 버전 주석을 참고해 과거에 이미 겪은 문제를 되풀이하지
-  않도록 하고, 의미 있는 변경이면 같은 스타일로 이유를 남긴다.
+  담당 교사별 트랙 필터링, v29 = 대시보드 반 선택 UI 개편, v30 = 공지 대상 3분류·질문함 반 필터링, v31 =
+  발표 탐구포인트 도입·RANK 학년별 재설계, v32 = 탐구 나무 8단계 확장, v33 = 탐구포인트 빠른 지급 탭,
+  v34~v38 = 학급 공통 피드백·알림·모아보기·질문함 연결, v39 = 디자인 토큰 정리·카드형 컴포넌트 공통 베이스
+  — 확인 시점 기준 `index.html`/`style.css`에서 가장 높은 버전 표기는 v39). 여러 기능이 같은 버전
+  번호를 먼저 붙였다가 나중에 충돌을 발견해 재번호한 이력도 있으므로(`git log` "버전표기 충돌 정리" 커밋
+  참고), 새 버전 번호를 붙이기 전에 이미 쓰인 번호인지 먼저 확인할 것. 관련 로직을 고칠 때는 기존 버전
+  주석을 참고해 과거에 이미 겪은 문제를 되풀이하지 않도록 하고, 의미 있는 변경이면 같은 스타일로 이유를
+  남긴다.
 - 네트워크 호출은 `fetch`를 직접 쓰는 곳과 `fetchJsonRetry_()`(재시도 헬퍼, 기본 3회·700ms 간격)를 쓰는
   곳이 섞여 있다. Apps Script 재배포 직후 일시적 404/JSON 파싱 실패를 흡수하기 위한 것이므로, 대시보드처럼
   `Promise.all`로 여러 요청을 한 번에 묶는 곳은 특히 `fetchJsonRetry_`를 쓰는 편이 안전하다(하나만 실패해도
@@ -100,8 +137,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `mode=curriculum` 응답에도 없으므로(`index.html:617` 부근, `CONFIG.CURRICULUM`만 덮어씀) 항상 이
   기본값(10/5/2)이 쓰인다. 포인트 배점을 바꾸려면 `config.js`에 `POINTS_PER_LESSON` 대신
   `POINTS: { FIRST, RETRY, RETRY_MAX }` 객체를 추가하거나 이 기본값 리터럴을 직접 고쳐야 한다.
-- "칭호"라는 말은 서로 다른 두 시스템을 가리킨다. (1) `config.js`의 `RANKS`(포인트 누적 → 견습 사관/사관/
-  편수관/대제학) — 순수 프론트 로직으로, `renderPortal()`이 점수를 `RANKS`와 비교해서 계산한다.
+- "칭호"라는 말은 서로 다른 두 시스템을 가리킨다. (1) `config.js`의 `RANKS`(포인트 누적 → 권지 사관/가주서/
+  주서/사관/겸춘추/편수관/직제학/대제학 8단계, 학년별 문턱 분리, v31~) — 순수 프론트 로직으로,
+  `renderPortal()`이 `CONFIG.RANKS[SESSION.grade]`와 점수를 비교해서 계산한다.
   (2) "칭호첩" 배지 시스템(`.badge-card`, `index.html:95` 부근) — `learning`/`behavior`/`strength` 3개
   카테고리, `once`/`repeat` 2가지 획득 타입의 배지를 `renderBadges()`/`renderBadgeChip()`
   (`index.html:1430`대)이 그리고, `checkNewBadges()`(`index.html:1459`)가 로컬스토리지 기준선과 비교해
