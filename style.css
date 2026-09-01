@@ -160,10 +160,32 @@ button{font-family:inherit; cursor:pointer;}
   text-decoration:underline; padding:8px;
 }
 .teacher-link:hover{color:var(--indigo);}
+
+/* 카드형 컴포넌트 공통 베이스 (v39: 디자인 정리) — "흰 배경 + 옅은 테두리 + 카드
+ * 반경 + 옅은 그림자"를 카드가 늘어날 때마다 선택자마다 따로 4줄씩 반복 선언하던
+ * 것을 여기 하나로 모았다. 카드마다 다른 부분(패딩, 왼쪽 강조 테두리, margin,
+ * display:none 초기값 등)은 각 선택자 쪽에 그대로 남겨뒀다 — 이 규칙이 먼저
+ * 오고 개별 규칙이 뒤에 오는 소스 순서를 유지해야 border-left 같은 개별 override가
+ * 정상적으로 이긴다(같은 우선순위에서는 나중 선언이 이김). */
+#teacherGate, #previewGate,
+.side-card,
+.kpi,
+.unit-banner,
+.portfolio-card,
+.question-card,
+.overview-card,
+.archive-card,
+.lesson-card,
+.dash-questions,
+.filters,
+.sum-card,
+.table-wrap{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
 #teacherGate, #previewGate{
   display:none; margin-top:10px; text-align:left;
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  padding:16px; width:min(340px, 90vw); box-shadow:var(--shadow);
+  padding:16px; width:min(340px, 90vw);
 }
 #teacherGate input:not([type=checkbox]), #previewGate input:not([type=checkbox]), #previewGate select{width:100%; min-height:48px; font-size:1rem; padding:10px 14px;
   border:1.5px solid var(--line); border-radius:var(--radius-sm); background:var(--input-bg); margin-bottom:10px;}
@@ -283,8 +305,7 @@ button{font-family:inherit; cursor:pointer;}
 
 /* ── 좌측: 내 서재 ── */
 .side-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:22px 20px; text-align:center;
+  padding:22px 20px; text-align:center;
   position:sticky; top:16px;
 }
 @media (max-width:1024px){ .side-card{position:static;} }
@@ -364,8 +385,7 @@ button{font-family:inherit; cursor:pointer;}
 .kpi-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:14px;}
 @media (max-width:640px){ .kpi-grid{grid-template-columns:1fr 1fr;} .kpi-grid .kpi:first-child{grid-column:1/-1;} }
 .kpi{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px 16px;
+  padding:14px 16px;
 }
 .kpi h3{font-size:.82rem; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
 .kpi .big{font-family:var(--font-display); font-size:1.55rem; font-weight:700; color:var(--indigo); line-height:1.2;}
@@ -375,9 +395,8 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 단원 관통 질문 배너 */
 .unit-banner{
-  display:none; background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--seal); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
+  display:none; border-left:5px solid var(--seal);
+  padding:14px 18px; margin-bottom:14px;
 }
 .unit-banner .ub-label{
   font-size:.76rem; letter-spacing:.22em; color:var(--seal); font-weight:700; margin-bottom:2px;
@@ -386,9 +405,8 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 */
 .portfolio-card{
-  display:none; background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--jade); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
+  display:none; border-left:5px solid var(--jade);
+  padding:14px 18px; margin-bottom:14px;
   align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
 }
 .portfolio-card .pf-label{
@@ -412,9 +430,8 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 질문함 — 학생 ↔ 교사 */
 .question-card{
-  background:var(--card); border:1px solid var(--line);
-  border-left:5px solid var(--indigo); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px;
+  border-left:5px solid var(--indigo);
+  padding:16px 20px; margin-bottom:14px;
 }
 .question-card h2{
   font-family:var(--font-display); font-size:1.02rem; margin-bottom:4px; color:var(--indigo-deep);
@@ -460,8 +477,7 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 달성도 모아보기 */
 .overview-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:14px; display:none;
+  padding:16px 20px; margin-bottom:14px; display:none;
 }
 .overview-card h2{font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px;}
 .overview-item{
@@ -474,8 +490,7 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 내 기록 보관함 */
 .archive-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); margin-bottom:14px; display:none; overflow:hidden;
+  margin-bottom:14px; display:none; overflow:hidden;
 }
 .archive-card summary{
   list-style:none; cursor:pointer; padding:15px 20px;
@@ -519,8 +534,7 @@ button{font-family:inherit; cursor:pointer;}
 .lesson.pending-build::before{border-style:dashed; border-color:var(--line);}
 
 .lesson-card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:20px 22px; position:relative; overflow:hidden;
+  padding:20px 22px; position:relative; overflow:hidden;
 }
 .lesson.pending-build .lesson-card{opacity:.62; background:var(--panel-alt);}
 .lesson-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
@@ -679,8 +693,7 @@ button{font-family:inherit; cursor:pointer;}
 @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
 
 .dash-questions{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 18px; margin-bottom:14px;
+  padding:16px 18px; margin-bottom:14px;
 }
 .dq-badge{
   background:var(--seal); color:#fff; font-size:.74rem; font-weight:700;
@@ -829,15 +842,14 @@ button{font-family:inherit; cursor:pointer;}
 .cl-past-list .cl-item{opacity:.68;}
 .cl-past-hint{color:var(--ink-soft); font-size:.85rem; padding:8px 0;}
 
-.filters{display:flex; gap:10px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
-  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:14px; align-items:center;}
+.filters{display:flex; gap:10px; flex-wrap:wrap;
+  padding:14px 16px; margin-bottom:14px; align-items:center;}
 .filters label{font-size:.88rem; font-weight:600; color:var(--ink-soft);}
 .filters select{min-height:42px; font-size:.93rem; padding:8px 12px; border:1.5px solid var(--line);
   border-radius:var(--radius-xs); background:var(--input-bg); font-family:inherit;}
 .filters .spacer{flex:1;}
 .summary{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-bottom:14px;}
-.sum-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:16px 18px;}
+.sum-card{padding:16px 18px;}
 .sum-card h3{font-size:.85rem; color:var(--ink-soft); font-weight:600; margin-bottom:6px;}
 .sum-card .big{font-family:var(--font-display); font-size:1.7rem; font-weight:700; color:var(--indigo);}
 .sum-card .big small{font-size:.9rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
@@ -853,8 +865,7 @@ button{font-family:inherit; cursor:pointer;}
  * min-width로 표 최소 폭을 고정해두고 wrap이 overflow-x:auto로 가로스크롤 처리.
  * 열이 많아질수록(활동 수 증가) 카드형은 세로로 너무 길어져 오히려 비교가 어려워지므로,
  * 학번·이름·진행률+활동별 열을 한 화면에서 비교해야 하는 이 용도엔 가로스크롤이 더 적합. */
-.table-wrap{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); overflow-x:auto; -webkit-overflow-scrolling:touch;}
+.table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
 .table-wrap table{width:100%; border-collapse:collapse; font-size:.9rem; min-width:640px;}
 .table-wrap th{position:sticky; top:0; background:var(--thead-bg); text-align:left; padding:11px 14px;
   font-size:.82rem; color:var(--ink-soft); border-bottom:1.5px solid var(--line); white-space:nowrap;}
