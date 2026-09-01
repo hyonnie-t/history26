@@ -939,6 +939,26 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .pp-popup-card .pp-popup-ok{width:100%; margin-top:10px; background:var(--indigo); color:#fff; border:none;}
 .pp-popup-card .pp-popup-ok:hover{background:var(--indigo-deep);}
 
+/* 선생님 피드백 도착 팝업(학생 화면, v34) — pp-popup과 같은 이유로 토스트 대신
+ * 확인 버튼을 눌러야 닫히는 모달. 여러 건이 한 번에 올 수 있어 pp-popup과 달리
+ * 항목 리스트를 스크롤 가능하게 둠(fb-popup-list). */
+.fb-popup-overlay{
+  position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+  background:rgba(35,38,44,.55); padding:20px; animation:fadeIn .2s ease;
+}
+.fb-popup-card{
+  width:min(360px, 100%); background:var(--card); border-radius:16px; padding:28px 24px 22px;
+  text-align:center; box-shadow:0 20px 48px rgba(0,0,0,.3);
+}
+.fb-popup-emoji{font-size:2.2rem; margin-bottom:6px;}
+.fb-popup-title{font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--jade); margin-bottom:12px;}
+.fb-popup-list{text-align:left; max-height:260px; overflow-y:auto; margin-bottom:14px;}
+.fb-popup-item{background:#FFF9EC; border:1px solid #EAD9A8; border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:.88rem; line-height:1.5;}
+.fb-popup-item:last-child{margin-bottom:0;}
+.fb-popup-item-meta{font-size:.76rem; color:var(--ink-soft); margin-bottom:3px;}
+.fb-popup-card .fb-popup-ok{width:100%; margin-top:4px; background:var(--indigo); color:#fff; border:none;}
+.fb-popup-card .fb-popup-ok:hover{background:var(--indigo-deep);}
+
 /* 학생 검색(v25 "학생 기록" 탭 상단 검색창 + v33 "탐구포인트" 탭 검색창이 공유) —
  * 지금까지 스타일이 아예 없어서 브라우저 기본 입력창에 결과 목록도 플로팅 없이
  * 문서 흐름에 끼어드는 상태였음(기능은 동작하지만 눈에 잘 안 띔). 탐구포인트
