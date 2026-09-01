@@ -1429,17 +1429,46 @@ function renderAnnouncements(){
 
 /* ── 피드백 모아보기: 차시 인라인·학기 총평 카드에 흩어진 피드백을 전부 모아
  * 최신순으로 한 곳에서 볼 수 있게 하는 카드(v34). 기존 두 노출 방식을 대체하지
- * 않고 병행 — 핸드오프 문서 "피드백 알림/모아보기/읽음 상태" 3-2 참고. */
+ * 않고 병행 — 핸드오프 문서 "피드백 알림/모아보기/읽음 상태" 3-2 참고.
+ * v36(Phase 3) — 항목마다 "이 피드백에 대해 질문하기" 버튼을 붙여 질문함으로
+ * 느슨하게 연결한다(완전 스레드 통합은 아님 — askAboutFeedback_ 참고). 버튼이
+ * data-idx로 렌더링 시점의 항목을 다시 찾아야 해서, 매 렌더마다의 정렬 결과를
+ * FEEDBACK_INBOX_ITEMS에 함께 보관해둔다. */
+let FEEDBACK_INBOX_ITEMS = [];
 function renderFeedbackInbox(fbAll){
   const card = $('feedbackInboxCard');
   if(!fbAll.length){ card.style.display = 'none'; return; }
   card.style.display = 'block';
   const sorted = [...fbAll].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  $('feedbackInboxList').innerHTML = sorted.map(f => `
+  FEEDBACK_INBOX_ITEMS = sorted;
+  $('feedbackInboxList').innerHTML = sorted.map((f, i) => `
     <div class="feedback-item">
       <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(feedbackLabel_(f))}</div>
       <div>${escapeHtml(String(f.feedback))}</div>
+      <button type="button" class="btn-tiny fb-ask-btn" data-idx="${i}">❓ 이 피드백에 대해 질문하기</button>
     </div>`).join('');
+  $('feedbackInboxList').querySelectorAll('.fb-ask-btn').forEach(btn => {
+    btn.addEventListener('click', () => askAboutFeedback_(Number(btn.dataset.idx)));
+  });
+}
+
+/* v36(핸드오프 Phase 3) — "이 피드백에 대해 질문하기". 피드백과 질문함을 서버
+ * 참조 필드로 진짜 연결(완전 스레드화)하는 대신, 질문함 입력창에 그 피드백을
+ * 인용구로 미리 채워주기만 하는 순수 프론트 UX 연결 — 백엔드 변경이 전혀
+ * 필요 없다. "학생이 실제로 얼마나 되묻는지" 데이터가 쌓이면 완전 통합 여부를
+ * 다시 논의하기로 함(핸드오프 5번 참고). 피드백 원문이 아주 길면 인용구가
+ * 질문 입력을 압도하지 않게 200자에서 자른다. */
+function askAboutFeedback_(idx){
+  const f = FEEDBACK_INBOX_ITEMS[idx];
+  if(!f) return;
+  const text = String(f.feedback || '');
+  const quoted = text.length > 200 ? text.slice(0, 200) + '…' : text;
+  const input = $('questionInput');
+  input.value = `[${feedbackLabel_(f)} 피드백에 대해 질문해요]\n"${quoted}"\n\n`;
+  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+  showToast('질문함으로 이동했어요 — 이어서 궁금한 점을 적어주세요.');
 }
 
 /* ── 질문함: 목록 렌더 ── */
