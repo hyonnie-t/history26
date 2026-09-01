@@ -429,6 +429,7 @@ button{font-family:inherit; cursor:pointer;}
 .feedback-item{padding:9px 0; border-top:1px dashed #EAD9A8; font-size:.95rem;}
 .feedback-item:first-of-type{border-top:none; padding-top:0;}
 .feedback-item .fb-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:2px;}
+.feedback-item .fb-ask-btn{margin-top:8px;} /* v36 — 피드백 모아보기 카드 전용, 학기 총평 카드엔 안 뜸 */
 
 /* 달성도 모아보기 */
 .overview-card{
@@ -885,7 +886,7 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
 .fb-history{margin:10px 0;}
 .fb-history .fb-item{font-size:.88rem; padding:8px 12px; background:#FFF9EC;
   border:1px solid #EAD9A8; border-radius:8px; margin-bottom:6px;}
-.fb-item .fb-meta{font-size:.78rem; color:var(--ink-soft);}
+.fb-item .fb-meta{font-size:.78rem; color:var(--ink-soft); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:2px;}
 .fb-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-top:8px;}
 .fb-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.9rem;}
 .fb-form textarea{flex:1; min-width:220px; min-height:42px; padding:10px 12px;

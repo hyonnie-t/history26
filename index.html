@@ -1459,17 +1459,46 @@ function renderAnnouncements(){
 
 /* ── 피드백 모아보기: 차시 인라인·학기 총평 카드에 흩어진 피드백을 전부 모아
  * 최신순으로 한 곳에서 볼 수 있게 하는 카드(v34). 기존 두 노출 방식을 대체하지
- * 않고 병행 — 핸드오프 문서 "피드백 알림/모아보기/읽음 상태" 3-2 참고. */
+ * 않고 병행 — 핸드오프 문서 "피드백 알림/모아보기/읽음 상태" 3-2 참고.
+ * v36(Phase 3) — 항목마다 "이 피드백에 대해 질문하기" 버튼을 붙여 질문함으로
+ * 느슨하게 연결한다(완전 스레드 통합은 아님 — askAboutFeedback_ 참고). 버튼이
+ * data-idx로 렌더링 시점의 항목을 다시 찾아야 해서, 매 렌더마다의 정렬 결과를
+ * FEEDBACK_INBOX_ITEMS에 함께 보관해둔다. */
+let FEEDBACK_INBOX_ITEMS = [];
 function renderFeedbackInbox(fbAll){
   const card = $('feedbackInboxCard');
   if(!fbAll.length){ card.style.display = 'none'; return; }
   card.style.display = 'block';
   const sorted = [...fbAll].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  $('feedbackInboxList').innerHTML = sorted.map(f => `
+  FEEDBACK_INBOX_ITEMS = sorted;
+  $('feedbackInboxList').innerHTML = sorted.map((f, i) => `
     <div class="feedback-item">
       <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(feedbackLabel_(f))}</div>
       <div>${escapeHtml(String(f.feedback))}</div>
+      <button type="button" class="btn-tiny fb-ask-btn" data-idx="${i}">❓ 이 피드백에 대해 질문하기</button>
     </div>`).join('');
+  $('feedbackInboxList').querySelectorAll('.fb-ask-btn').forEach(btn => {
+    btn.addEventListener('click', () => askAboutFeedback_(Number(btn.dataset.idx)));
+  });
+}
+
+/* v36(핸드오프 Phase 3) — "이 피드백에 대해 질문하기". 피드백과 질문함을 서버
+ * 참조 필드로 진짜 연결(완전 스레드화)하는 대신, 질문함 입력창에 그 피드백을
+ * 인용구로 미리 채워주기만 하는 순수 프론트 UX 연결 — 백엔드 변경이 전혀
+ * 필요 없다. "학생이 실제로 얼마나 되묻는지" 데이터가 쌓이면 완전 통합 여부를
+ * 다시 논의하기로 함(핸드오프 5번 참고). 피드백 원문이 아주 길면 인용구가
+ * 질문 입력을 압도하지 않게 200자에서 자른다. */
+function askAboutFeedback_(idx){
+  const f = FEEDBACK_INBOX_ITEMS[idx];
+  if(!f) return;
+  const text = String(f.feedback || '');
+  const quoted = text.length > 200 ? text.slice(0, 200) + '…' : text;
+  const input = $('questionInput');
+  input.value = `[${feedbackLabel_(f)} 피드백에 대해 질문해요]\n"${quoted}"\n\n`;
+  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+  showToast('질문함으로 이동했어요 — 이어서 궁금한 점을 적어주세요.');
 }
 
 /* ── 질문함: 목록 렌더 ── */
@@ -1724,34 +1753,20 @@ function showPresentationPopup(grants){
   overlay.addEventListener('click', ev => { if(ev.target === overlay) close(); });
 }
 
-/* v34(핸드오프 "피드백 알림/모아보기/읽음 상태" Phase 1) — checkNewBadges/
- * checkNewPresentationGrants와 완전히 같은 패턴: 학번별로 "이미 확인한 피드백"
- * 목록을 localStorage에 저장해두고, 새 studentGet_ 응답이 올 때마다 기준선에
- * 없던 피드백만 팝업으로 1회 보여준다. 배지·발표포인트와 동일하게 첫 조회(기준선
- * 없음)엔 팝업 없이 기준선만 저장 — 안 그러면 이미 피드백을 여러 개 받은 학생이
- * 처음 로그인할 때 전부 "새 피드백"으로 뜬다.
- * ⚠️ FEEDBACKS 응답에는 질문함(QUESTIONS)의 _row 같은 안정적 식별자가 아직 없어서,
- * timestamp+activityId 조합을 임시 키로 쓴다(fbKey_). 같은 활동에 같은 초에 피드백을
- * 2개 남기면 구분이 안 되는 등 한계가 있는 임시방편 — Phase 2에서 서버가 FEEDBACKS에도
- * _row를 내려주면 그걸로 교체할 것(핸드오프 문서 4-1 "필수 지시사항" 참고). */
-function fbKey_(f){ return String(f.timestamp) + '|' + String(f.activityId || ''); }
+/* v35(핸드오프 "피드백 알림/모아보기/읽음 상태" Phase 2) — Phase 1의 localStorage
+ * 기준선 방식(fbKey_)을 폐기하고 서버가 studentGet_ 응답에 내려주는 ack 필드
+ * (FEEDBACKS 시트 '확인여부')를 그대로 신뢰한다. "ack가 false인 것 = 아직 안
+ * 읽음"이라 기기를 바꿔 로그인해도 정확하고, 팝업을 확인하면 ackFeedbackItems_가
+ * 그 항목들만 서버에 확인 표시를 남긴다 — 교사 대시보드의 fb-dot도 이제 같은
+ * ack 값을 봐서 두 화면이 서로 어긋나지 않는다. 배포 직후 기존 피드백은 백엔드
+ * backfillFeedbackAck_ 마이그레이션으로 전부 ack=true 처리해뒀으므로, Phase 1
+ * 때 막아뒀던 "첫 로그인 플러드" 문제는 서버 쪽에서 이미 해결된 상태다. */
 function checkNewFeedback(fbAll){
   if(!SESSION || PREVIEW_MODE) return;
   if(!fbAll || !fbAll.length) return;
-  const key = 'fb_seen_' + SESSION.studentId;
-  const ids = fbAll.map(fbKey_);
-  const raw = store.get(key);
-  if(raw === null){
-    store.set(key, JSON.stringify(ids));
-    return;
-  }
-  let prevIds = [];
-  try{ prevIds = JSON.parse(raw) || []; }catch(e){ prevIds = []; }
-  const prevSet = new Set(prevIds);
-  const newlyArrived = fbAll.filter(f => !prevSet.has(fbKey_(f)));
-  store.set(key, JSON.stringify(ids));
-  if(!newlyArrived.length) return;
-  showFeedbackPopup(newlyArrived);
+  const unread = fbAll.filter(f => !f.ack);
+  if(!unread.length) return;
+  showFeedbackPopup(unread);
 }
 /* 토스트 대신 확인 버튼을 눌러야 닫히는 모달(showPresentationPopup과 같은 이유) —
  * "선생님이 남긴 피드백"이라는 무게에 2.6초짜리 토스트는 안 맞음. 여러 건이 한
@@ -1776,9 +1791,28 @@ function showFeedbackPopup(items){
       <button type="button" class="btn btn-sm fb-popup-ok">확인</button>
     </div>`;
   document.body.appendChild(overlay);
-  const close = () => overlay.remove();
+  // v35 — 확인 버튼이든 배경 클릭이든 "닫음 = 확인함"으로 취급해 서버에 ack를 남김.
+  const close = () => { overlay.remove(); ackFeedbackItems_(items); };
   overlay.querySelector('.fb-popup-ok').addEventListener('click', close);
   overlay.addEventListener('click', ev => { if(ev.target === overlay) close(); });
+}
+
+/* v35 — 팝업에 떴던 항목들만 서버에 확인 표시(ackFeedback)를 남긴다. 실패해도
+ * 조용히 넘어감(사용자에게 에러 노출 안 함) — ack가 그대로 false로 남으면
+ * 다음 방문 때 팝업이 다시 뜰 뿐이라 놓쳐도 안전하게 재시도되는 구조.
+ * f.ack를 낙관적으로 먼저 true로 바꿔두는데, items는 fbAll(=STUDENT_DATA.feedback)
+ * 안의 객체를 그대로 참조하므로 이 한 번의 변경이 fbGeneral·fbByLesson·모아보기
+ * 카드가 쓰는 값에도 전부 반영된다(같은 세션 안 재렌더링 시 중복 확인 방지). */
+function ackFeedbackItems_(items){
+  if(!SESSION || PREVIEW_MODE) return;
+  items.forEach(f => {
+    if(f.ack) return;
+    f.ack = true;
+    fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'ackFeedback', studentId: SESSION.studentId, row: f._row })
+    }).catch(() => {});
+  });
 }
 
 /* ── 이벤트 바인딩 ── */
@@ -3307,6 +3341,12 @@ function renderDash(){
     s.doneCount = done;
     s.totalLessons = myActive.length; // v28
     s.feedbacks = FEEDBACKS.filter(f => String(f.studentId).trim() === s.sid);
+    // v35 — fb-dot이 "이 학생한테 피드백을 준 적 있음"(한 번 뜨면 학기 내내 안 꺼짐)이
+    // 아니라 "학생이 아직 확인 안 한 피드백이 있음"을 뜻하도록 전환(핸드오프 "피드백
+    // 알림/모아보기/읽음 상태" Phase 2). ack는 서버(FEEDBACKS 시트 '확인여부')가 내려주는
+    // 값이라 로컬 상태가 아니라 실제 학생이 도착 팝업을 확인했는지를 반영함 — 교사가
+    // 여러 기기(컴퓨터/아이패드/휴대폰 등)로 접속해도 항상 같은 값을 본다.
+    s.hasUnreadFeedback = s.feedbacks.some(f => !f.ack);
     // v26(2-2): 활동별 열 대신 표에서는 "최근 활동"과 "평균 성취"만 요약해서 보여줌.
     // 개별 활동 성취는 표에서 빼는 대신 상세 카드(펼쳐보기)에 그대로 남겨둠.
     s.recentRecord = dashMostRecentRecord_(s.records);
@@ -3358,7 +3398,7 @@ function renderDash(){
     return `
       <tr class="student-row" data-sid="${s.sid}">
         <td>${s.sid}</td>
-        <td>${escapeHtml(s.name)}${s.feedbacks.length ? '<span class="fb-dot" title="피드백 있음"></span>' : ''}</td>
+        <td>${escapeHtml(s.name)}${s.hasUnreadFeedback ? '<span class="fb-dot" title="학생이 아직 확인 안 한 피드백이 있어요"></span>' : ''}</td>
         <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${s.totalLessons}</span></td>
         <td>${recentCell}</td>
         <td>${avgCell}</td>
@@ -3630,9 +3670,13 @@ function dashDetailRowHtml(s, lessons, colspan){
     : '';
   const recHtml = orderedGameNames.length ? (recentHtml + pastHtml) : '<p class="muted" style="margin-bottom:10px">표시할 기록이 없어요.</p>';
 
+  // v35 — 항목별로 학생이 확인했는지(ack) 표시. q-status 클래스는 질문함에서 쓰던
+  // "대기중/답변완료" 알약 스타일 그대로 재사용(의미상 미확인/확인함으로 대응).
   const fbHtml = s.feedbacks.length ? `<div class="fb-history">${
     s.feedbacks.map(f => `<div class="fb-item">
-      <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(dashLessonTitle(String(f.activityId)))}</div>
+      <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(dashLessonTitle(String(f.activityId)))}
+        <span class="q-status ${f.ack ? 'done' : 'wait'}">${f.ack ? '확인함' : '미확인'}</span>
+      </div>
       ${escapeHtml(String(f.feedback))}</div>`).join('')}</div>` : '';
 
   const options = '<option value="전체">전체(학기 총평)</option>'
@@ -3770,7 +3814,7 @@ async function dashSendFeedback(btn){
       })
     });
     FEEDBACKS.push({ timestamp:new Date().toISOString(), studentId:btn.dataset.sid,
-      studentName:btn.dataset.name, activityId, feedback:text });
+      studentName:btn.dataset.name, activityId, feedback:text, ack:false }); // v35 — 방금 보낸 피드백은 당연히 미확인
     showToast('피드백을 보냈어요. 학생 포털의 해당 활동 카드에 표시됩니다.');
     renderDash();
   }catch(e){
