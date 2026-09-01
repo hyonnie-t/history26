@@ -158,6 +158,15 @@
         <div id="feedbackList"></div>
       </section>
 
+      <!-- v34 — 차시 인라인·학기 총평 카드에 흩어져 있던 선생님 피드백을 최신순으로
+           한곳에 모아 보여주는 카드(핸드오프 "피드백 알림/모아보기/읽음 상태" 3-2).
+           기존 두 노출 방식을 대체하지 않고 병행. 피드백이 하나라도 있을 때만
+           노출된다(renderFeedbackInbox). -->
+      <section class="feedback-card" id="feedbackInboxCard" aria-label="선생님 피드백 모아보기">
+        <h2>👩‍🏫 선생님 피드백 모아보기</h2>
+        <div id="feedbackInboxList"></div>
+      </section>
+
       <section class="question-card" aria-label="질문함">
         <h2>💬 선생님께 질문하기</h2>
         <p class="q-hint">수업이나 활동 중 궁금한 게 있으면 여기 남겨 주세요. 답이 오면 여기서 확인할 수 있어요.</p>
@@ -1130,6 +1139,7 @@ function renderPortal(){
   renderBadges(STUDENT_DATA.badges);
   checkNewBadges(STUDENT_DATA.badges);
   checkNewPresentationGrants(ppGrants);
+  checkNewFeedback(fbAll); // v34
 
   /* 단원 관통 질문 배너 */
   const uq = (cur.unitQuestion || '').trim();
@@ -1163,6 +1173,9 @@ function renderPortal(){
   } else {
     $('feedbackCard').style.display = 'none';
   }
+
+  /* 피드백 모아보기 (v34 — fbAll = fbGeneral + fbByLesson 전부 합친 것) */
+  renderFeedbackInbox(fbAll);
 
   /* 질문함 (학생 ↔ 교사) */
   renderQuestions();
@@ -1414,6 +1427,21 @@ function renderAnnouncements(){
     </div>`).join('');
 }
 
+/* ── 피드백 모아보기: 차시 인라인·학기 총평 카드에 흩어진 피드백을 전부 모아
+ * 최신순으로 한 곳에서 볼 수 있게 하는 카드(v34). 기존 두 노출 방식을 대체하지
+ * 않고 병행 — 핸드오프 문서 "피드백 알림/모아보기/읽음 상태" 3-2 참고. */
+function renderFeedbackInbox(fbAll){
+  const card = $('feedbackInboxCard');
+  if(!fbAll.length){ card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const sorted = [...fbAll].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  $('feedbackInboxList').innerHTML = sorted.map(f => `
+    <div class="feedback-item">
+      <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(feedbackLabel_(f))}</div>
+      <div>${escapeHtml(String(f.feedback))}</div>
+    </div>`).join('');
+}
+
 /* ── 질문함: 목록 렌더 ── */
 function renderQuestions(){
   const list = $('questionList');
@@ -1514,6 +1542,13 @@ function lessonTitle(id){
     }
   }
   return id;
+}
+/* v34 — activityId가 "전체"(또는 빈 값)면 학기 총평, 그 외엔 lessonTitle()로 차시·
+ * 활동 이름을 붙인다. 피드백 모아보기 카드·도착 팝업이 공용으로 쓰는 라벨. */
+function feedbackLabel_(f){
+  const aid = String(f.activityId || '').trim();
+  if (!aid || aid === '전체') return '학기 총평';
+  return lessonTitle(aid);
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1656,6 +1691,63 @@ function showPresentationPopup(grants){
   document.body.appendChild(overlay);
   const close = () => overlay.remove();
   overlay.querySelector('.pp-popup-ok').addEventListener('click', close);
+  overlay.addEventListener('click', ev => { if(ev.target === overlay) close(); });
+}
+
+/* v34(핸드오프 "피드백 알림/모아보기/읽음 상태" Phase 1) — checkNewBadges/
+ * checkNewPresentationGrants와 완전히 같은 패턴: 학번별로 "이미 확인한 피드백"
+ * 목록을 localStorage에 저장해두고, 새 studentGet_ 응답이 올 때마다 기준선에
+ * 없던 피드백만 팝업으로 1회 보여준다. 배지·발표포인트와 동일하게 첫 조회(기준선
+ * 없음)엔 팝업 없이 기준선만 저장 — 안 그러면 이미 피드백을 여러 개 받은 학생이
+ * 처음 로그인할 때 전부 "새 피드백"으로 뜬다.
+ * ⚠️ FEEDBACKS 응답에는 질문함(QUESTIONS)의 _row 같은 안정적 식별자가 아직 없어서,
+ * timestamp+activityId 조합을 임시 키로 쓴다(fbKey_). 같은 활동에 같은 초에 피드백을
+ * 2개 남기면 구분이 안 되는 등 한계가 있는 임시방편 — Phase 2에서 서버가 FEEDBACKS에도
+ * _row를 내려주면 그걸로 교체할 것(핸드오프 문서 4-1 "필수 지시사항" 참고). */
+function fbKey_(f){ return String(f.timestamp) + '|' + String(f.activityId || ''); }
+function checkNewFeedback(fbAll){
+  if(!SESSION || PREVIEW_MODE) return;
+  if(!fbAll || !fbAll.length) return;
+  const key = 'fb_seen_' + SESSION.studentId;
+  const ids = fbAll.map(fbKey_);
+  const raw = store.get(key);
+  if(raw === null){
+    store.set(key, JSON.stringify(ids));
+    return;
+  }
+  let prevIds = [];
+  try{ prevIds = JSON.parse(raw) || []; }catch(e){ prevIds = []; }
+  const prevSet = new Set(prevIds);
+  const newlyArrived = fbAll.filter(f => !prevSet.has(fbKey_(f)));
+  store.set(key, JSON.stringify(ids));
+  if(!newlyArrived.length) return;
+  showFeedbackPopup(newlyArrived);
+}
+/* 토스트 대신 확인 버튼을 눌러야 닫히는 모달(showPresentationPopup과 같은 이유) —
+ * "선생님이 남긴 피드백"이라는 무게에 2.6초짜리 토스트는 안 맞음. 여러 건이 한
+ * 번에 도착하면(교사가 몰아서 채점) 항목별로 리스트를 스크롤해서 볼 수 있게 함. */
+function showFeedbackPopup(items){
+  document.querySelectorAll('.fb-popup-overlay').forEach(el => el.remove()); // 중복 방지
+  const title = items.length === 1
+    ? '선생님 피드백이 도착했어요!'
+    : `선생님 피드백이 ${items.length}개 도착했어요!`;
+  const listHtml = items.map(f => `
+    <div class="fb-popup-item">
+      <div class="fb-popup-item-meta">${escapeHtml(feedbackLabel_(f))}</div>
+      <div>${escapeHtml(String(f.feedback))}</div>
+    </div>`).join('');
+  const overlay = document.createElement('div');
+  overlay.className = 'fb-popup-overlay';
+  overlay.innerHTML = `
+    <div class="fb-popup-card" role="dialog" aria-modal="true" aria-label="선생님 피드백 도착">
+      <p class="fb-popup-emoji">📮</p>
+      <p class="fb-popup-title">${title}</p>
+      <div class="fb-popup-list">${listHtml}</div>
+      <button type="button" class="btn btn-sm fb-popup-ok">확인</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.fb-popup-ok').addEventListener('click', close);
   overlay.addEventListener('click', ev => { if(ev.target === overlay) close(); });
 }
 
