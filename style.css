@@ -889,6 +889,18 @@ tr.detail-row td{background:#FBFAF5; padding:16px 18px;}
   border:1.5px solid var(--line); border-radius:8px; background:#FCFBF7; font-family:inherit; font-size:.92rem; resize:vertical;}
 .empty-line{padding:28px; text-align:center; color:var(--ink-soft);}
 
+/* 학급 공통 피드백 (v34) */
+.class-fb-box{
+  background:rgba(46,74,122,.05); border:1.5px solid rgba(46,74,122,.22);
+  border-radius:var(--radius); padding:14px 16px; margin-bottom:14px;
+}
+.class-fb-head{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
+.class-fb-title{font-weight:700; color:var(--indigo); font-size:.95rem;}
+.class-fb-count{font-size:.8rem; color:var(--ink-soft);}
+.class-fb-text{white-space:pre-wrap; font-size:.92rem; line-height:1.6; background:var(--card);
+  border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:6px;}
+.class-fb-meta{font-size:.78rem; color:var(--ink-soft); margin-bottom:10px;}
+
 /* 발표 탐구포인트 지급 (v31) */
 .pp-box{align-self:stretch;}
 .pp-form{margin-top:8px; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; background:#FCFBF7;}
