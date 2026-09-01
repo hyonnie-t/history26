@@ -42,12 +42,12 @@
     </div>
     <button class="teacher-link" id="btnPreviewMode">👀 학생 화면 미리보기</button>
     <div id="previewGate">
-      <label for="previewGrade" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">학년</label>
+      <label for="previewGrade" class="field-label-sm">학년</label>
       <select id="previewGrade"></select>
-      <label for="previewBan" style="display:block;font-size:.82rem;color:var(--ink-soft);margin-bottom:4px;">반 (숫자만)</label>
+      <label for="previewBan" class="field-label-sm">반 (숫자만)</label>
       <input id="previewBan" type="number" min="1" max="20" value="1">
-      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-soft);margin-bottom:12px;">
-        <input type="checkbox" id="previewSample" style="width:auto;min-height:auto;margin:0;">
+      <label class="chk-label" style="margin-bottom:12px;">
+        <input type="checkbox" id="previewSample">
         완료·AI코멘트 예시도 같이 보기
       </label>
       <button class="btn-gate" id="btnPreviewStart">미리보기 시작</button>
@@ -67,15 +67,15 @@
       <p class="portal-eyebrow" id="portalEyebrow">2학기 · 역사</p>
       <h1 class="portal-title" id="portalTitle">나의 역사책</h1>
     </div>
-    <div style="display:flex; gap:8px;">
+    <div class="hstack-sm">
       <button class="btn-logout" id="btnPortalRefresh">↻ 새로고침</button>
       <button class="btn-logout" id="btnLogout">책 덮기</button>
     </div>
   </header>
 
-  <div id="previewBanner" style="display:none; align-items:center; justify-content:space-between; gap:10px; background:var(--seal); color:#fff; padding:10px 16px; border-radius:10px; margin-bottom:14px; font-size:.88rem; font-weight:700;">
+  <div id="previewBanner" class="preview-banner" style="display:none;">
     <span>👀 미리보기 모드 — 실제 학생 기록이 아니에요. 활동 페이지를 열어도 실제로 제출하지 마세요.</span>
-    <button id="btnExitPreview" style="background:#fff; color:var(--seal); border:none; border-radius:999px; padding:6px 14px; font-size:.82rem; font-weight:700; cursor:pointer; flex-shrink:0;">종료</button>
+    <button id="btnExitPreview">종료</button>
   </div>
 
   <div class="layout">
@@ -307,7 +307,7 @@
   </div>
 
   <div class="dash-panel" id="panelCurriculum" style="display:none;">
-    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
+    <p class="dash-hint">
       오타 수정처럼 간단한 건 시트를 직접 열어 고쳐도 돼요. 여기는 "새 활동 추가"와 "공개/비공개 전환" 전용이에요.
       새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
     </p>
@@ -343,7 +343,7 @@
         <input id="clTitle" type="text" placeholder="제목">
         <input id="clDesc" type="text" placeholder="한 줄 설명">
 
-        <label style="font-size:.85rem; display:block; margin-bottom:-2px;">담당 — 특정 반에만 보이게 하려면 선택</label>
+        <label class="field-label-tight">담당 — 특정 반에만 보이게 하려면 선택</label>
         <select id="clOwner">
           <option value="공통">공통 (모든 반에 보임 — 기본값)</option>
           <option value="효니">효니 담당 반만</option>
@@ -354,7 +354,7 @@
           지금 상태로 저장하면 이 차시는 <b>아무 반에도 안 보여요</b> — 학년 정보부터 채워 주세요.
         </p>
 
-        <label style="font-size:.85rem; display:block; margin-bottom:-2px;">사고유형 — "학습 칭호" 판정에 쓰여요, 자유서술형이면 선택 안 함</label>
+        <label class="field-label-tight">사고유형 — "학습 칭호" 판정에 쓰여요, 자유서술형이면 선택 안 함</label>
         <select id="clThinkingType">
           <option value="">(선택 안 함)</option>
           <option value="판단">판단</option>
@@ -363,7 +363,7 @@
           <option value="관점">관점</option>
         </select>
 
-        <label style="font-size:.85rem; display:block; margin-bottom:-2px;" id="clBadgeNameLabel">
+        <label class="field-label-tight" id="clBadgeNameLabel">
           칭호명 — 이 활동에서 "상"을 받으면 학생이 얻는 칭호 이름이에요(사고유형 선택 시에만 사용)
         </label>
         <input id="clBadgeName" type="text" placeholder="예: 저울질의 고수" list="clBadgeNameOptions">
@@ -374,8 +374,8 @@
         </label>
         <textarea id="clUrl" rows="2" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
 
-        <label style="font-size:.85rem; display:flex; align-items:center; gap:6px; margin-top:4px;">
-          <input type="checkbox" id="clMulti" style="width:auto;"> 이 차시에 활동 2개 넣기
+        <label class="chk-label" style="margin-top:4px;">
+          <input type="checkbox" id="clMulti"> 이 차시에 활동 2개 넣기
         </label>
         <p class="cl-hint" style="margin-top:-4px;">
           켜면 위 타입·URL 대신 아래 활동1·활동2를 각각 입력해요. 활동id·제목·설명은 "차시" 전체를 대표하는 값으로 남아요
@@ -410,13 +410,13 @@
             <input id="clAct2Desc" type="text" placeholder="2활동 한 줄 설명 — 선택">
             <textarea id="clAct2Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea>
           </div>
-          <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="clSequential" style="width:auto;"> 순차 진행 (1활동을 끝내야 2활동이 열려요)
+          <label class="chk-label">
+            <input type="checkbox" id="clSequential"> 순차 진행 (1활동을 끝내야 2활동이 열려요)
           </label>
         </div>
 
-        <label id="clPublicRow" style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
-          <input type="checkbox" id="clPublic" style="width:auto;"> 지금 바로 공개
+        <label id="clPublicRow" class="chk-label">
+          <input type="checkbox" id="clPublic"> 지금 바로 공개
         </label>
         <button id="btnAddLesson" onclick="dashSubmitLessonForm(this)">활동 추가</button>
       </div>
@@ -428,7 +428,7 @@
   </div>
 
   <div class="dash-panel" id="panelCheckin" style="display:none;">
-    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
+    <p class="dash-hint">
       "오늘의 체크인 차시"를 골라두면 학생이 로그인할 때 감정 온도 + 발문이 뜨고, 응답은 여기서 확인할 수 있어요.
       학생 화면엔 회수 질문·연속 저온도 표시가 절대 노출되지 않아요.
     </p>
@@ -439,7 +439,7 @@
     </div>
 
     <div class="cl-subpanel" id="ckSubToday">
-      <div class="cl-collapse" style="border:1px solid var(--line); margin-bottom:16px;">
+      <div class="cl-collapse" style="margin-bottom:16px;">
         <div style="padding:14px 16px;">
           <h4 style="font-size:.9rem; font-weight:700; margin-bottom:10px;">🗓 오늘의 체크인 차시 설정</h4>
           <div class="cl-row" style="margin-bottom:8px;">
@@ -479,7 +479,7 @@
       </div>
       <div id="ckqList" style="margin-bottom:18px;"></div>
 
-      <div class="cl-collapse" style="border:1px solid var(--line);">
+      <div class="cl-collapse">
         <div style="padding:14px 16px;">
           <input type="hidden" id="ckqEditRow" value="">
           <h4 id="ckqFormTitle" style="font-size:.9rem; font-weight:700; margin-bottom:10px;">➕ 새 문항 추가</h4>
@@ -509,8 +509,8 @@
             </div>
 
             <textarea id="ckqFormRecall" rows="2" placeholder="회수 질문 (교사만 봄, 학생 화면엔 안 뜸) — 선택"></textarea>
-            <label style="font-size:.85rem; display:flex; align-items:center; gap:6px;">
-              <input type="checkbox" id="ckqFormVerify" style="width:auto;"> 수업 전 사실관계 재확인 필요
+            <label class="chk-label">
+              <input type="checkbox" id="ckqFormVerify"> 수업 전 사실관계 재확인 필요
             </label>
             <input id="ckqFormVerifyNote" type="text" placeholder="검증 메모 — 위 체크박스 켰을 때만 의미 있음">
             <input id="ckqFormNote" type="text" placeholder="교사 메모 (설계 의도 등, 학생에게 안 보임) — 선택">
@@ -534,7 +534,7 @@
        행 정보를 안 돌려줌) 세션 메모리에만 쌓아 보여주는 "방금 지급함" 확인용
        — 새로고침하면 비워짐, 영구 기록은 학생 상세 카드에서 그대로 확인 가능. -->
   <div class="dash-panel" id="panelPoints" style="display:none;">
-    <p style="font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;">
+    <p class="dash-hint">
       발표처럼 웹앱 밖에서 있었던 활동에 포인트를 즉시 지급해요. 학번 또는 이름으로 학생을 검색해서 바로 지급할 수 있어요.
     </p>
     <div class="filters">
@@ -2020,7 +2020,7 @@ function dashOnAnnounceTargetChange_(){
 function dashRenderAnnouncements(){
   const list = $('anList');
   if(!ANNOUNCEMENTS_ADMIN.length){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 공지가 없어요.</p>';
+    list.innerHTML = '<p class="empty-hint">등록된 공지가 없어요.</p>';
     return;
   }
   const sorted = [...ANNOUNCEMENTS_ADMIN].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -2115,7 +2115,7 @@ function dashRenderGradeInfoForm(){
   const wrap = $('giForm');
   const grades = Object.keys(GRADE_INFO_ADMIN);
   if(!grades.length){
-    wrap.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">학년정보가 아직 없어요. (마이그레이션이 필요할 수 있어요)</p>';
+    wrap.innerHTML = '<p class="empty-hint">학년정보가 아직 없어요. (마이그레이션이 필요할 수 있어요)</p>';
     return;
   }
   wrap.innerHTML = grades.map(g => {
@@ -2323,21 +2323,21 @@ async function dashLoadCheckinAdmin(){
       const pct = Math.round((c / maxCount) * 100);
       const isLow = t <= CHECKIN_LOW_TEMP_DISPLAY;
       return `
-        <div style="display:flex; align-items:center; gap:8px; font-size:.8rem; margin-bottom:4px;">
-          <span style="width:64px; color:var(--ink-soft); flex-shrink:0;">${t} · ${tempLabels[t]}</span>
-          <div style="flex:1; background:rgba(0,0,0,.04); border-radius:4px; height:14px; overflow:hidden;">
-            <div style="width:${pct}%; height:100%; background:${isLow ? 'var(--seal)' : 'var(--indigo)'};"></div>
+        <div class="stat-bar-row">
+          <span class="stat-bar-label">${t} · ${tempLabels[t]}</span>
+          <div class="stat-bar-track">
+            <div class="stat-bar-fill${isLow ? ' low' : ''}" style="width:${pct}%;"></div>
           </div>
-          <span style="width:26px; text-align:right; font-weight:700;">${c}</span>
+          <span class="stat-bar-count">${c}</span>
         </div>`;
     }).join('');
 
     /* 특이사항 — 연속 저온도 학생만 따로 모음 */
     const alertRows = rows.filter(r => r.lowStreakAlert);
     const alertHtml = alertRows.length
-      ? `<div style="background:rgba(176,58,46,.06); border-left:3px solid var(--seal); border-radius:8px; padding:10px 14px; margin-bottom:14px;">
-          <p style="font-size:.82rem; font-weight:700; color:var(--seal); margin-bottom:4px;">⚠ 최근 3회 연속 저온도 (${alertRows.length}명)</p>
-          <p style="font-size:.85rem; color:var(--ink-soft);">${alertRows.map(r => escapeHtml(r.studentName) + '(' + escapeHtml(String(r.studentId)) + ')').join(', ')}</p>
+      ? `<div class="stat-alert-box">
+          <p class="stat-alert-title">⚠ 최근 3회 연속 저온도 (${alertRows.length}명)</p>
+          <p class="stat-alert-names">${alertRows.map(r => escapeHtml(r.studentName) + '(' + escapeHtml(String(r.studentId)) + ')').join(', ')}</p>
         </div>`
       : '';
 
@@ -2364,20 +2364,20 @@ async function dashLoadCheckinAdmin(){
       const bucketsHtml = Object.values(g.buckets)
         .sort((a,b) => b.students.length - a.students.length)
         .map(b => `
-          <div style="margin-bottom:8px;">
-            <p style="font-size:.85rem; font-weight:700; margin-bottom:2px;">${escapeHtml(b.label)} <span style="color:var(--ink-soft); font-weight:400;">(${b.students.length}명)</span></p>
-            <p style="font-size:.78rem; color:var(--ink-soft);">${b.students.join(', ')}</p>
+          <div class="choice-bucket">
+            <p class="choice-bucket-title">${escapeHtml(b.label)} <small>(${b.students.length}명)</small></p>
+            <p class="choice-bucket-names">${b.students.join(', ')}</p>
           </div>`).join('');
       return `
-        <div style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
-          <p style="font-size:.82rem; font-weight:700; margin-bottom:8px;">${escapeHtml(g.topic)} — 선택 분포</p>
+        <div class="stat-block">
+          <p class="stat-block-title">${escapeHtml(g.topic)} — 선택 분포</p>
           ${bucketsHtml}
         </div>`;
     }).join('');
 
     $('ckStats').innerHTML = `
-      <div style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
-        <p style="font-size:.82rem; font-weight:700; margin-bottom:8px;">온도 분포</p>
+      <div class="stat-block">
+        <p class="stat-block-title">온도 분포</p>
         ${tempBarsHtml}
       </div>
       ${alertHtml}
@@ -2396,8 +2396,8 @@ async function dashLoadCheckinAdmin(){
         <div class="q-item">
           <div class="q-meta">
             ${escapeHtml(r.studentName)} (${escapeHtml(String(r.studentId))})
-            ${r.lowStreakAlert ? '<span title="최근 3회 연속 저온도" style="color:var(--seal); font-size:.7rem;">●</span>' : ''}
-            <span style="margin-left:auto; font-weight:700; color:var(--indigo);">온도 ${r.temperature}</span>
+            ${r.lowStreakAlert ? '<span title="최근 3회 연속 저온도" class="q-meta-dot">●</span>' : ''}
+            <span class="q-meta-right">온도 ${r.temperature}</span>
           </div>
           <div class="q-text">${escapeHtml(choiceText)}</div>
         </div>`;
@@ -2572,7 +2572,7 @@ async function dashSubmitCheckinLessonForm(btn){
 function dashRenderLessons(){
   const list = $('clList');
   if(!LESSONS_ADMIN.length){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">등록된 활동이 없어요.</p>';
+    list.innerHTML = '<p class="empty-hint">등록된 활동이 없어요.</p>';
     return;
   }
   const grades = [...new Set(LESSONS_ADMIN.map(l => l.grade))].sort();
@@ -2981,7 +2981,7 @@ function dashRenderQuestions(){
     badge.style.display = 'none';
   }
   if(!sorted.length){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:.9rem;">아직 들어온 질문이 없어요.</p>';
+    list.innerHTML = '<p class="empty-hint">아직 들어온 질문이 없어요.</p>';
     return;
   }
   list.innerHTML = sorted.map(q => {
@@ -3366,7 +3366,7 @@ function renderDash(){
     `<div class="dist-sang" style="width:${cnt['상']/total*100}%"></div>
      <div class="dist-jung" style="width:${cnt['중']/total*100}%"></div>
      <div class="dist-ha" style="width:${cnt['하']/total*100}%"></div>`
-    : '<div style="width:100%;background:#EEE"></div>';
+    : '<div style="width:100%;background:var(--line);"></div>';
 
   const tagCnt = {};
   rows.forEach(r => { const t = String(r['분류태그']||'').trim(); if(t) tagCnt[t]=(tagCnt[t]||0)+1; });
