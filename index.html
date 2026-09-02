@@ -450,13 +450,21 @@
         </div>
       </div>
 
+      <!-- v41: 적용 대상을 공지 관리(v30)와 같은 "담당 학급반/전체/개별 반" 3분류 라디오로 개편.
+           dashMyBans_()가 돌려주는 담당 반 목록을 그대로 재사용. -->
       <div class="cl-collapse" style="margin-bottom:16px;">
         <div style="padding:14px 16px;">
           <h4 style="font-size:.9rem; font-weight:700; margin-bottom:10px;">🗓 오늘의 체크인 차시 설정</h4>
           <div class="cl-row" style="margin-bottom:8px;">
             <select id="ckSetGrade"></select>
-            <select id="ckSetBan">
-              <option value="전체">전체 반(공통)</option>
+          </div>
+          <div class="an-target-group" role="radiogroup" aria-label="체크인 차시 적용 대상" style="margin-bottom:8px;">
+            <label><input type="radio" name="ckSetTargetType" value="mine" checked onchange="dashOnCkSetTargetChange_()"> 담당 학급반</label>
+            <label><input type="radio" name="ckSetTargetType" value="all" onchange="dashOnCkSetTargetChange_()"> 전체</label>
+            <label><input type="radio" name="ckSetTargetType" value="one" onchange="dashOnCkSetTargetChange_()"> 개별 반</label>
+          </div>
+          <div class="cl-row" style="margin-bottom:8px;">
+            <select id="ckSetBanOne" style="display:none;">
               <option value="1">1반</option><option value="2">2반</option>
               <option value="3">3반</option><option value="4">4반</option>
               <option value="5">5반</option><option value="6">6반</option>
@@ -465,7 +473,7 @@
             <select id="ckSetLesson" style="flex:1 1 220px;"></select>
             <button class="btn btn-sm" id="btnCkSetApply">적용</button>
           </div>
-          <p class="cl-hint" style="margin-bottom:6px;">"전체 반"은 해당 학년 공통 설정이에요. 특정 반만 진도가 다르면 그 반을 선택해서 따로 지정하면, 그 반엔 이 설정이 우선 적용돼요.</p>
+          <p class="cl-hint" style="margin-bottom:6px;">"담당 학급반"은 로그인한 선생님이 맡은 반 전체에, "전체"는 그 학년 공통으로, "개별 반"은 고른 반 하나에만 적용돼요. 담당 학급반·개별 반은 그 반만의 별도 지정(override)이라 전체 설정보다 우선해요.</p>
           <p id="ckSetCurrent" style="font-size:.85rem; color:var(--ink-soft);"></p>
         </div>
       </div>
@@ -2227,7 +2235,7 @@ async function dashInitCheckinForm(){
   $('ckqGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
   $('ckqFormGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
   dashRefreshCkSetLessons();
-  dashLoadCkSetCurrent();
+  dashOnCkSetTargetChange_();
   dashRenderCkSummaryTable_();
   dashRenderCkStatColumns_();
   await dashLoadCheckinLessonsAdmin();
@@ -2305,9 +2313,30 @@ function dashRefreshCkSetLessons(){
   $('ckSetLesson').innerHTML = lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.topic)}</option>`).join('');
 }
 
+/* v41 — "체크인 차시 적용 대상" 라디오 3분류(담당 학급반/전체/개별 반)에 따라
+ * ckSetBanOne select 표시 여부를 바꾸고, "현재 설정" 문구를 갱신한다.
+ * "담당 학급반"은 여러 반을 한 번에 가리키는 값이라 단일 lessonId로 나타낼 수 없어서
+ * (반마다 값이 다를 수 있음) 위 "반별 오늘의 체크인 차시 요약" 표를 보라고 안내만 한다. */
+function dashOnCkSetTargetChange_(){
+  const type = document.querySelector('input[name="ckSetTargetType"]:checked').value;
+  $('ckSetBanOne').style.display = (type === 'one') ? '' : 'none';
+  if(type === 'mine'){
+    const grade = $('ckSetGrade').value;
+    const mine = dashMyBans_(grade);
+    $('ckSetCurrent').textContent = mine
+      ? `적용하면 ${grade}학년 담당 반(${mine.join(',')}반) 전체에 각각 따로 지정돼요. 반별 현재 값은 위 요약 표를 확인하세요.`
+      : '이 학년은 담당 반 트랙이 설정돼 있지 않아요 — "전체"나 "개별 반"을 선택해 주세요.';
+  } else {
+    dashLoadCkSetCurrent();
+  }
+}
+
+/* v41: "전체"·"개별 반" 모드에서만 쓰임 — 이 두 모드는 (학년,반) 하나에 대응하는 단일
+ * lessonId가 실제로 존재하므로 조회해서 보여줄 수 있다. */
 async function dashLoadCkSetCurrent(){
   const grade = $('ckSetGrade').value;
-  const ban = $('ckSetBan').value;
+  const type = document.querySelector('input[name="ckSetTargetType"]:checked').value;
+  const ban = (type === 'all') ? '전체' : $('ckSetBanOne').value;
   if(!grade) return;
   try{
     const res = await fetch(CONFIG.WEBAPP_URL
@@ -2327,22 +2356,40 @@ async function dashLoadCkSetCurrent(){
   }
 }
 
+/* v41 — "담당 학급반"은 백엔드에 콤마 리스트를 한 번에 보내는 방식(공지 관리 v30) 대신,
+ * 이미 검증된 단일 (학년,반) 저장 방식(setTodayCheckin)을 담당 반 개수만큼 반복 호출한다.
+ * 체크인설정 시트가 "(학년,반)당 1행" 구조라는 것만 확인돼 있고, checkinTodayGet_이 ban
+ * 필드의 콤마 리스트도 풀어 읽는지는 이 저장소에서 알 수 없어서(체크인 백엔드는 이 저장소에
+ * 없음) — 새 파싱 지원을 가정하지 않는 쪽을 택함. */
 async function dashApplyCkSet(){
   const grade = $('ckSetGrade').value;
-  const ban = $('ckSetBan').value;
+  const type = document.querySelector('input[name="ckSetTargetType"]:checked').value;
   const lessonId = $('ckSetLesson').value;
   if(!lessonId){ showToast('차시를 먼저 골라 주세요.'); return; }
+
+  let bans, scopeLabel;
+  if(type === 'all'){
+    bans = ['전체']; scopeLabel = '전체 반';
+  } else if(type === 'one'){
+    const ban = $('ckSetBanOne').value;
+    bans = [ban]; scopeLabel = ban + '반';
+  } else { // 'mine'
+    const mine = dashMyBans_(grade);
+    if(!mine || !mine.length){ showToast('이 학년은 담당 반 트랙이 설정돼 있지 않아요 — "전체"나 "개별 반"을 선택해 주세요.'); return; }
+    bans = mine.map(String); scopeLabel = `담당 반(${bans.join(',')}반)`;
+  }
+
   const btn = $('btnCkSetApply');
   btn.disabled = true; btn.textContent = '적용 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    await Promise.all(bans.map(ban => fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'setTodayCheckin', token:TOKEN, grade, ban, lessonId })
-    });
-    CK_TODAY_LESSON[grade + '-' + ban] = lessonId;
-    showToast((ban === '전체' ? '전체 반' : ban + '반') + ' 오늘의 체크인 차시를 저장했어요.');
-    await dashLoadCkSetCurrent();
-    dashRenderCkSummaryTable_(); // v40: 요약 표도 즉시 갱신 — 이 설정이 전체/반별 어느 쪽이든 반영됨
+    })));
+    bans.forEach(ban => { CK_TODAY_LESSON[grade + '-' + ban] = lessonId; });
+    showToast(scopeLabel + ' 오늘의 체크인 차시를 저장했어요.');
+    dashOnCkSetTargetChange_(); // "현재 설정" 문구 갱신(담당 학급반이면 안내 문구, 아니면 재조회)
+    dashRenderCkSummaryTable_(); // v40: 요약 표도 즉시 갱신 — 이 설정이 어느 범위든 반영됨
     if($('ckViewBan_' + grade)) dashLoadCheckinAdmin(grade); // v40: 그 학년 컬럼이 떠 있으면 회수 질문도 갱신
   }catch(e){
     showToast('저장하지 못했어요. 다시 시도해 주세요.');
@@ -4090,8 +4137,8 @@ $('clThinkingType').addEventListener('change', clRefreshBadgeNameOptions);
 $('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
 $('ckqFormType').addEventListener('change', ckqToggleTypeFields);
 $('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);
-$('ckSetGrade').addEventListener('change', () => { dashRefreshCkSetLessons(); dashLoadCkSetCurrent(); });
-$('ckSetBan').addEventListener('change', dashLoadCkSetCurrent);
+$('ckSetGrade').addEventListener('change', () => { dashRefreshCkSetLessons(); dashOnCkSetTargetChange_(); });
+$('ckSetBanOne').addEventListener('change', dashLoadCkSetCurrent);
 $('btnCkSetApply').addEventListener('click', dashApplyCkSet);
 /* v40: ckStatCols 안 반 select/새로고침 버튼은 학년마다 동적으로 생성되므로
  * (dashRenderCkStatColumns_) 정적 리스너 대신 컨테이너에 이벤트 위임으로 붙인다. */
