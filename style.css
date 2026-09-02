@@ -1076,3 +1076,16 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .choice-bucket-names{font-size:.78rem; color:var(--ink-soft);}
 .q-meta-right{margin-left:auto; font-weight:700; color:var(--indigo);}
 .q-meta-dot{color:var(--seal); font-size:.7rem;}
+
+/* v40: 체크인 대시보드 — 학년별 2단 배치(완전 독립형). 담당 반 번호가 학년마다 겹치지
+ * 않아(2학년 1~4반/3학년 5~8반) 반 선택을 좌우가 공유할 수 없어서 컬럼째 독립시켰다.
+ * 좁은 화면에서는 다른 2단 레이아웃(.layout)과 같은 방식으로 세로 스택으로 전환. */
+.ck-two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+@media (max-width:760px){ .ck-two-col{grid-template-columns:1fr;} }
+/* v40: 반별 체크인 차시 요약 표의 "비고" 표시 — 전체 설정을 그대로 따르는 반은 옅은 텍스트,
+ * 반별로 따로 지정해둔 반은 amber 배지로 눈에 띄게(나중에 바뀔 수 있는 값이라는 신호). */
+.ck-src-tag{font-size:.78rem; color:var(--ink-soft);}
+.ck-src-tag.override{
+  display:inline-block; background:var(--amber-bg); border:1px solid var(--amber-border);
+  color:var(--amber-text); border-radius:999px; padding:1px 9px; font-weight:700;
+}
