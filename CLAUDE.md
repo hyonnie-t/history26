@@ -81,7 +81,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
-  `token: TOKEN`을 함께 보내 인증한다.
+  `token: TOKEN`을 함께 보내 인증한다. 그 백엔드 소스 자체는 `hyonnie-t/history26_backend` 레포
+  (`code.gs` + `ai_module_v9.3.gs`)에 있다 — 이 저장소만 봐서는 `?mode=`/`action=`이 실제로 뭘 하는지
+  알 수 없고, 백엔드 로직을 고치거나 새 action을 추가하는 작업은 그 레포에서 해야 한다.
+- **개별 수업 웹앱은 이 저장소 밖에서 각자 따로 만들어진다.** `crusades`(십자군, 화면 하나짜리
+  판단형 서술), `his_judge_goryeo`(3차시 역사법정, 검사/변호인/배심원 역할극) 등 — 전부 자기 레포에
+  단일 `index.html`로 존재하고, `CONFIG.SHEET_WEBAPP_URL`로 위와 같은 `history26_backend`를 직접
+  호출한다(대부분 새 action 없이 기존 gameName 제출 경로만 씀). 이 저장소의 커리큘럼 관리 탭에서
+  activity id로 등록해야 포털 진행률·포인트 계산에 잡힌다. 디자인 기준선("역사책 페이지" 컨셉)은
+  hyonnie.md 참고.
 
 ## 외부 연동 — SEL(사회정서역량) 특성 보기
 
@@ -144,9 +152,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   카테고리, `once`/`repeat` 2가지 획득 타입의 배지를 `renderBadges()`/`renderBadgeChip()`
   (`index.html:1430`대)이 그리고, `checkNewBadges()`(`index.html:1459`)가 로컬스토리지 기준선과 비교해
   신규 획득만 토스트로 알린다. **이 저장소 기준으로는 프론트엔드 렌더링·신규 획득 알림까지 구현이 끝나
-  있다.** 다만 실제 배지 획득 판정 계산(`computeBadges_`)은 이 저장소가 아니라 `backend_v23.gs`(Apps
-  Script)가 `mode=student` 응답의 `STUDENT_DATA.badges` 필드로 이미 계산해서 내려주는 값이며, 교사 미리보기
-  모드(`PREVIEW_MODE`)에서는 이 필드 자체가 없으므로 두 함수 모두 빈 값을 방어적으로 처리한다.
+  있다.** 다만 실제 배지 획득 판정 계산(`computeBadges_`)은 이 저장소가 아니라 **`hyonnie-t/history26_backend`
+  레포의 `code.gs`**(2026-09-03 확인 — 문서에 옛날부터 남아있던 "`backend_v23.gs`"라는 파일명은 착오,
+  실제로 지금 쓰이는 파일은 `code.gs`다)가 `mode=student` 응답의 `STUDENT_DATA.badges` 필드로 이미
+  계산해서 내려주는 값이며, 교사 미리보기 모드(`PREVIEW_MODE`)에서는 이 필드 자체가 없으므로 두 함수
+  모두 빈 값을 방어적으로 처리한다. `BADGE_DEFS`/`computeBadges_`가 이 카테고리·타입 체계를 그대로 따라
+  정의돼 있으므로, 배지 관련 작업은 프론트(이 저장소)만 봐서는 절반만 보인다 — `history26_backend`도
+  같이 열어야 함. (예: 2026-09-03에 역할극 웹앱용 "논고왕"⚖️/"변론왕"🛡️ 배지가 `history26_backend`
+  쪽에 추가됨 — `choicesJson.role`이 `prosecution`/`defense`인 활동 제출이 있으면 획득. 배포는
+  아직 안 됨.)
 - AI 코멘트 기능(`aiReview`/`aiEdit` action)은 교사 대시보드에서 학생 기록에 대한 AI 생성 코멘트를
   검토/수정/숨김 처리하는 기능이며, 이 저장소는 그 코멘트 생성 로직이 아니라 검토 UI만 갖고 있다(생성은
   Apps Script 백엔드 쪽 책임). 이 저장소 코드 전체를 검색해도 손글씨 사진 → 키워드 제안 같은 이미지/
