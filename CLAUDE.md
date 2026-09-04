@@ -34,13 +34,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `lessonAllActivityIds_()`(`index.html:2740`, `renderDash()`의 학생별 진행률 계산에서 재사용)가 각자
   같은 기준을 구현한다 — 진행률·완료 뱃지·포인트 관련 로직을 고칠 땐 이 AND 조건이 두 곳 모두에서 깨지지
   않는지 확인할 것.
-- **발표 탐구포인트 (v31~)**: 발표처럼 웹앱 밖에서 일어나는 즉흥 활동에 포인트를 즉시 지급하는 별도 통로.
-  교사가 학생 상세 카드(접힌 `.pp-box`) 또는 전용 "탐구포인트" 탭(`dashPointBoxHtml_()`,
-  `index.html:3455` 부근 — 학생 검색 후 펼쳐진 채로 뜸, v33 신규)에서 사고유형(판단/비교/해석/관점) 또는
-  "유형 없이"를 골라 지급하면 `grantPresentationPoint` action이 호출된다. 학생 화면에서는
-  `STUDENT_DATA.presentationGrants`를 커리큘럼 순회와 별도로 합산해 포인트에 얹는다(`index.html:1113`
-  부근). **이 action의 서버 구현(achievement 컬럼/로그 기록 방식)은 이 저장소에 없다** — Apps Script 쪽
-  확인·구현이 필요하다.
+- **발표 탐구포인트 (v31~, 2026-09-04에 수준별 차등 지급 추가)**: 발표처럼 웹앱 밖에서 일어나는 즉흥
+  활동에 포인트를 즉시 지급하는 별도 통로. 교사가 학생 상세 카드(접힌 `.pp-box`) 또는 전용 "탐구포인트"
+  탭(`dashPointBoxHtml_()`, `index.html:3455` 부근 — 학생 검색 후 펼쳐진 채로 뜸, v33 신규)에서
+  사고유형(판단/비교/해석/관점) 또는 "유형 없이"를 고르고, **수준(하/중/상 — `PP_LEVELS`, 각각
+  +4/+6/+9점)도 같이 골라** 지급하면 `grantPresentationPoint` action이 `level` 파라미터와 함께
+  호출된다(기본 선택은 중=+6, 예전 flat 6점과 동일). 학생 화면에서는 `STUDENT_DATA.presentationGrants`를
+  커리큘럼 순회와 별도로 합산해 포인트에 얹는다(`index.html:1113` 부근) — 각 grant의 `points` 필드를
+  그대로 읽으므로(`Number(g.points) || 6` 폴백) 차등 점수가 자동으로 반영된다. **이 action의 서버 구현
+  (achievement 컬럼/로그 기록 방식, `PRESENTATION_POINTS_BY_LEVEL`)은 이 저장소에 없다** —
+  `history26_backend`. ⚠️ '하'/'중'으로 지급한 발표는 학습 칭호(결정왕 등) 집계 대상에서 빠진다(백엔드가
+  achievement==='상'인 것만 집계) — 포인트는 그대로 들어간다.
 - `config.js` — `window.PORTAL_CONFIG`. Apps Script 웹앱 URL(`WEBAPP_URL`), 누적 포인트 기반 칭호 체계
   (`RANKS`), 반별 총원(`BAN_SIZE`) 등 정적 설정. `RANKS`는 v31부터 학년 공통 단일 배열이 아니라
   `{ 2: [...], 3: [...] }` 형태의 **학년별 8단계** 배열이다(2학년 30차시·3학년 15차시로 진도량이 달라
@@ -78,6 +82,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   게시하면 `ban` 필드에 `"5,6,7,8"`처럼 콤마 리스트가 저장된다(서버 `parseBanListField_()`가 풀어서 매칭
   — 콤마 없는 기존 단일 반/전체 공지와 하위 호환). 질문함 목록도 로그인한 교사가 담당하지 않는 반의 질문은
   아예 제외하고 보여준다.
+- **역사법정 → re_judge 자동 등록 (2026-09-04 신규)**: 교사 대시보드 "탐구포인트" 탭 하단에
+  `courtCasePush` 카드가 있다 — 3학년 반을 고르고 버튼을 누르면, `his_judge_goryeo`
+  (`CONFIG.GAME_NAME = "3차시_권문세족_역사법정"`, `COURT_CASE_GAME_NAME` 상수로 이 저장소에도
+  하드코딩돼 있음. 다른 역할극 웹앱이 생기면 같이 늘릴 것)의 검사/변호인 발언문+배심원 판결을
+  모아 백엔드가 re_judge(완전 별도 시스템, `hyonnie-t/re_judge`)에 새 사건으로 자동 등록해준다
+  (`dashCourtCasePush()`). 실제 취합·re_judge 호출 로직은 `history26_backend`의
+  `courtCasePushPost_` 책임 — 이 저장소는 버튼과 결과 메시지 표시만 담당한다. 서버가
+  `result:'partial'`을 돌려주면(re_judge 응답에서 caseId를 못 찾은 경우) 사건은 만들어졌지만
+  진술은 자동으로 안 채워진 상태라는 뜻 — 안내 메시지를 그대로 보여준다.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
