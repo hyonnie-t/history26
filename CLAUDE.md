@@ -78,6 +78,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   게시하면 `ban` 필드에 `"5,6,7,8"`처럼 콤마 리스트가 저장된다(서버 `parseBanListField_()`가 풀어서 매칭
   — 콤마 없는 기존 단일 반/전체 공지와 하위 호환). 질문함 목록도 로그인한 교사가 담당하지 않는 반의 질문은
   아예 제외하고 보여준다.
+- **역사법정 → re_judge 자동 등록 (2026-09-04 신규)**: 교사 대시보드 "탐구포인트" 탭 하단에
+  `courtCasePush` 카드가 있다 — 3학년 반을 고르고 버튼을 누르면, `his_judge_goryeo`
+  (`CONFIG.GAME_NAME = "3차시_권문세족_역사법정"`, `COURT_CASE_GAME_NAME` 상수로 이 저장소에도
+  하드코딩돼 있음. 다른 역할극 웹앱이 생기면 같이 늘릴 것)의 검사/변호인 발언문+배심원 판결을
+  모아 백엔드가 re_judge(완전 별도 시스템, `hyonnie-t/re_judge`)에 새 사건으로 자동 등록해준다
+  (`dashCourtCasePush()`). 실제 취합·re_judge 호출 로직은 `history26_backend`의
+  `courtCasePushPost_` 책임 — 이 저장소는 버튼과 결과 메시지 표시만 담당한다. 서버가
+  `result:'partial'`을 돌려주면(re_judge 응답에서 caseId를 못 찾은 경우) 사건은 만들어졌지만
+  진술은 자동으로 안 채워진 상태라는 뜻 — 안내 메시지를 그대로 보여준다.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
