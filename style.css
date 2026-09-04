@@ -951,11 +951,11 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 /* 발표 탐구포인트 지급 (v31) */
 .pp-box{align-self:stretch;}
 .pp-form{margin-top:8px; padding:10px 12px; border:1.5px solid var(--line); border-radius:var(--radius-sm); background:var(--input-bg);}
-.pp-types{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;}
-.pp-type-btn{min-height:var(--tap-min); padding:6px 14px; font-size:.86rem; font-weight:600;
+.pp-types, .pp-levels{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;}
+.pp-type-btn, .pp-level-btn{min-height:var(--tap-min); padding:6px 14px; font-size:.86rem; font-weight:600;
   background:var(--card); border:1.5px solid var(--line); border-radius:999px; color:var(--ink-soft);}
-.pp-type-btn:hover{border-color:var(--indigo);}
-.pp-type-btn.is-selected{background:var(--indigo); border-color:var(--indigo); color:#fff;}
+.pp-type-btn:hover, .pp-level-btn:hover{border-color:var(--indigo);}
+.pp-type-btn.is-selected, .pp-level-btn.is-selected{background:var(--indigo); border-color:var(--indigo); color:#fff;}
 .pp-type-btn.pp-type-none{color:var(--ink-soft); font-weight:500;}
 .pp-type-btn.pp-type-none.is-selected{background:var(--ink-soft); border-color:var(--ink-soft); color:#fff;}
 .pp-reason{width:100%; min-height:42px; padding:10px 12px; margin-bottom:8px;

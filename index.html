@@ -3593,17 +3593,24 @@ function renderDash(){
   document.querySelectorAll('.pp-type-btn').forEach(btn => {
     btn.addEventListener('click', ev => { ev.stopPropagation(); dashPointTypeSelect(btn); });
   });
+  document.querySelectorAll('.pp-level-btn').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashPointLevelSelect(btn); });
+  });
   document.querySelectorAll('.pp-send').forEach(btn => {
     btn.addEventListener('click', ev => { ev.stopPropagation(); dashGrantPresentationPoint(btn); });
   });
 }
 
-/* ── 발표 탐구포인트 지급 (v31 핸드오프, v33에서 빠른 지급 탭 추가) ──
+/* ── 발표 탐구포인트 지급 (v31 핸드오프, v33에서 빠른 지급 탭 추가,
+ * 2026-09-04에 수준별 차등 지급 추가) ──
  * 발표처럼 웹앱 밖에서 일어나는 즉흥 활동에 포인트를 즉시 지급하는 통로.
- * 발표는 1회성(재도전 없음) — 사고유형 선택 시 6점 + 해당 유형 배지 집계용 기록,
- * 무선택("유형 없이 지급")이면 배지 집계와 무관한 순수 포인트만 적립.
- * 실제 achievement 컬럼/게임활동_로그 기록 방식은 백엔드(grantPresentationPoint
- * action) 책임 — 이 레포엔 없음, Apps Script 쪽에서 별도 확인·구현 필요.
+ * 발표는 1회성(재도전 없음) — 사고유형 선택 시 수준(하4/중6/상9)만큼 점수 +
+ * 해당 유형 배지 집계용 기록, 무선택("유형 없이 지급")이면 배지 집계와 무관한
+ * 순수 포인트만 적립. 실제 achievement 컬럼/점수 저장 방식은 백엔드
+ * (grantPresentationPoint action, PRESENTATION_POINTS_BY_LEVEL) 책임 — 이
+ * 레포는 버튼과 결과 표시만.
+ * ⚠️ 수준을 '하'/'중'으로 고르면 그 발표는 학습 칭호(결정왕 등) 대상에서
+ * 빠진다(백엔드가 achievement==='상'인 것만 집계) — 포인트는 그대로 들어감.
  *
  * v33: 이 상자(pp-box)는 두 군데서 쓰인다 — ① 학생 상세 카드 안(접힌 채 시작,
  * 토글 버튼으로 펼침), ② "탐구포인트" 탭에서 학생 검색으로 고른 직후(처음부터
@@ -3611,6 +3618,11 @@ function renderDash(){
  * DOM 위치(#ppSelected 안인지)로 dashGrantPresentationPoint가 판단해서,
  * 지급 성공 시 ①은 폼만 접고 ②는 선택 자체를 지워 다음 학생 검색으로 돌아간다. */
 const PP_THINKING_TYPES = ['판단', '비교', '해석', '관점'];
+const PP_LEVELS = [
+  { key:'하', points:4 },
+  { key:'중', points:6 },
+  { key:'상', points:9 }
+];
 function dashPointBoxHtml_(s, openByDefault){
   const toggleBtn = openByDefault ? '' : `<button type="button" class="btn btn-sm pp-toggle">🎤 + 탐구포인트</button>`;
   const formHidden = openByDefault ? '' : ' hidden';
@@ -3620,6 +3632,9 @@ function dashPointBoxHtml_(s, openByDefault){
       <div class="pp-types">
         ${PP_THINKING_TYPES.map(t => `<button type="button" class="pp-type-btn" data-type="${t}">${t}</button>`).join('')}
         <button type="button" class="pp-type-btn pp-type-none is-selected" data-type="">유형 없이 지급</button>
+      </div>
+      <div class="pp-levels">
+        ${PP_LEVELS.map(l => `<button type="button" class="pp-level-btn${l.key === '중' ? ' is-selected' : ''}" data-level="${l.key}" data-points="${l.points}">${l.key} (+${l.points})</button>`).join('')}
       </div>
       <textarea class="pp-reason" placeholder="사유(선택) — 예: 1차 세계사 발표, 원인 분석 논리적"></textarea>
       <button type="button" class="btn btn-sm pp-send">지급 (+6점)</button>
@@ -3634,11 +3649,18 @@ function dashPointTypeSelect(btn){
   btn.closest('.pp-types').querySelectorAll('.pp-type-btn').forEach(b => b.classList.remove('is-selected'));
   btn.classList.add('is-selected');
 }
+function dashPointLevelSelect(btn){
+  btn.closest('.pp-levels').querySelectorAll('.pp-level-btn').forEach(b => b.classList.remove('is-selected'));
+  btn.classList.add('is-selected');
+  btn.closest('.pp-form').querySelector('.pp-send').textContent = `지급 (+${btn.dataset.points}점)`;
+}
 async function dashGrantPresentationPoint(btn){
   const box = btn.closest('.pp-box');
   const sid = box.dataset.sid, name = box.dataset.name;
   const typeBtn = box.querySelector('.pp-type-btn.is-selected');
   const thinkingType = typeBtn ? typeBtn.dataset.type : '';
+  const levelBtn = box.querySelector('.pp-level-btn.is-selected');
+  const level = levelBtn ? levelBtn.dataset.level : '중';
   const reason = box.querySelector('.pp-reason').value.trim();
   const inQuickTab = !!box.closest('#ppSelected');
   btn.disabled = true; btn.textContent = '지급 중…';
@@ -3647,14 +3669,15 @@ async function dashGrantPresentationPoint(btn){
       method:'POST',
       body: JSON.stringify({
         action:'grantPresentationPoint', token:TOKEN,
-        studentId: sid, studentName: name, thinkingType, reason
+        studentId: sid, studentName: name, thinkingType, reason, level
       })
     });
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '지급 실패');
-    showToast(`${name} 학생에게 ${thinkingType ? thinkingType + ' ' : ''}탐구포인트를 지급했어요.`);
+    const grantedPoints = data.points || 6;
+    showToast(`${name} 학생에게 ${thinkingType ? thinkingType + ' ' : ''}탐구포인트 +${grantedPoints}점을 지급했어요.`);
     // v33 — "방금 지급함" 목록에 추가(세션 메모리만, 새로고침하면 비워짐).
-    PP_RECENT.unshift({ sid, name, thinkingType, timestamp: new Date().toISOString() });
+    PP_RECENT.unshift({ sid, name, thinkingType, level: data.level || level, points: grantedPoints, timestamp: new Date().toISOString() });
     if(PP_RECENT.length > 20) PP_RECENT.length = 20;
     ppRenderRecent_();
     if(inQuickTab){
@@ -3664,11 +3687,15 @@ async function dashGrantPresentationPoint(btn){
     box.querySelector('.pp-reason').value = '';
     box.querySelectorAll('.pp-type-btn').forEach(b => b.classList.remove('is-selected'));
     box.querySelector('.pp-type-none').classList.add('is-selected');
+    box.querySelectorAll('.pp-level-btn').forEach(b => b.classList.remove('is-selected'));
+    box.querySelector('.pp-level-btn[data-level="중"]').classList.add('is-selected');
     box.querySelector('.pp-form').hidden = true;
   }catch(e){
     showToast('지급하지 못했어요: ' + e.message);
   }finally{
-    btn.disabled = false; btn.textContent = '지급 (+6점)';
+    btn.disabled = false;
+    const curLevelBtn = box.querySelector('.pp-level-btn.is-selected');
+    btn.textContent = `지급 (+${curLevelBtn ? curLevelBtn.dataset.points : 6}점)`;
   }
 }
 
@@ -3709,6 +3736,9 @@ function ppPickStudent_(sid, name){
   document.querySelectorAll('#ppSelected .pp-type-btn').forEach(btn => {
     btn.addEventListener('click', ev => { ev.stopPropagation(); dashPointTypeSelect(btn); });
   });
+  document.querySelectorAll('#ppSelected .pp-level-btn').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); dashPointLevelSelect(btn); });
+  });
   document.querySelectorAll('#ppSelected .pp-send').forEach(btn => {
     btn.addEventListener('click', ev => { ev.stopPropagation(); dashGrantPresentationPoint(btn); });
   });
@@ -3724,7 +3754,7 @@ function ppRenderRecent_(){
     + PP_RECENT.slice(0, 8).map(g => `
       <div class="pp-recent-item">
         <span class="pp-recent-name">${escapeHtml(g.name)} <small>(${escapeHtml(g.sid)})</small></span>
-        <span class="pp-recent-type">${g.thinkingType ? escapeHtml(g.thinkingType) : '유형 없음'}</span>
+        <span class="pp-recent-type">${g.thinkingType ? escapeHtml(g.thinkingType) : '유형 없음'} · ${escapeHtml(g.level || '중')}(+${g.points || 6}점)</span>
         <span class="pp-recent-time">${formatDate(g.timestamp)}</span>
       </div>`).join('');
 }
