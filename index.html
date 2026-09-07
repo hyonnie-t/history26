@@ -578,6 +578,14 @@
       <button type="button" id="ccPushBtn" onclick="dashCourtCasePush(this)">re_judge에 자동 등록</button>
     </div>
     <div id="ccPushStatus" class="dash-hint" style="min-height:18px;"></div>
+
+    <!-- 2026-09-07 신규: 공민왕 개혁 "고민리스트" 2단계 자원 카드 보너스.
+         gongmin 웹앱은 학생용이라 교사 토큰을 못 심어(보안상 grantPresentationPoint를
+         직접 못 부름) choicesJson.volunteer 플래그만 기록해 보내고, 여기서 교사가
+         확인 후 일괄 지급한다. 내용은 dashRenderGongminBonus_()가 채운다. -->
+    <p class="dash-hint" style="margin-top:22px; font-weight:700;">📋 고민리스트 자원 카드 보너스</p>
+    <p class="dash-hint">2단계에서 카드를 1장 더 자원해서 쓴 학생에게만 탐구포인트를 차등 지급해요.</p>
+    <div id="gmBonusBox"></div>
   </div>
 </div>
 
@@ -1972,6 +1980,7 @@ async function enterDash(token){
     dashRenderLessons();
     dashRenderGradeInfoForm();
     dashInitCheckinForm();
+    dashRenderGongminBonus_();
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
     $('gateError').style.display = 'block';
@@ -3795,6 +3804,89 @@ async function dashCourtCasePush(btn){
   }
 }
 
+/* ── 고민리스트 자원 카드 보너스 일괄 지급 (2026-09-07 신규) ──
+ * gongmin(공민왕의 개혁 "고민리스트") 웹앱은 학생용이라 교사 토큰을 심을 수
+ * 없어서 grantPresentationPoint를 직접 못 부른다 — 대신 2단계에서 카드를
+ * 1장 더 자원했는지만 choicesJson.volunteer로 기록해 보내고, 여기서 교사가
+ * 확인 후 자원자에게만 탐구포인트를 몰아서 지급한다(1장만 쓴 학생은 대상 제외
+ * — 이게 곧 차등 지급).
+ * 중복 지급 방지용 별도 서버 dedupe는 없음 — 이미 지급된 학생은 ROWS 안에
+ * choiceSummary가 GONGMIN_BONUS_REASON과 정확히 같은 행이 있는지로 걸러낸다
+ * (grantPresentationPointPost_가 reason을 그 컬럼에 그대로 저장하는 걸 이용). */
+const GONGMIN_GAME_NAME = '4차시_공민왕개혁_고민리스트';
+const GONGMIN_BONUS_REASON = '고민리스트 2단계 자원 카드 보너스';
+let GM_BONUS_LEVEL = '중';
+function gmBonusVolunteers_(){
+  return ROWS.filter(r => r.gameName === GONGMIN_GAME_NAME).map(r => {
+    let cj = {};
+    try{ cj = JSON.parse(r.choicesJson || '{}'); }catch(e){ /* 파싱 실패 시 자원 안 한 것으로 취급 */ }
+    return { sid: r.studentId, name: r.studentName, volunteer: !!cj.volunteer };
+  }).filter(v => v.volunteer);
+}
+function gmBonusAlreadyGranted_(){
+  return new Set(ROWS.filter(r => r.choiceSummary === GONGMIN_BONUS_REASON).map(r => String(r.studentId)));
+}
+function dashRenderGongminBonus_(){
+  const box = $('gmBonusBox');
+  if(!box) return;
+  const total = ROWS.filter(r => r.gameName === GONGMIN_GAME_NAME).length;
+  if(!total){
+    box.innerHTML = `<p class="dash-hint">아직 이 활동(${escapeHtml(GONGMIN_GAME_NAME)}) 제출이 없어요.</p>`;
+    return;
+  }
+  const volunteers = gmBonusVolunteers_();
+  const granted = gmBonusAlreadyGranted_();
+  const pending = volunteers.filter(v => !granted.has(String(v.sid)));
+  box.innerHTML = `
+    <p class="dash-hint">전체 제출 ${total}명 중 자원 ${volunteers.length}명 — 이미 지급 ${volunteers.length - pending.length}명, 대기 ${pending.length}명.</p>
+    <div class="pp-levels" id="gmBonusLevels">
+      ${PP_LEVELS.map(l => `<button type="button" class="pp-level-btn${l.key === GM_BONUS_LEVEL ? ' is-selected' : ''}" data-level="${l.key}" data-points="${l.points}">${l.key} (+${l.points})</button>`).join('')}
+    </div>
+    ${pending.length ? `
+      <ul class="gm-bonus-list">${pending.map(v => `<li>${escapeHtml(v.name)} (${escapeHtml(v.sid)})</li>`).join('')}</ul>
+      <button type="button" id="gmBonusBtn" onclick="dashGrantGongminBonus_(this)">대기 중인 ${pending.length}명에게 일괄 지급</button>
+      <div id="gmBonusStatus" class="dash-hint" style="min-height:18px;"></div>
+    ` : `<p class="dash-hint">지급 대기 중인 학생이 없어요.</p>`}
+  `;
+  box.querySelectorAll('#gmBonusLevels .pp-level-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      GM_BONUS_LEVEL = btn.dataset.level;
+      box.querySelectorAll('#gmBonusLevels .pp-level-btn').forEach(b => b.classList.remove('is-selected'));
+      btn.classList.add('is-selected');
+    });
+  });
+}
+async function dashGrantGongminBonus_(btn){
+  const pending = gmBonusVolunteers_().filter(v => !gmBonusAlreadyGranted_().has(String(v.sid)));
+  if(!pending.length) return;
+  btn.disabled = true; btn.textContent = '지급 중…';
+  const statusEl = $('gmBonusStatus');
+  let done = 0, failed = 0;
+  for(const v of pending){
+    try{
+      const res = await fetch(CONFIG.WEBAPP_URL, {
+        method:'POST',
+        body: JSON.stringify({
+          action:'grantPresentationPoint', token:TOKEN,
+          studentId: v.sid, studentName: v.name,
+          thinkingType: '', reason: GONGMIN_BONUS_REASON, level: GM_BONUS_LEVEL
+        })
+      });
+      const data = await res.json();
+      if(data.result === 'success'){
+        done++;
+        // 재조회 없이 dedupe 판단이 바로 반영되도록 ROWS에 최소 필드만 채운 가짜 행을 얹는다.
+        ROWS.push({ studentId: v.sid, studentName: v.name, gameName: '', choiceSummary: GONGMIN_BONUS_REASON, choicesJson: '' });
+      } else {
+        failed++;
+      }
+    }catch(e){ failed++; }
+    if(statusEl) statusEl.textContent = `진행 중… ${done + failed}/${pending.length}`;
+  }
+  showToast(`고민리스트 보너스 지급 완료 — 성공 ${done}명${failed ? `, 실패 ${failed}명` : ''}.`);
+  dashRenderGongminBonus_();
+}
+
 function dashDetailRowHtml(s, lessons, colspan){
   const act = $('selActivity').value;
   const recs = s.records.filter(r => !act || String(r.gameName) === act);
@@ -4244,6 +4336,7 @@ $('btnDashRefresh').addEventListener('click', async () => {
   try{
     await dashLoadData();
     renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm();
+    dashRenderGongminBonus_();
     if(CHECKIN_PLAN){
       CK_TODAY_LESSON = {};
       await dashLoadCkSetCurrent();
