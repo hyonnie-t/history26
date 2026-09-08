@@ -611,6 +611,8 @@ if (!CONFIG) {
 
 /* ════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
+// v44 — resize 리스너용 아주 단순한 디바운스(연속 호출 중 마지막 것만 delay 뒤 실행).
+const debounce_ = (fn, delay) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), delay); }; };
 let SESSION = null;      // { studentId, name, grade, ban, num }
 let STUDENT_DATA = null; // 서버 응답 { activities, feedback }
 let PREVIEW_MODE = false; // 교사용 "학생 화면 미리보기"에서 true — 실제 기록/조회 없이 화면만 확인
@@ -1201,6 +1203,9 @@ function renderPortal(){
   checkNewBadges(STUDENT_DATA.badges);
   checkNewPresentationGrants(ppGrants);
   checkNewFeedback(fbAll); // v36
+  // v44 — 사이드카드 높이 재계산은 배지 목록이 그려진 뒤(내용이 바뀌어야 다시 잴 의미가
+  // 있음) 페인트 한 번 지난 다음에 해야 정확한 위치를 잰다(레이아웃 함수 정의는 아래).
+  requestAnimationFrame(layoutSideCard_);
 
   /* 단원 관통 질문 배너 */
   const uq = (cur.unitQuestion || '').trim();
@@ -1706,6 +1711,58 @@ function renderBadges(badges){
         <p class="bc-group-label ${BADGE_CATEGORY_CLASS[cat]}">${escapeHtml(BADGE_CATEGORY_LABEL[cat])}</p>
         <div class="bc-row">${byCategory[cat].map(renderBadgeChip).join('')}</div>
       </div>`).join('');
+  // v44 — 넘침 판정(updateBadgeScrollHint_)은 여기서 바로 하지 않는다. 이 시점엔
+  // .side-combined의 max-height가 아직 이전 렌더 값(또는 없음)이라 clientHeight가
+  // 부정확함 — renderPortal()이 뒤이어 부르는 layoutSideCard_()가 높이를 다시
+  // 잰 "다음"에 정확하게 판정한다(그 함수 끝에서 호출).
+}
+
+/* v44 — .side-combined(나무·칭호첩 sticky 카드) 높이를 실제 위치에 맞춰 재계산.
+ * CSS만으로 max-height:calc(100vh - 32px)를 쓰면 sticky가 아직 "고정"되기 전
+ * (페이지 스크롤이 0이라 카드가 헤더·미리보기 배너 아래 원래 자리에 있을 때)엔
+ * 카드 top이 16px보다 훨씬 아래인데도 그 공식은 top이 16px라고 가정해버려서,
+ * 카드가 뷰포트 아래로 넘치고 칭호첩이 화면 밑에서 잘려 보이는 버그가 있었다
+ * (효니 리포트, 2026-09-08 — v43에서 이 sticky+높이제한 구간을 태블릿 가로모드까지
+ * 넓히면서 뷰포트가 더 짧아져 눈에 띄게 됨. 데스크톱에서도 이론상 같은 버그였지만
+ * 화면이 넉넉히 길어 안 드러났을 뿐). getBoundingClientRect().top으로 지금 실제
+ * 위치를 재서 "뷰포트 높이 - 지금 top - 여백16px"만큼만 max-height로 준다.
+ *
+ * ⚠️ maxHeight는 반드시 이 available 안에서만 정해야 한다 — 처음엔 칭호첩이 너무
+ * 작아 보이는 걸 막으려고 부족하면 available보다 카드를 더 길게 잡는 시도를
+ * 했었는데, sticky는 "고정"되면 카드 전체가 뷰포트에 대해 움직이지 않으므로
+ * 카드가 뷰포트보다 크면 그 아래로 삐져나온 부분은 페이지를 아무리 스크롤해도
+ * 절대 화면에 들어오지 않는다(내부 스크롤 대상이 아니라 아예 도달 불가능한
+ * 영역이 됨) — "작게 보이는" 것보다 훨씬 나쁘다. 짧은 화면에서 칭호첩이 작게
+ * 보이는 문제는 대신 .side-fixed 쪽 공간을 실제로 줄여서(짧은 가로모드에서
+ * .tree-note 안내문구 숨김, style.css) 해결한다.
+ *
+ * top이 이미 16px에 고정된 뒤(스크롤해서 sticky가 실제로 걸린 상태)에도 같은
+ * 공식이 그대로 통한다. sticky가 아예 안 걸리는 구간(세로모드 등)에서는
+ * .side-card가 static이라 이 계산 자체가 무의미 — 인라인 max-height를 지워
+ * CSS 기본값(제한 없음)으로 되돌린다. */
+function layoutSideCard_(){
+  const card = document.querySelector('.side-combined');
+  if(!card) return;
+  if(getComputedStyle(card).position !== 'sticky'){
+    card.style.maxHeight = '';
+    updateBadgeScrollHint_();
+    return;
+  }
+  const top = card.getBoundingClientRect().top;
+  const maxH = Math.max(220, Math.floor(window.innerHeight - top - 16));
+  card.style.maxHeight = maxH + 'px';
+  updateBadgeScrollHint_();
+}
+window.addEventListener('resize', debounce_(layoutSideCard_, 150));
+window.addEventListener('orientationchange', () => setTimeout(layoutSideCard_, 300));
+
+/* v44 — 칭호첩 내부 스크롤 영역이 실제로 넘칠 때만 아래쪽에 옅은 페이드를 줘서
+ * "더 있어요, 스크롤하세요"를 알려준다(.has-more, style.css). 안 넘칠 땐 평범하게
+ * 끝까지 보여야 하므로 매번 다시 판정. */
+function updateBadgeScrollHint_(){
+  const el = document.getElementById('badgeGroups');
+  if(!el) return;
+  el.classList.toggle('has-more', el.scrollHeight - el.clientHeight > 4);
 }
 
 /* 새로 획득한 칭호만 토스트로 알림(상시 노출 안 함). 학번별로 "이전에 이미

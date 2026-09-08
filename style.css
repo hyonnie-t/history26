@@ -344,11 +344,24 @@ button{font-family:inherit; cursor:pointer;}
 .bc-groups.bc-scroll{min-height:0;}
 /* v43 — 위 .side-card position:static 조건의 정확한 반대 조건이어야 함(sticky가
  * 실제로 걸리는 범위와 1:1로 맞아야 카드가 뷰포트보다 커져도 안 잘리고 내부
- * 스크롤됨). 세로모드는 1025px 이상, 가로모드는 641px 이상부터 sticky가 걸림. */
+ * 스크롤됨). 세로모드는 1025px 이상, 가로모드는 641px 이상부터 sticky가 걸림.
+ * v44 — max-height는 더 이상 여기서 vh로 고정하지 않는다(calc(100vh - 32px)는
+ * sticky가 아직 "고정"되기 전엔 카드 실제 top이 16px가 아니라서 그만큼 뷰포트
+ * 아래로 넘쳐 칭호첩이 잘려 보이는 버그가 있었음 — 효니 리포트). 대신
+ * layoutSideCard_()(index.html)가 렌더 직후·리사이즈 시 실제 top을 재서 인라인
+ * style.maxHeight를 정확히 계산해 넣는다. 여기 overflow:hidden만 남겨서 그
+ * 인라인 높이가 실제로 카드를 잘라주게(=내부 스크롤이 동작하게) 한다. */
 @media (orientation:portrait) and (min-width:1025px), (orientation:landscape) and (min-width:641px){
-  .side-combined{display:flex; flex-direction:column; max-height:calc(100vh - 32px); overflow:hidden;}
+  .side-combined{display:flex; flex-direction:column; overflow:hidden;}
   .badge-section{flex:1 1 auto; overflow:hidden;}
   .bc-groups.bc-scroll{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;}
+}
+/* v44 — 칭호첩 내부 스크롤 영역이 실제로 넘칠 때만(JS가 .has-more를 붙임) 아래쪽에
+ * 옅은 페이드를 줘서 "더 있어요, 스크롤하세요"를 알려준다. mask-image라 배경색에
+ * 안 묶여서 어떤 카드 배경에도 그대로 먹힌다. */
+.bc-groups.bc-scroll.has-more{
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent 100%);
 }
 .bc-title{font-size:.92rem; font-weight:700; color:var(--ink); text-align:center; margin-bottom:12px;}
 .bc-empty{font-size:.8rem; color:var(--ink-soft); text-align:center; margin:0;}
@@ -400,6 +413,15 @@ button{font-family:inherit; cursor:pointer;}
 .tree-note{
   font-size:.78rem; color:var(--ink-soft); border-top:1px dashed var(--line);
   padding-top:10px; line-height:1.5;
+}
+/* v44 — 짧은 가로모드(태블릿 가로모드 대부분, max-height:900px으로 판별 —
+ * 데스크톱 모니터는 보통 이보다 세로로 넉넉해서 안 걸림)에서는 사이드카드가
+ * 뷰포트 높이에 갇히면서(.side-combined) 이 안내 문구 3줄이 정작 학생의 실제
+ * 성취인 칭호첩 자리를 잡아먹어 칭호첩이 거의 안 보이는 문제가 있었다(효니
+ * 리포트). 처음 몇 번 보면 충분한 정적 안내 문구라 판단해 이 구간에서만
+ * 숨기고, 그만큼 확보된 공간은 layoutSideCard_()가 칭호첩 쪽으로 돌려준다. */
+@media (orientation:landscape) and (max-height:900px){
+  .tree-note{display:none;}
 }
 
 /* ── 우측 메인 ── */
