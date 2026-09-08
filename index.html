@@ -144,6 +144,18 @@
         <p class="ub-q" id="unitQuestion"></p>
       </section>
 
+      <!-- v42 — 구조 재배치: 실제로 매번 할 일인 차시 목록을 최상단 근처(공지·KPI·단원질문
+           바로 다음)로 끌어올림. 이전엔 포트폴리오·피드백·질문함·달성도·보관함을 전부
+           지난 맨 아래에 있었고, 태블릿 세로모드(≤1024px)에선 좌측 사이드카드(나무·칭호첩)
+           까지 그 앞에 붙어 실제 활동에 닿기까지 스크롤이 아주 길었음(사이드카드 노출
+           순서는 style.css의 .layout order로 조정). 아래 "그 밖의 기록" 묶음은 참고용
+           정보라 뒤로 미룸 — 내용 삭제 없이 순서만 바꿈. -->
+      <p class="timeline-eyebrow">학습 연표</p>
+      <div class="timeline" id="timeline"></div>
+      <p class="status-line" id="statusLine"></p>
+
+      <p class="section-divider">📎 그 밖의 기록</p>
+
       <section class="portfolio-card" id="portfolioCard" aria-label="나의 패들렛 포트폴리오">
         <div>
           <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
@@ -153,15 +165,12 @@
         <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
       </section>
 
-      <section class="feedback-card" id="feedbackCard" aria-label="선생님의 학기 총평">
-        <h2>📮 선생님이 남긴 총평</h2>
-        <div id="feedbackList"></div>
-      </section>
-
-      <!-- v36 — 차시 인라인·학기 총평 카드에 흩어져 있던 선생님 피드백을 최신순으로
-           한곳에 모아 보여주는 카드(핸드오프 "피드백 알림/모아보기/읽음 상태" 3-2).
-           기존 두 노출 방식을 대체하지 않고 병행. 피드백이 하나라도 있을 때만
-           노출된다(renderFeedbackInbox). -->
+      <!-- v42 — "학기 총평" 전용 카드(구 #feedbackCard)는 제거. fbGeneral(차시에
+           안 속한 피드백)도 fbAll에 포함돼 아래 모아보기에 "학기 총평" 라벨로
+           그대로 뜨므로(feedbackLabel_, 같은 내용을 두 카드에 중복 표시하던 것만
+           없앤 것 — 정보 손실 없음). v36 — 차시 인라인·총평에 흩어져 있던 선생님
+           피드백을 최신순으로 한곳에 모아 보여주는 카드. 피드백이 하나라도 있을
+           때만 노출된다(renderFeedbackInbox). -->
       <section class="feedback-card" id="feedbackInboxCard" aria-label="선생님 피드백 모아보기">
         <h2>👩‍🏫 선생님 피드백 모아보기</h2>
         <div id="feedbackInboxList"></div>
@@ -189,10 +198,6 @@
           <div id="archiveList"></div>
         </div>
       </details>
-
-      <p class="timeline-eyebrow">학습 연표</p>
-      <div class="timeline" id="timeline"></div>
-      <p class="status-line" id="statusLine"></p>
     </main>
   </div>
 </div>
@@ -1217,19 +1222,10 @@ function renderPortal(){
     $('portfolioCard').style.display = 'none';
   }
 
-  /* 학기 총평 피드백 (차시에 속하지 않는 피드백) */
-  if (fbGeneral.length) {
-    $('feedbackCard').style.display = 'block';
-    $('feedbackList').innerHTML = fbGeneral.map(f => `
-      <div class="feedback-item">
-        <div class="fb-meta">${formatDate(f.timestamp)}</div>
-        <div>${escapeHtml(f.feedback)}</div>
-      </div>`).join('');
-  } else {
-    $('feedbackCard').style.display = 'none';
-  }
-
-  /* 피드백 모아보기 (v36 — fbAll = fbGeneral + fbByLesson 전부 합친 것) */
+  /* v42 — "학기 총평" 전용 카드(#feedbackCard)를 없애면서 이 렌더 블록도 함께 제거.
+   * fbGeneral은 아래 renderFeedbackInbox(fbAll)에 "학기 총평" 라벨로 이미 포함돼
+   * 그려지므로(feedbackLabel_) 별도 처리가 필요 없다 — fbGeneral 계산 자체는
+   * ackFeedbackItems_ 주석에서 설명하는 공유 참조 구조상 그대로 둔다. */
   renderFeedbackInbox(fbAll);
 
   /* 질문함 (학생 ↔ 교사) */

@@ -296,7 +296,16 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 2단 레이아웃 */
 .layout{display:grid; grid-template-columns:250px minmax(0,1fr); gap:18px; align-items:start;}
-@media (max-width:1024px){ .layout{grid-template-columns:1fr;} }
+/* v42 — 1024px 이하(태블릿 세로모드 대부분·구형 아이패드 가로모드 포함)에서 1단으로
+ * 붕괴될 때, 소스 순서(나무·칭호첩 사이드카드가 먼저)를 그대로 두면 장식성 카드가
+ * 화면 맨 위를 통째로 차지하고 실제 차시 목록은 한참 아래로 밀린다. order로 화면
+ * 순서만 뒤집어 main(공지·KPI·차시 목록)이 먼저 보이게 하고, 사이드카드는 그 아래로
+ * 내린다 — 데스크톱(1025px 이상)은 grid-template-columns대로 좌우 배치 그대로 유지. */
+@media (max-width:1024px){
+  .layout{grid-template-columns:1fr;}
+  .layout .side-col{order:2;}
+  .layout main{order:1;}
+}
 
 /* 좌측 칸 안에서 탐구 나무 카드·칭호첩 카드를 세로로 쌓는 래퍼.
  * .layout의 grid-template-columns를 그대로 유지하면서 카드를 2개로 늘리기 위한 것
@@ -512,6 +521,14 @@ button{font-family:inherit; cursor:pointer;}
 .archive-item .ar-text{
   font-size:.94rem; white-space:pre-wrap; word-break:break-word;
   font-family:var(--font-display); line-height:1.7;
+}
+
+/* v42 — 핵심(차시 목록까지) 구간과 참고용 "그 밖의 기록" 구간을 시각적으로 나누는
+ * 얇은 구분선. 카드 스타일(배경·테두리)을 안 써서 또 하나의 색깔 카드로 보이지
+ * 않게 하고, 위쪽 괘선 하나로만 "여기서부터는 매번 볼 필요는 없는 내용"임을 신호. */
+.section-divider{
+  margin:32px 0 14px; padding-top:18px; border-top:1px dashed var(--line);
+  font-size:.78rem; letter-spacing:.28em; color:var(--ink-soft); font-weight:600;
 }
 
 /* ══════════════ 연표 ══════════════ */
