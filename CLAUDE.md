@@ -91,6 +91,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `courtCasePushPost_` 책임 — 이 저장소는 버튼과 결과 메시지 표시만 담당한다. 서버가
   `result:'partial'`을 돌려주면(re_judge 응답에서 caseId를 못 찾은 경우) 사건은 만들어졌지만
   진술은 자동으로 안 채워진 상태라는 뜻 — 안내 메시지를 그대로 보여준다.
+- **고민리스트 자원 카드 보너스 (2026-09-07 신규)**: 교사 대시보드 "탐구포인트" 탭 맨 아래
+  `#gmBonusBox` 카드(`dashRenderGongminBonus_()`, `index.html:3804` 부근)가 개별 웹앱 `gongmin`
+  (공민왕의 개혁 "고민리스트", `GONGMIN_GAME_NAME = "4차시_공민왕개혁_고민리스트"`)의 2단계 자원
+  여부를 모아 보여주고 일괄 지급한다. **`gongmin`은 학생용 웹앱이라 교사 토큰을 심을 수 없어
+  `grantPresentationPoint`를 직접 호출하지 못한다** — 그래서 `choicesJson.volunteer` 플래그만
+  기록해서 보내고, 여기서 교사가 확인한 뒤 자원자에게만 몰아서 지급한다(1장만 쓴 학생은 대상 제외,
+  이게 곧 1장 vs 2장 학생 간 탐구포인트 차등). 이미 로드된 `ROWS`를 gameName으로 걸러 쓰므로 별도
+  네트워크 요청은 없다. **새 action은 없다** — 기존 `grantPresentationPoint`를
+  `reason: GONGMIN_BONUS_REASON`("고민리스트 2단계 자원 카드 보너스") 고정 문자열로 호출할 뿐이라
+  백엔드는 이 기능을 몰라도 동작한다. 중복 지급 방지도 서버 dedupe가 아니라
+  `choiceSummary === GONGMIN_BONUS_REASON`인 기존 행 유무로 프론트가 자체 판별한다
+  (`grantPresentationPointPost_`가 reason을 choiceSummary 컬럼에 그대로 저장하는 걸 이용) —
+  같은 이유 문자열을 다른 용도로 재사용하면 이 dedupe가 오작동한다.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
