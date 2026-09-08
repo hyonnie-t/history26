@@ -296,12 +296,16 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 2단 레이아웃 */
 .layout{display:grid; grid-template-columns:250px minmax(0,1fr); gap:18px; align-items:start;}
-/* v42 — 1024px 이하(태블릿 세로모드 대부분·구형 아이패드 가로모드 포함)에서 1단으로
- * 붕괴될 때, 소스 순서(나무·칭호첩 사이드카드가 먼저)를 그대로 두면 장식성 카드가
- * 화면 맨 위를 통째로 차지하고 실제 차시 목록은 한참 아래로 밀린다. order로 화면
- * 순서만 뒤집어 main(공지·KPI·차시 목록)이 먼저 보이게 하고, 사이드카드는 그 아래로
- * 내린다 — 데스크톱(1025px 이상)은 grid-template-columns대로 좌우 배치 그대로 유지. */
-@media (max-width:1024px){
+/* v43 — v42는 폭(max-width:1024px) 하나만 기준으로 삼아 구형 아이패드 가로모드(1024px)까지
+ * 1단으로 접어버렸는데, 이건 "책을 펼친 모양"일 때 왼쪽(서재: 나무·칭호첩)/오른쪽(본문)을
+ * 나누는 의도와 어긋난다(효니 피드백) — 나무·칭호첩을 맨 위/왼쪽에 두는 건 동기부여용으로
+ * 의도된 배치이지 실수가 아니었음. 그래서 orientation을 기준으로 바꿈:
+ * - 가로모드(책을 펼쳐 든 모양)면 폭이 좁아도 2단 유지 — 왼쪽 페이지(서재)는 항상 보임.
+ * - 세로모드(책을 세워 든 모양, 1024px 이하)일 때만 1단으로 접고 order로 순서를 뒤집어
+ *   main(공지·KPI·차시 목록)을 먼저, 사이드카드를 그 아래로 보낸다(스크롤이 김 — 진단 참고).
+ * - 폰 가로모드처럼 아주 좁은 가로 화면(640px 이하)은 250px 사이드바가 버거우니 예외로 같이 접음.
+ * 데스크톱(폭 넉넉한 가로 화면)은 원래처럼 grid-template-columns대로 좌우 배치 그대로 유지. */
+@media (max-width:1024px) and (orientation:portrait), (max-width:640px) and (orientation:landscape){
   .layout{grid-template-columns:1fr;}
   .layout .side-col{order:2;}
   .layout main{order:1;}
@@ -317,15 +321,20 @@ button{font-family:inherit; cursor:pointer;}
   padding:22px 20px; text-align:center;
   position:sticky; top:16px;
 }
-@media (max-width:1024px){ .side-card{position:static;} }
+/* v43 — 위 .layout 1단 전환 조건과 반드시 같은 조건이어야 함(따로 안 묶은 이유는
+ * .side-card가 .layout 밖에서도 쓰이는 범용 클래스라 셀렉터를 합칠 수 없어서). */
+@media (max-width:1024px) and (orientation:portrait), (max-width:640px) and (orientation:landscape){
+  .side-card{position:static;}
+}
 
 /* ── 탐구 나무 + 칭호첩 통합 sticky 카드 (v30) ──
  * 이전엔 나무 카드만 sticky, 칭호첩 카드는 별개 static 카드라 스크롤해서 활동
  * 목록까지 내려가면 칭호첩이 화면에서 통째로 사라졌음. 이제 한 카드 안에서
  * 위(.side-fixed)는 고정, 아래(칭호첩)만 필요할 때 내부 스크롤되게 해서 카드
- * 자체는 계속 화면에 남는다. 데스크톱(1025px 이상, sticky가 실제로 걸리는
- * 구간)에서만 높이를 뷰포트로 제한 — 모바일은 아래 .side-card 미디어쿼리대로
- * static이라 원래처럼 페이지 스크롤로 자연스럽게 흘러가면 되므로 그대로 둠. */
+ * 자체는 계속 화면에 남는다. sticky가 실제로 걸리는 구간(위 .side-card 미디어
+ * 쿼리에서 static으로 안 바뀌는 범위 — v43: 데스크톱뿐 아니라 태블릿 가로모드도
+ * 포함)에서만 높이를 뷰포트로 제한. static인 범위(세로모드 1024px 이하, 가로모드
+ * 640px 이하)는 원래처럼 페이지 스크롤로 자연스럽게 흘러가면 되므로 그대로 둠. */
 .side-fixed{flex:0 0 auto;}
 .badge-section{
   margin-top:16px; padding-top:16px; border-top:1px dashed var(--line);
@@ -333,7 +342,10 @@ button{font-family:inherit; cursor:pointer;}
 }
 .badge-section .bc-title{flex:0 0 auto;}
 .bc-groups.bc-scroll{min-height:0;}
-@media (min-width:1025px){
+/* v43 — 위 .side-card position:static 조건의 정확한 반대 조건이어야 함(sticky가
+ * 실제로 걸리는 범위와 1:1로 맞아야 카드가 뷰포트보다 커져도 안 잘리고 내부
+ * 스크롤됨). 세로모드는 1025px 이상, 가로모드는 641px 이상부터 sticky가 걸림. */
+@media (orientation:portrait) and (min-width:1025px), (orientation:landscape) and (min-width:641px){
   .side-combined{display:flex; flex-direction:column; max-height:calc(100vh - 32px); overflow:hidden;}
   .badge-section{flex:1 1 auto; overflow:hidden;}
   .bc-groups.bc-scroll{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;}

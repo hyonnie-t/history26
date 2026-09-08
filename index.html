@@ -87,8 +87,9 @@
          화면에서 완전히 사라졌음(효니 피드백 — "미리보기에서 활동 하려고 스크롤하면
          칭호첩 배경이 사라짐"). 이제 카드 전체가 함께 고정되고, 칭호가 많아져
          카드가 뷰포트보다 커질 상황에서만 칭호첩 부분(.bc-groups)만 내부 스크롤되게
-         해서 카드 자체는 항상 화면에 남는다(데스크톱, 1025px 이상 — 모바일은 아래
-         .side-card 미디어쿼리대로 static 유지, 기존과 동일하게 페이지 스크롤로 처리). -->
+         해서 카드 자체는 항상 화면에 남는다(sticky가 실제로 걸리는 범위 — v43부터 데스크톱뿐
+         아니라 태블릿 가로모드도 포함, style.css의 .side-card 미디어쿼리 참고. 세로모드거나
+         아주 좁은 가로모드는 static 유지, 기존과 동일하게 페이지 스크롤로 처리). -->
     <aside class="side-card side-combined" aria-label="내 탐구 나무 · 칭호첩">
       <div class="side-fixed">
         <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
