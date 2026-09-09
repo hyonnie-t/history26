@@ -3299,10 +3299,17 @@ function dashRefreshBanOptions(){
  * 실제로 걸리려면 여기 옵션도 활동 id를 값으로 가져야 함.
  * v28: 특정 반이 선택돼 있으면 그 반 트랙에 맞는 차시만 나열(다른 트랙 차시는 애초에
  * 그 반 학생 누구도 할 수 없으니 필터 옵션에 있을 이유가 없음). "전체 반"이면 트랙
- * 구분 없이 전부 보여줌(여러 트랙 학생이 섞여 있을 수 있으므로). v29: "내 담당 반" 처리 추가. */
+ * 구분 없이 전부 보여줌(여러 트랙 학생이 섞여 있을 수 있으므로). v29: "내 담당 반" 처리 추가.
+ * v45(2026-09-09, 효니 리포트 "활동 먼저 고르고 반 바꾸면 활동이 날아감"): innerHTML을
+ * 통째로 새로 그리면 브라우저가 선택값을 강제로 첫 옵션("전체 활동")으로 되돌리는데,
+ * 지금까지 그 복원을 안 해줘서 반을 바꿀 때마다(호출부는 selBan change 리스너)
+ * 골라둔 활동이 매번 초기화됐다. 재구성 전 값을 기억해뒀다가, 새 옵션 목록에 같은
+ * 활동id가 그대로 있으면 복원 — 다른 반 트랙이라 그 활동 자체가 없어지는 경우엔
+ * (원래도 의미 없는 조합이므로) 예전처럼 "전체 활동"으로 되돌아간다. */
 function dashRefreshActivityOptions(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
+  const prevAct = $('selActivity').value;
   const cur = CONFIG.CURRICULUM[grade];
   const lessons = lessonsForBanSelection_(cur, ban);
   const opts = [];
@@ -3316,6 +3323,7 @@ function dashRefreshActivityOptions(){
   });
   $('selActivity').innerHTML = '<option value="">전체 활동</option>'
     + opts.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join('');
+  if(prevAct && opts.some(o => o.id === prevAct)) $('selActivity').value = prevAct;
 }
 
 /* v25 — 학생 검색 (2-1)
