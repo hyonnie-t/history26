@@ -1235,7 +1235,7 @@ function renderPortal(){
     $('portfolioCard').style.display = 'flex';
     $('portfolioTitle').textContent = pf.title || '나의 패들렛';
     $('portfolioDesc').textContent = pf.desc || '';
-    $('portfolioLinkBtn').href = pfUrl;
+    $('portfolioLinkBtn').href = ensureUrlScheme_(pfUrl);
   } else {
     $('portfolioCard').style.display = 'none';
   }
@@ -1247,7 +1247,7 @@ function renderPortal(){
     $('classcardCard').style.display = 'flex';
     $('classcardTitle').textContent = cc.title || '복습용 클래스카드';
     $('classcardDesc').textContent = cc.desc || '';
-    $('classcardLinkBtn').href = ccUrl;
+    $('classcardLinkBtn').href = ensureUrlScheme_(ccUrl);
   } else {
     $('classcardCard').style.display = 'none';
   }
@@ -1635,6 +1635,17 @@ function withStudentParams(url){
              + '&name=' + encodeURIComponent(SESSION.name);
 }
 
+/* v48(2026-09-09, 효니 리포트 "클래스카드 링크가 www.classcard.net/www.classcard.net으로
+ * 들어가짐"): 교사가 학년정보 입력칸에 "www.classcard.net"처럼 스킴(https://) 없이 URL을
+ * 적으면, <a href>에 그대로 넣었을 때 브라우저가 이걸 절대 URL이 아니라 "현재 페이지 기준
+ * 상대경로"로 해석해버려서 실제로는 `https://hyonnie-t.github.io/history26/www.classcard.net`
+ * 같은 엉뚱한 주소로 열린다. 포트폴리오·클래스카드 링크 둘 다 같은 방식으로 href에 그대로
+ * 꽂아 넣던 코드라 같은 위험이 있었음 — 스킴이 없으면 https://를 붙여준다. */
+function ensureUrlScheme_(url){
+  const s = String(url || '').trim();
+  if (!s) return s;
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s) ? s : 'https://' + s;
+}
 /* 반마다 링크가 다른 활동(urlByBan) 지원 —
  * urlByBan이 있으면 로그인한 학생의 반(SESSION.ban) 링크를 골라 쓰고,
  * 없으면 기존처럼 공통 url을 그대로 씁니다. 해당 반 링크가 없으면 '준비 중'으로 처리됩니다.

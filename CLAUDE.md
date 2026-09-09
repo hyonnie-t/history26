@@ -146,6 +146,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   똑같이 `action=updateGradeInfo` 하나로 같이 저장된다. **서버 쪽 필드(`GRADE_INFO_HEADERS` 9~11번째
   컬럼, `curriculumGet_`/`curriculumAdminGet_`/`updateGradeInfoPost_` 확장)는 이 저장소에 없다** —
   `history26_backend`, 아직 배포 대기.
+  **v48 정정(2026-09-09, 효니 리포트 "클래스카드 링크가 이상한 주소로 열림")**: 학년정보 입력칸에
+  "www.classcard.net"처럼 스킴(`https://`) 없이 URL을 적으면 `<a href>`에 그대로 들어가면서
+  브라우저가 절대 URL이 아니라 "현재 페이지 기준 상대경로"로 해석해버려
+  `https://hyonnie-t.github.io/history26/www.classcard.net` 같은 엉뚱한 주소로 열렸다.
+  `renderPortal()`에서 포트폴리오·클래스카드 href를 세팅하는 두 곳 모두 같은 방식으로 값을
+  그대로 꽂아 넣던 코드라 **포트폴리오 링크도 같은 위험을 안고 있었음** — 새 헬퍼
+  `ensureUrlScheme_()`(`lessonActivityUrl()` 바로 앞)가 스킴이 없으면 `https://`를 붙여주도록
+  두 href 모두에 적용해 고쳤다. 서버 값 자체는 그대로 저장돼 있어도(마이그레이션 불필요)
+  프론트가 렌더링 시점에 보정하므로 재배포 없이 즉시 적용된다.
 - **공지 대상 3분류 / 질문함 담당 반 필터링 (v30)**: 공지 작성 시 대상을 "담당 학급반"(로그인한 교사가 맡은
   반들, `dashMyBans_()`가 콤마 리스트로 반환)/"전체"/"개별 반" 3분류 라디오로 고르며, "담당 학급반"으로
   게시하면 `ban` 필드에 `"5,6,7,8"`처럼 콤마 리스트가 저장된다(서버 `parseBanListField_()`가 풀어서 매칭
@@ -225,8 +234,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   v43 = 사이드카드 2단 유지 기준을 폭에서 orientation으로 정정, v44 = 사이드카드(나무·칭호첩)
   높이 계산을 CSS의 vh 고정값에서 JS 실측 기반으로 교체, v45 = 복습용 클래스카드 카드 추가,
   v46 = 학생 기록 탭 활동 선택 유지 버그 수정, v47 = 학급 공통 피드백에 오개념 섹션·전체 반
-  범위 추가(아래 각각 참고) — 확인 시점 기준 `index.html`/`style.css`에서 가장 높은 버전
-  표기는 v47). 여러 기능이 같은 버전
+  범위 추가, v48 = 포트폴리오·클래스카드 링크에 스킴(https://) 없이 입력했을 때 상대경로로
+  깨지던 버그 수정(아래 각각 참고) — 확인 시점 기준 `index.html`/`style.css`에서 가장 높은
+  버전 표기는 v48). 여러 기능이 같은 버전
   번호를 먼저 붙였다가 나중에 충돌을 발견해 재번호한 이력도 있으므로(`git log` "버전표기 충돌 정리" 커밋
   참고), 새 버전 번호를 붙이기 전에 이미 쓰인 번호인지 먼저 확인할 것. 관련 로직을 고칠 때는 기존 버전
   주석을 참고해 과거에 이미 겪은 문제를 되풀이하지 않도록 하고, 의미 있는 변경이면 같은 스타일로 이유를
