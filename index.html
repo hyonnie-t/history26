@@ -166,6 +166,18 @@
         <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
       </section>
 
+      <!-- v45 — 복습용 클래스카드. 포트폴리오 카드와 완전히 같은 구조(학기 내내 고정 노출)로
+           별도 슬롯 하나 더 추가. 공지로 올리면 피드에 묻혀버리니, 패들렛과 마찬가지로
+           포털에 항상 떠 있게 만든 것. -->
+      <section class="portfolio-card" id="classcardCard" aria-label="복습용 클래스카드">
+        <div>
+          <p class="pf-label">복습용 클래스카드</p>
+          <p class="pf-title" id="classcardTitle"></p>
+          <p class="pf-desc" id="classcardDesc"></p>
+        </div>
+        <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--indigo);">클래스카드 열기 →</a>
+      </section>
+
       <!-- v42 — "학기 총평" 전용 카드(구 #feedbackCard)는 제거. fbGeneral(차시에
            안 속한 피드백)도 fbAll에 포함돼 아래 모아보기에 "학기 총평" 라벨로
            그대로 뜨므로(feedbackLabel_, 같은 내용을 두 카드에 중복 표시하던 것만
@@ -1228,6 +1240,18 @@ function renderPortal(){
     $('portfolioCard').style.display = 'none';
   }
 
+  /* v45 — 복습용 클래스카드. 포트폴리오와 같은 패턴(반별 urlByBan 우선, 없으면 공통 url). */
+  const cc = cur.classcard;
+  const ccUrl = cc ? (cc.urlByBan ? (cc.urlByBan[SESSION.ban] || '') : (cc.url || '')) : '';
+  if (cc && ccUrl) {
+    $('classcardCard').style.display = 'flex';
+    $('classcardTitle').textContent = cc.title || '복습용 클래스카드';
+    $('classcardDesc').textContent = cc.desc || '';
+    $('classcardLinkBtn').href = ccUrl;
+  } else {
+    $('classcardCard').style.display = 'none';
+  }
+
   /* v42 — "학기 총평" 전용 카드(#feedbackCard)를 없애면서 이 렌더 블록도 함께 제거.
    * fbGeneral은 아래 renderFeedbackInbox(fbAll)에 "학기 총평" 라벨로 이미 포함돼
    * 그려지므로(feedbackLabel_) 별도 처리가 필요 없다 — fbGeneral 계산 자체는
@@ -2228,6 +2252,12 @@ function dashRenderGradeInfoForm(){
         <input type="text" class="gi-pf-desc" value="${escapeHtml(gi.portfolioDesc || '')}">
         <label>포트폴리오 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
         <textarea class="gi-pf-url">${escapeHtml(gi.portfolioUrlText || '')}</textarea>
+        <label>복습용 클래스카드 제목</label>
+        <input type="text" class="gi-cc-title" value="${escapeHtml(gi.classcardTitle || '')}">
+        <label>복습용 클래스카드 설명</label>
+        <input type="text" class="gi-cc-desc" value="${escapeHtml(gi.classcardDesc || '')}">
+        <label>복습용 클래스카드 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
+        <textarea class="gi-cc-url">${escapeHtml(gi.classcardUrlText || '')}</textarea>
         <label>효니 담당 반 (쉼표로 구분, 예: 1,2,3,4) — 커리큘럼에서 "효니" 담당으로 지정한 차시가 이 반에만 보여요</label>
         <input type="text" class="gi-hyo-bans" placeholder="예: 1,2,3,4" value="${escapeHtml(gi.hyoBansText || '')}">
         <label>미현쌤 담당 반 (쉼표로 구분, 예: 5,6,7,8)</label>
@@ -2247,6 +2277,9 @@ async function dashSaveGradeInfo(grade, btn){
     portfolioTitle: block.querySelector('.gi-pf-title').value.trim(),
     portfolioDesc: block.querySelector('.gi-pf-desc').value.trim(),
     portfolioUrlText: block.querySelector('.gi-pf-url').value.trim(),
+    classcardTitle: block.querySelector('.gi-cc-title').value.trim(),   // v45
+    classcardDesc: block.querySelector('.gi-cc-desc').value.trim(),     // v45
+    classcardUrlText: block.querySelector('.gi-cc-url').value.trim(),   // v45
     hyoBans: block.querySelector('.gi-hyo-bans').value.trim(),       // v28
     mihyunBans: block.querySelector('.gi-mihyun-bans').value.trim() // v28
   };
@@ -2256,6 +2289,8 @@ async function dashSaveGradeInfo(grade, btn){
     Object.assign(GRADE_INFO_ADMIN[grade], {
       unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
       portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText,
+      classcardTitle: payload.classcardTitle, classcardDesc: payload.classcardDesc,
+      classcardUrlText: payload.classcardUrlText,
       hyoBansText: payload.hyoBans, mihyunBansText: payload.mihyunBans
     });
     showToast('학년정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.');
