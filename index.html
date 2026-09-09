@@ -1993,7 +1993,8 @@ let TEACHER_NAME = null; // v29 — 로그인 토큰으로 식별된 교사('효
                           // 대시보드 기본 필터·커리큘럼 "담당" 기본값을 여기에 맞춰 보여주는 용도.
 let ROWS = [];
 let FEEDBACKS = [];
-let CLASS_FEEDBACKS = []; // v34 — 학급 공통 피드백. { grade, ban, activityId, feedback, timestamp, studentCount } 형태.
+let CLASS_FEEDBACKS = []; // v34 — 학급 공통 피드백. { grade, ban, activityId, feedback, studentText, misconceptions, timestamp, studentCount } 형태.
+                          // ban==='' 이면 "전체 반"(반 구분 없음) 범위. misconceptions는 2026-09-09 신규, 교사 전용.
 let QUESTIONS = [];
 let ANNOUNCEMENTS_ADMIN = [];
 let LESSONS_ADMIN = [];
@@ -3334,10 +3335,17 @@ function dashRefreshBanOptions(){
  * 실제로 걸리려면 여기 옵션도 활동 id를 값으로 가져야 함.
  * v28: 특정 반이 선택돼 있으면 그 반 트랙에 맞는 차시만 나열(다른 트랙 차시는 애초에
  * 그 반 학생 누구도 할 수 없으니 필터 옵션에 있을 이유가 없음). "전체 반"이면 트랙
- * 구분 없이 전부 보여줌(여러 트랙 학생이 섞여 있을 수 있으므로). v29: "내 담당 반" 처리 추가. */
+ * 구분 없이 전부 보여줌(여러 트랙 학생이 섞여 있을 수 있으므로). v29: "내 담당 반" 처리 추가.
+ * v46(2026-09-09, 효니 리포트 "활동 먼저 고르고 반 바꾸면 활동이 날아감"): innerHTML을
+ * 통째로 새로 그리면 브라우저가 선택값을 강제로 첫 옵션("전체 활동")으로 되돌리는데,
+ * 지금까지 그 복원을 안 해줘서 반을 바꿀 때마다(호출부는 selBan change 리스너)
+ * 골라둔 활동이 매번 초기화됐다. 재구성 전 값을 기억해뒀다가, 새 옵션 목록에 같은
+ * 활동id가 그대로 있으면 복원 — 다른 반 트랙이라 그 활동 자체가 없어지는 경우엔
+ * (원래도 의미 없는 조합이므로) 예전처럼 "전체 활동"으로 되돌아간다. */
 function dashRefreshActivityOptions(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
+  const prevAct = $('selActivity').value;
   const cur = CONFIG.CURRICULUM[grade];
   const lessons = lessonsForBanSelection_(cur, ban);
   const opts = [];
@@ -3351,6 +3359,7 @@ function dashRefreshActivityOptions(){
   });
   $('selActivity').innerHTML = '<option value="">전체 활동</option>'
     + opts.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join('');
+  if(prevAct && opts.some(o => o.id === prevAct)) $('selActivity').value = prevAct;
 }
 
 /* v25 — 학생 검색 (2-1)
@@ -3420,22 +3429,26 @@ function dashFilteredRows(){
   });
 }
 
-/* ── 학급 공통 피드백 (v34) ──
+/* ── 학급 공통 피드백 (v34, v47(2026-09-09)에 오개념 섹션·전체 반 범위 추가) ──
  * 지금까지 AI 코멘트(aiComment)는 학생 한 명 단위였고, 반 전체의 공통 경향을
- * 읽는 건 효니가 기록을 하나씩 펼쳐보며 수동으로 해왔음. 이 섹션은 "학년+반+활동을
- * 하나씩 골랐을 때"만 나타나는 박스로, 그 조합에 해당하는 학생 글(선택 요약·학생
- * 서술·1줄요약·판단근거)을 모아 AI에게 학급 공통 피드백을 만들게 하고 결과를
- * 시트에 저장해 다음에 다시 열어도 볼 수 있게 한다.
+ * 읽는 건 효니가 기록을 하나씩 펼쳐보며 수동으로 해왔음. 이 섹션은 "학년+활동을
+ * 골랐을 때"만 나타나는 박스로, 그 범위에 해당하는 학생 글(선택 요약·학생
+ * 서술·1줄요약·판단근거)을 모아 AI에게 학급 공통 피드백(잘한 점/보완점 리포트,
+ * 학생 공지용 문구, 대표적인 오개념)을 만들게 하고 결과를 시트에 저장해 다음에
+ * 다시 열어도 볼 수 있게 한다.
  *
- * "반"이 'mine'(내 담당 반 여러 개 묶음)이거나 '전체 반'이면 학급 단위 피드백의
- * 의미가 없어지므로(여러 반이 섞임) 반드시 숫자 하나가 골라졌을 때만 켠다 —
- * '활동'도 마찬가지로 '전체 활동'이 아니라 하나가 골라졌을 때만.
+ * "반"이 'mine'(내 담당 반 여러 개 묶음 — 교사마다 다르고 안정적인 저장 키가
+ * 아니라서 제외)이면 켜지 않는다. '전체 반'(ban==='')은 반 구분 없이 그
+ * 학년+활동 전체 학생 글을 합쳐서 분석하는 범위로 v47에서 허용했다(이전엔 반을
+ * 하나 골라야만 켜졌음). '활동'은 여전히 '전체 활동'이 아니라 하나가 골라졌을
+ * 때만 — 활동마다 글의 성격이 달라서 섞으면 의미가 없다.
  *
- * ⚠️ 백엔드 필요: GET ?mode=classFeedback (저장된 목록 조회) / POST
- * action=generateClassFeedback (선택한 반·활동 범위 학생 글을 모아 AI로 공통
- * 피드백 생성 후 저장) 두 개가 Apps Script 쪽에 아직 없음 — 이 저장소엔 없는
- * 백엔드 코드라 여기서 구현할 수 없고, 두 엔드포인트가 배포되기 전까지 이 박스는
- * "아직 없음" 상태로만 보이다가 생성 버튼을 눌러도 실패 토스트만 뜬다. */
+ * ⚠️ 백엔드 배포 필요: GET ?mode=classFeedback / POST action=generateClassFeedback
+ * 둘 다 history26_backend(code.gs)에 코드는 있지만, 그 레포 커밋만으로는 실제
+ * 서비스에 반영되지 않는다(Apps Script 편집기에서 "새 버전" 재배포 필요) — 배포
+ * 전까지 이 박스는 "아직 없음" 상태로만 보이거나 생성 버튼이 실패 토스트를 낸다.
+ * [오개념] 마커가 없는 옛 배포 결과가 오면 misconceptions는 빈 문자열로 오므로
+ * 그 섹션은 자동으로 숨는다. */
 function dashClassFeedbackFind_(grade, ban, activityId){
   return CLASS_FEEDBACKS.find(f =>
     Number(f.grade) === grade && String(f.ban) === String(ban) && String(f.activityId) === String(activityId));
@@ -3447,8 +3460,8 @@ function dashRenderClassFeedback(){
   const ban = $('selBan').value;
   const act = $('selActivity').value;
 
-  // 반 하나 + 활동 하나가 모두 골라졌을 때만 노출.
-  if(!ban || ban === 'mine' || !act){
+  // '내 담당 반' 묶음이거나 활동이 안 골라졌으면 숨김. '전체 반'(ban==='')은 허용.
+  if(ban === 'mine' || !act){
     box.style.display = 'none';
     box.innerHTML = '';
     return;
@@ -3459,6 +3472,7 @@ function dashRenderClassFeedback(){
   const studentCount = new Set(scopedRows.map(r => String(r.studentId))).size;
   const activityLabel = dashLessonTitle(act);
   const existing = dashClassFeedbackFind_(grade, ban, act);
+  const scopeLabel = ban ? `${escapeHtml(String(ban))}반` : '전체 반';
 
   // v35 — 교사용 리포트와 학생 공지용 문구를 나눠서 보여줌. 학생용 문구는
   // studentGet_이 자동으로 학생 포털(활동 완료 카드)에도 실어 보내므로, 여기서는
@@ -3473,15 +3487,25 @@ function dashRenderClassFeedback(){
          <button type="button" class="btn-tiny class-fb-copy">📋 복사</button>`
       : `<div class="class-fb-section-label">학생 공지용 문구</div>
          <p class="muted" style="margin:0;font-size:.85rem;">⚠️ 생성에 실패했어요 — "다시 생성"을 눌러보세요. (학생 포털엔 안 보이는 상태예요)</p>`;
+    // 2026-09-09 신규 — 대표적인 오개념(교사 전용, 학생 화면엔 절대 안 보임).
+    // 옛 배포 결과라 misconceptions 필드 자체가 없거나 빈 문자열이면 섹션 자체를 숨긴다.
+    const misconceptions = String(existing.misconceptions || '').trim();
+    const misconSection = misconceptions
+      ? `<div class="class-fb-section">
+           <div class="class-fb-section-label">🧩 대표적인 오개념 <span class="class-fb-teacher-badge">교사 전용</span></div>
+           <div class="class-fb-text">${escapeHtml(misconceptions)}</div>
+         </div>`
+      : '';
     bodyHtml = `
       <div class="class-fb-section">
         <div class="class-fb-section-label">교사용 리포트</div>
         <div class="class-fb-text">${escapeHtml(existing.feedback)}</div>
       </div>
+      ${misconSection}
       <div class="class-fb-section">${studentSection}</div>
       <div class="class-fb-meta">${formatDate(existing.timestamp)} 생성 · 학생 글 ${existing.studentCount || studentCount}건 기반</div>`;
   } else {
-    bodyHtml = `<p class="muted" style="margin:0 0 10px;">아직 이 반·활동에 대한 학급 공통 피드백이 없어요.</p>`;
+    bodyHtml = `<p class="muted" style="margin:0 0 10px;">아직 이 범위에 대한 학급 공통 피드백이 없어요.</p>`;
   }
 
   const genLabel = existing ? '🔄 다시 생성' : '🤖 학급 공통 피드백 생성';
@@ -3489,7 +3513,7 @@ function dashRenderClassFeedback(){
 
   box.innerHTML = `
     <div class="class-fb-head">
-      <span class="class-fb-title">🏫 ${grade}학년 ${escapeHtml(String(ban))}반 · ${escapeHtml(activityLabel)} — 학급 공통 피드백</span>
+      <span class="class-fb-title">🏫 ${grade}학년 ${scopeLabel} · ${escapeHtml(activityLabel)} — 학급 공통 피드백</span>
       <span class="class-fb-count">참여 학생 글 ${studentCount}건</span>
     </div>
     ${bodyHtml}
