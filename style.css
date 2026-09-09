@@ -998,6 +998,9 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .class-fb-section-label{font-size:.78rem; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
 .class-fb-live-badge{font-size:.72rem; font-weight:700; color:var(--jade); background:rgba(62,124,89,.12); border-radius:999px; padding:2px 9px;}
 .class-fb-student-text{background:var(--amber-bg); border-color:var(--amber-border);}
+/* 2026-09-09 — 대표적인 오개념 섹션(교사 전용) 배지. .class-fb-live-badge와 같은 모양,
+ * seal(인주색) 톤만 달리해서 "학생에게 보이는 중"과 시각적으로 구분되게 함. */
+.class-fb-teacher-badge{font-size:.72rem; font-weight:700; color:var(--seal); background:rgba(176,58,46,.12); border-radius:999px; padding:2px 9px;}
 
 /* 발표 탐구포인트 지급 (v31) */
 .pp-box{align-self:stretch;}
