@@ -169,7 +169,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   단일 `index.html`로 존재하고, `CONFIG.SHEET_WEBAPP_URL`로 위와 같은 `history26_backend`를 직접
   호출한다(대부분 새 action 없이 기존 gameName 제출 경로만 씀). 이 저장소의 커리큘럼 관리 탭에서
   activity id로 등록해야 포털 진행률·포인트 계산에 잡힌다. 디자인 기준선("역사책 페이지" 컨셉)은
-  hyonnie.md 참고.
+  hyonnie.md 참고. **새로 만들거나 수정할 땐 `webapp-builder` 스킬을 반드시 따른다** — 특히
+  ① 로그인 확인 화면(포털에서 넘어온 학번/이름은 자동 채우되 화면 자체를 건너뛰면 안 됨),
+  ② 마무리 글쓰기 후 패들렛 복사 기능, ③ 제출(fetch)에 재시도 포함(백엔드 기록 보장) 이 세
+  가지는 매번 빠뜨리기 쉬워서 실제로 반복 누락됐던 항목이다(2026-09-09, `gongmin` 사례 — 재시도
+  없이 fetch 한 번 실패로 끝나 활동 중 시트 기록이 안 남을 뻔함). 자세한 내용은 스킬 파일 참고.
 
 ## 외부 연동 — SEL(사회정서역량) 특성 보기
 
