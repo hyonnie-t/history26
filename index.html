@@ -2005,7 +2005,8 @@ let TEACHER_NAME = null; // v29 — 로그인 토큰으로 식별된 교사('효
 let ROWS = [];
 let FEEDBACKS = [];
 let CLASS_FEEDBACKS = []; // v34 — 학급 공통 피드백. { grade, ban, activityId, feedback, studentText, misconceptions, timestamp, studentCount } 형태.
-                          // ban==='' 이면 "전체 반"(반 구분 없음) 범위. misconceptions는 2026-09-09 신규, 교사 전용.
+                          // ban은 특정 반 번호("6") 또는 "내 담당 반" 선택 시 콤마 목록("5,6,7,8", dashClassFeedbackBanParam_ 참고).
+                          // misconceptions는 2026-09-09 신규, 교사 전용.
 let QUESTIONS = [];
 let ANNOUNCEMENTS_ADMIN = [];
 let LESSONS_ADMIN = [];
@@ -3448,31 +3449,41 @@ function dashFilteredRows(){
  * 학생 공지용 문구, 대표적인 오개념)을 만들게 하고 결과를 시트에 저장해 다음에
  * 다시 열어도 볼 수 있게 한다.
  *
- * "반"이 'mine'(내 담당 반 여러 개 묶음 — 교사마다 다르고 안정적인 저장 키가
- * 아니라서 제외)이면 켜지 않는다. '전체 반'(ban==='')은 반 구분 없이 그
- * 학년+활동 전체 학생 글을 합쳐서 분석하는 범위로 v47에서 허용했다(이전엔 반을
- * 하나 골라야만 켜졌음). '활동'은 여전히 '전체 활동'이 아니라 하나가 골라졌을
- * 때만 — 활동마다 글의 성격이 달라서 섞으면 의미가 없다.
+ * "반"이 '전체 반'(ban==='')이면 켜지 않는다 — 학기 초에 반 구분 없는 범위도 잠깐
+ * 지원했었는데(v47), 효니가 그 대신 "내 담당 반" 범위를 원해서 v49에서 되돌리고
+ * 바꿨다. 대신 'mine'(내 담당 반 여러 개 묶음)과 개별 반은 둘 다 허용 — 'mine'은
+ * `dashClassFeedbackBanParam_()`이 그 시점의 `dashMyBans_()` 결과를 콤마 문자열로
+ * 미리 풀어서 서버에 보낸다(공지 대상 "담당 학급반", v30과 완전히 같은 관례 —
+ * 저장 키가 "그때 담당 반이 뭐였는지"로 고정되므로, 나중에 담당 반 배정이 바뀌어도
+ * 이미 생성된 리포트의 범위는 안 흔들린다). '활동'은 여전히 '전체 활동'이 아니라
+ * 하나가 골라졌을 때만 — 활동마다 글의 성격이 달라서 섞으면 의미가 없다.
  *
- * ⚠️ 백엔드 배포 필요: GET ?mode=classFeedback / POST action=generateClassFeedback
- * 둘 다 history26_backend(code.gs)에 코드는 있지만, 그 레포 커밋만으로는 실제
- * 서비스에 반영되지 않는다(Apps Script 편집기에서 "새 버전" 재배포 필요) — 배포
- * 전까지 이 박스는 "아직 없음" 상태로만 보이거나 생성 버튼이 실패 토스트를 낸다.
- * [오개념] 마커가 없는 옛 배포 결과가 오면 misconceptions는 빈 문자열로 오므로
- * 그 섹션은 자동으로 숨는다. */
+ * 백엔드(history26_backend)는 2026-09-09~10에 반영·배포 완료. */
 function dashClassFeedbackFind_(grade, ban, activityId){
   return CLASS_FEEDBACKS.find(f =>
     Number(f.grade) === grade && String(f.ban) === String(ban) && String(f.activityId) === String(activityId));
+}
+/* v49 — selBan 값('mine'/숫자문자열/'')을 실제로 서버에 보낼 ban 파라미터로 변환.
+ * 'mine'이면 dashMyBans_()로 그 시점의 담당 반을 콤마 문자열로 풀고(담당 반이 아직
+ * 안 정해져 있으면 빈 문자열 — 호출부가 박스를 숨김), 숫자 반이면 그대로, ''(전체
+ * 반)은 이 기능에서 지원하지 않으므로 호출 전에 걸러져야 한다. */
+function dashClassFeedbackBanParam_(grade, banScope){
+  if(banScope === 'mine'){
+    const mine = dashMyBans_(grade);
+    return mine ? mine.join(',') : '';
+  }
+  return banScope;
 }
 function dashRenderClassFeedback(){
   const box = $('classFbBox');
   if(!box) return;
   const grade = Number($('selGrade').value);
-  const ban = $('selBan').value;
+  const banScope = $('selBan').value;
   const act = $('selActivity').value;
 
-  // '내 담당 반' 묶음이거나 활동이 안 골라졌으면 숨김. '전체 반'(ban==='')은 허용.
-  if(ban === 'mine' || !act){
+  // '전체 반'이거나 활동이 안 골라졌으면 숨김. '내 담당 반'(mine)·개별 반은 허용.
+  const banParam = banScope ? dashClassFeedbackBanParam_(grade, banScope) : '';
+  if(!banParam || !act){
     box.style.display = 'none';
     box.innerHTML = '';
     return;
@@ -3482,8 +3493,8 @@ function dashRenderClassFeedback(){
   const scopedRows = dashFilteredRows();
   const studentCount = new Set(scopedRows.map(r => String(r.studentId))).size;
   const activityLabel = dashLessonTitle(act);
-  const existing = dashClassFeedbackFind_(grade, ban, act);
-  const scopeLabel = ban ? `${escapeHtml(String(ban))}반` : '전체 반';
+  const existing = dashClassFeedbackFind_(grade, banParam, act);
+  const scopeLabel = banScope === 'mine' ? `내 담당 반(${escapeHtml(banParam)})` : `${escapeHtml(String(banScope))}반`;
 
   // v35 — 교사용 리포트와 학생 공지용 문구를 나눠서 보여줌. 학생용 문구는
   // studentGet_이 자동으로 학생 포털(활동 완료 카드)에도 실어 보내므로, 여기서는
@@ -3550,7 +3561,8 @@ async function dashCopyClassFeedbackText_(text, btn){
 async function dashGenerateClassFeedback(ev){
   const btn = ev.currentTarget;
   const grade = Number($('selGrade').value);
-  const ban = $('selBan').value;
+  const banScope = $('selBan').value;
+  const ban = dashClassFeedbackBanParam_(grade, banScope); // 'mine'은 담당 반 콤마 문자열로 풀어서 보냄
   const act = $('selActivity').value;
   const prevLabel = btn.textContent;
   btn.disabled = true;
