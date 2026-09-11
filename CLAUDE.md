@@ -182,6 +182,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `choiceSummary === GONGMIN_BONUS_REASON`인 기존 행 유무로 프론트가 자체 판별한다
   (`grantPresentationPointPost_`가 reason을 choiceSummary 컬럼에 그대로 저장하는 걸 이용) —
   같은 이유 문자열을 다른 용도로 재사용하면 이 dedupe가 오작동한다.
+- **체크인 문항 이미지 자료 지원 (v50, 2026-09-11)**: 체크인 문항 관리자 폼("새 문항 추가")이
+  텍스트 사료만 지원하던 걸 이미지 자료(사료 이미지·그래프·지도 등)도 쓸 수 있게 확장했다.
+  유형(judgment/source_emotion)을 늘리는 대신 **"자료 형식"(텍스트/이미지)을 두 타입 공통
+  필드로 분리**하는 방향으로 설계함 — 나중에 영상 등 다른 자료 형식이 늘어도 유형을 안 늘리고
+  이 필드 값만 늘리면 된다. `judgment`도 이제 자료를 선택적으로 붙일 수 있다(비워두면 기존처럼
+  자료 없이 발문만 — 필수 아님). `ckqToggleSourceFormatFields()`가 텍스트 입력칸/이미지
+  업로드 UI를 전환하고, 이미지 선택 시 파일을 고르면 `ckqHandleImageFileChange()`가 즉시
+  base64로 읽어 `uploadCheckinImage` action으로 보내 Drive에 저장한 뒤 반환된 URL을 숨김
+  필드에 자동으로 채운다(효니가 URL을 직접 입력하는 과정 없음). 학생 화면 쪽은
+  `renderCheckinSourceBoxHtml_()`(`index.html:898` 부근) 하나로 텍스트/이미지 자료를 공통
+  렌더링하도록 정리했고, judgment/source_emotion 두 분기 모두 이 헬퍼를 재사용한다.
+  **서버 쪽(`체크인문항` 시트 3컬럼 추가, `uploadCheckinImagePost_`, Drive 폴더 자동 생성)은
+  `history26_backend`에 있다** — 아래 CLAUDE.md 참고, 아직 Apps Script 배포 전.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
@@ -236,8 +249,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   v46 = 학생 기록 탭 활동 선택 유지 버그 수정, v47 = 학급 공통 피드백에 오개념 섹션·전체 반
   범위 추가, v48 = 포트폴리오·클래스카드 링크에 스킴(https://) 없이 입력했을 때 상대경로로
   깨지던 버그 수정, v49 = 학급 공통 피드백 범위를 "전체 반"에서 "내 담당 반+개별 반"으로
-  정정(아래 각각 참고) — 확인 시점 기준 `index.html`/`style.css`에서 가장 높은
-  버전 표기는 v49). 여러 기능이 같은 버전
+  정정, v50 = 체크인 문항에 이미지 자료 지원 추가(아래 각각 참고) — 확인 시점 기준
+  `index.html`/`style.css`에서 가장 높은
+  버전 표기는 v50). 여러 기능이 같은 버전
   번호를 먼저 붙였다가 나중에 충돌을 발견해 재번호한 이력도 있으므로(`git log` "버전표기 충돌 정리" 커밋
   참고), 새 버전 번호를 붙이기 전에 이미 쓰인 번호인지 먼저 확인할 것. 관련 로직을 고칠 때는 기존 버전
   주석을 참고해 과거에 이미 겪은 문제를 되풀이하지 않도록 하고, 의미 있는 변경이면 같은 스타일로 이유를

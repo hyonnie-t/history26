@@ -534,9 +534,35 @@
                 <input id="ckqFormOptionB" type="text" placeholder="옵션B 라벨" style="flex:1;">
               </div>
             </div>
-            <div id="ckqSourceFields" style="display:none;">
+
+            <!-- v50(2026-09-11) 신규: "자료 형식"을 공통 필드로 분리 — 유형(judgment/source_emotion)을
+                 늘리는 대신 이 필드 하나로 텍스트/이미지를 고르게 해서, 나중에 영상 등 다른
+                 자료 형식이 늘어도 유형을 안 늘려도 되게 함. judgment도 이제 자료를 선택적으로
+                 붙일 수 있음(비워두면 기존처럼 자료 없이 발문만). -->
+            <div class="cl-row">
+              <span class="cl-hint" style="flex:0 0 auto;">자료 형식</span>
+              <select id="ckqFormSourceFormat" onchange="ckqToggleSourceFormatFields()">
+                <option value="text">텍스트</option>
+                <option value="image">이미지</option>
+              </select>
+            </div>
+            <div id="ckqSourceTextWrap">
               <textarea id="ckqFormSourceText" rows="2" placeholder="사료 텍스트 (줄바꿈 가능)"></textarea>
-              <input id="ckqFormSourceOrigin" type="text" placeholder="사료 출처 (예: 『선화봉사고려도경』 (12세기, 서긍))">
+            </div>
+            <div id="ckqSourceImageWrap" style="display:none;">
+              <input type="file" id="ckqFormImageFile" accept="image/*" onchange="ckqHandleImageFileChange(this)">
+              <p class="cl-hint">업로드하면 자동으로 아래 URL이 채워져요. 용량이 큰 사진은 업로드 전 미리 줄여서 올려 주세요.</p>
+              <div id="ckqImagePreviewWrap" style="display:none; margin:8px 0;">
+                <img id="ckqImagePreviewImg" class="ckq-image-preview" alt="">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="ckqRemoveImage()">이미지 제거</button>
+              </div>
+              <input id="ckqFormImageAlt" type="text" placeholder="대체 텍스트 (예: 고려도경 삽화 — 서긍이 그린 개경 궁궐 모습)">
+              <input type="hidden" id="ckqFormImageUrl" value="">
+              <p id="ckqImageUploadStatus" class="cl-hint"></p>
+            </div>
+            <input id="ckqFormSourceOrigin" type="text" placeholder="사료 출처 (예: 『선화봉사고려도경』 (12세기, 서긍)) — 선택">
+
+            <div id="ckqWordChipsWrap" style="display:none;">
               <input id="ckqFormWordChips" type="text" placeholder="단어칩 — 쉼표로 구분 (비우면 기본 6개 사용)">
             </div>
 
@@ -866,10 +892,25 @@ function renderCheckinSpread(){
   });
 }
 
+/* 2026-09-11 신규 — 자료(source) 박스를 텍스트/이미지 공통 렌더러로 분리.
+ * judgment/source_emotion 둘 다 lesson.source가 있을 수 있고(judgment는 없어도 됨),
+ * source.format이 'image'면 <img>, 그 외엔 기존처럼 텍스트로 그린다. */
+function renderCheckinSourceBoxHtml_(source){
+  if(!source) return '';
+  const body = source.format === 'image'
+    ? `<img class="source-image" src="${escapeHtml(source.imageUrl)}" alt="${escapeHtml(source.imageAlt || '')}">`
+    : `<p class="source-text">${escapeHtml(source.text).replace(/\n/g,'<br>')}</p>`;
+  return `<div class="source-box">
+      ${body}
+      ${source.origin ? `<p class="source-origin">— ${escapeHtml(source.origin)}</p>` : ''}
+    </div>`;
+}
+
 function renderCheckinQuestionBody(body, lesson){
   if(lesson.type === 'judgment'){
     body.innerHTML = `
       <p class="checkin-eyebrow">발문</p>
+      ${renderCheckinSourceBoxHtml_(lesson.source)}
       <p class="checkin-q" style="white-space:pre-wrap;">${escapeHtml(lesson.prompt)}</p>
       <div class="judg-options">
         ${lesson.options.map(o => `
@@ -891,10 +932,7 @@ function renderCheckinQuestionBody(body, lesson){
   const customOn = CHECKIN_CONFIG.customInput && CHECKIN_CONFIG.customInput.enabled;
   body.innerHTML = `
     <p class="checkin-eyebrow">발문</p>
-    <div class="source-box">
-      <p class="source-text">${escapeHtml(lesson.source.text).replace(/\n/g,'<br>')}</p>
-      ${lesson.source.origin ? `<p class="source-origin">— ${escapeHtml(lesson.source.origin)}</p>` : ''}
-    </div>
+    ${renderCheckinSourceBoxHtml_(lesson.source)}
     <p class="checkin-q" style="white-space:pre-wrap;">${escapeHtml(lesson.prompt)}</p>
     <div class="chip-grid">
       ${chips.map(w => `<button class="chip-btn" data-word="${escapeHtml(w)}" type="button">${escapeHtml(w)}</button>`).join('')}
@@ -2683,6 +2721,7 @@ async function dashLoadCheckinAdmin(grade){
  * CHECKIN_PLAN(학생용, 구조화됨)과 별개로 CHECKIN_LESSONS_ADMIN(교사용, 평평한 배열 + _row)을
  * 따로 들고 있음 — 커리큘럼 관리와 동일한 이중 구조. */
 let CHECKIN_LESSONS_ADMIN = [];
+let CKQ_IMAGE_UPLOADING = false; // 2026-09-11 신규 — 이미지 업로드 중엔 저장을 막는다
 
 async function dashLoadCheckinLessonsAdmin(){
   try{
@@ -2706,7 +2745,7 @@ function dashRenderCheckinLessonsList(){
   list.innerHTML = rows.map(l => `
     <div class="cl-item" data-row="${l._row}">
       <div class="cl-item-body">
-        <div class="cl-meta">${escapeHtml(l.id)} · ${escapeHtml(typeLabel[l.type] || l.type)}${l.verify ? ' · ⚠️ 사실검증 필요' : ''}</div>
+        <div class="cl-meta">${escapeHtml(l.id)} · ${escapeHtml(typeLabel[l.type] || l.type)}${l.imageUrl ? ' · 🖼️ 이미지 자료' : ''}${l.verify ? ' · ⚠️ 사실검증 필요' : ''}</div>
         <div class="cl-title">${escapeHtml(l.topic)}</div>
       </div>
       <div class="cl-item-actions">
@@ -2716,23 +2755,115 @@ function dashRenderCheckinLessonsList(){
     </div>`).join('');
 }
 
+/* 2026-09-11 변경 — "자료 형식"(텍스트/이미지)이 두 타입 공통 필드로 분리되면서,
+ * 유형 토글은 이제 반응 방식 전용 필드(judgment=옵션A/B, source_emotion=단어칩)만 담당.
+ * 자료 형식 텍스트/이미지 전환은 별도의 ckqToggleSourceFormatFields()가 맡는다. */
 function ckqToggleTypeFields(){
   const isJudgment = $('ckqFormType').value === 'judgment';
   $('ckqJudgmentFields').style.display = isJudgment ? 'block' : 'none';
-  $('ckqSourceFields').style.display = isJudgment ? 'none' : 'block';
+  $('ckqWordChipsWrap').style.display = isJudgment ? 'none' : 'block';
+}
+
+function ckqToggleSourceFormatFields(){
+  const isImage = $('ckqFormSourceFormat').value === 'image';
+  $('ckqSourceTextWrap').style.display = isImage ? 'none' : 'block';
+  $('ckqSourceImageWrap').style.display = isImage ? 'block' : 'none';
+}
+
+/* ── 체크인문항 이미지 업로드 (2026-09-11 신규) ──
+ * 파일 선택 즉시 base64로 읽어 uploadCheckinImage로 보내고, 성공하면 반환된 URL을
+ * 숨김 필드에 채운다 — 효니가 URL을 직접 입력할 필요가 없게 하는 게 목적. */
+function ckqFileToBase64_(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* v22의 fetchJsonRetry_는 GET 전용이라 이미지 업로드(POST)엔 못 씀 — webapp-builder
+ * 스킬 원칙(제출 fetch에 재시도 포함)을 따라 실패 시 최대 2회 더 재시도. */
+async function ckqUploadImageWithRetry_(body, maxAttempts){
+  maxAttempts = maxAttempts || 3;
+  let lastErr;
+  for(let attempt = 1; attempt <= maxAttempts; attempt++){
+    try{
+      const res = await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(body) });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }catch(e){
+      lastErr = e;
+      if(attempt < maxAttempts) await new Promise(r => setTimeout(r, 700 * attempt));
+    }
+  }
+  throw lastErr;
+}
+
+async function ckqHandleImageFileChange(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  // 8MB 이내로 프론트에서 먼저 거름 — 이미지 최적화 자체는 효니가 업로드 전에 직접 처리한다는
+  // 전제(핸드오프 문서)라 서버는 별도 압축을 하지 않고, 여기서는 안전한 상한선만 둔다.
+  const MAX_BYTES = 8 * 1024 * 1024;
+  if(file.size > MAX_BYTES){
+    showToast('이미지가 너무 커요 — 8MB 이하로 줄여서 다시 올려 주세요.');
+    input.value = '';
+    return;
+  }
+  CKQ_IMAGE_UPLOADING = true;
+  $('ckqImageUploadStatus').textContent = '업로드하는 중…';
+  $('btnCkqSave').disabled = true;
+  try{
+    const base64 = await ckqFileToBase64_(file);
+    const res = await ckqUploadImageWithRetry_({
+      action: 'uploadCheckinImage', token: TOKEN,
+      imageBase64: base64, mimeType: file.type || 'image/png', filename: file.name || ''
+    });
+    if(res && res.result === 'success' && res.url){
+      $('ckqFormImageUrl').value = res.url;
+      $('ckqImagePreviewImg').src = res.url;
+      $('ckqImagePreviewWrap').style.display = 'block';
+      $('ckqImageUploadStatus').textContent = '업로드 완료';
+    } else {
+      $('ckqImageUploadStatus').textContent = '업로드 실패: ' + (res && res.message ? res.message : '다시 시도해 주세요.');
+      input.value = '';
+    }
+  }catch(e){
+    $('ckqImageUploadStatus').textContent = '업로드 실패 — 다시 시도해 주세요.';
+    input.value = '';
+  }finally{
+    CKQ_IMAGE_UPLOADING = false;
+    $('btnCkqSave').disabled = false;
+  }
+}
+
+function ckqRemoveImage(){
+  $('ckqFormImageUrl').value = '';
+  $('ckqFormImageFile').value = '';
+  $('ckqImagePreviewWrap').style.display = 'none';
+  $('ckqImagePreviewImg').src = '';
+  $('ckqImageUploadStatus').textContent = '';
 }
 
 function dashResetCheckinLessonForm(){
   $('ckqEditRow').value = '';
   ['ckqFormId','ckqFormTopic','ckqFormTextbook','ckqFormPrompt','ckqFormOptionA','ckqFormOptionB',
-   'ckqFormSourceText','ckqFormSourceOrigin','ckqFormWordChips','ckqFormRecall','ckqFormVerifyNote','ckqFormNote']
+   'ckqFormSourceText','ckqFormSourceOrigin','ckqFormWordChips','ckqFormRecall','ckqFormVerifyNote','ckqFormNote',
+   'ckqFormImageAlt','ckqFormImageUrl']
     .forEach(id => { $(id).value = ''; });
   $('ckqFormVerify').checked = false;
   $('ckqFormId').disabled = false;
+  $('ckqFormSourceFormat').value = 'text';
+  $('ckqFormImageFile').value = '';
+  $('ckqImagePreviewWrap').style.display = 'none';
+  $('ckqImagePreviewImg').src = '';
+  $('ckqImageUploadStatus').textContent = '';
   $('ckqFormTitle').textContent = '➕ 새 문항 추가';
   $('btnCkqSave').textContent = '문항 추가';
   $('btnCkqCancel').style.display = 'none';
   ckqToggleTypeFields();
+  ckqToggleSourceFormatFields();
 }
 
 function dashEditCheckinLesson(btn){
@@ -2756,7 +2887,22 @@ function dashEditCheckinLesson(btn){
   $('ckqFormVerify').checked = !!l.verify;
   $('ckqFormVerifyNote').value = l.verifyNote || '';
   $('ckqFormNote').value = l.note || '';
+  // 2026-09-11 신규 — 이미지 자료 필드 복원(없는 옛 행은 checkinPlanAdminGet_이 sourceFormat
+  // 기본값을 'text'로 채워 내려주므로 따로 폴백할 필요 없음).
+  $('ckqFormSourceFormat').value = l.sourceFormat || 'text';
+  $('ckqFormImageUrl').value = l.imageUrl || '';
+  $('ckqFormImageAlt').value = l.imageAlt || '';
+  $('ckqFormImageFile').value = '';
+  if(l.imageUrl){
+    $('ckqImagePreviewImg').src = l.imageUrl;
+    $('ckqImagePreviewWrap').style.display = 'block';
+  } else {
+    $('ckqImagePreviewImg').src = '';
+    $('ckqImagePreviewWrap').style.display = 'none';
+  }
+  $('ckqImageUploadStatus').textContent = '';
   ckqToggleTypeFields();
+  ckqToggleSourceFormatFields();
   $('ckqFormTitle').textContent = '✏️ 문항 수정';
   $('btnCkqSave').textContent = '수정 저장';
   $('btnCkqCancel').style.display = 'inline-block';
@@ -2790,8 +2936,11 @@ function ckqCollectFormData(){
     prompt: $('ckqFormPrompt').value.trim(),
     optionA: $('ckqFormOptionA').value.trim(),
     optionB: $('ckqFormOptionB').value.trim(),
+    sourceFormat: $('ckqFormSourceFormat').value,
     sourceText: $('ckqFormSourceText').value.trim(),
     sourceOrigin: $('ckqFormSourceOrigin').value.trim(),
+    imageUrl: $('ckqFormImageUrl').value.trim(),
+    imageAlt: $('ckqFormImageAlt').value.trim(),
     wordChips: $('ckqFormWordChips').value.trim(),
     recall: $('ckqFormRecall').value.trim(),
     verify: $('ckqFormVerify').checked,
@@ -2801,6 +2950,7 @@ function ckqCollectFormData(){
 }
 
 async function dashSubmitCheckinLessonForm(btn){
+  if(CKQ_IMAGE_UPLOADING){ showToast('이미지 업로드가 끝난 뒤에 저장해 주세요.'); return; }
   const editRow = $('ckqEditRow').value;
   const payload = ckqCollectFormData();
   if(!payload.grade || !payload.id || !payload.topic || !payload.prompt){
@@ -2809,8 +2959,8 @@ async function dashSubmitCheckinLessonForm(btn){
   if(payload.type === 'judgment' && (!payload.optionA || !payload.optionB)){
     showToast('judgment 타입은 옵션A·옵션B가 필요해요.'); return;
   }
-  if(payload.type === 'source_emotion' && !payload.sourceText){
-    showToast('source_emotion 타입은 사료 텍스트가 필요해요.'); return;
+  if(payload.type === 'source_emotion' && !payload.sourceText && !payload.imageUrl){
+    showToast('source_emotion 타입은 사료 텍스트 또는 이미지가 필요해요.'); return;
   }
   btn.disabled = true; btn.textContent = editRow ? '저장하는 중…' : '추가하는 중…';
   try{

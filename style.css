@@ -250,6 +250,10 @@ button{font-family:inherit; cursor:pointer;}
 .source-box{background:var(--card); border-left:4px solid var(--ochre); border-radius:var(--radius-xs); padding:12px 14px; margin-bottom:16px;}
 .source-text{font-family:var(--font-display); font-size:.92rem; line-height:1.75; color:var(--ink);}
 .source-origin{font-size:.74rem; color:var(--ink-soft); margin-top:6px; text-align:right;}
+/* 2026-09-11 신규 — 체크인 사료 이미지 자료. 학생 화면 source-box 안 이미지. */
+.source-image{max-width:100%; display:block; border-radius:var(--radius-xs); margin:0 auto;}
+/* 관리자 폼의 업로드 미리보기 — 학생 화면보다 작게, 원본 이미지가 커도 폼이 안 넘치게 함 */
+.ckq-image-preview{display:block; max-width:220px; max-height:220px; border-radius:var(--radius-xs); margin-bottom:6px;}
 .chip-grid{display:flex; flex-wrap:wrap; gap:6px; justify-content:center;}
 .chip-btn{
   min-height:var(--tap-min); padding:8px 14px; font-size:.86rem; font-weight:600;
