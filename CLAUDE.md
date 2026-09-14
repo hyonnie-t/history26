@@ -194,7 +194,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `renderCheckinSourceBoxHtml_()`(`index.html:898` 부근) 하나로 텍스트/이미지 자료를 공통
   렌더링하도록 정리했고, judgment/source_emotion 두 분기 모두 이 헬퍼를 재사용한다.
   **서버 쪽(`체크인문항` 시트 3컬럼 추가, `uploadCheckinImagePost_`, Drive 폴더 자동 생성)은
-  `history26_backend`에 있다** — 아래 CLAUDE.md 참고, 아직 Apps Script 배포 전.
+  `history26_backend`에 있다** — 아래 CLAUDE.md 참고. 2026-09-14 Apps Script 배포 완료.
+  **v51(2026-09-14) 추가**: "자료 형식" 선택지에 "없음"을 명시적으로 추가했다 — 효니 피드백
+  ("매번 이미지나 텍스트가 필요한 건 아니라서"). 이전엔 judgment에서 자료를 안 쓰려면 그냥
+  사료 텍스트 칸을 빈 채로 두는 방식이었는데, 그 대신 "없음"을 고르면 텍스트/이미지 입력 UI
+  자체가 (사료 출처 필드까지) 통째로 숨는다. `ckqDefaultSourceFormatForType_()`가 유형별
+  기본값을 정하고(judgment=없음, source_emotion=텍스트, 기존 필수 관례 그대로),
+  `ckqOnTypeChange()`가 새 문항 작성 중(수정 모드 아닐 때)에만 유형을 바꿀 때 이 기본값을
+  같이 적용한다 — 수정 중인 기존 문항의 자료 형식은 그대로 보존. **서버 변경은 없음** —
+  '없음'은 그냥 자료형식 컬럼에 문자열로 저장될 뿐이고, `buildCheckinSource_`가 이미
+  format이 'image'가 아니면 사료텍스트 유무만 보고 판단하므로 사료텍스트가 비어있으면
+  자동으로 자료 없음(`lesson.source` 없음)으로 처리된다 — 하위호환 걱정 없이 프론트만
+  바꿔서 끝남.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
@@ -249,9 +260,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   v46 = 학생 기록 탭 활동 선택 유지 버그 수정, v47 = 학급 공통 피드백에 오개념 섹션·전체 반
   범위 추가, v48 = 포트폴리오·클래스카드 링크에 스킴(https://) 없이 입력했을 때 상대경로로
   깨지던 버그 수정, v49 = 학급 공통 피드백 범위를 "전체 반"에서 "내 담당 반+개별 반"으로
-  정정, v50 = 체크인 문항에 이미지 자료 지원 추가(아래 각각 참고) — 확인 시점 기준
+  정정, v50 = 체크인 문항에 이미지 자료 지원 추가, v51 = 체크인 문항 자료 형식에 "없음"
+  선택지 명시적 추가(아래 각각 참고) — 확인 시점 기준
   `index.html`/`style.css`에서 가장 높은
-  버전 표기는 v50). 여러 기능이 같은 버전
+  버전 표기는 v51). 여러 기능이 같은 버전
   번호를 먼저 붙였다가 나중에 충돌을 발견해 재번호한 이력도 있으므로(`git log` "버전표기 충돌 정리" 커밋
   참고), 새 버전 번호를 붙이기 전에 이미 쓰인 번호인지 먼저 확인할 것. 관련 로직을 고칠 때는 기존 버전
   주석을 참고해 과거에 이미 겪은 문제를 되풀이하지 않도록 하고, 의미 있는 변경이면 같은 스타일로 이유를

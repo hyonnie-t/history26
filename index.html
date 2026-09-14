@@ -538,15 +538,20 @@
             <!-- v50(2026-09-11) 신규: "자료 형식"을 공통 필드로 분리 — 유형(judgment/source_emotion)을
                  늘리는 대신 이 필드 하나로 텍스트/이미지를 고르게 해서, 나중에 영상 등 다른
                  자료 형식이 늘어도 유형을 안 늘려도 되게 함. judgment도 이제 자료를 선택적으로
-                 붙일 수 있음(비워두면 기존처럼 자료 없이 발문만). -->
+                 붙일 수 있음(비워두면 기존처럼 자료 없이 발문만).
+                 v51(2026-09-14) 추가: "없음"을 자료 형식 자체의 선택지로 명시 — 매번 텍스트나
+                 이미지가 필요한 게 아니라서, 자료 없음을 "빈 텍스트칸을 그냥 안 채움"이 아니라
+                 폼에서부터 분명하게 고를 수 있게 함(선택하면 텍스트/이미지 입력 UI 자체가 숨음).
+                 judgment 기본값은 '없음', source_emotion 기본값은 '텍스트'(ckqOnTypeChange 참고). -->
             <div class="cl-row">
               <span class="cl-hint" style="flex:0 0 auto;">자료 형식</span>
               <select id="ckqFormSourceFormat" onchange="ckqToggleSourceFormatFields()">
+                <option value="none">없음</option>
                 <option value="text">텍스트</option>
                 <option value="image">이미지</option>
               </select>
             </div>
-            <div id="ckqSourceTextWrap">
+            <div id="ckqSourceTextWrap" style="display:none;">
               <textarea id="ckqFormSourceText" rows="2" placeholder="사료 텍스트 (줄바꿈 가능)"></textarea>
             </div>
             <div id="ckqSourceImageWrap" style="display:none;">
@@ -560,7 +565,7 @@
               <input type="hidden" id="ckqFormImageUrl" value="">
               <p id="ckqImageUploadStatus" class="cl-hint"></p>
             </div>
-            <input id="ckqFormSourceOrigin" type="text" placeholder="사료 출처 (예: 『선화봉사고려도경』 (12세기, 서긍)) — 선택">
+            <input id="ckqFormSourceOrigin" type="text" placeholder="사료 출처 (예: 『선화봉사고려도경』 (12세기, 서긍)) — 선택" style="display:none;">
 
             <div id="ckqWordChipsWrap" style="display:none;">
               <input id="ckqFormWordChips" type="text" placeholder="단어칩 — 쉼표로 구분 (비우면 기본 6개 사용)">
@@ -2757,17 +2762,37 @@ function dashRenderCheckinLessonsList(){
 
 /* 2026-09-11 변경 — "자료 형식"(텍스트/이미지)이 두 타입 공통 필드로 분리되면서,
  * 유형 토글은 이제 반응 방식 전용 필드(judgment=옵션A/B, source_emotion=단어칩)만 담당.
- * 자료 형식 텍스트/이미지 전환은 별도의 ckqToggleSourceFormatFields()가 맡는다. */
+ * 자료 형식 전환은 별도의 ckqToggleSourceFormatFields()가 맡는다. */
 function ckqToggleTypeFields(){
   const isJudgment = $('ckqFormType').value === 'judgment';
   $('ckqJudgmentFields').style.display = isJudgment ? 'block' : 'none';
   $('ckqWordChipsWrap').style.display = isJudgment ? 'none' : 'block';
 }
 
+// v51(2026-09-14) 신규 — 유형별 자료 형식 기본값. judgment는 자료 없이 발문만 쓰는 경우가
+// 많아 '없음'이 기본, source_emotion은 자료가 필수라 '텍스트'가 기본(기존 관례 유지).
+function ckqDefaultSourceFormatForType_(type){
+  return type === 'judgment' ? 'none' : 'text';
+}
+
+// v51(2026-09-14) 신규 — 유형 select의 change 이벤트 핸들러. 새 문항을 작성하는 중(수정
+// 모드가 아닐 때)에만 자료 형식을 유형별 기본값으로 맞춰준다 — 수정 중엔 이미 저장된
+// 자료 형식을 덮어쓰면 안 되므로 손대지 않는다.
+function ckqOnTypeChange(){
+  if(!$('ckqEditRow').value){
+    $('ckqFormSourceFormat').value = ckqDefaultSourceFormatForType_($('ckqFormType').value);
+    ckqToggleSourceFormatFields();
+  }
+  ckqToggleTypeFields();
+}
+
+/* v51(2026-09-14) 변경 — "없음"을 명시적 선택지로 추가. 텍스트/이미지 입력 UI뿐 아니라
+ * 사료 출처 필드도 자료가 없을 땐 같이 숨긴다(자료 없이 출처만 있는 건 의미가 없어서). */
 function ckqToggleSourceFormatFields(){
-  const isImage = $('ckqFormSourceFormat').value === 'image';
-  $('ckqSourceTextWrap').style.display = isImage ? 'none' : 'block';
-  $('ckqSourceImageWrap').style.display = isImage ? 'block' : 'none';
+  const format = $('ckqFormSourceFormat').value;
+  $('ckqSourceTextWrap').style.display = format === 'text' ? 'block' : 'none';
+  $('ckqSourceImageWrap').style.display = format === 'image' ? 'block' : 'none';
+  $('ckqFormSourceOrigin').style.display = format === 'none' ? 'none' : 'block';
 }
 
 /* ── 체크인문항 이미지 업로드 (2026-09-11 신규) ──
@@ -2854,7 +2879,9 @@ function dashResetCheckinLessonForm(){
     .forEach(id => { $(id).value = ''; });
   $('ckqFormVerify').checked = false;
   $('ckqFormId').disabled = false;
-  $('ckqFormSourceFormat').value = 'text';
+  // v51: 자료 형식 기본값은 고정 'text'가 아니라 현재 유형에 맞춰 결정
+  // (judgment는 '없음', source_emotion은 '텍스트' — ckqDefaultSourceFormatForType_ 참고)
+  $('ckqFormSourceFormat').value = ckqDefaultSourceFormatForType_($('ckqFormType').value);
   $('ckqFormImageFile').value = '';
   $('ckqImagePreviewWrap').style.display = 'none';
   $('ckqImagePreviewImg').src = '';
@@ -4598,7 +4625,7 @@ $('clOwner').addEventListener('change', clRefreshOwnerHint);
 $('clGrade').addEventListener('change', clRefreshOwnerHint);
 $('clThinkingType').addEventListener('change', clRefreshBadgeNameOptions);
 $('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
-$('ckqFormType').addEventListener('change', ckqToggleTypeFields);
+$('ckqFormType').addEventListener('change', ckqOnTypeChange); // v51: 자료 형식 기본값도 같이 맞춤
 $('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);
 $('ckSetGrade').addEventListener('change', () => { dashRefreshCkSetLessons(); dashOnCkSetTargetChange_(); });
 $('ckSetBanOne').addEventListener('change', dashLoadCkSetCurrent);
