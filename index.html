@@ -504,15 +504,19 @@
       <div class="ck-two-col" id="ckStatCols"></div>
     </div>
 
-    <!-- v52(2026-09-14) 변경 — 학년 선택을 select에서 탭으로(switchCkqGradeTab_),
-         등록된 문항 목록을 기본 접힌 toggle로(등록된 활동 목록의 cl-collapse 관례 재사용) —
-         "새 문항 추가" 폼에 닿기까지 문항 목록을 계속 스크롤해야 했던 문제를 줄임. -->
+    <!-- v52(2026-09-14) 변경 — 학년 선택을 select에서 탭으로(switchCkqGradeTab_).
+         v53(2026-09-14) 정정 — 처음엔 등록된 문항 목록 전체를 기본 접었는데, 효니 피드백으로
+         커리큘럼 관리 탭(dashRenderLessons(), v13)과 완전히 같은 방식으로 바꿈: 목록 자체는
+         기본 펼침 유지하고, 교사가 개별 문항에 "지난 체크인으로 표시"를 눌러야만 그 문항이
+         아래 접힌 목록으로 빠진다(dashToggleCheckinLessonPast, 서버 action은 history26_backend의
+         toggleCheckinLessonPast — 아직 배포 전). -->
     <div class="cl-subpanel" id="ckSubLessons" style="display:none;">
       <div class="cl-subtabs" id="ckqGradeTabs" style="margin-bottom:12px;"></div>
 
-      <details class="cl-collapse" id="ckqListCollapse">
-        <summary>📋 등록된 문항 (<span id="ckqListCount">0</span>) <span class="cl-arrow">▶</span></summary>
-        <div class="cl-collapse-body" id="ckqList"></div>
+      <div id="ckqActiveList" style="margin-bottom:8px;"></div>
+      <details class="cl-past-collapse" id="ckqPastCollapse">
+        <summary>지난 체크인 (<span id="ckqPastCount">0</span>) <span class="cl-arrow">▶</span></summary>
+        <div class="cl-past-list" id="ckqPastList"></div>
       </details>
 
       <div class="cl-collapse">
@@ -2200,8 +2204,8 @@ function switchCkSubtab(sub){
   });
 }
 
-/* v52(2026-09-14) 신규 — 체크인 "문항 관리" 학년 탭 전환. 등록된 문항 목록(#ckqList)만
- * 이 학년으로 다시 그린다(새 문항 추가 폼의 ckqFormGrade는 별개 select라 안 건드림). */
+/* v52(2026-09-14) 신규 — 체크인 "문항 관리" 학년 탭 전환. 진행중/지난 문항 목록(#ckqActiveList·
+ * #ckqPastList)만 이 학년으로 다시 그린다(새 문항 추가 폼의 ckqFormGrade는 별개 select라 안 건드림). */
 function switchCkqGradeTab_(grade){
   CKQ_GRADE = grade;
   document.querySelectorAll('#ckqGradeTabs .cl-subtab').forEach(btn => {
@@ -2794,17 +2798,27 @@ async function dashLoadCheckinLessonsAdmin(){
   }
 }
 
+/* v53(2026-09-14) — 커리큘럼 dashRenderLessons()/clLessonItemHtml()과 같은 방식으로
+ * 진행중(기본 펼침)/지난(접힘, l.isPast) 두 그룹으로 나눠 그린다. isPast는 서버
+ * checkinPlanAdminGet_이 내려주는 필드(history26_backend, 아직 배포 전 — 배포 전까지는
+ * 모든 문항이 항상 진행중 그룹에만 표시됨). */
 function dashRenderCheckinLessonsList(){
   const grade = CKQ_GRADE;
-  const list = $('ckqList');
   const rows = CHECKIN_LESSONS_ADMIN.filter(l => l.grade === grade);
-  $('ckqListCount').textContent = String(rows.length);
-  if(!rows.length){
-    list.innerHTML = '<p class="cl-past-hint">이 학년에 등록된 문항이 없어요.</p>';
-    return;
-  }
+  const active = rows.filter(l => !l.isPast);
+  const past = rows.filter(l => l.isPast);
+  $('ckqActiveList').innerHTML = active.length
+    ? active.map(l => ckqLessonItemHtml_(l, false)).join('')
+    : '<p class="cl-past-hint">이 학년에 등록된 문항이 없어요.</p>';
+  $('ckqPastCount').textContent = String(past.length);
+  $('ckqPastList').innerHTML = past.length
+    ? past.map(l => ckqLessonItemHtml_(l, true)).join('')
+    : '<p class="cl-past-hint">지난 체크인으로 표시된 문항이 없어요.</p>';
+}
+
+function ckqLessonItemHtml_(l, isPastItem){
   const typeLabel = { judgment: '판단형', source_emotion: '사료+단어칩' };
-  list.innerHTML = rows.map(l => `
+  return `
     <div class="cl-item" data-row="${l._row}">
       <div class="cl-item-body">
         <div class="cl-meta">${escapeHtml(l.id)} · ${escapeHtml(typeLabel[l.type] || l.type)}${l.imageUrl ? ' · 🖼️ 이미지 자료' : ''}${l.verify ? ' · ⚠️ 사실검증 필요' : ''}</div>
@@ -2812,9 +2826,27 @@ function dashRenderCheckinLessonsList(){
       </div>
       <div class="cl-item-actions">
         <button class="an-toggle" data-row="${l._row}" onclick="dashEditCheckinLesson(this)">수정</button>
+        <button class="an-toggle" data-row="${l._row}" onclick="dashToggleCheckinLessonPast(this)">${isPastItem ? '진행중으로 되돌리기' : '지난 체크인으로 표시'}</button>
         <button class="an-toggle" data-row="${l._row}" onclick="dashDeleteCheckinLesson(this)">삭제</button>
       </div>
-    </div>`).join('');
+    </div>`;
+}
+
+/* v53(2026-09-14) 신규 — 커리큘럼 dashToggleLessonPast()의 체크인문항 버전. 공개여부
+ * 같은 개념이 체크인문항엔 없어서 이 토글 하나만 있음. */
+async function dashToggleCheckinLessonPast(btn){
+  const row = btn.dataset.row;
+  btn.disabled = true;
+  try{
+    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'toggleCheckinLessonPast', token:TOKEN, row }) });
+    const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
+    if(l){ l.isPast = !l.isPast; }
+    dashRenderCheckinLessonsList();
+  }catch(e){
+    showToast('처리하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false;
+  }
 }
 
 /* 2026-09-11 변경 — "자료 형식"(텍스트/이미지)이 두 타입 공통 필드로 분리되면서,

@@ -226,11 +226,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
      초기화한다. **"새 문항 추가" 폼 안의 유형(`ckqFormGrade`) select는 그대로 둠** — 이 탭은
      위쪽 "등록된 문항" 목록 필터 전용이라 별개.
   4. 등록된 문항 목록(`#ckqList`)이 폼 위에 그대로 펼쳐져 있어 새 문항을 추가하려면 매번
-     스크롤을 내려야 했다 — 커리큘럼 관리 탭의 "지난 활동" 접힘(`<details class="cl-collapse">`)
-     관례를 그대로 가져와 기본 접힌 상태로 바꾸고, 제목에 문항 개수(`#ckqListCount`,
-     `dashRenderCheckinLessonsList()`가 갱신)를 붙였다. `.cl-past-collapse`(지난 활동 dimming)
-     대신 `.cl-collapse`(학년정보 카드와 같은 중립 스타일)를 썼다 — 여기 담긴 문항들은
-     "지난" 게 아니라 그냥 이미 등록된 전체 목록이라 흐리게 표시하면 오해를 줄 수 있어서다.
+     스크롤을 내려야 했다 — **처음엔(v52) 목록 전체를 기본 접었는데, v53에서 방식을 바꿨다.
+     아래 v53 항목 참고.**
+- **체크인 문항 "지난 체크인" 표시 (v53, 2026-09-14 — v52 방식에 대한 효니 정정)**: v52의
+  "등록된 문항 목록 전체를 접기"가 효니 의도와 달랐다 — "목록 자체는 펼쳐두고, 내가 지난
+  체크인으로 지정한 것만 접어달라"는 요청. 그래서 커리큘럼 관리 탭의 "지난 활동" 표시
+  (`dashRenderLessons()`/`dashToggleLessonPast()`, v13)와 완전히 같은 방식으로 다시 짰다.
+  - `dashRenderCheckinLessonsList()`가 목록을 진행중(`l.isPast` 거짓, `#ckqActiveList`에
+    기본 펼침으로 렌더)과 지난(`l.isPast` 참, `#ckqPastList` — `<details class="cl-past-collapse">`
+    안이라 기본 접힘) 두 그룹으로 나눈다. 커리큘럼의 `.cl-past-collapse`/`.cl-past-list`
+    클래스를 그대로 재사용(흐림 처리 포함 — 여긴 실제로 "지난" 항목만 담으므로 v52에서
+    걱정했던 오해 소지가 없다).
+  - 문항 항목마다(`ckqLessonItemHtml_()`) "지난 체크인으로 표시"/"진행중으로 되돌리기" 버튼이
+    새로 붙었다(`dashToggleCheckinLessonPast()`) — 커리큘럼의 `dashToggleLessonPast()`를
+    그대로 체크인문항용으로 복제, `toggleCheckinLessonPast` action을 호출한다.
+  - **서버 쪽(`체크인문항` 시트에 `지난여부` 컬럼 추가, `toggleCheckinLessonPast` action,
+    `checkinPlanAdminGet_`이 내려주는 `isPast` 필드)은 이 저장소에 없다** — `history26_backend`,
+    아직 배포 대기. 배포 전까지는 `l.isPast`가 항상 비어있으므로 모든 문항이 진행중
+    그룹에만 보이고(지난 그룹은 항상 비어있음), 토글 버튼을 눌러도 서버가 action을 몰라서
+    반영되지 않는다 — 배포 후 정상 동작.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
@@ -287,10 +301,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   깨지던 버그 수정, v49 = 학급 공통 피드백 범위를 "전체 반"에서 "내 담당 반+개별 반"으로
   정정, v50 = 체크인 문항에 이미지 자료 지원 추가, v51 = 체크인 문항 자료 형식에 "없음"
   선택지 명시적 추가, v52 = 체크인 문항 관리 폼 UX 정리(사료 텍스트 textarea 확대,
-  필수/선택 입력란 라벨 구분, 학년 select→탭, 등록된 문항 목록 기본 접힘)(아래 각각 참고)
+  필수/선택 입력란 라벨 구분, 학년 select→탭, 등록된 문항 목록 기본 접힘), v53 = v52의
+  "등록된 문항 목록 기본 접힘"을 "개별 문항을 지난 체크인으로 표시해야만 접힘"으로 정정
+  (커리큘럼의 지난 활동 표시와 동일 방식)(아래 각각 참고)
   — 확인 시점 기준
   `index.html`/`style.css`에서 가장 높은
-  버전 표기는 v52). 여러 기능이 같은 버전
+  버전 표기는 v53). 여러 기능이 같은 버전
   번호를 먼저 붙였다가 나중에 충돌을 발견해 재번호한 이력도 있으므로(`git log` "버전표기 충돌 정리" 커밋
   참고), 새 버전 번호를 붙이기 전에 이미 쓰인 번호인지 먼저 확인할 것. 관련 로직을 고칠 때는 기존 버전
   주석을 참고해 과거에 이미 겪은 문제를 되풀이하지 않도록 하고, 의미 있는 변경이면 같은 스타일로 이유를
