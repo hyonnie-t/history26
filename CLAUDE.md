@@ -206,6 +206,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   format이 'image'가 아니면 사료텍스트 유무만 보고 판단하므로 사료텍스트가 비어있으면
   자동으로 자료 없음(`lesson.source` 없음)으로 처리된다 — 하위호환 걱정 없이 프론트만
   바꿔서 끝남.
+- **체크인 문항 관리 폼 UX 정리 (v52, 2026-09-14 — 효니 피드백)**: "새 문항 추가" 폼이 커지면서(v50~v51)
+  생긴 사용성 문제 네 가지를 손봤다. 프론트 전용 변경, 서버 영향 없음.
+  1. 사료 텍스트 textarea(`#ckqFormSourceText`)가 `.cl-form textarea` 기본값(최대 140px)이라 긴
+     사료를 붙여넣으면 스크롤 없이 못 읽었다 — 전용 클래스 `.cl-textarea-lg`(최소 160px·최대 420px,
+     `style.css` `.cl-form` 섹션)를 붙여 이 필드만 키웠다.
+  2. 폼 필드가 placeholder만 있고 라벨이 없어 필수/선택 구분이 안 됐다 — `.cl-field`/`.cl-field-label`
+     구조로 각 필드에 실제 `<label>`을 달고, 빨간 `*필수`(`.cl-req`, `--seal` 색)와 회색 알약형
+     `선택`(`.cl-opt`) 태그로 구분했다. 기준은 `dashSubmitCheckinLessonForm()`의 검증 로직 그대로
+     — 학년·차시id·제목·발문은 항상 필수, 옵션A/B는 judgment일 때만 필수, 사료(텍스트 또는 이미지)는
+     source_emotion일 때만 필수. 사료 자료의 필수 표시(`#ckqSourceReqTag`)는 유형에 따라 동적으로
+     켜져야 해서 `ckqToggleSourceFormatFields()`(형식 전환 시)와 `ckqOnTypeChange()`(유형 전환 시,
+     수정 모드 여부와 무관하게)가 같이 갱신한다.
+  3. 학년 선택이 `<select id="ckqGrade">`였던 걸 커리큘럼 관리 탭의 `cl-subtabs`/`cl-subtab` 관례를
+     그대로 재사용한 탭(`#ckqGradeTabs`, `switchCkqGradeTab_()`)으로 바꿨다. 선택 상태는 모듈
+     변수 `CKQ_GRADE`가 들고 있고(예전엔 select의 DOM 값 자체가 상태였음), `dashRenderCheckinLessonsList()`가
+     이 값을 읽는다 — `dashInitCheckinForm()`이 대시보드 재진입 때마다 `CHECKIN_PLAN`을 다시
+     불러오므로, 이미 고른 학년이 여전히 유효하면 유지하고 아니면(최초 진입 등) 첫 학년으로
+     초기화한다. **"새 문항 추가" 폼 안의 유형(`ckqFormGrade`) select는 그대로 둠** — 이 탭은
+     위쪽 "등록된 문항" 목록 필터 전용이라 별개.
+  4. 등록된 문항 목록(`#ckqList`)이 폼 위에 그대로 펼쳐져 있어 새 문항을 추가하려면 매번
+     스크롤을 내려야 했다 — 커리큘럼 관리 탭의 "지난 활동" 접힘(`<details class="cl-collapse">`)
+     관례를 그대로 가져와 기본 접힌 상태로 바꾸고, 제목에 문항 개수(`#ckqListCount`,
+     `dashRenderCheckinLessonsList()`가 갱신)를 붙였다. `.cl-past-collapse`(지난 활동 dimming)
+     대신 `.cl-collapse`(학년정보 카드와 같은 중립 스타일)를 썼다 — 여기 담긴 문항들은
+     "지난" 게 아니라 그냥 이미 등록된 전체 목록이라 흐리게 표시하면 오해를 줄 수 있어서다.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분
@@ -261,9 +286,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   범위 추가, v48 = 포트폴리오·클래스카드 링크에 스킴(https://) 없이 입력했을 때 상대경로로
   깨지던 버그 수정, v49 = 학급 공통 피드백 범위를 "전체 반"에서 "내 담당 반+개별 반"으로
   정정, v50 = 체크인 문항에 이미지 자료 지원 추가, v51 = 체크인 문항 자료 형식에 "없음"
-  선택지 명시적 추가(아래 각각 참고) — 확인 시점 기준
+  선택지 명시적 추가, v52 = 체크인 문항 관리 폼 UX 정리(사료 텍스트 textarea 확대,
+  필수/선택 입력란 라벨 구분, 학년 select→탭, 등록된 문항 목록 기본 접힘)(아래 각각 참고)
+  — 확인 시점 기준
   `index.html`/`style.css`에서 가장 높은
-  버전 표기는 v51). 여러 기능이 같은 버전
+  버전 표기는 v52). 여러 기능이 같은 버전
   번호를 먼저 붙였다가 나중에 충돌을 발견해 재번호한 이력도 있으므로(`git log` "버전표기 충돌 정리" 커밋
   참고), 새 버전 번호를 붙이기 전에 이미 쓰인 번호인지 먼저 확인할 것. 관련 로직을 고칠 때는 기존 버전
   주석을 참고해 과거에 이미 겪은 문제를 되풀이하지 않도록 하고, 의미 있는 변경이면 같은 스타일로 이유를

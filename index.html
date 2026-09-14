@@ -504,12 +504,16 @@
       <div class="ck-two-col" id="ckStatCols"></div>
     </div>
 
+    <!-- v52(2026-09-14) 변경 — 학년 선택을 select에서 탭으로(switchCkqGradeTab_),
+         등록된 문항 목록을 기본 접힌 toggle로(등록된 활동 목록의 cl-collapse 관례 재사용) —
+         "새 문항 추가" 폼에 닿기까지 문항 목록을 계속 스크롤해야 했던 문제를 줄임. -->
     <div class="cl-subpanel" id="ckSubLessons" style="display:none;">
-      <div class="cl-row" style="margin-bottom:12px;">
-        <select id="ckqGrade"></select>
-        <span style="flex:1;"></span>
-      </div>
-      <div id="ckqList" style="margin-bottom:18px;"></div>
+      <div class="cl-subtabs" id="ckqGradeTabs" style="margin-bottom:12px;"></div>
+
+      <details class="cl-collapse" id="ckqListCollapse">
+        <summary>📋 등록된 문항 (<span id="ckqListCount">0</span>) <span class="cl-arrow">▶</span></summary>
+        <div class="cl-collapse-body" id="ckqList"></div>
+      </details>
 
       <div class="cl-collapse">
         <div style="padding:14px 16px;">
@@ -522,16 +526,34 @@
                 <option value="judgment">judgment (판단형 2지선다)</option>
                 <option value="source_emotion">source_emotion (사료+단어칩)</option>
               </select>
-              <input id="ckqFormId" type="text" placeholder="차시id (예: w13-1)" style="flex:1 1 160px;">
+              <div class="cl-field" style="flex:1 1 160px;">
+                <label class="cl-field-label" for="ckqFormId">차시id <span class="cl-req">*필수</span></label>
+                <input id="ckqFormId" type="text" placeholder="예: w13-1">
+              </div>
             </div>
-            <input id="ckqFormTopic" type="text" placeholder="제목(topic)">
-            <input id="ckqFormTextbook" type="text" placeholder="교과서 위치 (예: 주제13 / 01) — 선택">
-            <textarea id="ckqFormPrompt" rows="2" placeholder="발문 (줄바꿈 가능)"></textarea>
+            <div class="cl-field">
+              <label class="cl-field-label" for="ckqFormTopic">제목(topic) <span class="cl-req">*필수</span></label>
+              <input id="ckqFormTopic" type="text" placeholder="">
+            </div>
+            <div class="cl-field">
+              <label class="cl-field-label" for="ckqFormTextbook">교과서 위치 <span class="cl-opt">선택</span></label>
+              <input id="ckqFormTextbook" type="text" placeholder="예: 주제13 / 01">
+            </div>
+            <div class="cl-field">
+              <label class="cl-field-label" for="ckqFormPrompt">발문 <span class="cl-req">*필수</span></label>
+              <textarea id="ckqFormPrompt" rows="2" placeholder="줄바꿈 가능"></textarea>
+            </div>
 
             <div id="ckqJudgmentFields">
               <div class="cl-row">
-                <input id="ckqFormOptionA" type="text" placeholder="옵션A 라벨" style="flex:1;">
-                <input id="ckqFormOptionB" type="text" placeholder="옵션B 라벨" style="flex:1;">
+                <div class="cl-field" style="flex:1;">
+                  <label class="cl-field-label" for="ckqFormOptionA">옵션A 라벨 <span class="cl-req">*judgment 필수</span></label>
+                  <input id="ckqFormOptionA" type="text" placeholder="">
+                </div>
+                <div class="cl-field" style="flex:1;">
+                  <label class="cl-field-label" for="ckqFormOptionB">옵션B 라벨 <span class="cl-req">*judgment 필수</span></label>
+                  <input id="ckqFormOptionB" type="text" placeholder="">
+                </div>
               </div>
             </div>
 
@@ -542,17 +564,20 @@
                  v51(2026-09-14) 추가: "없음"을 자료 형식 자체의 선택지로 명시 — 매번 텍스트나
                  이미지가 필요한 게 아니라서, 자료 없음을 "빈 텍스트칸을 그냥 안 채움"이 아니라
                  폼에서부터 분명하게 고를 수 있게 함(선택하면 텍스트/이미지 입력 UI 자체가 숨음).
-                 judgment 기본값은 '없음', source_emotion 기본값은 '텍스트'(ckqOnTypeChange 참고). -->
-            <div class="cl-row">
+                 judgment 기본값은 '없음', source_emotion 기본값은 '텍스트'(ckqOnTypeChange 참고).
+                 v52 추가: source_emotion일 때만 뜨는 *필수 표시(ckqSourceReqTag) —
+                 ckqToggleSourceFormatFields()가 현재 유형을 보고 토글함. -->
+            <div class="cl-row" style="align-items:center;">
               <span class="cl-hint" style="flex:0 0 auto;">자료 형식</span>
               <select id="ckqFormSourceFormat" onchange="ckqToggleSourceFormatFields()">
                 <option value="none">없음</option>
                 <option value="text">텍스트</option>
                 <option value="image">이미지</option>
               </select>
+              <span class="cl-req" id="ckqSourceReqTag" style="display:none;">*source_emotion 필수(텍스트 또는 이미지 중 하나)</span>
             </div>
             <div id="ckqSourceTextWrap" style="display:none;">
-              <textarea id="ckqFormSourceText" rows="2" placeholder="사료 텍스트 (줄바꿈 가능)"></textarea>
+              <textarea id="ckqFormSourceText" class="cl-textarea-lg" rows="8" placeholder="사료 텍스트 — 줄바꿈 가능"></textarea>
             </div>
             <div id="ckqSourceImageWrap" style="display:none;">
               <input type="file" id="ckqFormImageFile" accept="image/*" onchange="ckqHandleImageFileChange(this)">
@@ -561,22 +586,37 @@
                 <img id="ckqImagePreviewImg" class="ckq-image-preview" alt="">
                 <button type="button" class="btn btn-ghost btn-sm" onclick="ckqRemoveImage()">이미지 제거</button>
               </div>
-              <input id="ckqFormImageAlt" type="text" placeholder="대체 텍스트 (예: 고려도경 삽화 — 서긍이 그린 개경 궁궐 모습)">
+              <div class="cl-field">
+                <label class="cl-field-label" for="ckqFormImageAlt">대체 텍스트 <span class="cl-opt">선택 · 접근성 권장</span></label>
+                <input id="ckqFormImageAlt" type="text" placeholder="예: 고려도경 삽화 — 서긍이 그린 개경 궁궐 모습">
+              </div>
               <input type="hidden" id="ckqFormImageUrl" value="">
               <p id="ckqImageUploadStatus" class="cl-hint"></p>
             </div>
-            <input id="ckqFormSourceOrigin" type="text" placeholder="사료 출처 (예: 『선화봉사고려도경』 (12세기, 서긍)) — 선택" style="display:none;">
-
-            <div id="ckqWordChipsWrap" style="display:none;">
-              <input id="ckqFormWordChips" type="text" placeholder="단어칩 — 쉼표로 구분 (비우면 기본 6개 사용)">
+            <div class="cl-field" id="ckqSourceOriginField" style="display:none;">
+              <label class="cl-field-label" for="ckqFormSourceOrigin">사료 출처 <span class="cl-opt">선택</span></label>
+              <input id="ckqFormSourceOrigin" type="text" placeholder="예: 『선화봉사고려도경』 (12세기, 서긍)">
             </div>
 
-            <textarea id="ckqFormRecall" rows="2" placeholder="회수 질문 (교사만 봄, 학생 화면엔 안 뜸) — 선택"></textarea>
+            <div id="ckqWordChipsWrap" style="display:none;">
+              <div class="cl-field">
+                <label class="cl-field-label" for="ckqFormWordChips">단어칩 <span class="cl-opt">선택 · 비우면 기본 6개</span></label>
+                <input id="ckqFormWordChips" type="text" placeholder="쉼표로 구분">
+              </div>
+            </div>
+
+            <div class="cl-field">
+              <label class="cl-field-label" for="ckqFormRecall">회수 질문 <span class="cl-opt">선택 · 교사만 봄, 학생 화면엔 안 뜸</span></label>
+              <textarea id="ckqFormRecall" rows="2" placeholder="줄바꿈 가능"></textarea>
+            </div>
             <label class="chk-label">
               <input type="checkbox" id="ckqFormVerify"> 수업 전 사실관계 재확인 필요
             </label>
             <input id="ckqFormVerifyNote" type="text" placeholder="검증 메모 — 위 체크박스 켰을 때만 의미 있음">
-            <input id="ckqFormNote" type="text" placeholder="교사 메모 (설계 의도 등, 학생에게 안 보임) — 선택">
+            <div class="cl-field">
+              <label class="cl-field-label" for="ckqFormNote">교사 메모 <span class="cl-opt">선택 · 학생에게 안 보임</span></label>
+              <input id="ckqFormNote" type="text" placeholder="설계 의도 등">
+            </div>
             <div class="cl-row">
               <button id="btnCkqSave" onclick="dashSubmitCheckinLessonForm(this)">문항 추가</button>
               <button type="button" id="btnCkqCancel" class="btn-ghost btn" style="display:none;">취소하고 새로 작성</button>
@@ -2160,6 +2200,16 @@ function switchCkSubtab(sub){
   });
 }
 
+/* v52(2026-09-14) 신규 — 체크인 "문항 관리" 학년 탭 전환. 등록된 문항 목록(#ckqList)만
+ * 이 학년으로 다시 그린다(새 문항 추가 폼의 ckqFormGrade는 별개 select라 안 건드림). */
+function switchCkqGradeTab_(grade){
+  CKQ_GRADE = grade;
+  document.querySelectorAll('#ckqGradeTabs .cl-subtab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.grade === grade);
+  });
+  dashRenderCheckinLessonsList();
+}
+
 /* ── 공지 관리 (교사) ── */
 function dashInitAnnounceForm(){
   const grades = Object.keys(CONFIG.CURRICULUM);
@@ -2405,8 +2455,13 @@ async function dashInitCheckinForm(){
   }
   const grades = Object.keys(CHECKIN_PLAN);
   $('ckSetGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
-  $('ckqGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
   $('ckqFormGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  // v52 — 학년 선택을 select 대신 탭으로. 처음 들어올 때만 CKQ_GRADE를 첫 학년으로 초기화하고,
+  // 이미 고른 탭이 여전히 유효한 학년이면(문항 관리 탭을 여러 번 드나들 때) 유지한다.
+  if(!CKQ_GRADE || !grades.includes(CKQ_GRADE)) CKQ_GRADE = grades[0] || '';
+  $('ckqGradeTabs').innerHTML = grades.map(g =>
+    `<button type="button" class="cl-subtab${g === CKQ_GRADE ? ' active' : ''}" data-grade="${g}" onclick="switchCkqGradeTab_('${g}')">${g}학년</button>`
+  ).join('');
   dashRefreshCkSetLessons();
   dashOnCkSetTargetChange_();
   dashRenderCkSummaryTable_();
@@ -2727,6 +2782,7 @@ async function dashLoadCheckinAdmin(grade){
  * 따로 들고 있음 — 커리큘럼 관리와 동일한 이중 구조. */
 let CHECKIN_LESSONS_ADMIN = [];
 let CKQ_IMAGE_UPLOADING = false; // 2026-09-11 신규 — 이미지 업로드 중엔 저장을 막는다
+let CKQ_GRADE = ''; // v52(2026-09-14) 신규 — 문항 관리 학년 탭(ckqGradeTabs)의 현재 선택값
 
 async function dashLoadCheckinLessonsAdmin(){
   try{
@@ -2739,9 +2795,10 @@ async function dashLoadCheckinLessonsAdmin(){
 }
 
 function dashRenderCheckinLessonsList(){
-  const grade = $('ckqGrade').value;
+  const grade = CKQ_GRADE;
   const list = $('ckqList');
   const rows = CHECKIN_LESSONS_ADMIN.filter(l => l.grade === grade);
+  $('ckqListCount').textContent = String(rows.length);
   if(!rows.length){
     list.innerHTML = '<p class="cl-past-hint">이 학년에 등록된 문항이 없어요.</p>';
     return;
@@ -2782,6 +2839,10 @@ function ckqOnTypeChange(){
   if(!$('ckqEditRow').value){
     $('ckqFormSourceFormat').value = ckqDefaultSourceFormatForType_($('ckqFormType').value);
     ckqToggleSourceFormatFields();
+  } else {
+    // v52 — 수정 모드에선 자료 형식 자체는 안 건드리지만(기존 저장값 보존), *필수
+    // 표시는 유형이 바뀌는 즉시 최신 유형 기준으로 맞춰야 하므로 ckqSourceReqTag만 갱신한다.
+    $('ckqSourceReqTag').style.display = $('ckqFormType').value === 'source_emotion' ? 'inline' : 'none';
   }
   ckqToggleTypeFields();
 }
@@ -2792,7 +2853,9 @@ function ckqToggleSourceFormatFields(){
   const format = $('ckqFormSourceFormat').value;
   $('ckqSourceTextWrap').style.display = format === 'text' ? 'block' : 'none';
   $('ckqSourceImageWrap').style.display = format === 'image' ? 'block' : 'none';
-  $('ckqFormSourceOrigin').style.display = format === 'none' ? 'none' : 'block';
+  $('ckqSourceOriginField').style.display = format === 'none' ? 'none' : 'block';
+  // v52 — source_emotion은 자료(텍스트/이미지 중 하나)가 필수라서 그때만 *필수 표시를 띄운다.
+  $('ckqSourceReqTag').style.display = $('ckqFormType').value === 'source_emotion' ? 'inline' : 'none';
 }
 
 /* ── 체크인문항 이미지 업로드 (2026-09-11 신규) ──
@@ -4624,8 +4687,7 @@ $('clMulti').addEventListener('change', clToggleMulti);
 $('clOwner').addEventListener('change', clRefreshOwnerHint);
 $('clGrade').addEventListener('change', clRefreshOwnerHint);
 $('clThinkingType').addEventListener('change', clRefreshBadgeNameOptions);
-$('ckqGrade').addEventListener('change', dashRenderCheckinLessonsList);
-$('ckqFormType').addEventListener('change', ckqOnTypeChange); // v51: 자료 형식 기본값도 같이 맞춤
+$('ckqFormType').addEventListener('change', ckqOnTypeChange); // v51: 자료 형식 기본값도 같이 맞춤 (v52: *필수 표시도 같이)
 $('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);
 $('ckSetGrade').addEventListener('change', () => { dashRefreshCkSetLessons(); dashOnCkSetTargetChange_(); });
 $('ckSetBanOne').addEventListener('change', dashLoadCkSetCurrent);

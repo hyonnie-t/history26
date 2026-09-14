@@ -838,6 +838,19 @@ button{font-family:inherit; cursor:pointer;}
   border-radius:var(--radius-xs); font-family:inherit; font-size:.9rem; box-sizing:border-box; resize:vertical;
 }
 .cl-form .cl-hint{font-size:.8rem; color:var(--ink-soft);}
+/* v52(2026-09-14) — 필수/선택 입력란 구분용 라벨. 대부분의 cl-form 필드는 placeholder만
+   있고 별도 라벨이 없어 필수 여부가 안 보였던 문제(체크인 문항 폼) 대응 — 우선 체크인
+   문항 폼에 적용했고, 같은 혼란이 있는 다른 cl-form에도 재사용 가능. */
+.cl-field{display:flex; flex-direction:column; gap:3px;}
+.cl-field-label{font-size:.78rem; font-weight:600; color:var(--ink-soft); display:flex; align-items:center; gap:6px;}
+.cl-req{color:var(--seal); font-weight:700; font-size:.74rem; white-space:nowrap;}
+.cl-opt{
+  color:var(--ink-soft); font-weight:600; font-size:.7rem; white-space:nowrap;
+  background:var(--thead-bg); border-radius:999px; padding:1px 8px;
+}
+/* 사료 텍스트처럼 긴 글을 붙여넣는 textarea는 기본 cl-form textarea(최대 140px)가 너무
+   작아 스크롤 없이 읽기 힘들었다 — 이 클래스를 붙인 것만 더 크게. */
+.cl-form textarea.cl-textarea-lg{min-height:160px; max-height:420px;}
 /* v27 — "이 차시에 활동 2개 넣기" 켰을 때 나오는 활동1·활동2 입력 블록 */
 .cl-activity-block{
   display:flex; flex-direction:column; gap:8px;
