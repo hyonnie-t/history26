@@ -165,6 +165,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   없다.
 - 배포는 이 정적 파일들을 그대로 호스팅(GitHub Pages 등)하는 방식으로 보인다. 별도의 CI 워크플로우
   (`.github/workflows`)는 없다.
+- **`index.html`은 4793줄짜리 단일 파일이다.** 통째로 Read하면 그 내용이 대화에 계속 남아 이후 모든
+  턴에서 다시 처리된다 — 먼저 Grep으로 관련 함수/구분선 주석 위치를 찾고, 필요한 라인 범위만 Read할 것.
+  이 CLAUDE.md의 함수 참조가 대부분 `index.html:줄번호` 형식인 것도 그래서다.
 
 ## 코드 컨벤션 / 알아둘 점
 
