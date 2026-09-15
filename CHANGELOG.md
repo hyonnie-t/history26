@@ -5,7 +5,7 @@
 관련 로직을 고칠 때는 여기서 과거에 이미 겪은 문제를 확인해 되풀이하지 않을 것. 새 버전 번호를 붙이기
 전에 이미 쓰인 번호인지 먼저 확인할 것(여러 기능이 같은 번호를 먼저 붙였다가 충돌을 발견해 재번호한
 이력도 있음 — `git log` "버전표기 충돌 정리" 커밋 참고). 확인 시점 기준 `index.html`/`style.css`에서
-가장 높은 버전 표기는 v53.
+가장 높은 버전 표기는 v54.
 
 ## 버전 요약
 
@@ -21,7 +21,8 @@ orientation으로 정정, v44 = 사이드카드(나무·칭호첩) 높이 계산
 반"으로 정정, v50 = 체크인 문항에 이미지 자료 지원 추가, v51 = 체크인 문항 자료 형식에 "없음" 선택지
 명시적 추가, v52 = 체크인 문항 관리 폼 UX 정리(사료 텍스트 textarea 확대, 필수/선택 입력란 라벨 구분,
 학년 select→탭, 등록된 문항 목록 기본 접힘), v53 = v52의 "등록된 문항 목록 기본 접힘"을 "개별 문항을
-지난 체크인으로 표시해야만 접힘"으로 정정(커리큘럼의 지난 활동 표시와 동일 방식).
+지난 체크인으로 표시해야만 접힘"으로 정정(커리큘럼의 지난 활동 표시와 동일 방식), v54 = "오늘의 체크인
+차시 설정" 드롭다운에서 지난 체크인으로 표시한 문항 제외.
 
 ## v42~v44 — 학생 포털 구조 재배치 (2026-09-08, 효니 진단 요청)
 
@@ -119,3 +120,15 @@ v34~v38에서 학급 공통 피드백·알림·모아보기·질문함 연결까
 다시 짰다. 서버 쪽(`체크인문항` 시트 `지난여부` 컬럼, `toggleCheckinLessonPast` action,
 `checkinPlanAdminGet_`의 `isPast` 필드)은 `history26_backend`, 배포 대기(작성 시점 기준 — 최신 배포
 상태는 그쪽 CLAUDE.md 참고).
+
+## v54 — "오늘의 체크인 차시 설정" 목록에서 지난 체크인 제외 (2026-09-15, 효니 피드백)
+
+v53까지는 "문항 관리" 탭 목록(`ckqActiveList`/`ckqPastList`)만 진행중/지난으로 나뉘었고, "오늘/현황"
+탭의 "오늘의 체크인 차시 설정" 드롭다운(`#ckSetLesson`, `dashRefreshCkSetLessons()`)은 학생용
+`mode=checkinPlan` 응답(`CHECKIN_PLAN`)을 그대로 나열해서 지난 체크인으로 표시한 문항도 계속 뜨고
+그대로 "오늘의 체크인"으로 지정할 수 있었다 — `CHECKIN_PLAN`엔 애초에 `isPast` 필드 자체가 없다
+(`checkinPlanGet_`은 학생 화면용이라 이 필드를 안 실어줌, `history26_backend` CLAUDE.md 참고).
+`dashRefreshCkSetLessons()`가 교사용 `CHECKIN_LESSONS_ADMIN`(`isPast` 있음)과 (학년,id) 기준으로
+대조해서 지난 체크인은 옵션에서 빼도록 고쳤다. `CHECKIN_LESSONS_ADMIN`은 `dashInitCheckinForm()`
+안에서 `dashRefreshCkSetLessons()`보다 늦게 로드되므로, 로드가 끝난 뒤 한 번 더 호출해 초기 진입
+시에도 걸러지게 했고, `dashToggleCheckinLessonPast()`(토글 즉시 반영)에도 같은 호출을 추가했다.

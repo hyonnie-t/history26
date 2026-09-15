@@ -2474,6 +2474,7 @@ async function dashInitCheckinForm(){
   dashRenderCkStatColumns_();
   await dashLoadCheckinLessonsAdmin();
   dashRenderCheckinLessonsList();
+  dashRefreshCkSetLessons(); // v54 — CHECKIN_LESSONS_ADMIN(isPast)이 이제 막 채워졌으니 다시 걸러서 그림
 }
 
 /* v40 — 반별 체크인 차시 요약 표. "전체 반" 값과 반별 override 값을 각각 조회해서 비교하는
@@ -2541,10 +2542,16 @@ function dashRenderCkStatColumns_(){
   grades.forEach(grade => { dashRefreshCkViewBans(grade); dashLoadCheckinAdmin(grade); });
 }
 
+/* v54 — "오늘의 체크인 차시 설정" 드롭다운은 학생용 mode=checkinPlan(CHECKIN_PLAN, isPast 필드
+ * 없음)을 그대로 나열해왔다 — 문항 관리 탭에서 "지난 체크인으로 표시"한 문항도 이 목록엔 계속
+ * 남아 오늘의 체크인으로 잘못 지정될 수 있었다. CHECKIN_LESSONS_ADMIN(교사용, isPast 있음)과
+ * 같은 (학년,id) 기준으로 대조해서 지난 체크인은 목록에서 뺀다. */
 function dashRefreshCkSetLessons(){
   const grade = $('ckSetGrade').value;
   const lessons = (CHECKIN_PLAN[grade] && CHECKIN_PLAN[grade].lessons) || [];
-  $('ckSetLesson').innerHTML = lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.topic)}</option>`).join('');
+  const pastIds = new Set(CHECKIN_LESSONS_ADMIN.filter(l => l.grade === grade && l.isPast).map(l => l.id));
+  const visible = lessons.filter(l => !pastIds.has(l.id));
+  $('ckSetLesson').innerHTML = visible.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.topic)}</option>`).join('');
 }
 
 /* v41 — "체크인 차시 적용 대상" 라디오 3분류(담당 학급반/전체/개별 반)에 따라
@@ -2844,6 +2851,7 @@ async function dashToggleCheckinLessonPast(btn){
     const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
     if(l){ l.isPast = !l.isPast; }
     dashRenderCheckinLessonsList();
+    dashRefreshCkSetLessons(); // v54 — 지난 체크인 토글 즉시 "오늘의 체크인 차시 설정" 목록에도 반영
   }catch(e){
     showToast('처리하지 못했어요. 다시 시도해 주세요.');
   }finally{
