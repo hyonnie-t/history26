@@ -462,6 +462,16 @@ button{font-family:inherit; cursor:pointer;}
 .portfolio-card .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
 .portfolio-card .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
 
+/* v54(2026-09-15) — 성적조회 카드. 포트폴리오/클래스카드와 달리 데이터 유무로
+   숨겨지는 카드가 아니라 항상 노출되는 진입점이라, 부모 .portfolio-card의
+   기본 display:none을 여기서 명시적으로 뒤집는다. */
+.grade-card{ display:flex; }
+.grade-table{ width:100%; border-collapse:collapse; margin-top:6px; }
+.grade-table th, .grade-table td{
+  text-align:left; padding:6px 8px; border-bottom:1px solid var(--line, #e5e0d8); font-size:.88rem;
+}
+.grade-table th{ color:var(--ink-soft); font-weight:600; width:40%; }
+
 /* 공지사항(학년+반별) */
 .announce-card{
   display:none; background:var(--amber-bg); border:1px solid var(--amber-border);
