@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/run_webapp_tests.sh",
+            "timeout": 180,
+            "statusMessage": "index.html 변경 감지 — webapp-testing 자동 검증 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
