@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-과거 버전(v12~v53)에서 왜 그렇게 바꿨는지, 무엇을 시도했다 되돌렸는지 같은 이력은
+과거 버전(v12~v55)에서 왜 그렇게 바꿨는지, 무엇을 시도했다 되돌렸는지 같은 이력은
 [`CHANGELOG.md`](./CHANGELOG.md)에 있다. 여기는 **지금 코드가 실제로 어떻게 동작하는지**와
 **고칠 때 반드시 알아야 할 함정**만 남긴다.
 
@@ -129,6 +129,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   "지난 체크인으로 표시" 버튼(`dashToggleCheckinLessonPast()`)이 `toggleCheckinLessonPast` action을
   호출한다. 서버 배포 상태는 `history26_backend` CLAUDE.md 참고 — 배포 전엔 모든 문항이 항상 진행중
   그룹에만 보이고 토글도 반영되지 않는다.
+- **성적조회**: 별도 GAS 스크립트로 있던 "엑셀 성적표 → 학생 개인 조회"를 포털에 통합했다. **포털
+  로그인(`login()`)은 무변경** — 학생 포털 "그 밖의 기록" 영역의 `#gradeCard`(포트폴리오와 같은
+  `.portfolio-card` 구조, `index.html:189` 부근)에서만 학번+이름(`SESSION`)에 비밀번호까지 3중 매칭을
+  추가로 요구한다(`mode=grade`, `openGradeGate()`/`submitGradeLookup()`). 매칭 실패 사유(학번/이름/
+  비밀번호 중 뭐가 틀렸는지)는 서버가 이미 통일된 메시지로만 반환하므로 프론트도 그대로 보여줄 뿐 원인을
+  구분하지 않는다(무차별 대입 단서 차단). 교사 대시보드 "🧮 성적관리" 탭(`panelGrades`)이 성적 엑셀 업로드
+  (`dashUploadGradeExcel()`)와 열람 상태 ON/OFF 토글(`dashSetGradeDisplayStatus()`)을 제공한다.
+  **학생별 비밀번호 관리 UI는 없음** — 효니가 "계정" 시트를 구글시트에서 직접 편집한다(핸드오프 확정
+  사항). ⚠️ 매칭키가 원본의 "반+번호"가 아니라 history26 5자리 학번이라, 업로드하는 성적 엑셀의 학번
+  열도 5자리 형식이어야 조회된다. 서버 쪽(`계정` 시트, `mode=grade`/`gradeStatus`,
+  `action=uploadGradeExcel`/`setGradeDisplayStatus`) 배포 상태는 `history26_backend` CLAUDE.md 참고.
 - **백엔드는 이 저장소에 없다.** `config.js`의 `WEBAPP_URL`이 가리키는 Google Apps Script 웹앱이 API 역할을
   하며, 데이터 저장소는 Google Sheets다. 프론트엔드는 `?mode=...` 쿼리 파라미터(GET, 조회용)와
   `{ action: '...' }` JSON body(POST, 변경용) 두 가지 방식으로 통신한다. 교사 쓰기 작업은 대부분

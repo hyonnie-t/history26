@@ -180,6 +180,34 @@
         <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--indigo);">클래스카드 열기 →</a>
       </section>
 
+      <!-- v54(2026-09-15, 핸드오프 "성적조회 통합 v2" 옵션 A) — 성적조회 진입점.
+           포트폴리오·클래스카드와 다르게 "학기 내내 접근 가능한 링크"가 아니라
+           별도 인증(비밀번호)이 필요한 조회라, 정적 링크 대신 카드 안에서 상태
+           (안내 → 비밀번호 입력 → 결과)를 직접 전환한다. 포털 로그인(SESSION)과
+           완전히 분리된 인증이라 studentId·name은 SESSION 값을 그대로 실어 보내되
+           비밀번호는 매번 새로 입력받는다(자동로그인 캐싱 안 함). -->
+      <section class="portfolio-card grade-card" id="gradeCard" aria-label="성적조회" style="flex-direction:column; align-items:stretch; gap:10px;">
+        <div>
+          <p class="pf-label">나의 성적 확인하기</p>
+          <p class="pf-desc">비밀번호는 선생님이 알려준 값이에요. 성적 열람 기간에만 확인할 수 있어요.</p>
+        </div>
+        <div id="gradeIntro">
+          <button class="btn-go" id="gradeOpenBtn" style="background:var(--seal);" onclick="openGradeGate()">성적 확인하기 →</button>
+        </div>
+        <div id="gradeForm" style="display:none;">
+          <input id="gradePasswordInput" type="password" placeholder="비밀번호" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom:8px;">
+          <div class="hstack-sm">
+            <button class="btn-go" id="gradeSubmitBtn" style="background:var(--seal);" onclick="submitGradeLookup()">확인</button>
+            <button class="btn-logout" onclick="closeGradeGate_()">취소</button>
+          </div>
+          <p class="login-error" id="gradeError" style="display:none;"></p>
+        </div>
+        <div id="gradeResultWrap" style="display:none;">
+          <table class="grade-table" id="gradeTable"></table>
+          <button class="btn-logout" style="margin-top:8px;" onclick="closeGradeResult_()">닫기</button>
+        </div>
+      </section>
+
       <!-- v42 — "학기 총평" 전용 카드(구 #feedbackCard)는 제거. fbGeneral(차시에
            안 속한 피드백)도 fbAll에 포함돼 아래 모아보기에 "학기 총평" 라벨로
            그대로 뜨므로(feedbackLabel_, 같은 내용을 두 카드에 중복 표시하던 것만
@@ -238,6 +266,7 @@
     <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
     <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">🌡️ 체크인</button>
     <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">🎤 탐구포인트</button>
+    <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">🧮 성적관리</button>
   </div>
 
   <div class="dash-panel" id="panelRecords">
@@ -681,6 +710,34 @@
     <p class="dash-hint" style="margin-top:22px; font-weight:700;">📋 고민리스트 자원 카드 보너스</p>
     <p class="dash-hint">2단계에서 카드를 1장 더 자원해서 쓴 학생에게만 탐구포인트를 차등 지급해요.</p>
     <div id="gmBonusBox"></div>
+  </div>
+
+  <!-- v54(2026-09-15 신규, 핸드오프 "성적조회 통합 v2") — 성적 엑셀 업로드 + 열람상태 토글.
+       계정(학번·이름·비밀번호) 관리는 여기 UI를 따로 안 만들고 효니가 "계정" 시트를 직접
+       열어 편집하기로 확정됨 — 이 탭은 성적 데이터 자체(엑셀 업로드)와 열람 기간만 다룬다. -->
+  <div class="dash-panel" id="panelGrades" style="display:none;">
+    <p class="dash-hint">
+      성적 엑셀(.xlsx)을 올리면 자동으로 스프레드시트로 변환돼 조회용 시트로 지정돼요. 새로 올리면 이전 시트는 더 이상 조회되지 않아요.
+    </p>
+    <p class="dash-hint">
+      ⚠️ 학생이 성적조회에서 쓰는 매칭키는 history26 학번(5자리)이에요 — 엑셀의 학번 열도 5자리 형식이어야 조회돼요.
+    </p>
+    <div class="filters">
+      <input type="file" id="gradeExcelFile" accept=".xlsx,.xls">
+      <button type="button" id="gradeUploadBtn" onclick="dashUploadGradeExcel(this)">업로드</button>
+    </div>
+    <div id="gradeUploadStatus" class="dash-hint" style="min-height:18px;"></div>
+
+    <p class="dash-hint" style="margin-top:22px; font-weight:700;">열람 상태</p>
+    <div id="gradeStatusBox" class="dash-hint">불러오는 중…</div>
+    <div class="filters">
+      <button type="button" id="gradeStatusOnBtn" onclick="dashSetGradeDisplayStatus(this,'ON')">열람 열기</button>
+      <button type="button" id="gradeStatusOffBtn" onclick="dashSetGradeDisplayStatus(this,'OFF')">열람 닫기</button>
+    </div>
+
+    <p class="dash-hint" style="margin-top:22px;">
+      학생별 비밀번호는 "계정" 시트에서 직접 관리해요(학번·이름·비밀번호 3열, 평문 저장) — 여기 대시보드엔 별도 편집 UI가 없어요.
+    </p>
   </div>
 </div>
 
@@ -1787,6 +1844,62 @@ function showToast(msg){
 }
 
 /* ════════════════════════════════════════════════════════
+ * 성적조회 (v54, 2026-09-15 신규 — 핸드오프 "성적조회 통합 v2" 옵션 A)
+ * 포털 로그인(login())과 완전히 분리된 별도 인증 — SESSION.studentId·SESSION.name은
+ * 그대로 쓰되 비밀번호는 매번 새로 입력받아 mode=grade(학번+이름+비밀번호 3중
+ * 매칭, history26_backend gradeGet_)로 조회한다. 서버가 실패 사유를 이미
+ * 뭉뚱그려 반환하므로("정보가 일치하지 않습니다") 프론트는 그 메시지를 그대로
+ * 보여줄 뿐, 어떤 값이 틀렸는지 추측해서 알려주는 로직을 두지 않는다.
+ * ════════════════════════════════════════════════════════ */
+function openGradeGate(){
+  $('gradeIntro').style.display = 'none';
+  $('gradeForm').style.display = 'block';
+  $('gradePasswordInput').value = '';
+  $('gradeError').style.display = 'none';
+  $('gradePasswordInput').focus();
+}
+function closeGradeGate_(){
+  $('gradeForm').style.display = 'none';
+  $('gradeIntro').style.display = 'block';
+}
+async function submitGradeLookup(){
+  const password = $('gradePasswordInput').value.trim();
+  if(!password){ showGradeError_('비밀번호를 입력해 주세요.'); return; }
+  const btn = $('gradeSubmitBtn');
+  btn.disabled = true; btn.textContent = '확인 중…';
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=grade&studentId=" + encodeURIComponent(SESSION.studentId)
+      + "&name=" + encodeURIComponent(SESSION.name)
+      + "&password=" + encodeURIComponent(password);
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조회에 실패했어요.');
+    renderGradeResult_(data.headers || [], data.data || []);
+  }catch(e){
+    showGradeError_(e.message || '조회에 실패했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '확인';
+  }
+}
+function showGradeError_(msg){
+  const el = $('gradeError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function renderGradeResult_(headers, data){
+  $('gradeForm').style.display = 'none';
+  $('gradeTable').innerHTML = headers.map((h, i) =>
+    '<tr><th>' + escapeHtml(String(h)) + '</th><td>' + escapeHtml(String(data[i] == null ? '' : data[i])) + '</td></tr>'
+  ).join('');
+  $('gradeResultWrap').style.display = 'block';
+}
+function closeGradeResult_(){
+  $('gradeResultWrap').style.display = 'none';
+  $('gradeIntro').style.display = 'block';
+}
+
+/* ════════════════════════════════════════════════════════
  * 칭호첩(특별 칭호) — v23 연동, v24에서 렌더링 방식 변경
  * backend_v24.gs studentGet_이 이미 계산해서 내려주는 badges 배열을 그대로
  * 그리기만 한다(계산은 백엔드 computeBadges_ 담당, 프론트는 렌더링 전담).
@@ -2171,12 +2284,13 @@ async function enterDash(token){
 
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
-  ['records','questions','announce','curriculum','checkin','points'].forEach(t => {
+  ['records','questions','announce','curriculum','checkin','points','grades'].forEach(t => {
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
+  if(tab === 'grades') dashLoadGradeStatus_();
 }
 
 const SEL_APP_URL = 'https://script.google.com/macros/s/AKfycbzQnKFwxatWB8od042GSGVuID9fn2aPy73S5v4v-Eh9EtFjOd7ha6ZUz9DXsdRq2M2H/exec';
@@ -2474,7 +2588,7 @@ async function dashInitCheckinForm(){
   dashRenderCkStatColumns_();
   await dashLoadCheckinLessonsAdmin();
   dashRenderCheckinLessonsList();
-  dashRefreshCkSetLessons(); // v54 — CHECKIN_LESSONS_ADMIN(isPast)이 이제 막 채워졌으니 다시 걸러서 그림
+  dashRefreshCkSetLessons(); // v55 — CHECKIN_LESSONS_ADMIN(isPast)이 이제 막 채워졌으니 다시 걸러서 그림
 }
 
 /* v40 — 반별 체크인 차시 요약 표. "전체 반" 값과 반별 override 값을 각각 조회해서 비교하는
@@ -2542,7 +2656,7 @@ function dashRenderCkStatColumns_(){
   grades.forEach(grade => { dashRefreshCkViewBans(grade); dashLoadCheckinAdmin(grade); });
 }
 
-/* v54 — "오늘의 체크인 차시 설정" 드롭다운은 학생용 mode=checkinPlan(CHECKIN_PLAN, isPast 필드
+/* v55 — "오늘의 체크인 차시 설정" 드롭다운은 학생용 mode=checkinPlan(CHECKIN_PLAN, isPast 필드
  * 없음)을 그대로 나열해왔다 — 문항 관리 탭에서 "지난 체크인으로 표시"한 문항도 이 목록엔 계속
  * 남아 오늘의 체크인으로 잘못 지정될 수 있었다. CHECKIN_LESSONS_ADMIN(교사용, isPast 있음)과
  * 같은 (학년,id) 기준으로 대조해서 지난 체크인은 목록에서 뺀다. */
@@ -2851,7 +2965,7 @@ async function dashToggleCheckinLessonPast(btn){
     const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
     if(l){ l.isPast = !l.isPast; }
     dashRenderCheckinLessonsList();
-    dashRefreshCkSetLessons(); // v54 — 지난 체크인 토글 즉시 "오늘의 체크인 차시 설정" 목록에도 반영
+    dashRefreshCkSetLessons(); // v55 — 지난 체크인 토글 즉시 "오늘의 체크인 차시 설정" 목록에도 반영
   }catch(e){
     showToast('처리하지 못했어요. 다시 시도해 주세요.');
   }finally{
@@ -4219,6 +4333,77 @@ async function dashCourtCasePush(btn){
     statusEl.textContent = '❌ 등록하지 못했어: ' + e.message;
   }finally{
     btn.disabled = false; btn.textContent = 're_judge에 자동 등록';
+  }
+}
+
+/* ── 성적 엑셀 업로드 (교사, 2026-09-15 신규 — 핸드오프 "성적조회 통합 v2") ──
+ * 파일을 base64로 읽어 action=uploadGradeExcel로 보낸다. 업로드에 성공하면
+ * 그 시트가 즉시 활성 조회 대상이 된다(이전 시트는 더 이상 조회되지 않음 —
+ * 원본 스크립트와 동일한 "덮어쓰기" 방식). */
+async function dashUploadGradeExcel(btn){
+  const fileInput = $('gradeExcelFile');
+  const file = fileInput.files[0];
+  const statusEl = $('gradeUploadStatus');
+  if(!file){ statusEl.textContent = '❌ 파일을 선택해 주세요.'; return; }
+  btn.disabled = true; btn.textContent = '업로드 중…';
+  statusEl.textContent = '';
+  try{
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'uploadGradeExcel', token:TOKEN, fileBase64: base64, filename: file.name })
+    });
+    const data = await res.json();
+    if(data.result === 'success'){
+      statusEl.textContent = '✅ 업로드 완료 — 이제 이 시트가 조회 대상이에요.';
+      fileInput.value = '';
+      dashLoadGradeStatus_();
+    } else {
+      statusEl.textContent = `❌ ${data.message || '업로드 실패'}`;
+    }
+  }catch(e){
+    statusEl.textContent = '❌ 업로드하지 못했어: ' + e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = '업로드';
+  }
+}
+
+/* ── 성적 열람 상태 조회·전환 (교사, 2026-09-15 신규) ── */
+async function dashLoadGradeStatus_(){
+  const box = $('gradeStatusBox');
+  box.textContent = '불러오는 중…';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL + '?mode=gradeStatus&token=' + encodeURIComponent(TOKEN));
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+    const statusLabel = data.status === 'ON' ? '🟢 열람 중' : '⚪ 닫힘';
+    const sheetLine = data.sheetUrl
+      ? ' · <a href="' + data.sheetUrl + '" target="_blank" rel="noopener">활성 시트 열기</a>'
+      : ' · 등록된 시트 없음';
+    box.innerHTML = statusLabel + sheetLine;
+  }catch(e){
+    box.textContent = '❌ 상태를 불러오지 못했어: ' + e.message;
+  }
+}
+async function dashSetGradeDisplayStatus(btn, status){
+  btn.disabled = true;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'setGradeDisplayStatus', token:TOKEN, status })
+    });
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '전환 실패');
+    dashLoadGradeStatus_();
+  }catch(e){
+    showToast('❌ ' + e.message);
+  }finally{
+    btn.disabled = false;
   }
 }
 
