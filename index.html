@@ -2272,7 +2272,6 @@ async function enterDash(token){
     dashRenderAnnouncements();
     dashRenderLessons();
     dashRenderGradeInfoForm();
-    dashInitCheckinForm();
     dashRenderGongminBonus_();
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
@@ -2291,6 +2290,7 @@ function switchDashTab(tab){
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
   if(tab === 'grades') dashLoadGradeStatus_();
+  if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
 }
 
 const SEL_APP_URL = 'https://script.google.com/macros/s/AKfycbzQnKFwxatWB8od042GSGVuID9fn2aPy73S5v4v-Eh9EtFjOd7ha6ZUz9DXsdRq2M2H/exec';
@@ -2534,6 +2534,12 @@ async function dashSaveGradeInfo(grade, btn){
  * 특정 반 행이 있으면 그 반에서는 그게 우선(백엔드 checkinTodayGet_와 동일 규칙). */
 let CK_TODAY_LESSON = {}; // "grade-ban" → 오늘 설정된 lessonId (recall 조회용 캐시. ckFetchTodayLessonId_가 채움)
 const CHECKIN_LOW_TEMP_DISPLAY = 2; // 온도 분포 막대에서 "저온도"로 강조할 기준값 (백엔드 CHECKIN_LOW_TEMP와 동일하게 맞춤)
+/* v56 — 체크인 탭 관리 데이터(학년×반 조합마다 mode=checkinToday를 따로 쏘는 요약표 포함,
+ * 총 10개 안팎의 GAS 요청)를 대시보드 진입 때마다 무조건 병렬로 쏘던 걸 "체크인" 탭을
+ * 실제로 열 때 1회만 불러오도록 미룸. dashLoadData()의 6개 요청과 겹쳐 한 번에 15~20개
+ * 요청이 몰리면서 GAS 쪽 동시 실행 한도에 걸려 일부가 404 나고 대시보드 전체 체감 속도도
+ * 느려졌던 문제였음(다른 탭은 이 데이터를 참조하지 않아 미뤄도 안전). */
+let CK_ADMIN_LOADED = false;
 
 /* v40 — config.js BAN_SIZE에서 인원수가 채워진(=실제 수업 맡은) 반만 뽑아낸다.
  * 학번체계상 2학년(1~4반)/3학년(5~8반)이 겹치지 않는다는 전제(핸드오프 "체크인 대시보드:
@@ -4939,7 +4945,7 @@ $('btnDashRefresh').addEventListener('click', async () => {
     await dashLoadData();
     renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm();
     dashRenderGongminBonus_();
-    if(CHECKIN_PLAN){
+    if(CK_ADMIN_LOADED && CHECKIN_PLAN){
       CK_TODAY_LESSON = {};
       await dashLoadCkSetCurrent();
       dashRenderCkSummaryTable_();
