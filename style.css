@@ -172,9 +172,7 @@ button{font-family:inherit; cursor:pointer;}
 .kpi,
 .unit-banner,
 .portfolio-card,
-.question-card,
-.overview-card,
-.archive-card,
+.tab-card,
 .lesson-card,
 .dash-questions,
 .filters,
@@ -450,17 +448,19 @@ button{font-family:inherit; cursor:pointer;}
 }
 .unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
 
-/* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 */
+/* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드.
+ * v57 — pf-label/title/desc는 .portfolio-card(성적조회 카드가 계속 씀) 밖에서도
+ * .ref-link-panel(패들렛·클래스카드 탭 패널)이 재사용하므로 스코프를 풀었다. */
 .portfolio-card{
   display:none; border-left:5px solid var(--jade);
   padding:14px 18px; margin-bottom:14px;
   align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
 }
-.portfolio-card .pf-label{
+.pf-label{
   font-size:.76rem; letter-spacing:.22em; color:var(--jade); font-weight:700; margin-bottom:2px;
 }
-.portfolio-card .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
-.portfolio-card .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
+.pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
+.pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
 
 /* v54(2026-09-15) — 성적조회 카드. 포트폴리오/클래스카드와 달리 데이터 유무로
    숨겨지는 카드가 아니라 항상 노출되는 진입점이라, 부모 .portfolio-card의
@@ -485,25 +485,34 @@ button{font-family:inherit; cursor:pointer;}
 .announce-item:first-of-type{border-top:none; padding-top:0;}
 .announce-item .an-meta{font-size:.76rem; color:var(--ink-soft); margin-bottom:2px;}
 
+/* v57 — 질문함/나의 달성도/보관함, 패들렛/클래스카드처럼 카드 하나를 여러 탭으로
+ * 나눌 때 쓰는 공용 탭 컴포넌트. 대시보드 .dash-tabs와 같은 밑줄 탭 패턴이지만
+ * 카드 패딩 안에서 쓰여 별도 클래스로 뺐다(.dash-tabs를 그대로 쓰면 대시보드 전용
+ * 마진에 얽매임). .tab-card는 위 카드형 공통 베이스에서 배경·테두리·그림자를 받는다. */
+.tab-card{padding:14px 18px 18px;}
+.tab-nav{display:flex; gap:2px; flex-wrap:wrap; border-bottom:1px solid var(--line); margin-bottom:14px;}
+.tab-btn{
+  position:relative; background:transparent; border:none; cursor:pointer;
+  font-family:var(--font-display); font-size:.9rem; font-weight:700; color:var(--ink-soft);
+  padding:9px 14px; border-bottom:3px solid transparent; margin-bottom:-1px; min-height:var(--tap-min);
+}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--indigo); border-bottom-color:var(--indigo);}
+.tab-panel{animation:fadeIn .15s ease;}
+.ref-link-panel{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;}
+
 /* 질문함 — 학생 ↔ 교사 */
-.question-card{
-  border-left:5px solid var(--indigo);
-  padding:16px 20px; margin-bottom:14px;
-}
-.question-card h2{
-  font-family:var(--font-display); font-size:1.02rem; margin-bottom:4px; color:var(--indigo-deep);
-}
-.question-card .q-hint{font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;}
-.question-card .q-form{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
-.question-card .q-form textarea{
+.q-hint{font-size:.83rem; color:var(--ink-soft); margin-bottom:10px;}
+.q-form{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+.q-form textarea{
   flex:1 1 220px; min-height:60px; resize:vertical; border:1px solid var(--line);
   border-radius:var(--radius-sm); padding:9px 11px; font-family:var(--font-body); font-size:.92rem;
 }
-.question-card .q-form button{
+.q-form button{
   align-self:flex-end; background:var(--indigo); color:#fff; border:none;
   border-radius:999px; padding:9px 18px; font-size:.86rem; font-weight:700; cursor:pointer; flex-shrink:0;
 }
-.question-card .q-form button:disabled{opacity:.6; cursor:default;}
+.q-form button:disabled{opacity:.6; cursor:default;}
 .q-item{padding:10px 0; border-top:1px dashed var(--line); font-size:.93rem;}
 .q-item:first-of-type{border-top:none; padding-top:0;}
 .q-item .q-meta{font-size:.78rem; color:var(--ink-soft); margin-bottom:2px; display:flex; align-items:center; gap:6px;}
@@ -532,11 +541,7 @@ button{font-family:inherit; cursor:pointer;}
 .feedback-item .fb-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:2px;}
 .feedback-item .fb-ask-btn{margin-top:8px;} /* v38 — 피드백 모아보기 카드 전용, 학기 총평 카드엔 안 뜸 */
 
-/* 달성도 모아보기 */
-.overview-card{
-  padding:16px 20px; margin-bottom:14px; display:none;
-}
-.overview-card h2{font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px;}
+/* 달성도 모아보기 — v57: 최근 3개만 기본 노출, 나머지는 #overviewMoreBtn 토글로 펼침 */
 .overview-item{
   display:flex; align-items:center; gap:10px; padding:7px 0;
   border-top:1px dashed var(--line); font-size:.93rem;
@@ -544,21 +549,13 @@ button{font-family:inherit; cursor:pointer;}
 .overview-item:first-of-type{border-top:none; padding-top:0;}
 .overview-item .dots{letter-spacing:2px; color:var(--ochre); flex-shrink:0;}
 .overview-item .ov-title{font-weight:600;}
+.overview-more-btn{
+  display:block; margin:10px auto 0; background:transparent; border:1px dashed var(--line);
+  border-radius:999px; padding:7px 16px; font-size:.82rem; font-weight:600; color:var(--ink-soft); cursor:pointer;
+}
+.overview-more-btn:hover{border-color:var(--indigo); color:var(--indigo);}
 
 /* 내 기록 보관함 */
-.archive-card{
-  margin-bottom:14px; display:none; overflow:hidden;
-}
-.archive-card summary{
-  list-style:none; cursor:pointer; padding:15px 20px;
-  font-family:var(--font-display); font-size:1.02rem; font-weight:700;
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-}
-.archive-card summary::-webkit-details-marker{display:none;}
-.archive-card summary .arch-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.85rem;}
-.archive-card[open] summary .arch-arrow{transform:rotate(90deg);}
-.archive-card summary:hover{background:var(--panel-alt);}
-.archive-body{padding:0 20px 16px;}
 .archive-hint{font-size:.84rem; color:var(--ink-soft); margin-bottom:10px;}
 .archive-item{
   border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--input-bg);

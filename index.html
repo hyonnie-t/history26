@@ -147,6 +147,41 @@
         <p class="ub-q" id="unitQuestion"></p>
       </section>
 
+      <!-- v57 — 질문함·달성도·보관함을 탭 하나로 묶어 단원질문 바로 아래(상단)로 끌어올림.
+           v42는 이 셋을 전부 "그 밖의 기록" 맨 아래로 보냈는데, 효니 피드백으로 자주 쓰는
+           기능이라 다시 상단으로 — 다만 세 카드를 그대로 쌓으면 상단이 길어지니 탭으로
+           묶어 카드 하나 높이만 차지하게 함. 학습 연표는 v42 취지(실제로 매번 할 일) 그대로
+           탭 밖 다음 자리에 남겨둔다. -->
+      <section class="tab-card" id="quickTabsCard" aria-label="질문하기 · 나의 달성도 · 내 기록 보관함">
+        <div class="tab-nav" role="tablist">
+          <button type="button" class="tab-btn active" data-qtab="question" onclick="switchQuickTab('question')">💬 질문하기</button>
+          <button type="button" class="tab-btn" data-qtab="overview" onclick="switchQuickTab('overview')">📜 나의 달성도</button>
+          <button type="button" class="tab-btn" data-qtab="archive" onclick="switchQuickTab('archive')">🗂 기록 보관함</button>
+        </div>
+
+        <div class="tab-panel" id="qpQuestion">
+          <p class="q-hint">수업이나 활동 중 궁금한 게 있으면 여기 남겨 주세요. 답이 오면 여기서 확인할 수 있어요.</p>
+          <div class="q-form">
+            <textarea id="questionInput" placeholder="궁금한 점을 적어주세요…"></textarea>
+            <button id="btnAskQuestion" onclick="askQuestion()">질문 보내기</button>
+          </div>
+          <div id="questionList"></div>
+        </div>
+
+        <!-- v57 — 최근 3건만 기본 노출, 나머지는 "더 보기" 토글로 펼침(renderPortal/
+             toggleOverviewMore 참고). 매 렌더마다 접힌 상태로 초기화된다. -->
+        <div class="tab-panel" id="qpOverview" style="display:none;">
+          <div id="overviewList"></div>
+          <div id="overviewMoreList" style="display:none;"></div>
+          <button type="button" class="overview-more-btn" id="overviewMoreBtn" onclick="toggleOverviewMore()" style="display:none;"></button>
+        </div>
+
+        <div class="tab-panel" id="qpArchive" style="display:none;">
+          <p class="archive-hint">활동에서 내가 직접 쓴 글이 모여요. 학기 말 자기평가에 활용해 보세요.</p>
+          <div id="archiveList"></div>
+        </div>
+      </section>
+
       <!-- v42 — 구조 재배치: 실제로 매번 할 일인 차시 목록을 최상단 근처(공지·KPI·단원질문
            바로 다음)로 끌어올림. 이전엔 포트폴리오·피드백·질문함·달성도·보관함을 전부
            지난 맨 아래에 있었고, 태블릿 세로모드(≤1024px)에선 좌측 사이드카드(나무·칭호첩)
@@ -159,25 +194,31 @@
 
       <p class="section-divider">📎 그 밖의 기록</p>
 
-      <section class="portfolio-card" id="portfolioCard" aria-label="나의 패들렛 포트폴리오">
-        <div>
-          <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
-          <p class="pf-title" id="portfolioTitle"></p>
-          <p class="pf-desc" id="portfolioDesc"></p>
+      <!-- v57 — 패들렛(포트폴리오)·클래스카드를 탭 하나로 묶음. 둘 다 "학기 내내 고정
+           노출되는 링크 카드"라는 성격이 같아 탭 전환만으로 둘 다 접근하게 하고 세로 공간을
+           하나만큼만 차지하게 압축. 반에 클래스카드 URL이 없으면 그 탭 버튼 자체를 숨기고
+           패들렛 탭만 남긴다(renderPortal 참고). -->
+      <section class="tab-card" id="refTabsCard" aria-label="패들렛 · 클래스카드" style="display:none;">
+        <div class="tab-nav" id="refTabNav" role="tablist">
+          <button type="button" class="tab-btn" id="refTabBtnPortfolio" data-rtab="portfolio" onclick="switchRefTab('portfolio')">패들렛(포트폴리오)</button>
+          <button type="button" class="tab-btn" id="refTabBtnClasscard" data-rtab="classcard" onclick="switchRefTab('classcard')">클래스카드</button>
         </div>
-        <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
-      </section>
-
-      <!-- v45 — 복습용 클래스카드. 포트폴리오 카드와 완전히 같은 구조(학기 내내 고정 노출)로
-           별도 슬롯 하나 더 추가. 공지로 올리면 피드에 묻혀버리니, 패들렛과 마찬가지로
-           포털에 항상 떠 있게 만든 것. -->
-      <section class="portfolio-card" id="classcardCard" aria-label="복습용 클래스카드">
-        <div>
-          <p class="pf-label">복습용 클래스카드</p>
-          <p class="pf-title" id="classcardTitle"></p>
-          <p class="pf-desc" id="classcardDesc"></p>
+        <div class="tab-panel ref-link-panel" id="refPanelPortfolio">
+          <div>
+            <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
+            <p class="pf-title" id="portfolioTitle"></p>
+            <p class="pf-desc" id="portfolioDesc"></p>
+          </div>
+          <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
         </div>
-        <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--indigo);">클래스카드 열기 →</a>
+        <div class="tab-panel ref-link-panel" id="refPanelClasscard" style="display:none;">
+          <div>
+            <p class="pf-label">복습용 클래스카드</p>
+            <p class="pf-title" id="classcardTitle"></p>
+            <p class="pf-desc" id="classcardDesc"></p>
+          </div>
+          <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--indigo);">클래스카드 열기 →</a>
+        </div>
       </section>
 
       <!-- v54(2026-09-15, 핸드오프 "성적조회 통합 v2" 옵션 A) — 성적조회 진입점.
@@ -219,28 +260,6 @@
         <div id="feedbackInboxList"></div>
       </section>
 
-      <section class="question-card" aria-label="질문함">
-        <h2>💬 선생님께 질문하기</h2>
-        <p class="q-hint">수업이나 활동 중 궁금한 게 있으면 여기 남겨 주세요. 답이 오면 여기서 확인할 수 있어요.</p>
-        <div class="q-form">
-          <textarea id="questionInput" placeholder="궁금한 점을 적어주세요…"></textarea>
-          <button id="btnAskQuestion" onclick="askQuestion()">질문 보내기</button>
-        </div>
-        <div id="questionList"></div>
-      </section>
-
-      <section class="overview-card" id="overviewCard" aria-label="나의 달성도">
-        <h2>📜 나의 달성도</h2>
-        <div id="overviewList"></div>
-      </section>
-
-      <details class="archive-card" id="archiveCard">
-        <summary>🗂 내 기록 보관함 <span class="arch-arrow">▶</span></summary>
-        <div class="archive-body">
-          <p class="archive-hint">활동에서 내가 직접 쓴 글이 모여요. 학기 말 자기평가에 활용해 보세요.</p>
-          <div id="archiveList"></div>
-        </div>
-      </details>
     </main>
   </div>
 </div>
@@ -1377,25 +1396,33 @@ function renderPortal(){
   /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 (차시가 아니라 완료·포인트 대상 아님) */
   const pf = cur.portfolio;
   const pfUrl = pf ? (pf.urlByBan ? (pf.urlByBan[SESSION.ban] || '') : (pf.url || '')) : '';
-  if (pf && pfUrl) {
-    $('portfolioCard').style.display = 'flex';
+  const pfHas = !!(pf && pfUrl);
+  if (pfHas) {
     $('portfolioTitle').textContent = pf.title || '나의 패들렛';
     $('portfolioDesc').textContent = pf.desc || '';
     $('portfolioLinkBtn').href = ensureUrlScheme_(pfUrl);
-  } else {
-    $('portfolioCard').style.display = 'none';
   }
 
   /* v45 — 복습용 클래스카드. 포트폴리오와 같은 패턴(반별 urlByBan 우선, 없으면 공통 url). */
   const cc = cur.classcard;
   const ccUrl = cc ? (cc.urlByBan ? (cc.urlByBan[SESSION.ban] || '') : (cc.url || '')) : '';
-  if (cc && ccUrl) {
-    $('classcardCard').style.display = 'flex';
+  const ccHas = !!(cc && ccUrl);
+  if (ccHas) {
     $('classcardTitle').textContent = cc.title || '복습용 클래스카드';
     $('classcardDesc').textContent = cc.desc || '';
     $('classcardLinkBtn').href = ensureUrlScheme_(ccUrl);
+  }
+
+  /* v57 — 패들렛·클래스카드 탭 카드. 데이터가 전혀 없으면 카드 자체를 숨기고,
+   * 하나만 있으면 탭 내비게이션을 숨긴 채(누를 탭이 하나뿐이면 의미 없음) 그 패널만 보여준다. */
+  $('refTabBtnPortfolio').style.display = pfHas ? '' : 'none';
+  $('refTabBtnClasscard').style.display = ccHas ? '' : 'none';
+  if (pfHas || ccHas) {
+    $('refTabsCard').style.display = 'block';
+    $('refTabNav').style.display = (pfHas && ccHas) ? 'flex' : 'none';
+    switchRefTab(pfHas ? 'portfolio' : 'classcard');
   } else {
-    $('classcardCard').style.display = 'none';
+    $('refTabsCard').style.display = 'none';
   }
 
   /* v42 — "학기 총평" 전용 카드(#feedbackCard)를 없애면서 이 렌더 블록도 함께 제거.
@@ -1407,7 +1434,8 @@ function renderPortal(){
   /* 질문함 (학생 ↔ 교사) */
   renderQuestions();
 
-  /* 달성도 모아보기 — v27: 활동 단위로 나열(차시에 활동이 2개면 각각 따로 뜸) */
+  /* 달성도 모아보기 — v27: 활동 단위로 나열(차시에 활동이 2개면 각각 따로 뜸).
+   * v57: 최근순으로 정렬해 3개만 기본 노출, 나머지는 "더 보기" 토글로 펼친다. */
   const analyzedActs = [];
   lessons.forEach(l => {
     l.activities.forEach(act => {
@@ -1417,31 +1445,40 @@ function renderPortal(){
       }
     });
   });
-  if (analyzedActs.length) {
-    $('overviewCard').style.display = 'block';
-    $('overviewList').innerHTML = analyzedActs.map(x => `
+  analyzedActs.sort((a, b) => new Date(b.rec.timestamp) - new Date(a.rec.timestamp));
+  const ovItemHtml_ = x => `
       <div class="overview-item">
         <span class="dots">${achieveDots(x.rec.achievement)}</span>
         <span class="ov-title">${escapeHtml(activityDisplayTitle(x.lesson, x.act))}</span>
-      </div>`).join('');
+      </div>`;
+  const OVERVIEW_VISIBLE = 3;
+  const ovVisible = analyzedActs.slice(0, OVERVIEW_VISIBLE);
+  const ovRest = analyzedActs.slice(OVERVIEW_VISIBLE);
+  const ovMoreBtn = $('overviewMoreBtn');
+  const ovMoreList = $('overviewMoreList');
+  if (analyzedActs.length) {
+    $('overviewList').innerHTML = ovVisible.map(ovItemHtml_).join('');
   } else {
-    $('overviewCard').style.display = 'none';
+    $('overviewList').innerHTML = '<p class="q-hint" style="margin:0;">아직 분석된 활동이 없어요.</p>';
   }
+  ovMoreList.innerHTML = ovRest.map(ovItemHtml_).join('');
+  ovMoreList.style.display = 'none';
+  ovMoreBtn.dataset.open = 'false';
+  ovMoreBtn.dataset.count = ovRest.length;
+  ovMoreBtn.style.display = ovRest.length ? 'block' : 'none';
+  ovMoreBtn.textContent = `더 보기 (${ovRest.length})`;
 
   /* 내 기록 보관함 — 내가 쓴 서술 다시 보기 (백엔드 v5부터 reflection 제공) */
   const myWritings = STUDENT_DATA.activities
     .filter(a => a.reflection && String(a.reflection).trim())
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  if (myWritings.length) {
-    $('archiveCard').style.display = 'block';
-    $('archiveList').innerHTML = myWritings.map(a => `
+  $('archiveList').innerHTML = myWritings.length
+    ? myWritings.map(a => `
       <div class="archive-item">
         <div class="ar-meta"><b>${escapeHtml(lessonTitle(String(a.activityId)))}</b> · ${formatDate(a.timestamp)}</div>
         <div class="ar-text">${escapeHtml(String(a.reflection))}</div>
-      </div>`).join('');
-  } else {
-    $('archiveCard').style.display = 'none';
-  }
+      </div>`).join('')
+    : '<p class="q-hint" style="margin:0;">아직 기록이 없어요.</p>';
 
   /* 연표 */
   const tl = $('timeline');
@@ -1704,6 +1741,7 @@ function renderFeedbackInbox(fbAll){
 function askAboutFeedback_(idx){
   const f = FEEDBACK_INBOX_ITEMS[idx];
   if(!f) return;
+  switchQuickTab('question'); // v57 — 질문함이 탭 뒤에 숨어 있을 수 있어 먼저 열어야 스크롤·포커스가 보임
   const text = String(f.feedback || '');
   const quoted = text.length > 200 ? text.slice(0, 200) + '…' : text;
   const input = $('questionInput');
@@ -1712,6 +1750,36 @@ function askAboutFeedback_(idx){
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
   showToast('질문함으로 이동했어요 — 이어서 궁금한 점을 적어주세요.');
+}
+
+/* ── v57: 상단 탭 카드(질문함·달성도·보관함 / 패들렛·클래스카드) 전환 ── */
+function switchQuickTab(tab){
+  ['question','overview','archive'].forEach(t => {
+    $('qp' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
+  });
+  document.querySelectorAll('#quickTabsCard .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.qtab === tab);
+  });
+}
+
+function switchRefTab(tab){
+  ['portfolio','classcard'].forEach(t => {
+    $('refPanel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('#refTabsCard .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.rtab === tab);
+  });
+}
+
+/* 달성도 "더 보기" — 렌더마다 접힌 상태로 초기화되고(renderPortal), 누르면 펼쳐진다. */
+function toggleOverviewMore(){
+  const list = $('overviewMoreList');
+  const btn = $('overviewMoreBtn');
+  const open = btn.dataset.open === 'true';
+  const next = !open;
+  list.style.display = next ? 'block' : 'none';
+  btn.dataset.open = String(next);
+  btn.textContent = next ? '접기 ▲' : `더 보기 (${btn.dataset.count})`;
 }
 
 /* ── 질문함: 목록 렌더 ── */

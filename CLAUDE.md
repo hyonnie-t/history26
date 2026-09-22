@@ -69,10 +69,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   알림 팝업이 있고, 확인 여부는 `ackFeedback` action으로 서버에 남긴다. 모아보기 각 항목의 "이 피드백에
   대해 질문하기" 버튼(`askAboutFeedback_()`)은 질문함 입력창에 피드백을 인용구로 채워주는 **순수 프론트
   UX 연결**일 뿐 — 백엔드에 피드백과 질문을 실제로 연결하는 참조 필드는 없다.
-- **학생 포털 레이아웃**: `#portalView`는 사이드카드(나무·칭호첩) → 공지 → KPI → 단원질문 → **학습 연표
-  (실제 차시 목록)** 순으로 오고, 포트폴리오·피드백·질문함·달성도·보관함은 `.section-divider`("📎 그 밖의
-  기록") 아래로 몰려 참고용임을 시각적으로 구분한다. `renderPortal()`은 `$('id')` 참조라 마크업 순서와
-  무관하게 동작한다. 세로모드에서 `.layout`이 2단→1단으로 붕괴하는 기준은 **폭이 아니라 orientation**
+- **학생 포털 레이아웃**: `#portalView`는 사이드카드(나무·칭호첩) → 공지 → KPI → 단원질문 →
+  **`#quickTabsCard`(질문하기·나의 달성도·기록 보관함 탭)** → **학습 연표(실제 차시 목록)** 순으로 오고,
+  `.section-divider`("📎 그 밖의 기록") 아래에는 **`#refTabsCard`(패들렛·클래스카드 탭)** · 성적조회 ·
+  피드백 모아보기만 참고용으로 몰려 있다. v42는 질문함·달성도·보관함까지 전부 "그 밖의 기록" 아래로
+  보냈었는데, v57에서 자주 쓰는 기능이라는 효니 피드백으로 그 셋만 다시 상단으로 옮기되 세 카드를
+  그대로 쌓지 않고 `.tab-card`(`switchQuickTab()`)로 묶어 카드 하나 높이만 차지하게 압축했다 — 학습
+  연표는 v42 취지(실제로 매번 할 일) 그대로 탭 밖에 남아 있다. `.tab-card`/`.tab-nav`/`.tab-btn`/
+  `.tab-panel`은 카드 하나를 탭 여러 개로 나눌 때 쓰는 공용 컴포넌트로, `#refTabsCard`(`switchRefTab()`)도
+  같은 컴포넌트를 재사용한다 — 패들렛·클래스카드 둘 다 데이터가 없으면 카드째 숨고, 하나만 있으면 탭
+  내비게이션 자체를 숨긴 채 그 패널만 보여준다(`renderPortal()`의 `pfHas`/`ccHas` 분기). "나의 달성도"
+  탭은 `achieveMap`의 `rec.timestamp` 기준 최근순 3개만 기본 노출하고 나머지는 `#overviewMoreBtn`
+  (`toggleOverviewMore()`)으로 펼친다 — 렌더마다 접힌 상태로 초기화된다. `renderPortal()`은 `$('id')`
+  참조라 마크업 순서와 무관하게 동작한다. 세로모드에서 `.layout`이 2단→1단으로 붕괴하는 기준은
+  **폭이 아니라 orientation**
   (`@media (max-width:1024px) and (orientation:portrait), (max-width:640px) and (orientation:landscape)`,
   `style.css:304` 부근)이다 — 그 외 가로모드는 폭이 좁아도 좌(서재)/우(본문) 2단을 유지한다. **⚠️ `.side-card`의
   sticky↔static 전환 조건(`style.css:326` 부근)과 `.side-combined` 내부 스크롤 높이 제한 조건
