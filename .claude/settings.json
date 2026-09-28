@@ -8,6 +8,18 @@
             "command": "bash .claude/hooks/run_webapp_tests.sh",
             "timeout": 180,
             "statusMessage": "index.html 변경 감지 — webapp-testing 자동 검증 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/check_version_reuse.sh",
+            "timeout": 30,
+            "statusMessage": "버전 번호(vNN) 재사용 점검 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/check_layout_breakpoint_sync.sh",
+            "timeout": 30,
+            "statusMessage": ".side-card/.side-combined 브레이크포인트 동기화 점검 중..."
           }
         ]
       }
