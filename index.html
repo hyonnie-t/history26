@@ -575,7 +575,6 @@
           <h4 id="ckqFormTitle" style="font-size:.9rem; font-weight:700; margin-bottom:10px;">➕ 새 문항 추가</h4>
           <div class="cl-form">
             <div class="cl-row">
-              <select id="ckqFormGrade"></select>
               <select id="ckqFormType">
                 <option value="judgment">judgment (판단형 2지선다)</option>
                 <option value="source_emotion">source_emotion (사료+단어칩)</option>
@@ -660,16 +659,8 @@
             </div>
 
             <div class="cl-field">
-              <label class="cl-field-label" for="ckqFormRecall">회수 질문 <span class="cl-opt">선택 · 교사만 봄, 학생 화면엔 안 뜸</span></label>
-              <textarea id="ckqFormRecall" rows="2" placeholder="줄바꿈 가능"></textarea>
-            </div>
-            <label class="chk-label">
-              <input type="checkbox" id="ckqFormVerify"> 수업 전 사실관계 재확인 필요
-            </label>
-            <input id="ckqFormVerifyNote" type="text" placeholder="검증 메모 — 위 체크박스 켰을 때만 의미 있음">
-            <div class="cl-field">
               <label class="cl-field-label" for="ckqFormNote">교사 메모 <span class="cl-opt">선택 · 학생에게 안 보임</span></label>
-              <input id="ckqFormNote" type="text" placeholder="설계 의도 등">
+              <textarea id="ckqFormNote" rows="2" placeholder="설계 의도, 재확인이 필요한 부분 등 — 줄바꿈 가능"></textarea>
             </div>
             <div class="cl-row">
               <button id="btnCkqSave" onclick="dashSubmitCheckinLessonForm(this)">문항 추가</button>
@@ -2389,7 +2380,9 @@ function switchCkSubtab(sub){
 }
 
 /* v52(2026-09-14) 신규 — 체크인 "문항 관리" 학년 탭 전환. 진행중/지난 문항 목록(#ckqActiveList·
- * #ckqPastList)만 이 학년으로 다시 그린다(새 문항 추가 폼의 ckqFormGrade는 별개 select라 안 건드림). */
+ * #ckqPastList)만 이 학년으로 다시 그린다. v58부터 "새 문항 추가" 폼도 자기 select 없이 이
+ * CKQ_GRADE를 그대로 저장 대상 학년으로 쓴다(ckqCollectFormData 참고) — 탭을 바꾸면 새 문항이
+ * 저장될 학년도 같이 바뀐다는 뜻이라, 편집 중 탭을 바꾸는 것도 자연스럽게 반영된다. */
 function switchCkqGradeTab_(grade){
   CKQ_GRADE = grade;
   document.querySelectorAll('#ckqGradeTabs .cl-subtab').forEach(btn => {
@@ -2649,7 +2642,9 @@ async function dashInitCheckinForm(){
   }
   const grades = Object.keys(CHECKIN_PLAN);
   $('ckSetGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
-  $('ckqFormGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
+  // v58 — "새 문항 추가" 폼 안에 있던 ckqFormGrade select를 제거. 위 학년 탭(ckqGradeTabs)이
+  // 이미 같은 값을 고르게 해주는데 폼 안에 똑같은 select가 하나 더 있는 게 중복이었음 — 이제
+  // 새 문항은 항상 지금 선택된 CKQ_GRADE로 저장된다(ckqCollectFormData 참고).
   // v52 — 학년 선택을 select 대신 탭으로. 처음 들어올 때만 CKQ_GRADE를 첫 학년으로 초기화하고,
   // 이미 고른 탭이 여전히 유효한 학년이면(문항 관리 탭을 여러 번 드나들 때) 유지한다.
   if(!CKQ_GRADE || !grades.includes(CKQ_GRADE)) CKQ_GRADE = grades[0] || '';
@@ -3167,10 +3162,9 @@ function ckqRemoveImage(){
 function dashResetCheckinLessonForm(){
   $('ckqEditRow').value = '';
   ['ckqFormId','ckqFormTopic','ckqFormTextbook','ckqFormPrompt','ckqFormOptionA','ckqFormOptionB',
-   'ckqFormSourceText','ckqFormSourceOrigin','ckqFormWordChips','ckqFormRecall','ckqFormVerifyNote','ckqFormNote',
+   'ckqFormSourceText','ckqFormSourceOrigin','ckqFormWordChips','ckqFormNote',
    'ckqFormImageAlt','ckqFormImageUrl']
     .forEach(id => { $(id).value = ''; });
-  $('ckqFormVerify').checked = false;
   $('ckqFormId').disabled = false;
   // v51: 자료 형식 기본값은 고정 'text'가 아니라 현재 유형에 맞춰 결정
   // (judgment는 '없음', source_emotion은 '텍스트' — ckqDefaultSourceFormatForType_ 참고)
@@ -3191,7 +3185,8 @@ function dashEditCheckinLesson(btn){
   const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
   if(!l){ showToast('문항을 찾지 못했어요.'); return; }
   $('ckqEditRow').value = row;
-  $('ckqFormGrade').value = l.grade;
+  // v58 — 학년 select를 없애고 위 탭(CKQ_GRADE)을 그대로 씀. 이 함수는 항상 그 탭이 그리고 있는
+  // 목록에서 호출되므로 l.grade는 이미 CKQ_GRADE와 같다 — 별도로 맞출 필요가 없다.
   $('ckqFormType').value = l.type;
   $('ckqFormId').value = l.id;
   $('ckqFormId').disabled = true; // 이미 "오늘 차시"로 지정돼 있을 수 있어 id는 잠가둠
@@ -3203,10 +3198,17 @@ function dashEditCheckinLesson(btn){
   $('ckqFormSourceText').value = l.sourceText || '';
   $('ckqFormSourceOrigin').value = l.sourceOrigin || '';
   $('ckqFormWordChips').value = l.wordChips || '';
-  $('ckqFormRecall').value = l.recall || '';
-  $('ckqFormVerify').checked = !!l.verify;
-  $('ckqFormVerifyNote').value = l.verifyNote || '';
-  $('ckqFormNote').value = l.note || '';
+  // v58 — 회수 질문(recall)·재확인 체크박스(verify)·검증 메모(verifyNote) 필드를 폼에서 없애고
+  // 교사 메모(note) 하나로 합쳤다. 예전 문항에 이 값들이 남아있으면(과거에 쓴 회수 질문 등) 여기서
+  // 잃어버리지 않게 note 앞에 합쳐서 보여준다 — 교사가 그대로 두고 저장하면 note 컬럼으로 옮겨
+  // 담기고, recall/verify/verifyNote 컬럼은 이후 저장부터 빈 값으로 남는다(폼에 입력 UI가 없어
+  // updateCheckinLessonPost_가 항상 빈 값을 씀 — history26_backend 확인, 컬럼 자체는 그대로 있어
+  // 스키마 변경 불필요).
+  const legacyParts = [];
+  if (l.verify) legacyParts.push('[재확인 필요]' + (l.verifyNote ? ' ' + l.verifyNote : ''));
+  if (l.recall) legacyParts.push('[예전 회수 질문] ' + l.recall);
+  const mergedNote = [...legacyParts, l.note || ''].filter(Boolean).join('\n');
+  $('ckqFormNote').value = mergedNote;
   // 2026-09-11 신규 — 이미지 자료 필드 복원(없는 옛 행은 checkinPlanAdminGet_이 sourceFormat
   // 기본값을 'text'로 채워 내려주므로 따로 폴백할 필요 없음).
   $('ckqFormSourceFormat').value = l.sourceFormat || 'text';
@@ -3248,7 +3250,8 @@ async function dashDeleteCheckinLesson(btn){
 
 function ckqCollectFormData(){
   return {
-    grade: $('ckqFormGrade').value,
+    // v58 — 학년 select를 없애서 위 탭 값(CKQ_GRADE)을 그대로 쓴다.
+    grade: CKQ_GRADE,
     id: $('ckqFormId').value.trim(),
     topic: $('ckqFormTopic').value.trim(),
     textbook: $('ckqFormTextbook').value.trim(),
@@ -3262,9 +3265,8 @@ function ckqCollectFormData(){
     imageUrl: $('ckqFormImageUrl').value.trim(),
     imageAlt: $('ckqFormImageAlt').value.trim(),
     wordChips: $('ckqFormWordChips').value.trim(),
-    recall: $('ckqFormRecall').value.trim(),
-    verify: $('ckqFormVerify').checked,
-    verifyNote: $('ckqFormVerifyNote').value.trim(),
+    // v58 — 회수 질문(recall)·재확인 체크박스(verify)·검증 메모(verifyNote)는 폼에서 빠졌다.
+    // 시트 컬럼 자체는 그대로 있어서(하위호환) 그냥 안 보내면 서버가 빈 값으로 저장한다.
     note: $('ckqFormNote').value.trim()
   };
 }

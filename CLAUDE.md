@@ -133,8 +133,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **체크인 문항 관리 폼**: 각 필드에 `<label>` + 빨간 `*필수`(`.cl-req`)/회색 `선택`(`.cl-opt`) 태그가
   있다. 기준은 `dashSubmitCheckinLessonForm()`의 검증 로직과 동일 — 학년·차시id·제목·발문은 항상 필수,
   옵션A/B는 judgment일 때만, 사료(텍스트 또는 이미지)는 source_emotion일 때만 필수. 학년 선택은
-  `#ckqGradeTabs`(`switchCkqGradeTab_()`, 상태는 모듈 변수 `CKQ_GRADE`) 탭이고, **"새 문항 추가" 폼 안의
-  유형 select(`ckqFormGrade`)와는 별개**다. 등록된 문항 목록은 진행중(`#ckqActiveList`, 기본 펼침)과 지난
+  `#ckqGradeTabs`(`switchCkqGradeTab_()`, 상태는 모듈 변수 `CKQ_GRADE`) 탭 하나뿐이다 — **v58부터 "새 문항
+  추가" 폼 안에 따로 있던 학년 select(`ckqFormGrade`)를 없앴다.** 폼은 항상 지금 선택된 `CKQ_GRADE`로
+  저장되며(`ckqCollectFormData()`), 편집 중 탭을 바꾸면 그 학년으로 저장된다는 뜻이라 편집은 항상 그
+  탭이 그리고 있는 목록에서 시작하는 게 전제다.
+  **v58 — 회수 질문(`recall`)/재확인 체크박스(`verify`)/검증 메모(`verifyNote`) 세 필드를 없애고
+  교사 메모(`note`) 하나로 합쳤다.** 셋 다 거의 안 쓰였다는 효니 피드백으로 폼에서 뺐다. 시트 컬럼
+  (`CHECKIN_LESSON_HEADERS`의 회수질문/사실검증/검증메모)은 `history26_backend`에 그대로 남아 있고,
+  프론트가 그냥 그 필드들을 안 보내면 서버가 빈 값으로 저장할 뿐이라 **백엔드 변경은 필요 없다.**
+  기존 문항에 이 값들이 남아있으면 `dashEditCheckinLesson()`이 편집 폼을 열 때 `[재확인 필요]`/
+  `[예전 회수 질문]` 접두어를 붙여 교사 메모 앞에 합쳐서 보여준다 — 그대로 두고 저장하면 note 컬럼으로
+  옮겨 담기고, 그 뒤로 recall/verify/verifyNote 컬럼은 빈 채로 남는다(한 번 저장하면 되돌릴 수 없음,
+  값이 필요하면 저장 전에 확인할 것). 등록된 문항 목록은 진행중(`#ckqActiveList`, 기본 펼침)과 지난
   (`#ckqPastList`, `<details class="cl-past-collapse">`, 기본 접힘) 두 그룹으로 나뉘며, 개별 문항 항목의
   "지난 체크인으로 표시" 버튼(`dashToggleCheckinLessonPast()`)이 `toggleCheckinLessonPast` action을
   호출한다. 서버 배포 상태는 `history26_backend` CLAUDE.md 참고 — 배포 전엔 모든 문항이 항상 진행중
