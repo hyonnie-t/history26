@@ -183,7 +183,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   HTML/CSS/JS만 쓴다. `index.html`(뼈대) + `config.js`(설정) + `data.js`(콘텐츠) + `app.js`(렌더링) +
   `style.css`(스타일)처럼 관심사별로 파일을 나누는 건 괜찮다 — **파일을 여러 개로 나누는 것과 빌드
   단계를 도입하는 건 다른 문제**, 금지 대상은 후자다(이 포털 자체도 `index.html`+`config.js`+
-  `checkin_data.js`+`style.css`로 나눠져 있음). 버전이 올라가면서 기존 웹앱들이 써온 plain
+  `checkin_data.js`+`style.css`로 나눠져 있음). **기본 구성은 `index.html`+`style.css`+`data.js`(콘텐츠)+
+  `app.js`(로직) 4파일이다** — 나누면 수정할 때 필요한 파일만 읽으면 돼서 유지보수 토큰이 줄지만
+  (단일 `index.html`은 어떤 수정이든 통째로 읽어야 함), 파일마다 연결·헤더 주석 같은 이음새 비용이
+  들어서 그 이상은 필요할 때만 늘린다. `config.js`는 URL·상수 몇 줄뿐이면 `app.js` 상단 `CONFIG`로
+  합쳐도 된다. 순수 로직 분리(`logic.js`)와 단위 테스트는 판정·계산 로직이 있는 앱(예: 점수·유형 판정)
+  에만 넣고 단순 서술형 앱엔 넣지 않는다. 배포 전 점검 스크립트(`verify.mjs`)와 긴 README도 필요할
+  때만 만든다(붕당 분화 앱 `Joseon-Bungdang`이 이 부가 파일들을 전부 넣은 사례). 버전이 올라가면서 기존 웹앱들이 써온 plain
   HTML/CSS/JS 구조가 임의로 틀어지는 게 반복적으로 문제가 됐다 — 기존 웹앱(`crusades`,
   `his_judge_goryeo` 등)도 같은 구조인지는 미확인이니, 수정할 땐 그 레포의 기존 파일 구성을 먼저
   확인하고 거기 맞출 것. 배포는 절대 "새 배포"가
