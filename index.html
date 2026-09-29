@@ -3402,63 +3402,81 @@ function clDragAfterElement(container, y){
   }, { offset: -Infinity, element: null }).element;
 }
 
-/* 드래그가 끝난 뒤 현재 DOM 순서를 그대로 순서값(1,2,3…)으로 매겨 서버에 일괄 반영 */
+/* v59 — 순서값은 학년 안에서 "지난 활동(기존 상대 순서 유지) → 진행중/예정(지금 순서)" 순으로
+ * 항상 1..N 전체를 다시 매긴다. 예전엔 진행중 목록에만 1..n을 매겨 지난 활동의 옛 번호와 겹쳤고,
+ * 학생 화면(지난 활동도 같이 내려옴)에서 차시 순서가 뒤섞이거나 ▲▼가 안 먹혔다.
+ * activeRowsInOrder를 주면 그 순서를 진행중 순서로 쓰고(드래그 직후 DOM 순서), 없으면 현재 order 기준. */
+async function dashSaveGradeOrder_(grade, activeRowsInOrder){
+  const all = LESSONS_ADMIN.filter(x => x.grade === grade);
+  const byOrder = (a,b) => (a.order - b.order) || (a._row - b._row);
+  const past = all.filter(x => x.isPast).sort(byOrder);
+  let active = all.filter(x => !x.isPast).sort(byOrder);
+  if(activeRowsInOrder){
+    const pos = new Map(activeRowsInOrder.map((r, i) => [Number(r), i]));
+    active = active.sort((a,b) => (pos.has(a._row) ? pos.get(a._row) : 1e9) - (pos.has(b._row) ? pos.get(b._row) : 1e9));
+  }
+  const items = [];
+  [...past, ...active].forEach((l, idx) => {
+    const order = idx + 1;
+    if(l.order !== order) items.push({ row: l._row, order });
+    l.order = order;
+  });
+  if(!items.length) return true;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'reorderLessons', token: TOKEN, items })
+    });
+    const data = await res.json();
+    return data.result === 'success';
+  }catch(e){
+    return false;
+  }
+}
+
+/* 드래그가 끝난 뒤 현재 DOM 순서를 진행중 순서로 삼아 학년 전체 순서를 저장 */
 async function dashCommitReorder(listEl){
   if(!listEl) return;
   const rowsInOrder = [...listEl.querySelectorAll('.cl-item')].map(el => Number(el.dataset.row));
-  const items = rowsInOrder.map((row, idx) => ({ row, order: idx + 1 }));
-  items.forEach(it => {
-    const l = LESSONS_ADMIN.find(x => x._row === it.row);
-    if(l) l.order = it.order;
-  });
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'reorderLessons', token: TOKEN, items })
-    });
-    showToast('순서를 저장했어요.');
-  }catch(e){
-    showToast('순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
-  }
+  const ok = await dashSaveGradeOrder_(listEl.dataset.grade, rowsInOrder);
+  showToast(ok ? '순서를 저장했어요.' : '순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
   dashRenderLessons();
 }
 
-/* 위/아래 버튼 — 같은 학년의 진행중/예정 목록 안에서 바로 옆 항목과 순서를 맞바꿈 */
+/* 위/아래 버튼 — 같은 학년의 진행중/예정 목록 안에서 바로 옆 항목과 자리를 맞바꿈 */
 async function dashMoveLesson(row, dir){
   const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
   if(!l) return;
-  const siblings = LESSONS_ADMIN
+  const rows = LESSONS_ADMIN
     .filter(x => x.grade === l.grade && !x.isPast)
-    .sort((a,b) => a.order - b.order);
-  const idx = siblings.findIndex(x => String(x._row) === String(row));
+    .sort((a,b) => (a.order - b.order) || (a._row - b._row))
+    .map(x => x._row);
+  const idx = rows.indexOf(l._row);
   const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
-  if(idx === -1 || swapIdx < 0 || swapIdx >= siblings.length) return;
-  const other = siblings[swapIdx];
-
-  const items = [{ row: l._row, order: other.order }, { row: other._row, order: l.order }];
-  const tmp = l.order; l.order = other.order; other.order = tmp;
-  try{
-    await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'reorderLessons', token: TOKEN, items })
-    });
-  }catch(e){
-    showToast('순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
-  }
+  if(idx === -1 || swapIdx < 0 || swapIdx >= rows.length) return;
+  [rows[idx], rows[swapIdx]] = [rows[swapIdx], rows[idx]];
+  const ok = await dashSaveGradeOrder_(l.grade, rows);
+  if(!ok) showToast('순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
   dashRenderLessons();
 }
 
-/* 지난 활동 표시 on/off — 공개여부와 별개 (v13) */
+/* 지난 활동 표시 on/off — 공개여부와 별개 (v13). v59: 토글 뒤 학년 순서를 다시 매겨 지난 활동이 앞으로 가게 함 */
 async function dashToggleLessonPast(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'toggleLessonPast', token:TOKEN, row })
     });
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || 'fail');
     const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
-    if(l){ l.isPast = !l.isPast; }
+    if(l){
+      l.isPast = !l.isPast;
+      const ok = await dashSaveGradeOrder_(l.grade);
+      if(!ok) showToast('순서를 다시 매기지 못했어요. 새로고침 후 확인해 주세요.');
+    }
     dashRenderLessons();
   }catch(e){
     showToast('처리하지 못했어요. 다시 시도해 주세요.');
