@@ -294,6 +294,9 @@
       학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
     </div>
 
+    <!-- v61: AI 작성 의심 경고 박스. 내용은 dashRenderSuspectBox_()가 매번 새로 그린다. -->
+    <div class="suspect-box" id="suspectBox" style="display:none;"></div>
+
     <div class="filters">
       <label for="selGrade">학년</label>
       <select id="selGrade"></select>
@@ -3943,6 +3946,78 @@ function dashJumpToStudent_(sid){
   if(tr) tr.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
+/* ── AI 작성 의심 경고 (v61) ──
+ * 백엔드(ai_module v9.4)가 행마다 'AI작성의심도'(낮음/중간/높음)·'AI작성의심근거'를 채운다.
+ * 행 단위 배지는 이미 있었지만(v23) 한 학생이 여러 번 걸리는지는 행을 하나씩 펼쳐야 보였다.
+ * 여기선 학생별로 누적해 "반복"을 드러낸다 — 어휘 수준이 원래 높은 학생은 1번 걸려도 오탐일 수
+ * 있으니 1회는 참고, SUSPECT_REPEAT_MIN회 이상이면 주의로 나눈다.
+ * - 집계 단위는 활동(gameName): 같은 활동을 다시 제출해 여러 행이 생겨도 1회로 센다.
+ *   한 활동에서는 등급이 채워진 행 중 가장 최근 것을 기준으로 삼는다(재제출로 '낮음'이 나오면 해제).
+ * - 학년·반 필터만 따르고 활동 필터는 무시한다(활동 하나만 보면 반복 여부를 알 수 없음).
+ * - 참고용 판정이며 확정이 아니다. 학생 화면엔 이 값이 내려가지 않는다(백엔드 studentGet_이 안 읽음). */
+const SUSPECT_REPEAT_MIN = 2;
+let SUSPECT_STATS = {};
+function dashSuspectStats_(){
+  const latest = {}; // sid → gameName → 등급이 있는 가장 최근 행
+  ROWS.forEach(r => {
+    const lv = String(r['AI작성의심도']||'').trim();
+    if(!lv) return;
+    const sid = String(r.studentId), g = String(r.gameName);
+    const m = latest[sid] = latest[sid] || {};
+    if(!m[g] || new Date(r.timestamp) > new Date(m[g].timestamp)) m[g] = r;
+  });
+  const stats = {};
+  Object.keys(latest).forEach(sid => {
+    const items = Object.values(latest[sid])
+      .filter(r => { const lv = String(r['AI작성의심도']).trim(); return lv === '중간' || lv === '높음'; })
+      .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    if(!items.length) return;
+    stats[sid] = {
+      sid, name: String(items[0].studentName||''), p: parseStudentId(sid), items,
+      high: items.filter(r => String(r['AI작성의심도']).trim() === '높음').length
+    };
+  });
+  return stats;
+}
+function dashSuspectChipHtml_(sid){
+  const s = SUSPECT_STATS[String(sid)];
+  if(!s) return '';
+  const rep = s.items.length >= SUSPECT_REPEAT_MIN;
+  return `<span class="suspect-chip${rep ? ' rep' : ''}" title="AI 작성 의심 ${s.items.length}건 — 참고용, 확정 아님">🔍×${s.items.length}</span>`;
+}
+function dashRenderSuspectBox_(){
+  SUSPECT_STATS = dashSuspectStats_();
+  const box = $('suspectBox');
+  const grade = Number($('selGrade').value);
+  const ban = $('selBan').value;
+  const inScope = Object.values(SUSPECT_STATS).filter(s =>
+    s.p && s.p.grade === grade && banMatches_(ban, grade, s.p.ban))
+    .sort((a,b) => b.items.length - a.items.length || b.high - a.high || a.p.ban - b.p.ban || a.p.num - b.p.num);
+  if(!inScope.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const repeat = inScope.filter(s => s.items.length >= SUSPECT_REPEAT_MIN);
+  const once = inScope.filter(s => s.items.length < SUSPECT_REPEAT_MIN);
+  const rowHtml = s => `
+    <li class="suspect-item" data-sid="${s.sid}">
+      <span class="si-who"><b>${escapeHtml(s.name)}</b> <span class="muted">${s.p.grade}학년 ${s.p.ban}반 · ${s.sid}</span></span>
+      <span class="si-count">${s.items.length}회${s.high ? ` · 높음 ${s.high}` : ''}</span>
+      <span class="si-acts">${s.items.map(r =>
+        `<span class="si-act${String(r['AI작성의심도']).trim()==='높음' ? ' hi' : ''}" title="${escapeHtml(String(r['AI작성의심근거']||'근거 없음'))}">${escapeHtml(dashShorten(dashLessonTitle(String(r.gameName)), 12))}</span>`
+      ).join('')}</span>
+    </li>`;
+  box.innerHTML = `
+    <div class="suspect-head">
+      🔍 <b>AI 작성 의심 확인</b>
+      <span class="suspect-sum">${repeat.length ? `반복 ${SUSPECT_REPEAT_MIN}회 이상 <b>${repeat.length}명</b>` : '반복 해당 없음'} · 1회 ${once.length}명</span>
+    </div>
+    <div class="suspect-note">참고용 판정이라 확정이 아니에요. 1회는 평소 어휘 수준이 높은 학생일 수 있어서 참고만, 반복되면 이야기를 나눠 볼 만해요. 학생 화면에는 보이지 않아요.</div>
+    ${repeat.length ? `<ul class="suspect-list rep">${repeat.map(rowHtml).join('')}</ul>` : ''}
+    ${once.length ? `<details class="suspect-once"><summary>1회 해당 학생 ${once.length}명 보기</summary><ul class="suspect-list">${once.map(rowHtml).join('')}</ul></details>` : ''}`;
+  box.style.display = 'block';
+  box.querySelectorAll('.suspect-item').forEach(el => {
+    el.addEventListener('click', () => dashJumpToStudent_(el.dataset.sid));
+  });
+}
+
 function dashFilteredRows(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
@@ -4130,6 +4205,7 @@ function renderDash(){
   $('aiNoticeCount').textContent = unrev;
 
   dashRenderClassFeedback(); // v34
+  dashRenderSuspectBox_();   // v61
 
   const gradeRows = ROWS.filter(r => {
     const p = parseStudentId(String(r.studentId));
@@ -4218,7 +4294,7 @@ function renderDash(){
     return `
       <tr class="student-row" data-sid="${s.sid}">
         <td>${s.sid}</td>
-        <td>${escapeHtml(s.name)}${s.hasUnreadFeedback ? '<span class="fb-dot" title="학생이 아직 확인 안 한 피드백이 있어요"></span>' : ''}</td>
+        <td>${escapeHtml(s.name)}${s.hasUnreadFeedback ? '<span class="fb-dot" title="학생이 아직 확인 안 한 피드백이 있어요"></span>' : ''}${dashSuspectChipHtml_(s.sid)}</td>
         <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${s.totalLessons}</span></td>
         <td>${recentCell}</td>
         <td>${avgCell}</td>
