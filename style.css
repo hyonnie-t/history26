@@ -308,7 +308,7 @@ button{font-family:inherit; cursor:pointer;}
  * - 폰 가로모드처럼 아주 좁은 가로 화면(640px 이하)은 250px 사이드바가 버거우니 예외로 같이 접음.
  * 데스크톱(폭 넉넉한 가로 화면)은 원래처럼 grid-template-columns대로 좌우 배치 그대로 유지. */
 @media (max-width:1024px) and (orientation:portrait), (max-width:640px) and (orientation:landscape){
-  .layout{grid-template-columns:1fr;}
+  .layout{grid-template-columns:minmax(0,1fr);} /* v63: 1fr은 min-content(가로 스크롤 탭 줄)만큼 열이 늘어나 화면 밖으로 밀림 */
   .layout .side-col{order:2;}
   .layout main{order:1;}
 }
@@ -923,7 +923,7 @@ button{font-family:inherit; cursor:pointer;}
 .filters select{min-height:42px; font-size:.93rem; padding:8px 12px; border:1.5px solid var(--line);
   border-radius:var(--radius-xs); background:var(--input-bg); font-family:inherit;}
 .filters .spacer{flex:1;}
-.summary{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-bottom:14px;}
+.summary{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px;}
 .sum-card{padding:16px 18px;}
 .sum-card h3{font-size:.85rem; color:var(--ink-soft); font-weight:600; margin-bottom:6px;}
 .sum-card .big{font-family:var(--font-display); font-size:1.7rem; font-weight:700; color:var(--indigo);}
@@ -936,10 +936,11 @@ button{font-family:inherit; cursor:pointer;}
 .tag-chip{font-size:.82rem; background:rgba(46,74,122,.08); color:var(--indigo);
   border-radius:999px; padding:3px 11px; font-weight:600;}
 .tag-chip small{color:var(--ink-soft); font-weight:400;}
-/* 교사 대시보드 테이블: 태블릿/모바일 대응 방식 확정 — 카드형 대신 가로스크롤 유지.
- * min-width로 표 최소 폭을 고정해두고 wrap이 overflow-x:auto로 가로스크롤 처리.
- * 열이 많아질수록(활동 수 증가) 카드형은 세로로 너무 길어져 오히려 비교가 어려워지므로,
- * 학번·이름·진행률+활동별 열을 한 화면에서 비교해야 하는 이 용도엔 가로스크롤이 더 적합. */
+/* 교사 대시보드 테이블: 카드형 대신 가로스크롤 방식 유지(태블릿). 표 최소 폭을 고정해두고
+ * wrap이 overflow-x:auto로 가로스크롤 처리한다. v63: 열이 학번·이름·진행률·최근 활동·평균 성취
+ * 5개로 고정된 뒤(v26)엔 활동 수와 무관하므로, 폰(≤640px)에서는 "최근 활동" 열을 숨기고 min-width를
+ * 풀어 가로스크롤 없이 한 화면에 들어오게 한다 — 상세 카드(colspan)가 표 폭에 끌려 화면 밖으로 밀려나
+ * 보내기 버튼이 안 보이던 문제 때문(아래 v63 섹션). */
 .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
 .table-wrap table{width:100%; border-collapse:collapse; font-size:.9rem; min-width:640px;}
 .table-wrap th{position:sticky; top:0; background:var(--thead-bg); text-align:left; padding:11px 14px;
@@ -1208,3 +1209,128 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
   display:inline-block; background:var(--amber-bg); border:1px solid var(--amber-border);
   color:var(--amber-text); border-radius:999px; padding:1px 9px; font-weight:700;
 }
+
+
+/* ══════════════ v63 — UI 통일 레이어 (PC·태블릿·모바일 정리) ══════════════
+ * 배경: 기능이 붙을 때마다 버튼·탭·폼이 제각각 스타일돼 있었다(같은 "보내기"가 어떤 곳은 알약형·
+ * 어떤 곳은 사각형·어떤 곳은 브라우저 기본 버튼, 주 버튼 색이 인디고/오커 혼재, 폰에서 탭이 3줄로
+ * 꺾이고 요약 카드가 4장 세로로 쌓임). 기존 규칙을 흩어 고치지 않고 여기에 모아 뒀다 —
+ * 원칙: ① 버튼은 사각(--radius-sm), 알약(999px)은 배지·칩 전용 ② 주 버튼은 인디고, 오커는 "달성" 강조에만
+ * ③ 입력창은 --radius-xs·1.5px·--input-bg ④ 브레이크포인트는 640/1024만.
+ * 이 섹션이 파일 맨 끝인 이유: 위 규칙과 특이도가 같아도 나중 것이 이기게 하려는 것 — 옮기지 말 것. */
+
+/* ① 주 버튼 통일 — 클래스 없이 id/컨테이너로만 스타일되던 것들을 .btn과 같은 모양으로 */
+.q-form button, .dq-reply-form button, .an-add-form button, .gi-block button,
+.cl-form button:not(.btn-ghost):not([style*="background:none"]),
+#btnCkqSave, #ccPushBtn, #gradeUploadBtn, #gradeStatusOnBtn, #gradeStatusOffBtn{
+  background:var(--indigo); color:#fff; border:none; border-radius:var(--radius-sm);
+  min-height:42px; padding:9px 18px; font-size:.9rem; font-weight:700; cursor:pointer; flex-shrink:0;
+}
+.q-form button:hover, .dq-reply-form button:hover, .an-add-form button:hover, .gi-block button:hover,
+.cl-form button:not(.btn-ghost):not([style*="background:none"]):hover,
+#btnCkqSave:hover, #ccPushBtn:hover, #gradeUploadBtn:hover, #gradeStatusOnBtn:hover, #gradeStatusOffBtn:hover{
+  background:var(--indigo-deep);
+}
+.q-form button:disabled, .dq-reply-form button:disabled, .an-add-form button:disabled, .gi-block button:disabled,
+.cl-form button:disabled, #btnCkqSave:disabled, #ccPushBtn:disabled, #gradeUploadBtn:disabled,
+#gradeStatusOnBtn:disabled, #gradeStatusOffBtn:disabled{
+  background:var(--disabled-bg); opacity:1; cursor:wait;
+}
+.q-form button, .dq-reply-form button{align-self:flex-end;}   /* textarea 높이만큼 늘어나 원형이 되던 문제 */
+.gi-block button{min-height:38px; padding:7px 16px; font-size:.86rem;}
+.an-item .an-toggle{border-radius:var(--radius-sm);}
+.an-item .an-toggle:hover{border-color:var(--indigo); color:var(--indigo);}
+.cl-subtab.active{color:var(--indigo); border-bottom-color:var(--indigo);}   /* 탭 강조색도 인디고로 */
+.cl-grade-head{color:var(--indigo);}
+
+/* ② 대시보드 섹션 제목(탐구포인트·성적관리 탭의 "굵은 안내문" 대체) */
+.dash-section-title{font-size:.98rem; font-weight:700; color:var(--ink); margin:28px 0 4px;
+  padding-top:16px; border-top:1px dashed var(--line);}
+.dash-section-title:first-child{margin-top:0; padding-top:0; border-top:none;}
+
+/* ③ 학생 상세 카드 상단 액션 줄 — SEL·탐구포인트를 세로로 쌓지 않고 한 줄에 */
+.dash-detail-actions{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin-bottom:12px;}
+.dash-detail-actions .pp-box:has(.pp-form:not([hidden])){flex:1 1 100%;}
+
+/* ④ 요약 카드·필터: 태블릿은 2×2, 폰은 촘촘한 2×2 (3+1 고아 카드 방지) */
+@media (max-width:1024px){
+  .summary{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (max-width:640px){
+  .summary{gap:10px;}
+  .sum-card{padding:12px 14px;}
+  .sum-card .big{font-size:1.4rem;}
+  .sum-card h3{font-size:.8rem;}
+  #panelRecords .filters{display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px 10px; align-items:center;}
+  #panelRecords .filters select{width:100%;}
+  #panelRecords .filters .spacer{display:none;}
+  #panelRecords .filters .student-search{grid-column:1/-1;}
+  #panelRecords .filters #rowCount{grid-column:1/-1; text-align:right;}
+}
+
+/* ⑤ 탭 줄: 태블릿·폰에서는 꺾지 않고 한 줄 가로 스크롤(탭 개수가 늘어도 줄 수가 안 변함) */
+@media (max-width:1024px){
+  .tab-nav, .dash-tabs{
+    flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; scroll-snap-type:x proximity;
+  }
+  .tab-nav::-webkit-scrollbar, .dash-tabs::-webkit-scrollbar{display:none;}
+  .tab-btn, .dash-tab{flex:0 0 auto; white-space:nowrap; scroll-snap-align:start; margin-bottom:0;}
+  .dash-tab{padding:10px 13px;}
+  .dash-tabs{gap:2px;}
+}
+
+/* 안 읽은 선생님 메시지가 있으면 그 탭을 맨 앞으로(폰에선 탭 줄이 가로 스크롤이라 뒤에 두면 안 보임) */
+.tab-btn.unread{order:-1;}
+
+/* ⑥ 표: 폰에서는 "최근 활동" 열을 숨기고 한 화면에 맞춤 */
+@media (max-width:640px){
+  #panelRecords .table-wrap table{min-width:0;}
+  #panelRecords .table-wrap thead th:nth-child(4),
+  #panelRecords .table-wrap tr.student-row td:nth-child(4){display:none;}
+  #panelRecords .table-wrap th, #panelRecords .table-wrap td{padding:9px 10px;}
+  .prog-mini .track{width:52px;}
+}
+
+/* ⑦ 폼: 폰에서는 컨트롤을 한 줄에 하나씩 가득 채움 */
+@media (max-width:640px){
+  .fb-form, .dq-reply-form, .an-add-form, .q-form{flex-direction:column; align-items:stretch;}
+  .fb-form select, .fb-form textarea, .dq-reply-form textarea, .an-add-form select, .an-add-form textarea,
+  .q-form textarea, .msg-text-input{width:100%; min-width:0; flex:0 0 auto;}
+  .fb-form button, .dq-reply-form button, .an-add-form button, .q-form button{width:100%; align-self:stretch;}
+  .cl-form .cl-row > select, .cl-form .cl-row > input{flex:1 1 100% !important; min-width:0;}
+  .cl-form button:not(.btn-ghost){width:100%; align-self:stretch;}
+  .top-actions{width:100%;}
+  .top-actions .btn{flex:1 1 auto; white-space:nowrap; padding:8px 10px;}
+  .msg-bubble{max-width:94%;}
+}
+
+/* ⑧-0 그리드 자식이 내용 폭 때문에 열을 밀어내지 않게 */
+.layout > main, .layout > .side-col{min-width:0;}
+
+/* ⑧ 학생 포털 — 태블릿 세로에서 나무·칭호첩 카드가 화면 폭만큼 늘어나 빈 공간이 커지던 것을 좌우 2단으로 */
+@media (max-width:1024px) and (orientation:portrait) and (min-width:641px){
+  .side-combined{display:grid; grid-template-columns:minmax(240px,.9fr) 1.3fr; gap:0 26px; align-items:start;}
+  .side-combined .badge-section{margin-top:0; padding-top:0; border-top:none; padding-left:26px; border-left:1px dashed var(--line);}
+}
+
+/* ⑨ 마무리 손질 */
+/* 질문함 항목을 다른 목록(개인 메시지·공지)과 같은 카드로 */
+#dqList .dq-item{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow);}
+#dqList .dq-item:first-of-type{padding-top:14px;}
+/* 옅은 회색(--muted-2)은 placeholder용이라 본문 보조 글씨엔 대비가 낮음 — 이 카드들 안에서는 ink-soft */
+.dm-box .muted, .suspect-box .muted, .dm-detail .muted{color:var(--ink-soft);}
+.ai-notice{background:var(--indigo-bg); border-color:rgba(46,74,122,.25);}
+.field-label-tight{font-weight:700; color:var(--ink);}
+@media (max-width:1024px){
+  .dash-tab{padding:10px 11px; font-size:.88rem;}
+  .dash-tabs{gap:0;}
+}
+input[type=file]{font-family:inherit; font-size:.88rem; color:var(--ink-soft); max-width:100%;}
+input[type=file]::file-selector-button{
+  font-family:inherit; font-size:.86rem; font-weight:600; color:var(--ink-soft); cursor:pointer;
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm);
+  min-height:38px; padding:6px 14px; margin-right:10px;
+}
+input[type=file]::file-selector-button:hover{background:var(--paper); color:var(--ink);}

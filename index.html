@@ -716,7 +716,7 @@
          늘려야 함. 3학년 5~8반 전용 활동이라 학년은 고정하고 반만 고른다. 서버 쪽
          courtCasePushPost_가 스크립트 속성 RE_JUDGE_TEACHER_TOKEN을 요구한다 —
          history26_backend CLAUDE.md 참고. -->
-    <p class="dash-hint" style="margin-top:22px; font-weight:700;">🏛️ 역사법정 결과 re_judge에 등록</p>
+    <p class="dash-section-title">🏛️ 역사법정 결과 re_judge에 등록</p>
     <p class="dash-hint">3학년 반을 고르면 그 반 검사·변호인 발언문(+배심원 판결)을 모아 re_judge에 새 사건으로 자동 등록해요.</p>
     <div class="filters">
       <select id="ccPushBan">
@@ -733,7 +733,7 @@
          gongmin 웹앱은 학생용이라 교사 토큰을 못 심어(보안상 grantPresentationPoint를
          직접 못 부름) choicesJson.volunteer 플래그만 기록해 보내고, 여기서 교사가
          확인 후 일괄 지급한다. 내용은 dashRenderGongminBonus_()가 채운다. -->
-    <p class="dash-hint" style="margin-top:22px; font-weight:700;">📋 고민리스트 자원 카드 보너스</p>
+    <p class="dash-section-title">📋 고민리스트 자원 카드 보너스</p>
     <p class="dash-hint">2단계에서 카드를 1장 더 자원해서 쓴 학생에게만 탐구포인트를 차등 지급해요.</p>
     <div id="gmBonusBox"></div>
   </div>
@@ -754,7 +754,7 @@
     </div>
     <div id="gradeUploadStatus" class="dash-hint" style="min-height:18px;"></div>
 
-    <p class="dash-hint" style="margin-top:22px; font-weight:700;">열람 상태</p>
+    <p class="dash-section-title">열람 상태</p>
     <div id="gradeStatusBox" class="dash-hint">불러오는 중…</div>
     <div class="filters">
       <button type="button" id="gradeStatusOnBtn" onclick="dashSetGradeDisplayStatus(this,'ON')">열람 열기</button>
@@ -1768,6 +1768,7 @@ function switchQuickTab(tab){
   });
   document.querySelectorAll('#quickTabsCard .tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.qtab === tab);
+    if(btn.dataset.qtab === tab && btn.scrollIntoView) btn.scrollIntoView({ inline:'center', block:'nearest' }); // v63
   });
   if(tab === 'message'){
     const box = $('msgThread');
@@ -1834,12 +1835,15 @@ function messagesSorted_(){
 function unreadTeacherMessages_(){
   return messagesSorted_().filter(m => m.from === '교사' && !m.read);
 }
-function renderMessages(){
+function renderMessages(keepOrder){
   const btn = $('qtabMessage'), box = $('msgThread');
   if(!btn || !box) return;
   const ms = messagesSorted_();
   btn.style.display = ms.length ? '' : 'none';
   const unread = unreadTeacherMessages_().length;
+  // 안 읽은 게 있을 땐 탭을 맨 앞으로(폰에선 탭 줄이 가로 스크롤이라 뒤에 두면 안 보임).
+  // 읽음 처리 직후 재렌더(keepOrder)에서는 순서를 유지해, 방금 누른 탭이 끝으로 튀지 않게 한다.
+  if(!keepOrder) btn.classList.toggle('unread', unread > 0);
   const badge = $('msgBadge');
   badge.textContent = unread || '';
   badge.style.display = unread ? 'inline-block' : 'none';
@@ -1854,7 +1858,7 @@ function ackMessages_(){
   const un = unreadTeacherMessages_();
   if(!un.length) return;
   un.forEach(m => { m.read = true; });
-  renderMessages();
+  renderMessages(true);
   fetch(CONFIG.WEBAPP_URL, {
     method: 'POST',
     body: JSON.stringify({ action: 'ackMessages', studentId: SESSION.studentId, studentName: SESSION.name })
@@ -2468,6 +2472,7 @@ function switchDashTab(tab){
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
+    if(btn.dataset.tab === tab && btn.scrollIntoView) btn.scrollIntoView({ inline:'center', block:'nearest' }); // v63 — 모바일에선 탭 줄이 가로 스크롤
   });
   if(tab === 'grades') dashLoadGradeStatus_();
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
@@ -5014,7 +5019,7 @@ function dashDetailRowHtml(s, lessons, colspan){
   const options = '<option value="전체">전체(학기 총평)</option>'
     + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
 
-const selBtnHtml = `<div style="margin-bottom:10px; display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+const selBtnHtml = `<div class="dash-detail-actions">
   <button class="btn btn-sm" onclick="openSelPopup('${s.sid}')">🧭 SEL 특성 보기</button>
   ${dashPointBoxHtml_(s)}
 </div>`;
