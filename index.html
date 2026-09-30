@@ -157,6 +157,8 @@
           <button type="button" class="tab-btn active" data-qtab="question" onclick="switchQuickTab('question')">💬 질문하기</button>
           <button type="button" class="tab-btn" data-qtab="overview" onclick="switchQuickTab('overview')">📜 나의 달성도</button>
           <button type="button" class="tab-btn" data-qtab="archive" onclick="switchQuickTab('archive')">🗂 기록 보관함</button>
+          <!-- v62 — 선생님이 먼저 보낸 개인 메시지가 있을 때만 보이는 탭(renderMessages 참고) -->
+          <button type="button" class="tab-btn" id="qtabMessage" data-qtab="message" onclick="switchQuickTab('message')" style="display:none;">💌 선생님 메시지<span class="dq-badge" id="msgBadge" style="display:none;"></span></button>
         </div>
 
         <div class="tab-panel" id="qpQuestion">
@@ -174,6 +176,15 @@
           <div id="overviewList"></div>
           <div id="overviewMoreList" style="display:none;"></div>
           <button type="button" class="overview-more-btn" id="overviewMoreBtn" onclick="toggleOverviewMore()" style="display:none;"></button>
+        </div>
+
+        <div class="tab-panel" id="qpMessage" style="display:none;">
+          <p class="q-hint">선생님이 보낸 메시지예요. 여기서 답장할 수 있어요.</p>
+          <div class="msg-thread" id="msgThread"></div>
+          <div class="q-form">
+            <textarea id="msgInput" maxlength="1000" placeholder="답장을 적어주세요…"></textarea>
+            <button id="btnSendMsg" onclick="sendMessageReply()">답장 보내기</button>
+          </div>
         </div>
 
         <div class="tab-panel" id="qpArchive" style="display:none;">
@@ -349,6 +360,8 @@
   </div>
 
   <div class="dash-panel" id="panelQuestions" style="display:none;">
+    <!-- v62: 교사가 먼저 시작한 학생별 1:1 스레드. 내용은 dashRenderMessages_()가 그린다. -->
+    <div id="dmList"></div>
     <div id="dqList"></div>
   </div>
 
@@ -1374,6 +1387,8 @@ function renderPortal(){
   checkNewBadges(STUDENT_DATA.badges);
   checkNewPresentationGrants(ppGrants);
   checkNewFeedback(fbAll); // v36
+  renderMessages();        // v62
+  checkNewMessages_();     // v62
   // v44 — 사이드카드 높이 재계산은 배지 목록이 그려진 뒤(내용이 바뀌어야 다시 잴 의미가
   // 있음) 페인트 한 번 지난 다음에 해야 정확한 위치를 잰다(레이아웃 함수 정의는 아래).
   requestAnimationFrame(layoutSideCard_);
@@ -1748,12 +1763,17 @@ function askAboutFeedback_(idx){
 
 /* ── v57: 상단 탭 카드(질문함·달성도·보관함 / 패들렛·클래스카드) 전환 ── */
 function switchQuickTab(tab){
-  ['question','overview','archive'].forEach(t => {
+  ['question','overview','archive','message'].forEach(t => {
     $('qp' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('#quickTabsCard .tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.qtab === tab);
   });
+  if(tab === 'message'){
+    const box = $('msgThread');
+    box.scrollTop = box.scrollHeight;
+    ackMessages_(); // v62 — 탭을 연 순간 읽은 것으로 처리
+  }
 }
 
 function switchRefTab(tab){
@@ -1798,6 +1818,100 @@ function renderQuestions(){
         ${done ? `<div class="q-answer"><b>선생님 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
       </div>`;
   }).join('');
+}
+
+/* ── 선생님 개인 메시지 (v62) ──
+ * 교사가 먼저 보낸 1:1 스레드. 질문함(학생이 먼저 물음)과 별개 시트(백엔드 '개인메시지')이고,
+ * 학생은 교사가 먼저 보낸 스레드에만 답장할 수 있다(서버가 강제). 스레드가 비어 있으면 탭 버튼
+ * 자체를 숨긴다. 읽음 처리는 팝업을 닫을 때가 아니라 탭을 열 때(switchQuickTab → ackMessages_)라서,
+ * 팝업만 넘기고 안 본 메시지는 탭의 빨간 숫자로 계속 남는다. 미리보기 모드엔 messages 필드가
+ * 없어 탭이 숨은 채로 유지된다. */
+let MSG_POPUP_SEEN_TS = '';
+function messagesSorted_(){
+  return [...((STUDENT_DATA && STUDENT_DATA.messages) || [])]
+    .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+}
+function unreadTeacherMessages_(){
+  return messagesSorted_().filter(m => m.from === '교사' && !m.read);
+}
+function renderMessages(){
+  const btn = $('qtabMessage'), box = $('msgThread');
+  if(!btn || !box) return;
+  const ms = messagesSorted_();
+  btn.style.display = ms.length ? '' : 'none';
+  const unread = unreadTeacherMessages_().length;
+  const badge = $('msgBadge');
+  badge.textContent = unread || '';
+  badge.style.display = unread ? 'inline-block' : 'none';
+  box.innerHTML = ms.map(m => `
+    <div class="msg-bubble ${m.from === '교사' ? 'from-teacher' : 'from-me'}">
+      <div class="msg-meta">${m.from === '교사' ? '선생님' : '나'} · ${formatDate(m.timestamp)}</div>
+      <div class="msg-text">${escapeHtml(m.content)}</div>
+    </div>`).join('');
+}
+function ackMessages_(){
+  if(!SESSION || PREVIEW_MODE) return;
+  const un = unreadTeacherMessages_();
+  if(!un.length) return;
+  un.forEach(m => { m.read = true; });
+  renderMessages();
+  fetch(CONFIG.WEBAPP_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'ackMessages', studentId: SESSION.studentId, studentName: SESSION.name })
+  }).catch(() => {}); // 실패하면 서버엔 안 읽음으로 남아 다음 로그인 때 다시 알림 — 놓쳐도 안전
+}
+function checkNewMessages_(){
+  if(!SESSION || PREVIEW_MODE) return;
+  const un = unreadTeacherMessages_();
+  if(!un.length) return;
+  const key = String(un[un.length - 1].timestamp);
+  if(key === MSG_POPUP_SEEN_TS) return; // 같은 세션에서 재렌더될 때 반복 팝업 방지
+  MSG_POPUP_SEEN_TS = key;
+  document.querySelectorAll('.msg-popup-overlay').forEach(el => el.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'msg-popup-overlay';
+  overlay.innerHTML = `
+    <div class="fb-popup-card" role="dialog" aria-modal="true" aria-label="선생님 메시지 도착">
+      <p class="fb-popup-emoji">💌</p>
+      <p class="fb-popup-title">${un.length === 1 ? '선생님이 메시지를 보냈어요' : `선생님 메시지가 ${un.length}개 도착했어요`}</p>
+      <button type="button" class="btn btn-sm fb-popup-ok">메시지 보러 가기</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = go => {
+    overlay.remove();
+    if(go){
+      switchQuickTab('message');
+      $('quickTabsCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+  overlay.querySelector('.fb-popup-ok').addEventListener('click', () => close(true));
+  overlay.addEventListener('click', ev => { if(ev.target === overlay) close(false); });
+}
+async function sendMessageReply(){
+  if(PREVIEW_MODE){ showToast('미리보기 모드예요 — 실제로 기록되지 않아요.'); return; }
+  const input = $('msgInput');
+  const text = input.value.trim();
+  if(!text){ showToast('답장 내용을 입력해 주세요.'); return; }
+  const btn = $('btnSendMsg');
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'replyMessage', studentId: SESSION.studentId, studentName: SESSION.name, content: text })
+    });
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '실패');
+    STUDENT_DATA.messages = STUDENT_DATA.messages || [];
+    STUDENT_DATA.messages.push({ timestamp: new Date().toISOString(), from: '학생', content: text, read: false });
+    input.value = '';
+    renderMessages();
+    const box = $('msgThread'); box.scrollTop = box.scrollHeight;
+    showToast('답장을 보냈어요.');
+  }catch(e){
+    showToast('보내지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false; btn.textContent = '답장 보내기';
+  }
 }
 
 /* ── 질문함: 보내기 ── */
@@ -2272,6 +2386,7 @@ let CLASS_FEEDBACKS = []; // v34 — 학급 공통 피드백. { grade, ban, acti
                           // ban은 특정 반 번호("6") 또는 "내 담당 반" 선택 시 콤마 목록("5,6,7,8", dashClassFeedbackBanParam_ 참고).
                           // misconceptions는 2026-09-09 신규, 교사 전용.
 let QUESTIONS = [];
+let MESSAGES = []; // v62 — 개인메시지 전체(교사용). { _row, timestamp, studentId, studentName, grade, ban, from:'교사'|'학생', content, read, teacher }
 let ANNOUNCEMENTS_ADMIN = [];
 let LESSONS_ADMIN = [];
 let GRADE_INFO_ADMIN = {};
@@ -2293,7 +2408,7 @@ let PP_RECENT = [];
  * Promise.all이 그대로 reject → 대시보드가 통째로 0/빈 값으로 뜨는 문제가 있었음. */
 async function dashLoadData(){
   const base = CONFIG.WEBAPP_URL;
-  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+  const [r1, r2, r3, r4, r5, r6, r7] = await Promise.all([
     fetchJsonRetry_(base + '?token=' + encodeURIComponent(TOKEN)),
     fetchJsonRetry_(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)),
     fetchJsonRetry_(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)),
@@ -2302,7 +2417,9 @@ async function dashLoadData(){
     // v34: 백엔드에 아직 없을 수 있는 새 mode라 이 요청만 실패를 따로 흡수 —
     // 배포 전(또는 재배포 중)에도 나머지 4개 요청이 물려서 대시보드 전체가
     // 안 뜨는 v22식 사고를 반복하지 않기 위함. 실패하면 빈 배열로 취급.
-    fetchJsonRetry_(base + '?mode=classFeedback&token=' + encodeURIComponent(TOKEN)).catch(() => ({ rows: [] }))
+    fetchJsonRetry_(base + '?mode=classFeedback&token=' + encodeURIComponent(TOKEN)).catch(() => ({ rows: [] })),
+    // v62: 개인메시지도 백엔드 배포 전엔 없는 mode — 같은 이유로 실패를 따로 흡수.
+    fetchJsonRetry_(base + '?mode=messagesAdmin&token=' + encodeURIComponent(TOKEN)).catch(() => ({ rows: [] }))
   ]);
   if(r1.result === 'error') throw new Error(r1.message);
   ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
@@ -2314,6 +2431,7 @@ async function dashLoadData(){
   GRADE_INFO_ADMIN = (r5.gradeInfo || {});
   if(r5.badgeNamePool) BADGE_NAME_POOL = r5.badgeNamePool; // v24
   CLASS_FEEDBACKS = (r6.rows || []); // v34
+  MESSAGES = (r7.result === 'error' ? [] : (r7.rows || [])); // v62
 }
 
 async function enterDash(token){
@@ -3744,8 +3862,10 @@ function dashRenderQuestions(){
   const done = visible.filter(q => q.status === '답변완료');
   const sorted = [...waiting, ...done]; // 대기중 먼저
   const badge = $('dqBadge');
-  if(waiting.length){
-    badge.textContent = waiting.length + '건 대기';
+  const msgWaiting = dashRenderMessages_(); // v62 — 학생 답장이 마지막인 스레드 수
+  const totalWaiting = waiting.length + msgWaiting;
+  if(totalWaiting){
+    badge.textContent = totalWaiting + '건 대기';
     badge.style.display = 'inline-block';
   } else {
     badge.style.display = 'none';
@@ -3769,6 +3889,102 @@ function dashRenderQuestions(){
         </div>
       </div>`;
   }).join('');
+}
+
+/* ── 개인 메시지 스레드 (교사, v62) ──
+ * 학생 한 명당 스레드 하나. 교사가 먼저 보내야 시작되고(질문함은 학생이 먼저), 학생이 답장하면
+ * 같은 스레드에 쌓인다. 스레드 위젯(dashMsgThreadHtml_)은 두 곳에서 같이 쓴다 — ① 질문함 탭의
+ * 스레드 목록(아래 dashRenderMessages_), ② 학생 상세 카드 안(dashDetailRowHtml). 새 스레드는
+ * ②에서만 시작한다(질문함 탭엔 이미 존재하는 스레드만 보임).
+ * "답장 대기"는 별도 읽음 상태 없이 "스레드의 마지막 메시지가 학생 것"으로 판정한다.
+ * 담당 반 필터링은 질문함과 같은 규칙(dashMyBans_). */
+let dmOpenSid = null;
+function dashMsgThreadRows_(sid){
+  return MESSAGES.filter(m => String(m.studentId) === String(sid))
+    .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+}
+function dashMsgThreadHtml_(sid, name){
+  const rows = dashMsgThreadRows_(sid);
+  const bubbles = rows.map(m => `
+    <div class="msg-bubble ${m.from === '교사' ? 'from-me' : 'from-teacher'}">
+      <div class="msg-meta">${m.from === '교사' ? '나' : escapeHtml(name)} · ${formatDate(m.timestamp)}${m.from === '교사' ? (m.read ? ' · 읽음' : ' · 안 읽음') : ''}</div>
+      <div class="msg-text">${escapeHtml(m.content)}</div>
+    </div>`).join('');
+  return `
+    <div class="msg-wrap" data-sid="${escapeHtml(String(sid))}" data-name="${escapeHtml(name)}">
+      ${rows.length ? `<div class="msg-thread">${bubbles}</div>` : '<p class="muted" style="margin:0 0 8px;">아직 주고받은 메시지가 없어요. 보내면 학생 포털에 알림이 떠요.</p>'}
+      <div class="dq-reply-form">
+        <textarea class="msg-text-input" maxlength="1000" placeholder="${escapeHtml(name)} 학생에게 보낼 메시지…"></textarea>
+        <button class="btn btn-sm" onclick="dashSendMessage(this)">${rows.length ? '보내기' : '메시지 시작'}</button>
+      </div>
+    </div>`;
+}
+function dashRenderMessages_(){
+  const box = $('dmList');
+  if(!box) return 0;
+  const byStudent = {};
+  MESSAGES.forEach(m => {
+    const mine = dashMyBans_(m.grade);
+    if(mine && !mine.includes(Number(m.ban))) return;
+    (byStudent[String(m.studentId)] = byStudent[String(m.studentId)] || []).push(m);
+  });
+  const threads = Object.values(byStudent).map(list => {
+    list.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const last = list[list.length - 1];
+    return { sid: String(last.studentId), name: String(last.studentName), grade: last.grade, ban: last.ban,
+             last, waiting: last.from === '학생' };
+  }).sort((a,b) => (b.waiting - a.waiting) || (new Date(b.last.timestamp) - new Date(a.last.timestamp)));
+  if(!threads.length){ box.innerHTML = ''; return 0; }
+  const waitingCount = threads.filter(t => t.waiting).length;
+  box.innerHTML = `
+    <div class="dm-box">
+      <h3 class="dm-title">💌 개인 메시지 <span class="muted">— 새 메시지는 학생 상세 카드에서 시작해요</span>${waitingCount ? `<span class="dq-badge">${waitingCount}명 답장 도착</span>` : ''}</h3>
+      ${threads.map(t => `
+        <details class="dm-thread${t.waiting ? ' waiting' : ''}" ${dmOpenSid === t.sid ? 'open' : ''} data-sid="${escapeHtml(t.sid)}">
+          <summary>
+            <b>${escapeHtml(t.name)}</b> <span class="muted">${t.grade}학년 ${t.ban}반 · ${escapeHtml(t.sid)}</span>
+            ${t.waiting ? '<span class="q-status wait">답장 도착</span>' : ''}
+            <span class="dm-last">${escapeHtml(dashShorten(String(t.last.content), 40))}</span>
+          </summary>
+          ${dashMsgThreadHtml_(t.sid, t.name)}
+        </details>`).join('')}
+    </div>`;
+  box.querySelectorAll('details.dm-thread').forEach(d => {
+    d.addEventListener('toggle', () => { if(d.open) dmOpenSid = d.dataset.sid; });
+  });
+  return waitingCount;
+}
+async function dashSendMessage(btn){
+  const wrap = btn.closest('.msg-wrap');
+  const text = wrap.querySelector('.msg-text-input').value.trim();
+  if(!text){ showToast('메시지 내용을 입력해 주세요.'); return; }
+  const sid = wrap.dataset.sid, name = wrap.dataset.name;
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'sendMessage', token: TOKEN, studentId: sid, studentName: name, content: text })
+    });
+    const data = await res.json();
+    if(data.result !== 'success'){
+      // 서버가 준 검증 메시지("메시지는 1000자까지…")만 그대로 보여준다. 재배포 전이라 action을 모르면
+      // gameName 에러가 오므로, 그때는 아래 catch의 일반 안내로 떨어지게 한다.
+      const err = new Error(data.message || '실패');
+      err.fromServer = /메시지|학번/.test(String(data.message || ''));
+      throw err;
+    }
+    const p = parseStudentId(sid);
+    MESSAGES.push({ _row: null, timestamp: new Date().toISOString(), studentId: sid, studentName: name,
+      grade: p ? p.grade : '', ban: p ? p.ban : '', from: '교사', content: text, read: false, teacher: TEACHER_NAME || '' });
+    dmOpenSid = sid;
+    showToast('메시지를 보냈어요. 학생 포털에 알림이 떠요.');
+    dashRenderQuestions();
+    if(openDetailSid === sid) renderDash();
+  }catch(e){
+    btn.disabled = false; btn.textContent = label;
+    showToast(e.fromServer ? e.message : '보내지 못했어요. 다시 시도해 주세요. (백엔드 재배포 전이면 보낼 수 없어요)');
+  }
 }
 
 async function dashAnswerQuestion(btn){
@@ -4803,9 +5019,17 @@ const selBtnHtml = `<div style="margin-bottom:10px; display:flex; flex-direction
   ${dashPointBoxHtml_(s)}
 </div>`;
 
+  // v62: 학생 개인 메시지 스레드 — 이미 주고받은 게 있으면 펼쳐 둔다.
+  const msgRows = dashMsgThreadRows_(s.sid);
+  const msgHtml = `<details class="dm-detail" ${msgRows.length ? 'open' : ''}>
+    <summary>💌 개인 메시지${msgRows.length ? ` (${msgRows.length})` : ''}</summary>
+    ${dashMsgThreadHtml_(s.sid, s.name)}
+  </details>`;
+
   return `
     <tr class="detail-row"><td colspan="${colspan}">
       ${selBtnHtml}
+      ${msgHtml}
       ${recHtml}
       ${fbHtml}
       <div class="fb-form">

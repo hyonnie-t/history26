@@ -974,6 +974,22 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
   border-radius:999px; padding:2px 9px; white-space:nowrap;}
 .ai-suspect-badge{font-size:.72rem; font-weight:700; color:var(--seal); background:rgba(176,58,46,.12);
   border-radius:999px; padding:2px 9px; white-space:nowrap;}
+/* v62: 개인 메시지 스레드(학생 포털 탭·교사 대시보드 공용) */
+.msg-thread{display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto; margin-bottom:10px; padding-right:2px;}
+.msg-bubble{max-width:86%; padding:8px 12px; border-radius:var(--radius-xs); font-size:.92rem; line-height:1.5; border:1px solid var(--line);}
+.msg-bubble .msg-meta{font-size:.74rem; color:var(--ink-soft); margin-bottom:2px;}
+.msg-bubble .msg-text{white-space:pre-wrap; overflow-wrap:anywhere;}
+.msg-bubble.from-teacher{align-self:flex-start; background:var(--amber-bg); border-color:var(--amber-border);}
+.msg-bubble.from-me{align-self:flex-end; background:var(--indigo-bg); border-color:rgba(46,74,122,.25);}
+.dm-box{margin-bottom:18px;}
+.dm-title{font-size:.98rem; margin:0 0 8px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;}
+.dm-thread, .dm-detail{border:1px solid var(--line); border-radius:var(--radius-xs); padding:8px 12px; margin-bottom:6px; background:var(--paper);}
+.dm-thread.waiting{border-left:4px solid var(--seal);}
+.dm-thread summary, .dm-detail summary{cursor:pointer; display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:.9rem;}
+.dm-last{color:var(--ink-soft); font-size:.82rem;}
+.dm-thread .msg-wrap, .dm-detail .msg-wrap{margin-top:10px;}
+.msg-text-input{flex:1; min-width:200px; min-height:60px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-xs); font:inherit;}
+
 /* v61: AI 작성 의심 경고 박스 / 학생 표 칩 */
 .suspect-box{background:rgba(176,58,46,.06); border:1px solid rgba(176,58,46,.28);
   border-left:4px solid var(--seal); border-radius:var(--radius); padding:12px 16px; margin-bottom:14px;}
@@ -1084,7 +1100,7 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 /* 선생님 피드백 도착 팝업(학생 화면, v36) — pp-popup과 같은 이유로 토스트 대신
  * 확인 버튼을 눌러야 닫히는 모달. 여러 건이 한 번에 올 수 있어 pp-popup과 달리
  * 항목 리스트를 스크롤 가능하게 둠(fb-popup-list). */
-.fb-popup-overlay{
+.fb-popup-overlay, .msg-popup-overlay{
   position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
   background:rgba(35,38,44,.55); padding:20px; animation:fadeIn .2s ease;
 }

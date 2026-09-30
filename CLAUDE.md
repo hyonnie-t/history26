@@ -214,6 +214,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `SUSPECT_REPEAT_MIN`(2)회 이상 걸린 학생을 강조하고 1회는 접어 보여준다. 학생 표 `🔍×N` 칩과 행 단위
   "🔍 확인 요청" 배지(상세 카드)는 같은 필드를 쓴다. 참고용 판정이며 학생 화면엔 절대 노출 금지.
 
+- **교사↔학생 개인 메시지 (v62)**: 교사가 먼저 시작하는 1:1 스레드. 질문함(학생이 먼저 물음, 질문 1+답변
+  1 구조)과 **별개 시트**(백엔드 `개인메시지`)라 질문함·질문왕 배지 집계엔 영향이 없다. 학생 포털은
+  `STUDENT_DATA.messages`(`mode=student` 응답)로 `#qtabMessage` 탭·`renderMessages()`·도착 팝업
+  (`checkNewMessages_()`)을 그리고, 스레드가 비어 있으면 탭 버튼 자체가 숨는다(미리보기 모드도 같음).
+  **읽음 처리는 팝업이 아니라 탭을 여는 순간**(`switchQuickTab('message')` → `ackMessages_()`)이다.
+  교사 쪽은 `MESSAGES`(`mode=messagesAdmin`)를 `dashRenderMessages_()`(질문함 탭 위 목록)과
+  `dashMsgThreadHtml_()`(학생 상세 카드 안 위젯, 새 스레드는 여기서만 시작)가 그린다. "답장 대기"는 스레드의
+  마지막 메시지가 학생 것인지로 판정하고 질문함 탭 배지에 합산한다. 학생 답장은 교사가 먼저 보낸 스레드에만
+  서버가 허용한다. **⚠️ 백엔드 재배포 전엔 `messagesAdmin` 실패를 빈 목록으로 흡수하므로 대시보드는 정상이고
+  메시지 보내기만 실패한다** — 배포 상태는 `history26_backend` CLAUDE.md 참고. AI 작성 의심 경고(v61)와는
+  연결하지 않았다(경고는 표시만, 대화는 교사가 확인 뒤 이 스레드로).
+
 ## 외부 연동 — SEL(사회정서역량) 특성 보기
 
 교사 대시보드의 학생 상세 카드에 있는 "🧭 SEL 특성 보기" 버튼은 이 저장소의 `WEBAPP_URL`과 무관한
