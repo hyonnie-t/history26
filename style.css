@@ -1211,7 +1211,7 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 }
 
 
-/* ══════════════ v63 — UI 통일 레이어 (PC·태블릿·모바일 정리) ══════════════
+/* ══════════════ v63·v64 — UI 통일 레이어 (PC·태블릿·모바일 정리) — v64 규칙은 이 파일 맨 아래 ══════════════
  * 배경: 기능이 붙을 때마다 버튼·탭·폼이 제각각 스타일돼 있었다(같은 "보내기"가 어떤 곳은 알약형·
  * 어떤 곳은 사각형·어떤 곳은 브라우저 기본 버튼, 주 버튼 색이 인디고/오커 혼재, 폰에서 탭이 3줄로
  * 꺾이고 요약 카드가 4장 세로로 쌓임). 기존 규칙을 흩어 고치지 않고 여기에 모아 뒀다 —
@@ -1334,3 +1334,130 @@ input[type=file]::file-selector-button{
   min-height:38px; padding:6px 14px; margin-right:10px;
 }
 input[type=file]::file-selector-button:hover{background:var(--paper); color:var(--ink);}
+
+
+/* ══════════════ v64 — 연표 접기 · "그 밖의 기록" 카드 통일 · 커리큘럼 폼 ══════════════ */
+
+/* ① 학습 연표 카드 접기 — 완료한 차시는 기본으로 접혀 제목 한 줄만 남는다 */
+.timeline-head{display:flex; align-items:center; justify-content:space-between; gap:8px 12px; flex-wrap:wrap; margin:6px 0 10px;}
+.timeline-head .timeline-eyebrow{margin:0 0 0 2px;}
+.timeline-tools{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+.timeline-count{font-size:.8rem; color:var(--ink-soft); margin-right:4px;}
+.lesson-toggle{cursor:pointer;}
+.lesson-toggle:focus-visible{outline:2px solid var(--indigo); outline-offset:4px; border-radius:var(--radius-xs);}
+.lesson-top-side{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+.lesson-chevron{color:var(--ink-soft); font-size:1.1rem; line-height:1; transition:transform .2s;}
+.lesson.collapsed .lesson-chevron{transform:rotate(-90deg);}
+.lesson-sum{display:none; margin-top:6px; font-size:.84rem; color:var(--ink-soft);}
+.lesson-sum .dots{letter-spacing:2px; color:var(--ochre); margin-right:4px;}
+.lesson.collapsed .lesson-body, .lesson.collapsed .lesson-desc{display:none;}
+.lesson.collapsed .lesson-sum{display:block;}
+.lesson.collapsed .lesson-card{padding:14px 18px;}
+.lesson.collapsed .lesson-type{margin-bottom:4px;}
+.lesson.collapsed .lesson-title{font-size:1.05rem;}
+.lesson.collapsed .seal-stamp{width:40px; height:40px; font-size:1.1rem;}
+.lesson.collapsed::before{top:22px;}
+.lesson{margin-bottom:14px;}
+
+/* ② "그 밖의 기록" — 섹션 헤더 + 카드 통일(패들렛·클래스카드·성적·피드백이 같은 카드 언어) */
+.section-head{margin:38px 0 16px; padding-top:20px; border-top:1px dashed var(--line);}
+.section-head-title{font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--ink);}
+.section-head-sub{font-size:.84rem; color:var(--ink-soft); margin-top:3px;}
+.tab-card{margin-bottom:16px;}
+.ref-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px 18px; margin-bottom:14px;
+}
+.ref-card-row, .ref-link-panel{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.ref-text{flex:1 1 200px; min-width:0;}
+.ref-ico{
+  flex:0 0 auto; width:46px; height:46px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center; font-size:1.45rem;
+}
+.ref-ico-jade{background:var(--jade-bg);}
+.ref-ico-indigo{background:var(--indigo-bg);}
+.ref-ico-seal{background:rgba(176,58,46,.1);}
+.ref-ico-amber{background:var(--amber-bg); border:1px solid var(--amber-border);}
+.ref-card .pf-label, .ref-link-panel .pf-label{color:var(--ink-soft); letter-spacing:.14em;}
+.ref-card.grade-card{display:block;}
+.grade-form{margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);}
+.grade-form input{
+  width:100%; min-height:44px; padding:8px 12px; margin-bottom:10px; font:inherit;
+  background:var(--input-bg); border:1.5px solid var(--line); border-radius:var(--radius-sm);
+}
+.grade-form input:focus{border-color:var(--indigo); outline:none;}
+#gradeResultWrap{margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);}
+.ref-card.feedback-card{background:var(--card); border-color:var(--line);}
+.fbi-list{margin-top:14px; border-top:1px dashed var(--line);}
+.fbi-item{padding:14px 0; border-bottom:1px solid var(--row-line);}
+.fbi-item:last-child{border-bottom:none; padding-bottom:0;}
+.fbi-item[hidden]{display:none;}
+.fbi-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;}
+.fbi-tag{
+  font-size:.74rem; font-weight:700; color:var(--amber-text); background:var(--amber-bg);
+  border:1px solid var(--amber-border); border-radius:999px; padding:1px 10px;
+}
+.fbi-date{font-size:.78rem; color:var(--ink-soft);}
+.fbi-text{font-size:.95rem; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; margin-bottom:10px;}
+#feedbackInboxMoreBtn{margin-top:10px;}
+@media (max-width:640px){
+  .ref-card-row .ref-text, .ref-link-panel .ref-text{flex-basis:calc(100% - 64px);}
+  .ref-link-panel .btn-go, #gradeIntro, #gradeIntro .btn-go{width:100%; text-align:center;}
+  .timeline-tools .btn-tiny{flex:1 1 auto;}
+  .lesson.collapsed .lesson-card{padding:12px 14px;}
+}
+
+/* ③ 커리큘럼 관리 폼 — 3구역 카드 + 라벨/필수·선택 태그 + 도움말 */
+.cl-form{gap:14px;}
+.cl-edit-banner{
+  font-size:.85rem; color:var(--indigo); font-weight:600; margin:0; padding:9px 14px;
+  background:var(--indigo-bg); border:1px solid rgba(46,74,122,.22); border-radius:var(--radius-sm);
+}
+.cl-form .cl-edit-banner button.cl-link-btn{
+  background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer;
+  font-size:.85rem; font-weight:600; padding:0; min-height:0; margin-left:6px; border-radius:0;
+}
+.cl-section{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px 18px;
+}
+.cl-section-title{display:flex; align-items:center; gap:8px; font-size:.96rem; font-weight:700; margin:0 0 14px;}
+.cl-step{
+  width:22px; height:22px; border-radius:50%; background:var(--indigo); color:#fff;
+  font-size:.78rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center;
+}
+.cl-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px;}
+.cl-span-full{grid-column:1/-1;}
+.cl-form .cl-field{gap:6px;}
+.cl-form .cl-field input[type=text], .cl-form .cl-field select, .cl-form .cl-field textarea{width:100%;}
+.cl-field-label{font-size:.82rem; color:var(--ink);}
+.cl-help{font-size:.78rem; color:var(--ink-soft); line-height:1.55;}
+.cl-help code{background:var(--thead-bg); border-radius:4px; padding:0 5px; font-size:.78rem;}
+.cl-hint.cl-warn{
+  background:var(--amber-bg); border:1px solid var(--amber-border); color:var(--amber-text-deep);
+  border-radius:var(--radius-sm); padding:9px 14px; font-size:.82rem; line-height:1.55;
+}
+.cl-check{
+  display:flex; gap:10px; align-items:flex-start; margin-top:16px; padding:12px 14px; cursor:pointer;
+  border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--panel-alt);
+}
+.cl-check input{width:18px; height:18px; margin-top:2px; accent-color:var(--indigo); flex:0 0 auto;}
+.cl-check b{display:block; font-size:.9rem;}
+.cl-check small{display:block; font-size:.78rem; color:var(--ink-soft); line-height:1.55; margin-top:2px;}
+.cl-check-inline{margin-top:0; padding:0; border:none; background:none; align-items:center;}
+.cl-form .cl-activity-block{margin:14px 0 0; background:var(--panel-alt);}
+.cl-activity-label{font-size:.86rem;}
+.cl-actions{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;}
+@media (max-width:640px){
+  .cl-grid{grid-template-columns:minmax(0,1fr);}
+  .cl-section{padding:14px 14px;}
+}
+
+/* ④ 학생 화면 미리보기 배너(v64) — 이전/다음 학생 이동 버튼이 붙어 스크롤해도 보이게 고정 */
+.preview-banner{flex-wrap:wrap; position:sticky; top:8px; z-index:30; box-shadow:0 4px 14px rgba(35,38,44,.18);}
+.preview-banner-actions{display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0;}
+.preview-banner button{border-radius:var(--radius-sm); min-height:34px;}
+/* 커리큘럼 폼 컨트롤 배경 통일(select만 브라우저 기본 회색이던 것) */
+.cl-form select, .cl-form input[type=text], .cl-form textarea{background:var(--input-bg);}
+.cl-form input:disabled{background:var(--thead-bg); color:var(--ink-soft);}
+.tree-box{width:190px;}  /* v64 새 나무 일러스트가 더 촘촘해서 조금 키움 */

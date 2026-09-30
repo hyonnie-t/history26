@@ -235,6 +235,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   폭만큼 늘어난다**(`.layout`을 `minmax(0,1fr)`로 고친 이유). 폰(≤640px)에서 학생 표는 "최근 활동" 열을 숨긴다.
   새 화면을 추가한 뒤엔 PC·태블릿 세로/가로·폰 4개 뷰포트로 찍어 확인할 것.
 
+- **연표 접기 / 그 밖의 기록 카드 (v64)**: `renderLessonCard()`가 `.lesson-toggle` 헤더 + `.lesson-body`로 나뉘고 접힘 상태는
+  `LESSON_OPEN[lessonId]`(없으면 완료=접힘·미완료=펼침)에 있다. 토글은 `#timeline`의 이벤트 위임 하나이므로 카드 마크업을 바꿀 땐
+  `.lesson-toggle`/`data-lid`를 지킬 것. "그 밖의 기록"은 `.ref-card`+`.ref-ico` 공통 카드다 — 성적조회 카드(`#gradeCard`)의
+  `gradeIntro`/`gradeForm`/`gradeResultWrap` id와 피드백 카드의 `#feedbackInboxList`/`fb-ask-btn`은 JS가 직접 참조한다.
+- **학생 화면 미리보기 (v64)**: 두 종류다. ① 샘플(로그인 화면, 가짜 학번, `PREVIEW_REAL=false`) ② 실제 학생(`previewAsStudent()` —
+  대시보드 학생 카드의 "학생 화면 보기", 그 학생의 진짜 `mode=student` 응답을 읽기 전용 렌더링, `PREVIEW_REAL=true`). 쓰기는 전부 기존
+  `PREVIEW_MODE` 가드로 막힌다 — **새 쓰기/읽음 처리 코드를 추가할 땐 반드시 이 가드를 넣을 것**(안 그러면 교사가 미리보기만 해도 학생
+  데이터가 바뀐다). 활동 링크는 `withStudentParams()`가 `&preview=1`을 붙인다. `refreshStudentData()`는 샘플에서만 재조회를 건너뛴다.
+- **나무 일러스트 (v64)**: `tree.js`의 `treeSvg(stage, leaves, totalLessons)`(index.html에서 분리). 8단계 로직(진행률 새잎·개화·열매)은 유지,
+  10월엔 단풍 팔레트+낙엽(`treeSeason_()`, `?season=autumn|default`로 강제). 색은 `TREE_PALETTE`, 단계별 모양은 `TREE_STAGES`, 단계별
+  잘라낸 `viewBox`는 `TREE_TOP`. 무작위는 시드 고정이라 화면마다 안 바뀐다.
+- **커리큘럼 관리 폼 (v64)**: 3구역 카드(`.cl-section`) + `.cl-field` 라벨·필수/선택 태그. 입력창 id는 그대로이고 `clToggleMulti()`만
+  래퍼(`#clTypeField`/`#clUrlField`)를 토글한다.
+
 ## 외부 연동 — SEL(사회정서역량) 특성 보기
 
 교사 대시보드의 학생 상세 카드에 있는 "🧭 SEL 특성 보기" 버튼은 이 저장소의 `WEBAPP_URL`과 무관한

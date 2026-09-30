@@ -76,8 +76,12 @@
   </header>
 
   <div id="previewBanner" class="preview-banner" style="display:none;">
-    <span>👀 미리보기 모드 — 실제 학생 기록이 아니에요. 활동 페이지를 열어도 실제로 제출하지 마세요.</span>
-    <button id="btnExitPreview">종료</button>
+    <span id="previewBannerText">👀 미리보기 모드 — 실제 학생 기록이 아니에요. 활동 페이지를 열어도 실제로 제출하지 마세요.</span>
+    <div class="preview-banner-actions">
+      <button id="btnPrevStudent" style="display:none;">◀ 이전 학생</button>
+      <button id="btnNextStudent" style="display:none;">다음 학생 ▶</button>
+      <button id="btnExitPreview">종료</button>
+    </div>
   </div>
 
   <div class="layout">
@@ -199,11 +203,21 @@
            까지 그 앞에 붙어 실제 활동에 닿기까지 스크롤이 아주 길었음(사이드카드 노출
            순서는 style.css의 .layout order로 조정). 아래 "그 밖의 기록" 묶음은 참고용
            정보라 뒤로 미룸 — 내용 삭제 없이 순서만 바꿈. -->
-      <p class="timeline-eyebrow">학습 연표</p>
+      <div class="timeline-head">
+        <p class="timeline-eyebrow">학습 연표</p>
+        <div class="timeline-tools" id="timelineTools" style="display:none;">
+          <span class="timeline-count" id="timelineCount"></span>
+          <button type="button" class="btn-tiny" onclick="setDoneLessonsOpen_(false)">완료한 차시 접기</button>
+          <button type="button" class="btn-tiny" onclick="setDoneLessonsOpen_(true)">모두 펼치기</button>
+        </div>
+      </div>
       <div class="timeline" id="timeline"></div>
       <p class="status-line" id="statusLine"></p>
 
-      <p class="section-divider">📎 그 밖의 기록</p>
+      <div class="section-head">
+        <h2 class="section-head-title">그 밖의 기록</h2>
+        <p class="section-head-sub">포트폴리오 링크 · 성적 · 선생님 피드백을 한곳에 모았어요</p>
+      </div>
 
       <!-- v57 — 패들렛(포트폴리오)·클래스카드를 탭 하나로 묶음. 둘 다 "학기 내내 고정
            노출되는 링크 카드"라는 성격이 같아 탭 전환만으로 둘 다 접근하게 하고 세로 공간을
@@ -215,20 +229,22 @@
           <button type="button" class="tab-btn" id="refTabBtnClasscard" data-rtab="classcard" onclick="switchRefTab('classcard')">클래스카드</button>
         </div>
         <div class="tab-panel ref-link-panel" id="refPanelPortfolio">
-          <div>
+          <span class="ref-ico ref-ico-jade" aria-hidden="true">📝</span>
+          <div class="ref-text">
             <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
             <p class="pf-title" id="portfolioTitle"></p>
             <p class="pf-desc" id="portfolioDesc"></p>
           </div>
-          <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--jade);">내 패들렛 열기 →</a>
+          <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener">내 패들렛 열기 →</a>
         </div>
         <div class="tab-panel ref-link-panel" id="refPanelClasscard" style="display:none;">
-          <div>
+          <span class="ref-ico ref-ico-indigo" aria-hidden="true">🃏</span>
+          <div class="ref-text">
             <p class="pf-label">복습용 클래스카드</p>
             <p class="pf-title" id="classcardTitle"></p>
             <p class="pf-desc" id="classcardDesc"></p>
           </div>
-          <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener" style="background:var(--indigo);">클래스카드 열기 →</a>
+          <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener">클래스카드 열기 →</a>
         </div>
       </section>
 
@@ -238,18 +254,21 @@
            (안내 → 비밀번호 입력 → 결과)를 직접 전환한다. 포털 로그인(SESSION)과
            완전히 분리된 인증이라 studentId·name은 SESSION 값을 그대로 실어 보내되
            비밀번호는 매번 새로 입력받는다(자동로그인 캐싱 안 함). -->
-      <section class="portfolio-card grade-card" id="gradeCard" aria-label="성적조회" style="flex-direction:column; align-items:stretch; gap:10px;">
-        <div>
-          <p class="pf-label">나의 성적 확인하기</p>
-          <p class="pf-desc">비밀번호는 선생님이 알려준 값이에요. 성적 열람 기간에만 확인할 수 있어요.</p>
+      <section class="ref-card grade-card" id="gradeCard" aria-label="성적조회">
+        <div class="ref-card-row">
+          <span class="ref-ico ref-ico-seal" aria-hidden="true">🧮</span>
+          <div class="ref-text">
+            <p class="pf-label">나의 성적 확인하기</p>
+            <p class="pf-desc">비밀번호는 선생님이 알려준 값이에요. 성적 열람 기간에만 확인할 수 있어요.</p>
+          </div>
+          <div id="gradeIntro">
+            <button class="btn-go" id="gradeOpenBtn" onclick="openGradeGate()">성적 확인하기 →</button>
+          </div>
         </div>
-        <div id="gradeIntro">
-          <button class="btn-go" id="gradeOpenBtn" style="background:var(--seal);" onclick="openGradeGate()">성적 확인하기 →</button>
-        </div>
-        <div id="gradeForm" style="display:none;">
-          <input id="gradePasswordInput" type="password" placeholder="비밀번호" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom:8px;">
+        <div id="gradeForm" class="grade-form" style="display:none;">
+          <input id="gradePasswordInput" type="password" placeholder="비밀번호" autocomplete="off">
           <div class="hstack-sm">
-            <button class="btn-go" id="gradeSubmitBtn" style="background:var(--seal);" onclick="submitGradeLookup()">확인</button>
+            <button class="btn-go" id="gradeSubmitBtn" onclick="submitGradeLookup()">확인</button>
             <button class="btn-logout" onclick="closeGradeGate_()">취소</button>
           </div>
           <p class="login-error" id="gradeError" style="display:none;"></p>
@@ -266,9 +285,16 @@
            없앤 것 — 정보 손실 없음). v36 — 차시 인라인·총평에 흩어져 있던 선생님
            피드백을 최신순으로 한곳에 모아 보여주는 카드. 피드백이 하나라도 있을
            때만 노출된다(renderFeedbackInbox). -->
-      <section class="feedback-card" id="feedbackInboxCard" aria-label="선생님 피드백 모아보기">
-        <h2>👩‍🏫 선생님 피드백 모아보기</h2>
-        <div id="feedbackInboxList"></div>
+      <section class="ref-card feedback-card" id="feedbackInboxCard" aria-label="선생님 피드백 모아보기" style="display:none;">
+        <div class="ref-card-row">
+          <span class="ref-ico ref-ico-amber" aria-hidden="true">👩‍🏫</span>
+          <div class="ref-text">
+            <p class="pf-label">선생님 피드백 모아보기</p>
+            <p class="pf-desc" id="feedbackInboxSub"></p>
+          </div>
+        </div>
+        <div id="feedbackInboxList" class="fbi-list"></div>
+        <button type="button" class="overview-more-btn" id="feedbackInboxMoreBtn" onclick="toggleFeedbackInboxMore_()" style="display:none;"></button>
       </section>
 
     </main>
@@ -411,98 +437,129 @@
     <div class="cl-subpanel" id="clSubAdd">
       <div class="cl-form">
         <input type="hidden" id="clEditRow" value="">
-        <p id="clEditBanner" style="display:none; font-size:.85rem; color:var(--indigo); font-weight:600; margin:0 0 4px;">
+        <p id="clEditBanner" class="cl-edit-banner" style="display:none;">
           ✏️ 활동 수정 중 — 활동id는 여기서 못 바꿔요.
-          <button type="button" id="btnClCancelEdit" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-size:.85rem; padding:0;">취소하고 새로 작성</button>
-        </p>
-        <div class="cl-row">
-          <select id="clGrade"></select>
-          <select id="clType">
-            <option value="module">module (게임·HTML 활동)</option>
-            <option value="padlet">padlet (패들렛 글쓰기)</option>
-            <option value="link">link (기타 외부 링크)</option>
-          </select>
-          <input id="clId" type="text" placeholder="활동id (게임 CONFIG.GAME_NAME과 동일해야 함)" style="flex:1 1 220px;">
-        </div>
-        <input id="clTitle" type="text" placeholder="제목">
-        <input id="clDesc" type="text" placeholder="한 줄 설명">
-
-        <label class="field-label-tight">담당 — 특정 반에만 보이게 하려면 선택</label>
-        <select id="clOwner">
-          <option value="공통">공통 (모든 반에 보임 — 기본값)</option>
-          <option value="효니">효니 담당 반만</option>
-          <option value="미현쌤">미현쌤 담당 반만</option>
-        </select>
-        <p class="cl-hint" id="clOwnerHint" style="display:none;">
-          ⚠️ 위쪽 "🏫 학년 정보"에서 이 학년의 효니/미현쌤 담당 반이 아직 안 정해져 있어요.
-          지금 상태로 저장하면 이 차시는 <b>아무 반에도 안 보여요</b> — 학년 정보부터 채워 주세요.
+          <button type="button" id="btnClCancelEdit" class="cl-link-btn">취소하고 새로 작성</button>
         </p>
 
-        <label class="field-label-tight">사고유형 — "학습 칭호" 판정에 쓰여요, 자유서술형이면 선택 안 함</label>
-        <select id="clThinkingType">
-          <option value="">(선택 안 함)</option>
-          <option value="판단">판단</option>
-          <option value="비교">비교</option>
-          <option value="해석">해석</option>
-          <option value="관점">관점</option>
-        </select>
-
-        <label class="field-label-tight" id="clBadgeNameLabel">
-          칭호명 — 이 활동에서 "상"을 받으면 학생이 얻는 칭호 이름이에요(사고유형 선택 시에만 사용)
-        </label>
-        <input id="clBadgeName" type="text" placeholder="예: 저울질의 고수" list="clBadgeNameOptions">
-        <datalist id="clBadgeNameOptions"></datalist>
-
-        <label class="cl-hint">
-          링크 — 반마다 다르면 아래처럼 줄바꿈으로 "반:URL" 입력 (예: 5:https://... ), 다 같으면 한 줄만 입력
-        </label>
-        <textarea id="clUrl" rows="2" placeholder="https://... 또는&#10;5:https://...&#10;6:https://..."></textarea>
-
-        <label class="chk-label" style="margin-top:4px;">
-          <input type="checkbox" id="clMulti"> 이 차시에 활동 2개 넣기
-        </label>
-        <p class="cl-hint" style="margin-top:-4px;">
-          켜면 위 타입·URL 대신 아래 활동1·활동2를 각각 입력해요. 활동id·제목·설명은 "차시" 전체를 대표하는 값으로 남아요
-          (체크인·피드백·CSV에서 차시 단위로 쓰임). 각 활동의 id는 그 활동 게임의 CONFIG.GAME_NAME과 같아야 해요.
-        </p>
-        <div id="clMultiWrap" style="display:none;">
-          <div class="cl-activity-block">
-            <p class="cl-activity-label">1활동</p>
-            <div class="cl-row">
-              <input id="clAct1Id" type="text" placeholder="활동id" style="flex:1 1 140px;">
-              <select id="clAct1Type">
-                <option value="module">module</option>
-                <option value="padlet">padlet</option>
-                <option value="link">link</option>
+        <!-- v64 — 폼을 3개 구역(기본 정보 / 노출·칭호 / 링크)으로 나누고 모든 필드에 라벨·필수/선택 태그를 붙임.
+             이전엔 placeholder만 있는 입력창과 긴 안내문이 섞여 무엇이 필수인지 안 보였다. id는 전부 그대로(JS 연결 유지). -->
+        <section class="cl-section">
+          <h4 class="cl-section-title"><span class="cl-step">1</span> 기본 정보</h4>
+          <div class="cl-grid">
+            <label class="cl-field">
+              <span class="cl-field-label">학년 <span class="cl-req">필수</span></span>
+              <select id="clGrade"></select>
+            </label>
+            <label class="cl-field" id="clTypeField">
+              <span class="cl-field-label">유형 <span class="cl-req">필수</span></span>
+              <select id="clType">
+                <option value="module">module (게임·HTML 활동)</option>
+                <option value="padlet">padlet (패들렛 글쓰기)</option>
+                <option value="link">link (기타 외부 링크)</option>
               </select>
-            </div>
-            <input id="clAct1Title" type="text" placeholder="1활동 제목 (예: 1활동: 사료 읽기)">
-            <input id="clAct1Desc" type="text" placeholder="1활동 한 줄 설명 — 선택">
-            <textarea id="clAct1Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea>
+            </label>
+            <label class="cl-field cl-span-full">
+              <span class="cl-field-label" id="clIdLabel">활동id <span class="cl-req">필수</span></span>
+              <input id="clId" type="text" placeholder="게임 CONFIG.GAME_NAME과 똑같이">
+            </label>
+            <label class="cl-field cl-span-full">
+              <span class="cl-field-label">제목 <span class="cl-req">필수</span></span>
+              <input id="clTitle" type="text" placeholder="학생 화면에 보이는 차시 제목">
+            </label>
+            <label class="cl-field cl-span-full">
+              <span class="cl-field-label">한 줄 설명 <span class="cl-opt">선택</span></span>
+              <input id="clDesc" type="text" placeholder="제목 아래에 작게 표시돼요">
+            </label>
           </div>
-          <div class="cl-activity-block">
-            <p class="cl-activity-label">2활동</p>
-            <div class="cl-row">
-              <input id="clAct2Id" type="text" placeholder="활동id" style="flex:1 1 140px;">
-              <select id="clAct2Type">
-                <option value="module">module</option>
-                <option value="padlet">padlet</option>
-                <option value="link">link</option>
+        </section>
+
+        <section class="cl-section">
+          <h4 class="cl-section-title"><span class="cl-step">2</span> 보이는 반 · 학습 칭호</h4>
+          <div class="cl-grid">
+            <label class="cl-field cl-span-full">
+              <span class="cl-field-label">담당 <span class="cl-opt">선택</span></span>
+              <select id="clOwner">
+                <option value="공통">공통 (모든 반에 보임 — 기본값)</option>
+                <option value="효니">효니 담당 반만</option>
+                <option value="미현쌤">미현쌤 담당 반만</option>
               </select>
-            </div>
-            <input id="clAct2Title" type="text" placeholder="2활동 제목 (예: 2활동: 선택 판단)">
-            <input id="clAct2Desc" type="text" placeholder="2활동 한 줄 설명 — 선택">
-            <textarea id="clAct2Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea>
+              <span class="cl-help">특정 반에만 보이게 하려면 고르세요.</span>
+            </label>
+            <p class="cl-hint cl-warn cl-span-full" id="clOwnerHint" style="display:none;">
+              ⚠️ 위쪽 "🏫 학년 정보"에서 이 학년의 효니/미현쌤 담당 반이 아직 안 정해져 있어요.
+              지금 상태로 저장하면 이 차시는 <b>아무 반에도 안 보여요</b> — 학년 정보부터 채워 주세요.
+            </p>
+            <label class="cl-field">
+              <span class="cl-field-label">사고유형 <span class="cl-opt">선택</span></span>
+              <select id="clThinkingType">
+                <option value="">(선택 안 함)</option>
+                <option value="판단">판단</option>
+                <option value="비교">비교</option>
+                <option value="해석">해석</option>
+                <option value="관점">관점</option>
+              </select>
+              <span class="cl-help">"학습 칭호" 판정에 쓰여요. 자유서술형이면 선택 안 함.</span>
+            </label>
+            <label class="cl-field">
+              <span class="cl-field-label" id="clBadgeNameLabel">칭호명 <span class="cl-opt">선택</span></span>
+              <input id="clBadgeName" type="text" placeholder="예: 저울질의 고수" list="clBadgeNameOptions">
+              <datalist id="clBadgeNameOptions"></datalist>
+              <span class="cl-help">"상"을 받으면 학생이 얻는 이름(사고유형을 고른 뒤에 입력할 수 있어요).</span>
+            </label>
           </div>
-          <label class="chk-label">
-            <input type="checkbox" id="clSequential"> 순차 진행 (1활동을 끝내야 2활동이 열려요)
+        </section>
+
+        <section class="cl-section">
+          <h4 class="cl-section-title"><span class="cl-step">3</span> 활동 링크</h4>
+          <div class="cl-field" id="clUrlField">
+            <label class="cl-field-label" for="clUrl">링크 <span class="cl-req">필수</span></label>
+            <textarea id="clUrl" rows="2" placeholder="https://..."></textarea>
+            <span class="cl-help">반마다 다르면 줄바꿈으로 <code>5:https://...</code> 처럼 "반:URL"을 적고, 다 같으면 한 줄만 적어요.</span>
+          </div>
+
+          <label class="cl-check">
+            <input type="checkbox" id="clMulti">
+            <span><b>이 차시에 활동 2개 넣기</b>
+              <small>켜면 위 유형·링크 대신 활동1·활동2를 따로 입력해요. 위의 활동id·제목·설명은 "차시 전체"를 대표하는 값이 돼요(체크인·피드백·CSV에서 차시 단위로 쓰임). 각 활동의 id는 그 게임의 CONFIG.GAME_NAME과 같아야 해요.</small></span>
           </label>
-        </div>
 
-        <label id="clPublicRow" class="chk-label">
-          <input type="checkbox" id="clPublic"> 지금 바로 공개
-        </label>
-        <button id="btnAddLesson" onclick="dashSubmitLessonForm(this)">활동 추가</button>
+          <div id="clMultiWrap" style="display:none;">
+            <div class="cl-activity-block">
+              <p class="cl-activity-label">1활동</p>
+              <div class="cl-grid">
+                <label class="cl-field"><span class="cl-field-label">활동id <span class="cl-req">필수</span></span><input id="clAct1Id" type="text" placeholder="활동id"></label>
+                <label class="cl-field"><span class="cl-field-label">유형</span>
+                  <select id="clAct1Type"><option value="module">module</option><option value="padlet">padlet</option><option value="link">link</option></select></label>
+                <label class="cl-field cl-span-full"><span class="cl-field-label">제목 <span class="cl-opt">선택</span></span><input id="clAct1Title" type="text" placeholder="예: 1활동: 사료 읽기"></label>
+                <label class="cl-field cl-span-full"><span class="cl-field-label">한 줄 설명 <span class="cl-opt">선택</span></span><input id="clAct1Desc" type="text" placeholder="1활동 한 줄 설명"></label>
+                <label class="cl-field cl-span-full"><span class="cl-field-label">링크 <span class="cl-req">필수</span></span><textarea id="clAct1Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea></label>
+              </div>
+            </div>
+            <div class="cl-activity-block">
+              <p class="cl-activity-label">2활동</p>
+              <div class="cl-grid">
+                <label class="cl-field"><span class="cl-field-label">활동id <span class="cl-req">필수</span></span><input id="clAct2Id" type="text" placeholder="활동id"></label>
+                <label class="cl-field"><span class="cl-field-label">유형</span>
+                  <select id="clAct2Type"><option value="module">module</option><option value="padlet">padlet</option><option value="link">link</option></select></label>
+                <label class="cl-field cl-span-full"><span class="cl-field-label">제목 <span class="cl-opt">선택</span></span><input id="clAct2Title" type="text" placeholder="예: 2활동: 선택 판단"></label>
+                <label class="cl-field cl-span-full"><span class="cl-field-label">한 줄 설명 <span class="cl-opt">선택</span></span><input id="clAct2Desc" type="text" placeholder="2활동 한 줄 설명"></label>
+                <label class="cl-field cl-span-full"><span class="cl-field-label">링크 <span class="cl-req">필수</span></span><textarea id="clAct2Url" rows="2" placeholder="https://... 또는&#10;5:https://..."></textarea></label>
+              </div>
+            </div>
+            <label class="cl-check">
+              <input type="checkbox" id="clSequential">
+              <span><b>순차 진행</b><small>1활동을 끝내야 2활동이 열려요.</small></span>
+            </label>
+          </div>
+        </section>
+
+        <div class="cl-actions">
+          <label id="clPublicRow" class="cl-check cl-check-inline">
+            <input type="checkbox" id="clPublic"> <span><b>지금 바로 공개</b></span>
+          </label>
+          <button id="btnAddLesson" onclick="dashSubmitLessonForm(this)">활동 추가</button>
+        </div>
       </div>
     </div>
 
@@ -771,6 +828,7 @@
   
 <script src="config.js"></script>
 <script src="checkin_data.js"></script>
+<script src="tree.js"></script>
 <script>
 /* 설정은 config.js에서 불러옵니다 (같은 폴더에 있어야 함) */
 const CONFIG = window.PORTAL_CONFIG;
@@ -788,6 +846,11 @@ const debounce_ = (fn, delay) => { let t; return (...a) => { clearTimeout(t); t 
 let SESSION = null;      // { studentId, name, grade, ban, num }
 let STUDENT_DATA = null; // 서버 응답 { activities, feedback }
 let PREVIEW_MODE = false; // 교사용 "학생 화면 미리보기"에서 true — 실제 기록/조회 없이 화면만 확인
+/* v64 — 미리보기 두 종류: ① 샘플(로그인 화면의 학년·반 선택, 가짜 학번) ② 실제 학생(대시보드의 "학생 화면 보기",
+ * 그 학생의 실제 mode=student 응답을 읽기 전용으로 그림). PREVIEW_REAL은 ②일 때만 true. PREVIEW_FROM_DASH는
+ * 대시보드에서 들어왔음(종료 시 대시보드로 복귀, 이전/다음 학생 버튼 노출). */
+let PREVIEW_REAL = false, PREVIEW_FROM_DASH = false, PREVIEW_DASH_SCROLL = 0;
+let DASH_STUDENT_ORDER = []; // renderDash가 매번 갱신 — 미리보기 "이전/다음 학생" 이동 순서
 let CHECKIN_PLAN = null; // v17: 이제 checkin_data.js 정적 값이 아니라 mode=checkinPlan API로 채움 (loadCheckinPlan)
 
 const store = {
@@ -1148,92 +1211,7 @@ async function submitCheckin(fields){
  * leaves/totalLessons 비율로 0~10(leafSpots 풀 크기)에 정규화한 뒤, 단계별 캡
  * (dotCap/flowerCap/fruitCap)으로 한 번 더 눌러 어린 나무엔 조금만, 큰 나무엔
  * 넉넉히 붙게 했다. */
-function treeSvg(stage, leaves, totalLessons){
-  stage = Math.max(0, Math.min(7, stage || 0));
-  leaves = leaves || 0;
-  totalLessons = totalLessons || 0;
-  const trunk = '#7A5230', crownA = '#3E7C59', crownB = '#5C9C77', ground = '#E4DECB';
-  const leafSpots = [
-    [64,52],[100,58],[82,38],[52,70],[112,74],[70,66],[94,46],[58,44],[106,50],[82,58]
-  ];
-  const ratio = totalLessons > 0 ? Math.min(leaves / totalLessons, 1) : 0;
-  const leafCount = Math.round(ratio * leafSpots.length);
-  const dotCap    = [0, 0, 4, 5, 6, 7, 9, 10][stage];
-  const flowerCap = [0, 0, 0, 3, 4, 0, 0, 0][stage]; // 겸춘추 문턱 부근에서만 개화
-  const fruitCap  = [0, 0, 0, 0, 0, 3, 4, 6][stage]; // 편수관 이후로는 결실
-  const extra = leafSpots.slice(0, Math.min(leafCount, dotCap)).map(p =>
-    `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#8FBE72"/>`).join('');
-  const fruits = leafSpots.slice(0, Math.min(leafCount, fruitCap)).map(p =>
-    `<circle cx="${p[0]+4}" cy="${p[1]+6}" r="3.5" fill="#B03A2E"/>`).join('');
-  const flowers = leafSpots.slice(0, Math.min(leafCount, flowerCap)).map(p =>
-    `<circle cx="${p[0]+3}" cy="${p[1]+5}" r="3" fill="#E8C77E"/>`).join('');
-
-  let body = '';
-  if(stage === 0){
-    body = `
-      <path d="M84 118 L84 96" stroke="${crownA}" stroke-width="5" stroke-linecap="round"/>
-      <path d="M84 102 C70 98 64 86 66 78 C78 80 84 90 84 102 Z" fill="${crownB}"/>
-      <path d="M84 96 C98 92 104 80 102 72 C90 74 84 84 84 96 Z" fill="${crownA}"/>`;
-  } else if(stage === 1){
-    body = `
-      <path d="M84 118 L84 88" stroke="${trunk}" stroke-width="6" stroke-linecap="round"/>
-      <circle cx="84" cy="72" r="16" fill="${crownA}"/>
-      <circle cx="70" cy="80" r="9" fill="${crownB}"/>`;
-  } else if(stage === 2){
-    body = `
-      <path d="M84 118 L84 74" stroke="${trunk}" stroke-width="7" stroke-linecap="round"/>
-      <circle cx="84" cy="58" r="24" fill="${crownA}"/>
-      <circle cx="66" cy="70" r="14" fill="${crownB}"/>
-      <circle cx="102" cy="68" r="15" fill="${crownB}"/>
-      ${extra}`;
-  } else if(stage === 3){
-    body = `
-      <path d="M84 118 L84 68" stroke="${trunk}" stroke-width="8" stroke-linecap="round"/>
-      <path d="M84 82 L68 70" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="84" cy="52" r="26" fill="${crownA}"/>
-      <circle cx="62" cy="66" r="16" fill="${crownB}"/>
-      <circle cx="106" cy="64" r="16" fill="${crownB}"/>
-      ${extra}${flowers}`;
-  } else if(stage === 4){
-    body = `
-      <path d="M84 118 L84 62" stroke="${trunk}" stroke-width="9" stroke-linecap="round"/>
-      <path d="M84 86 L62 72 M84 76 L106 62" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="84" cy="46" r="27" fill="${crownA}"/>
-      <circle cx="58" cy="64" r="17" fill="${crownB}"/>
-      <circle cx="110" cy="60" r="18" fill="${crownB}"/>
-      ${extra}${flowers}`;
-  } else if(stage === 5){
-    body = `
-      <path d="M84 118 L84 59" stroke="${trunk}" stroke-width="10" stroke-linecap="round"/>
-      <path d="M84 84 L60 70 M84 74 L108 60 M84 98 L72 92" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="84" cy="43" r="28" fill="${crownA}"/>
-      <circle cx="55" cy="62" r="18" fill="${crownB}"/>
-      <circle cx="113" cy="57" r="19" fill="${crownB}"/>
-      ${extra}${fruits}`;
-  } else if(stage === 6){
-    body = `
-      <path d="M84 118 L84 57" stroke="${trunk}" stroke-width="10" stroke-linecap="round"/>
-      <path d="M84 84 L58 69 M84 73 L110 58 M84 97 L69 90" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="84" cy="41" r="29" fill="${crownA}"/>
-      <circle cx="53" cy="61" r="18.5" fill="${crownB}"/>
-      <circle cx="115" cy="55" r="19.5" fill="${crownB}"/>
-      <circle cx="72" cy="32" r="11" fill="${crownB}"/>
-      ${extra}${fruits}`;
-  } else {
-    body = `
-      <path d="M84 118 L84 56" stroke="${trunk}" stroke-width="11" stroke-linecap="round"/>
-      <path d="M84 86 L56 68 M84 74 L112 56 M84 96 L66 88" stroke="${trunk}" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="84" cy="40" r="30" fill="${crownA}"/>
-      <circle cx="52" cy="60" r="19" fill="${crownB}"/>
-      <circle cx="116" cy="54" r="20" fill="${crownB}"/>
-      <circle cx="70" cy="30" r="14" fill="${crownB}"/>
-      ${extra}${fruits}`;
-  }
-  return `<svg viewBox="0 0 168 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <ellipse cx="84" cy="120" rx="52" ry="9" fill="${ground}"/>
-    ${body}
-  </svg>`;
-}
+/* treeSvg()는 v64부터 tree.js로 분리(단풍 계절 팔레트 포함). */
 
 /* v28 — 반 트랙(효니/미현쌤) 필터. 학년정보에 hyoBans/mihyunBans가 설정돼 있으면
  * 그 반이 어느 트랙인지 판정하고, 커리큘럼도 "공통" + "본인 트랙"만 걸러서 보여준다.
@@ -1260,6 +1238,13 @@ function renderPortal(){
 
   $('portalEyebrow').textContent = `2학기 · ${SESSION.grade}학년 ${cur.subject}`;
   $('previewBanner').style.display = PREVIEW_MODE ? 'flex' : 'none';
+  if(PREVIEW_MODE){
+    $('previewBannerText').textContent = PREVIEW_REAL
+      ? `👀 ${SESSION.name} 학생(${SESSION.studentId})의 실제 화면 — 읽기 전용이에요. 기록·읽음 처리는 일어나지 않고, 활동 링크도 미리보기 모드로 열려요.`
+      : '👀 샘플 미리보기 — 실제 학생 기록이 아니에요. 특정 학생의 진짜 화면은 대시보드 학생 카드의 "학생 화면 보기"로 볼 수 있어요.';
+    $('btnExitPreview').textContent = PREVIEW_FROM_DASH ? '대시보드로' : '종료';
+    $('btnPrevStudent').style.display = $('btnNextStudent').style.display = PREVIEW_FROM_DASH ? '' : 'none';
+  }
   $('sideName').textContent = SESSION.name;
   $('sideClass').textContent = `${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
 
@@ -1492,6 +1477,7 @@ function renderPortal(){
   /* 연표 */
   const tl = $('timeline');
   if(lessons.length === 0){
+    $('timelineTools').style.display = 'none';
     tl.innerHTML = '';
     $('statusLine').style.display = 'block';
     $('statusLine').textContent = "이번 학기 활동이 준비되면 여기에 하나씩 나타나요.";
@@ -1507,6 +1493,26 @@ function renderPortal(){
   tl.querySelectorAll('.btn-check').forEach(btn => {
     btn.addEventListener('click', () => selfCheck(btn));
   });
+
+  // v64 — 접기 도구(완료 개수 표시) + 헤더 토글은 이벤트 위임으로 한 번만 연결
+  const doneN = lessons.filter(lessonDone).length;
+  $('timelineTools').style.display = 'flex';
+  $('timelineCount').textContent = `완료 ${doneN} / ${lessons.length}차시`;
+  if(!tl.dataset.bound){
+    tl.dataset.bound = '1';
+    const toggle = ev => {
+      const head = ev.target.closest('.lesson-toggle');
+      if(!head) return;
+      const lesson = head.closest('.lesson');
+      setLessonOpen_(lesson, lesson.classList.contains('collapsed'));
+    };
+    tl.addEventListener('click', toggle);
+    tl.addEventListener('keydown', ev => {
+      if((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList.contains('lesson-toggle')){
+        ev.preventDefault(); toggle(ev);
+      }
+    });
+  }
 }
 
 /* v27 — 활동 하나를 화면에 보여줄 이름. 차시에 활동이 1개뿐이면 차시 제목 그대로,
@@ -1549,21 +1555,61 @@ function renderLessonCard(l, i, ctx){
       </div>`).join('');
   }
 
+  /* v64 — 카드 접기. 완료한 차시는 기본으로 접혀 제목 한 줄(+달성도)만 보이고, 진행할 차시는 펼쳐 둔다.
+   * 헤더를 누르면 어느 카드든 토글되고 상태는 LESSON_OPEN에 기억돼 재렌더(새로고침 버튼·제출 뒤 재조회)에도 유지된다.
+   * 접힌 줄에 보일 달성도는 이 차시 활동 중 가장 높은 값. */
+  const open = lessonIsOpen_(l, done);
+  const rankOf = { '상':3, '중':2, '하':1 };
+  let best = '';
+  l.activities.forEach(a => {
+    const r = achieveMap[a.id];
+    const lv = r && r.achievement ? String(r.achievement).trim() : '';
+    if(lv && (rankOf[lv] || 0) > (rankOf[best] || 0)) best = lv;
+  });
+  const sumHtml = best
+    ? `<div class="lesson-sum"><span class="dots">${achieveDots(best)}</span> 달성도 ${escapeHtml(best)}</div>` : '';
+
   return `
-    <div class="lesson ${done ? 'done' : ''} ${building ? 'pending-build' : ''}">
+    <div class="lesson ${done ? 'done' : ''} ${building ? 'pending-build' : ''} ${open ? '' : 'collapsed'}" data-lid="${escapeHtml(String(l.id))}">
       <div class="lesson-card">
-        <div class="lesson-top">
+        <div class="lesson-top lesson-toggle" role="button" tabindex="0" aria-expanded="${open}" aria-label="${escapeHtml(l.title)} 펼치기/접기">
           <div class="lesson-info">
             <span class="lesson-type ${headerTypeClass}">${i+1}차시 · ${headerTypeLabel}</span>
             <h2 class="lesson-title">${escapeHtml(l.title)}</h2>
             ${l.desc ? `<p class="lesson-desc">${escapeHtml(l.desc)}</p>` : ''}
+            ${sumHtml}
           </div>
-          ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
+          <div class="lesson-top-side">
+            ${done ? `<div class="seal-stamp" aria-label="완료">완</div>` : ''}
+            <span class="lesson-chevron" aria-hidden="true">▾</span>
+          </div>
         </div>
-        ${activitiesHtml}
-        ${teaHtml}
+        <div class="lesson-body">
+          ${activitiesHtml}
+          ${teaHtml}
+        </div>
       </div>
     </div>`;
+}
+
+/* v64 — 연표 카드 접기 상태. 없으면 기본값(완료=접힘, 미완료=펼침). */
+let LESSON_OPEN = {};
+function lessonIsOpen_(l, done){
+  const k = String(l.id);
+  return (k in LESSON_OPEN) ? LESSON_OPEN[k] : !done;
+}
+function setLessonOpen_(el, open){
+  el.classList.toggle('collapsed', !open);
+  const t = el.querySelector('.lesson-toggle');
+  if(t) t.setAttribute('aria-expanded', String(open));
+  LESSON_OPEN[el.dataset.lid] = open;
+}
+/* open=false: 완료한 차시만 접기 / open=true: 전부 펼치기 */
+function setDoneLessonsOpen_(open){
+  document.querySelectorAll('#timeline .lesson').forEach(el => {
+    if(open) setLessonOpen_(el, true);
+    else if(el.classList.contains('done')) setLessonOpen_(el, false);
+  });
 }
 
 /* v27 — 활동 하나의 블록(제목·달성도·AI코멘트·버튼)을 렌더링.
@@ -1724,21 +1770,35 @@ function renderAnnouncements(){
  * data-idx로 렌더링 시점의 항목을 다시 찾아야 해서, 매 렌더마다의 정렬 결과를
  * FEEDBACK_INBOX_ITEMS에 함께 보관해둔다. */
 let FEEDBACK_INBOX_ITEMS = [];
+const FEEDBACK_INBOX_SHOW = 3;   // v64 — 처음엔 최근 3건만, 나머지는 "더 보기"로 펼침
+let FEEDBACK_INBOX_OPEN = false;
 function renderFeedbackInbox(fbAll){
   const card = $('feedbackInboxCard');
   if(!fbAll.length){ card.style.display = 'none'; return; }
   card.style.display = 'block';
   const sorted = [...fbAll].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   FEEDBACK_INBOX_ITEMS = sorted;
+  $('feedbackInboxSub').textContent = `총 ${sorted.length}개 · 최신순`;
   $('feedbackInboxList').innerHTML = sorted.map((f, i) => `
-    <div class="feedback-item">
-      <div class="fb-meta">${formatDate(f.timestamp)} · ${escapeHtml(feedbackLabel_(f))}</div>
-      <div>${escapeHtml(String(f.feedback))}</div>
+    <article class="fbi-item${i >= FEEDBACK_INBOX_SHOW ? ' fbi-extra' : ''}" ${i >= FEEDBACK_INBOX_SHOW && !FEEDBACK_INBOX_OPEN ? 'hidden' : ''}>
+      <div class="fbi-head">
+        <span class="fbi-tag">${escapeHtml(feedbackLabel_(f))}</span>
+        <time class="fbi-date">${formatDate(f.timestamp)}</time>
+      </div>
+      <p class="fbi-text">${escapeHtml(String(f.feedback))}</p>
       <button type="button" class="btn-tiny fb-ask-btn" data-idx="${i}">❓ 이 피드백에 대해 질문하기</button>
-    </div>`).join('');
+    </article>`).join('');
   $('feedbackInboxList').querySelectorAll('.fb-ask-btn').forEach(btn => {
     btn.addEventListener('click', () => askAboutFeedback_(Number(btn.dataset.idx)));
   });
+  const more = $('feedbackInboxMoreBtn');
+  const extra = sorted.length - FEEDBACK_INBOX_SHOW;
+  more.style.display = extra > 0 ? 'block' : 'none';
+  more.textContent = FEEDBACK_INBOX_OPEN ? '이전 피드백 접기 ▲' : `이전 피드백 ${extra}개 더 보기 ▼`;
+}
+function toggleFeedbackInboxMore_(){
+  FEEDBACK_INBOX_OPEN = !FEEDBACK_INBOX_OPEN;
+  renderFeedbackInbox(FEEDBACK_INBOX_ITEMS);
 }
 
 /* v38(핸드오프 Phase 3) — "이 피드백에 대해 질문하기". 피드백과 질문함을 서버
@@ -1958,7 +2018,8 @@ async function askQuestion(){
 function withStudentParams(url){
   const sep = url.includes('?') ? '&' : '?';
   return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
-             + '&name=' + encodeURIComponent(SESSION.name);
+             + '&name=' + encodeURIComponent(SESSION.name)
+             + (PREVIEW_MODE ? '&preview=1' : ''); // v64 — 교사 미리보기에서 연 활동이 그 학생 이름으로 제출되지 않게(웹앱 공통 ?preview=1 규약)
 }
 
 /* v48(2026-09-09, 효니 리포트 "클래스카드 링크가 www.classcard.net/www.classcard.net으로
@@ -2340,6 +2401,7 @@ $('inputName').addEventListener('keydown', e => {
 let lastRefresh = Date.now();
 async function refreshStudentData(force){
   if(!SESSION) return;
+  if(PREVIEW_MODE && !PREVIEW_REAL) return; // v64 — 샘플 미리보기는 가짜 학번이라 재조회하면 예시 데이터가 사라짐
   if($('portalView').style.display !== 'block') return;
   if(!force && Date.now() - lastRefresh < 15000) return; // 15초 쿨다운
   lastRefresh = Date.now();
@@ -2368,6 +2430,7 @@ $('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
 function exitToLogin(){
   store.del('portal_session');
   SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; CHECKIN_CTX = null;
+  PREVIEW_REAL = false; PREVIEW_FROM_DASH = false;
   $('portalView').style.display = 'none';
   $('portalView').classList.remove('shown');
   $('checkinView').style.display = 'none';
@@ -2376,7 +2439,51 @@ function exitToLogin(){
   $('inputId').value = ''; $('inputName').value = '';
 }
 $('btnLogout').addEventListener('click', exitToLogin);
-$('btnExitPreview').addEventListener('click', exitToLogin);
+$('btnExitPreview').addEventListener('click', () => PREVIEW_FROM_DASH ? exitPreviewToDash_() : exitToLogin());
+
+/* ── 대시보드에서 "이 학생의 실제 학생 화면" 보기 (v64) ──
+ * 교사가 학생 계정으로 매번 로그인하지 않고 그 학생이 보는 화면을 그대로 확인하는 용도. 학번+이름만으로
+ * 조회되는 기존 mode=student를 그대로 쓰고(새 API 없음), PREVIEW_MODE를 켜서 모든 쓰기를 막는다 —
+ * 질문·답장·자가체크·읽음 처리(ackMessages_/ackFeedbackItems_)·배지 기준선(localStorage)·체크인이 전부
+ * PREVIEW_MODE 가드에 걸려 실제 기록이 남지 않는다. 자동로그인 세션(portal_session)도 안 건드린다. */
+async function previewAsStudent(sid, name, fromNav){
+  const parsed = parseStudentId(sid);
+  if(!parsed || !CONFIG.CURRICULUM[parsed.grade]){ showToast('이 학생의 학년 정보를 찾지 못했어요.'); return; }
+  showToast(`${name} 학생 화면을 불러오는 중이에요…`);
+  try{
+    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
+      + '?mode=student&studentId=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(name));
+    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+    data.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
+    if(!fromNav) PREVIEW_DASH_SCROLL = window.scrollY;
+    PREVIEW_MODE = true; PREVIEW_REAL = true; PREVIEW_FROM_DASH = true;
+    SESSION = { studentId: sid, name, ...parsed };
+    STUDENT_DATA = data;
+    CHECKIN_CTX = null;
+    $('portalView').classList.remove('shown');
+    renderPortal();
+    window.scrollTo(0, 0);
+  }catch(e){
+    showToast('학생 화면을 불러오지 못했어요. 다시 시도해 주세요.');
+  }
+}
+function previewStepStudent_(delta){
+  const i = DASH_STUDENT_ORDER.findIndex(x => x.sid === SESSION.studentId);
+  const next = DASH_STUDENT_ORDER[i + delta];
+  if(!next){ showToast(delta < 0 ? '이 목록의 첫 번째 학생이에요.' : '이 목록의 마지막 학생이에요.'); return; }
+  previewAsStudent(next.sid, next.name, true);
+}
+function exitPreviewToDash_(){
+  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; PREVIEW_REAL = false; PREVIEW_FROM_DASH = false;
+  CHECKIN_CTX = null;
+  $('portalView').style.display = 'none';
+  $('portalView').classList.remove('shown');
+  $('dashView').style.display = 'block';
+  window.scrollTo(0, PREVIEW_DASH_SCROLL);
+}
+function dashPreviewStudent(btn){ previewAsStudent(btn.dataset.sid, btn.dataset.name); }
+$('btnPrevStudent').addEventListener('click', () => previewStepStudent_(-1));
+$('btnNextStudent').addEventListener('click', () => previewStepStudent_(1));
 
 /* ════════════════════════════════════════════════════════
  * 교사 대시보드
@@ -3645,11 +3752,11 @@ function clRefreshBadgeNameOptions(){
 function clToggleMulti(){
   const on = $('clMulti').checked;
   $('clMultiWrap').style.display = on ? 'block' : 'none';
-  // clType은 clGrade·clId와 같은 cl-row 안에 있어서 row 전체를 숨기면 안 됨 — select만 토글.
-  $('clType').style.display = on ? 'none' : '';
-  $('clUrl').previousElementSibling.style.display = on ? 'none' : 'block'; // 힌트 라벨
-  $('clUrl').style.display = on ? 'none' : 'block';
-  $('clId').placeholder = on ? '차시id (체크인·피드백·CSV에서 이 차시를 가리킬 때 씀)' : '활동id (게임 CONFIG.GAME_NAME과 동일해야 함)';
+  // v64 — 폼이 라벨 래퍼(.cl-field)로 바뀌어서 select/textarea 자체가 아니라 래퍼째 토글한다.
+  $('clTypeField').style.display = on ? 'none' : '';
+  $('clUrlField').style.display = on ? 'none' : '';
+  $('clId').placeholder = on ? '체크인·피드백·CSV에서 이 차시를 가리킬 때 쓰는 차시id' : '게임 CONFIG.GAME_NAME과 똑같이';
+  $('clIdLabel').firstChild.textContent = on ? '차시id ' : '활동id ';
 }
 
 function clCollectActivitiesFromForm(){
@@ -4440,6 +4547,7 @@ function renderDash(){
   });
   const list = Object.values(students).sort((a,b) => a.p.ban - b.p.ban || a.p.num - b.p.num);
 
+  DASH_STUDENT_ORDER = list.map(s => ({ sid: s.sid, name: s.name })); // v64 — 미리보기 이전/다음 학생 순서
   list.forEach(s => {
     s.doneIds = new Set(s.records.map(r => String(r.gameName)));
     s.achieve = {};
@@ -5020,6 +5128,7 @@ function dashDetailRowHtml(s, lessons, colspan){
     + lessons.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('');
 
 const selBtnHtml = `<div class="dash-detail-actions">
+  <button class="btn btn-sm" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}" onclick="dashPreviewStudent(this)">👀 학생 화면 보기</button>
   <button class="btn btn-sm" onclick="openSelPopup('${s.sid}')">🧭 SEL 특성 보기</button>
   ${dashPointBoxHtml_(s)}
 </div>`;
