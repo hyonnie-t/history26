@@ -1461,3 +1461,12 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 .cl-form select, .cl-form input[type=text], .cl-form textarea{background:var(--input-bg);}
 .cl-form input:disabled{background:var(--thead-bg); color:var(--ink-soft);}
 .tree-box{width:190px;}  /* v64 새 나무 일러스트가 더 촘촘해서 조금 키움 */
+
+/* ══════════════ v65 — AI 작성 의심 검토 표시 ══════════════ */
+.suspect-box.clear{background:var(--panel-alt); border-color:var(--line); border-left-color:var(--muted-2);}
+.suspect-box.clear .suspect-head{color:var(--ink-soft);}
+.si-act.rv{background:var(--thead-bg); color:var(--ink-soft); font-weight:600;}
+.suspect-chip.checked{opacity:.75;}
+.ai-suspect-badge.reviewed{color:var(--ink-soft); background:var(--thead-bg);}
+.suspect-review{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;}
+.suspect-status{font-size:.86rem; font-weight:700; color:var(--jade);}
