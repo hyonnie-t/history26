@@ -3441,6 +3441,7 @@ async function dashCommitReorder(listEl){
   const ok = await dashSaveGradeOrder_(listEl.dataset.grade, rowsInOrder);
   showToast(ok ? '순서를 저장했어요.' : '순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
   dashRenderLessons();
+  dashSyncCurriculum_();
 }
 
 /* 위/아래 버튼 — 같은 학년의 진행중/예정 목록 안에서 바로 옆 항목과 자리를 맞바꿈 */
@@ -3458,6 +3459,7 @@ async function dashMoveLesson(row, dir){
   const ok = await dashSaveGradeOrder_(l.grade, rows);
   if(!ok) showToast('순서를 저장하지 못했어요. 새로고침 후 다시 시도해 주세요.');
   dashRenderLessons();
+  dashSyncCurriculum_();
 }
 
 /* 지난 활동 표시 on/off — 공개여부와 별개 (v13). v59: 토글 뒤 학년 순서를 다시 매겨 지난 활동이 앞으로 가게 함 */
@@ -3478,6 +3480,7 @@ async function dashToggleLessonPast(btn){
       if(!ok) showToast('순서를 다시 매기지 못했어요. 새로고침 후 확인해 주세요.');
     }
     dashRenderLessons();
+    dashSyncCurriculum_();
   }catch(e){
     showToast('처리하지 못했어요. 다시 시도해 주세요.');
   }finally{
@@ -3582,6 +3585,7 @@ async function dashAddLesson(btn){
     showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
     await dashLoadData();
     dashRenderLessons();
+    dashSyncCurriculum_();
   }catch(e){
     showToast('추가하지 못했어요. 다시 시도해 주세요.');
   }finally{
@@ -3692,6 +3696,7 @@ async function dashUpdateLesson(btn, row){
     showToast('활동 내용을 수정했어요.');
     await dashLoadData();
     dashRenderLessons();
+    dashSyncCurriculum_();
   }catch(e){
     showToast('저장하지 못했어요. 다시 시도해 주세요.');
   }finally{
@@ -3710,6 +3715,7 @@ async function dashToggleLessonPublic(btn){
     const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
     if(l){ l.public = !l.public; }
     dashRenderLessons();
+    dashSyncCurriculum_();
   }catch(e){
     showToast('처리하지 못했어요. 다시 시도해 주세요.');
   }finally{
@@ -3850,18 +3856,37 @@ function dashRefreshActivityOptions(){
   const prevAct = $('selActivity').value;
   const cur = CONFIG.CURRICULUM[grade];
   const lessons = lessonsForBanSelection_(cur, ban);
-  const opts = [];
-  lessons.forEach(l => {
+  /* v60 — 피드백용 드롭다운이라 (1) 학생 기록이 실제로 있는 활동만, (2) 최신 차시부터(역순),
+   * (3) 지난 활동은 구분선 아래로 뺀다. 기록 유무는 현재 학년·반 범위의 ROWS 기준.
+   * 지난 여부(isPast)는 학생용 커리큘럼 응답에 없어서 교사용 LESSONS_ADMIN에서 id로 찾는다. */
+  const recIds = new Set(ROWS.filter(r => {
+    const p = parseStudentId(String(r.studentId));
+    return p.grade === grade && banMatches_(ban, grade, p.ban);
+  }).map(r => String(r.gameName)));
+  const pastLessonIds = new Set(LESSONS_ADMIN.filter(x => Number(x.grade) === grade && x.isPast).map(x => x.id));
+  const active = [], past = [];
+  lessons.slice().reverse().forEach(l => {
     l.activities.forEach((act, idx) => {
+      if(!recIds.has(String(act.id))) return;
       const label = l.activities.length > 1
         ? `${l.title} · ${act.title && act.title.trim() ? act.title.trim() : (idx+1)+'활동'}`
         : l.title;
-      opts.push({ id: act.id, label });
+      (pastLessonIds.has(l.id) ? past : active).push({ id: act.id, label });
     });
   });
+  const optHtml = o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`;
   $('selActivity').innerHTML = '<option value="">전체 활동</option>'
-    + opts.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join('');
-  if(prevAct && opts.some(o => o.id === prevAct)) $('selActivity').value = prevAct;
+    + active.map(optHtml).join('')
+    + (past.length ? '<option value="" disabled>── 지난 활동 ──</option>' + past.map(optHtml).join('') : '');
+  if(prevAct && [...active, ...past].some(o => o.id === prevAct)) $('selActivity').value = prevAct;
+}
+
+/* v60 — 커리큘럼 관리 탭에서 순서·지난활동·공개·내용을 바꾼 뒤 학생 기록 탭이 쓰는
+ * CONFIG.CURRICULUM(페이지 로딩 때 1회만 받음)을 다시 받아 활동 드롭다운·목록에 반영. */
+async function dashSyncCurriculum_(){
+  if(!(await loadCurriculum())) return;
+  dashRefreshActivityOptions();
+  renderDash();
 }
 
 /* v25 — 학생 검색 (2-1)
@@ -5031,6 +5056,7 @@ $('btnDashRefresh').addEventListener('click', async () => {
   showToast('새로고침 중…');
   try{
     await dashLoadData();
+    await loadCurriculum(); dashRefreshActivityOptions();
     renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm();
     dashRenderGongminBonus_();
     if(CK_ADMIN_LOADED && CHECKIN_PLAN){
