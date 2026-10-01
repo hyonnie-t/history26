@@ -38,7 +38,8 @@
   <div class="teacher-entry">
     <button class="teacher-link" id="btnTeacherMode">🔑 교사용 대시보드</button>
     <div id="teacherGate">
-      <input id="tokenInput" type="password" placeholder="교사 토큰" autocomplete="off">
+      <input id="tokenInput" type="password" placeholder="교사 토큰" autocomplete="new-password">
+      <label class="gate-remember"><input type="checkbox" id="tokenRemember"> 이 기기에서 로그인 유지 (공용 컴퓨터에서는 끄세요)</label>
       <button class="btn-gate" id="btnGate">대시보드 열기</button>
       <p class="gate-error" id="gateError"></p>
     </div>
@@ -858,6 +859,7 @@ const store = {
   set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
+store.del('dash_token'); // v67 — 옛 버전이 무조건 저장해둔 토큰 일괄 삭제(교실 PC 등에 남은 것 포함)
 
 function parseStudentId(sid){
   if(!/^\d{5}$/.test(sid)) return null;
@@ -2551,7 +2553,9 @@ async function enterDash(token){
   $('gateError').style.display = 'none';
   try{
     await dashLoadData();
-    store.set('dash_token', token);
+    /* v67 — 토큰은 "이 기기에서 로그인 유지"를 켠 경우에만 저장. 끄면 기존 저장분도 지운다. */
+    if($('tokenRemember').checked) store.set('dash_token_saved', token);
+    else store.del('dash_token_saved');
     $('loginView').style.display = 'none';
     $('portalView').style.display = 'none';
     $('dashView').style.display = 'block';
@@ -5425,8 +5429,8 @@ $('btnTeacherMode').addEventListener('click', () => {
   const open = g.style.display === 'block';
   g.style.display = open ? 'none' : 'block';
   if(!open){
-    const saved = store.get('dash_token');
-    if(saved) $('tokenInput').value = saved;
+    const saved = store.get('dash_token_saved');
+    if(saved){ $('tokenInput').value = saved; $('tokenRemember').checked = true; }
     $('tokenInput').focus();
   }
 });
