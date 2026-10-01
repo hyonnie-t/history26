@@ -222,8 +222,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   횟수)/`focusLeaveSec`/`pasteChars`를 보내면 백엔드가 게임활동_로그 24~26열에 쌓고 `teacherGet_`이 그대로 내려준다. 대시보드는
   `dashFocusSignal_()`로 상세 카드에 집계만 표시한다(`FOCUS_LEAVE_WARN`/`FOCUS_PASTE_WARN` 넘을 때만 배지, 알림 없음). 학생에겐
   돌아왔을 때 "이탈 기록은 선생님이 볼 수 있어요" 배너로 **숨기지 않고** 알린다. **⚠️ 이 값을 Gemini 프롬프트(의심도)에 섞지 않는다** —
-  두 신호를 따로 둬야 근거가 흐려지지 않는다. 참고 구현은 `snippets/focus_guard.js`(헤드리스 Chromium으로 이탈 카운트·1초 미만
-  무시·`exempt()`·새로고침 유지·붙여넣기 합산 확인함). 폰·다른 기기·분할 화면은 못 잡으므로 단독 증거로 쓰지 말 것. 백엔드 v37
+  두 신호를 따로 둬야 근거가 흐려지지 않는다. 참고 구현은 `snippets/focus_guard.js`(헤드리스 Chromium으로 이탈 카운트·**5초 미만
+  무시**·패들렛 링크 클릭 자동 면제(`allowHosts`)·`exempt()`·새로고침 유지·붙여넣기 합산 확인함). 폰·다른 기기·분할 화면은 못 잡으므로 단독 증거로 쓰지 말 것. 백엔드 v37
   배포 전엔 24~26열이 안 생겨 대시보드에 표시가 안 나온다(오류는 없음). 기존 웹앱엔 소급 적용 안 함.
 
 - **교사↔학생 개인 메시지 (v62)**: 교사가 먼저 시작하는 1:1 스레드. 질문함(학생이 먼저 물음, 질문 1+답변

@@ -7,9 +7,13 @@
  * payload()가 돌려주는 값 → 백엔드 기본 제출 경로가 게임활동_로그 24~26열에 저장한다:
  *   focusLeaveCount(이탈 횟수), focusLeaveSec(자리 비운 총 초), pasteChars(붙여넣기·드롭한 글자 수)
  *
+ * 옵션: FocusGuard.start({ key, minAwaySec: 5, allowHosts: ['padlet.com'] })
+ *   minAwaySec — 이 시간(초) 미만의 이탈은 세지 않는다(기본 5). allowHosts — 이 웹앱 안의 링크(<a>)가 이 도메인으로
+ *   가는 클릭은 이탈로 안 센다(기본 패들렛). 링크가 아니라 버튼+window.open으로 여는 경우는 직전에 exempt()를 부른다.
+ *
  * 설계 메모
  * - 포털 → 웹앱 이동은 새 페이지 로드라 이벤트로 안 잡힌다(제외 처리 불필요). 웹앱 "안"에서 탭/앱을
- *   벗어난 경우만 센다. 1초 미만 이탈(알림창·실수)은 세지 않는다.
+ *   벗어난 경우만 센다. 5초 미만 이탈(알림창·실수·잠깐 확인)은 세지 않는다.
  * - 학생에게 숨기지 않는다: 돌아오면 배너로 알리고 기록이 교사에게 집계로 간다고 말한다.
  * - 정당한 이탈(사료 링크 열기 등)이 웹앱 안에 있으면 그 직전에 FocusGuard.exempt()를 부른다.
  * - 새로고침으로 카운터가 초기화되지 않게 sessionStorage에 key별로 이어서 저장한다(막히면 메모리만).
@@ -17,7 +21,8 @@
  * - 빌드 없는 plain JS. 함수 선언을 먼저 끝내고 start()는 호출하는 쪽이 맨 마지막에 부른다(TDZ 방지).
  */
 (function () {
-  var MIN_AWAY_MS = 1000;
+  var minAwayMs = 5000;
+  var allowHosts = ['padlet.com'];
   var state = { key: 'default', leaves: 0, sec: 0, paste: 0 };
   var awaySince = 0;      // 0이면 화면에 있는 상태
   var exemptUntil = 0;
@@ -61,10 +66,11 @@
     awaySince = Date.now();
   }
   function back() {
+    exemptUntil = 0; // 면제는 한 번 다녀오면 소멸 — 남아 있으면 그다음 이탈까지 가려진다
     if (!awaySince) return;
     var away = Date.now() - awaySince;
     awaySince = 0;
-    if (away < MIN_AWAY_MS) return;
+    if (away < minAwayMs) return;
     state.leaves += 1;
     state.sec += Math.round(away / 1000);
     save();
@@ -81,14 +87,29 @@
     if (t) { state.paste += t.length; save(); }
   }
 
+  // 허용 도메인(패들렛 등)으로 가는 링크 클릭은 직후의 이탈을 면제한다. 새 탭이 열리며 blur가 바로 오므로 짧은 창이면 충분.
+  function onLinkClick(ev) {
+    var a = ev.target && ev.target.closest && ev.target.closest('a[href]');
+    if (!a) return;
+    var host = '';
+    try { host = new URL(a.href, location.href).hostname.toLowerCase(); } catch (e) { return; }
+    for (var i = 0; i < allowHosts.length; i++) {
+      var h = allowHosts[i];
+      if (host === h || host.slice(-(h.length + 1)) === '.' + h) { exempt(10000); return; }
+    }
+  }
+
   function start(opts) {
     if (started) return;
     started = true;
     state.key = (opts && opts.key) || 'default';
+    if (opts && Number(opts.minAwaySec) >= 0) minAwayMs = Number(opts.minAwaySec) * 1000;
+    if (opts && opts.allowHosts) allowHosts = opts.allowHosts;
     load();
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('blur', leave);
     window.addEventListener('focus', back);
+    document.addEventListener('click', onLinkClick, true);
     document.addEventListener('paste', onPaste, true);
     document.addEventListener('drop', onDrop, true);
   }
