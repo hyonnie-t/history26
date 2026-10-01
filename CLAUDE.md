@@ -289,7 +289,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `Promise.all`로 여러 요청을 한 번에 묶는 곳은 특히 `fetchJsonRetry_`를 쓰는 편이 안전하다(하나만 실패해도
   전체가 reject되는 문제를 피함).
 - 학생 로그인 세션은 `localStorage`(`store.get/set/del`, 키 `portal_session`)에 `{ sid, name }`만 저장해
-  자동 로그인에 쓴다. 교사 토큰(`TOKEN`)은 저장하지 않고 세션 중 메모리 변수로만 유지된다(`PREVIEW_MODE`도
+  자동 로그인에 쓴다. 교사 토큰(`TOKEN`)은 기본적으로 저장하지 않고 메모리 변수로만 유지된다. 로그인 폼의 "이 기기에서 로그인 유지"(`#tokenRemember`)를 켠 경우에만 `localStorage` 키 `dash_token_saved`에 저장한다(v67, 옛 키 `dash_token`은 부팅 때 삭제)(`PREVIEW_MODE`도
   동일하게 메모리 상태).
 - 학번은 `학년(1자리) + 반(2자리) + 번호(2자리)` 5자리 문자열로, `parseStudentId()`가 파싱 규칙의
   단일 소스다. 학번 관련 로직을 추가할 때 이 함수를 재사용할 것.

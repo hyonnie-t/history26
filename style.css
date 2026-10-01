@@ -192,6 +192,8 @@ button{font-family:inherit; cursor:pointer;}
   width:100%; min-height:48px; font-size:1rem; font-weight:700;
   background:var(--indigo); color:#fff; border:none; border-radius:var(--radius-sm);
 }
+.gate-remember{display:flex; align-items:flex-start; gap:8px; font-size:.85rem; color:var(--ink-soft, inherit); margin:0 0 12px; line-height:1.4;}
+.gate-remember input{margin-top:2px;}
 .btn-gate:hover{background:var(--indigo-deep);}
 .btn-gate:disabled{background:var(--disabled-bg); cursor:wait;}
 .gate-error{color:var(--seal); font-size:.88rem; margin-top:8px; display:none;}
