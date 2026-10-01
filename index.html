@@ -4332,6 +4332,20 @@ let SUSPECT_STATS = {};
  * 확인한 건도 그대로 세는 게 효니 확정 사항(반복되는 문제를 놓치지 않으려고). 검토 표시는 "이미 본 건"을 경고에서
  * 구분해 주는 용도일 뿐이다. 백엔드 재배포 전엔 컬럼 자체가 없어 전부 미확인으로 보인다. */
 function dashSuspectReview_(r){ return String(r['의심검토'] || '').trim(); }
+/* v68 — 작성 과정 신호(게임활동_로그 24~26열: 이탈횟수/이탈초/붙여넣기글자수). 웹앱이 최종 제출 때 같이 보낸 값이라
+ * 옛 웹앱 제출은 세 칸이 빈칸이다(0과 구분 — 빈칸이면 신호 없음으로 표시 자체를 생략). 집계·참고용이며 의심도(AI 판정)와
+ * 합치지 않고 나란히만 보여준다: 글 판정과 행동 신호는 서로 다른 근거라 섞으면 어느 쪽이 이유인지 흐려진다. 학생 화면 노출 금지. */
+const FOCUS_LEAVE_WARN = 3, FOCUS_PASTE_WARN = 80;
+function dashFocusSignal_(r){
+  const raw = [r.focusLeaveCount, r.focusLeaveSec, r.pasteChars];
+  if(raw.every(v => v === '' || v === undefined || v === null)) return null;
+  const leaves = Number(raw[0]) || 0, sec = Number(raw[1]) || 0, paste = Number(raw[2]) || 0;
+  return { leaves, sec, paste, flagged: leaves >= FOCUS_LEAVE_WARN || paste >= FOCUS_PASTE_WARN };
+}
+function dashFocusText_(f){
+  const m = Math.floor(f.sec / 60), s = f.sec % 60;
+  return `화면 이탈 ${f.leaves}회(${m ? m + '분 ' : ''}${s}초) · 붙여넣기 ${f.paste}자`;
+}
 const REC_OPEN = new Set(); // v65 — 상세 카드에서 펼친 기록(재렌더돼도 안 접히게, 검토 버튼 누른 뒤 자리 유지)
 function dashSuspectStats_(){
   const latest = {}; // sid → gameName → 등급이 있는 가장 최근 행
@@ -5145,6 +5159,10 @@ function dashDetailRowHtml(s, lessons, colspan){
       const suspectBadge = showSuspect
         ? `<span class="ai-suspect-badge${suspectReview ? ' reviewed' : ''}" title="근거는 아래 펼쳐서 확인 — 참고용 판정이며 확정 아님">🔍 ${suspectReview ? escapeHtml(suspectReview === '상담함' ? '상담함' : '확인함') : '확인 요청'} · ${escapeHtml(suspectLevel)}</span>`
         : '';
+      const focus = dashFocusSignal_(r); // v68
+      const focusBadge = focus && focus.flagged
+        ? `<span class="focus-badge" title="${escapeHtml(dashFocusText_(focus))} — 참고용 신호, 사료 확인 등 정당한 이탈도 포함돼요">👁 작성 중 이탈·붙여넣기</span>`
+        : '';
       const reviewBtns = suspectReview
         ? `<span class="suspect-status">${suspectReview === '상담함' ? '💬 상담함' : '✓ 문제없음으로 확인함'}</span>
            <button type="button" class="btn-tiny" data-status="" onclick="dashReviewSuspect(event,this)">되돌리기</button>`
@@ -5157,6 +5175,7 @@ function dashDetailRowHtml(s, lessons, colspan){
             <span class="rec-title">${escapeHtml(dashLessonTitle(gameName))}</span>
             ${dupBadge}
             ${suspectBadge}
+            ${focusBadge}
           </span>
           <span class="rec-summary-side">
             <span class="rec-meta">${formatDate(r.timestamp)} · 성취 ${escapeHtml(String(r['성취수준']||'분석 전'))}</span>
@@ -5169,6 +5188,7 @@ function dashDetailRowHtml(s, lessons, colspan){
             <dt>학생 서술</dt><dd>${escapeHtml(String(r.reflection||'—'))}</dd>
             <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
             <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
+            ${focus ? `<dt>작성 과정</dt><dd>${escapeHtml(dashFocusText_(focus))} <span class="muted">(참고용 — 사료 확인·검색 등 정당한 이탈도 포함)</span></dd>` : ''}
             ${showSuspect ? `<dt>🔍 AI 작성 의심 근거</dt><dd>${escapeHtml(suspectReason||'—')} <span class="muted">(참고용 판정 — 확정 아님, 최종 판단은 교사)</span></dd>
             <dt>검토</dt><dd class="suspect-review" data-row="${rowNum || ''}">${reviewBtns} <span class="muted">표시해도 횟수(🔍×N)는 그대로 남아요.</span></dd>` : ''}
           </dl>
