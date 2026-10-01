@@ -3595,8 +3595,40 @@ function clLessonItemHtml(l, isPastItem){
         <button class="an-toggle" data-row="${l._row}" onclick="dashEditLesson(this)">수정</button>
         <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
         <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPast(this)">${isPastItem ? '진행중으로 되돌리기' : '지난 활동으로 표시'}</button>
+        <button class="an-toggle" data-row="${l._row}" data-id="${escapeHtml(l.id)}" onclick="dashDeleteLesson(this)">삭제</button>
       </div>
     </div>`;
+}
+
+/* v66 — 커리큘럼 활동 삭제. 서버는 row와 활동id를 같이 받아 대조한다(행 번호가 밀려 엉뚱한 행을
+ * 지우는 사고 방지). 학생 제출 기록(게임활동_로그)은 그대로 남고 커리큘럼 행만 지워진다. */
+async function dashDeleteLesson(btn){
+  const row = btn.dataset.row;
+  const id = btn.dataset.id;
+  const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
+  if(!l){ showToast('활동 정보를 찾지 못했어요.'); return; }
+  if(!confirm(`"${l.title}" (${l.id}) 활동을 커리큘럼에서 삭제할까요?\n학생이 이미 제출한 기록은 남지만, 되돌릴 수 없어요.`)) return;
+  btn.disabled = true;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'deleteLesson', token:TOKEN, row, id })
+    });
+    const json = await res.json().catch(() => null);
+    if(!json || json.result !== 'success'){
+      showToast('삭제하지 못했어요' + (json && json.message ? ': ' + json.message : '') + ' — 백엔드 재배포 전이면 삭제가 안 돼요.');
+      return;
+    }
+    if($('clEditRow').value === String(row)) dashResetLessonForm();
+    showToast('활동을 삭제했어요.');
+    await dashLoadData();
+    dashRenderLessons();
+    dashSyncCurriculum_();
+  }catch(e){
+    showToast('삭제하지 못했어요. 다시 시도해 주세요.');
+  }finally{
+    btn.disabled = false;
+  }
 }
 
 /* 위/아래 버튼 + 드래그 이벤트 바인딩 (매 렌더 후 재호출) */
