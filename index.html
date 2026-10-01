@@ -3814,10 +3814,17 @@ async function dashAddLesson(btn){
       showToast('저장하지 못했어요' + (json && json.message ? ': ' + json.message : '') + ' — 다시 시도해 주세요.');
       return;
     }
-    dashResetLessonForm();
-    showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
+    // v66 — 서버가 success만 주고 시트엔 안 쓴 경우(배포본 불일치 등)를 걸러내려고, 다시 읽은
+    // 목록에 방금 id가 실제로 있는지 확인한다. 없으면 폼을 비우지 않고(입력 보존) 실패로 안내.
     await dashLoadData();
     dashRenderLessons();
+    const saved = LESSONS_ADMIN.some(l => String(l.grade) === String(grade) && String(l.id) === id);
+    if(!saved){
+      showToast('서버는 성공이라고 했지만 커리큘럼 목록에 안 보여요. Apps Script 배포 버전이 최신인지 확인해 주세요.');
+      return;
+    }
+    dashResetLessonForm();
+    showToast('활동을 추가했어요.' + (isPublic ? '' : ' (비공개 상태 — 준비되면 목록에서 공개로 전환해 주세요)'));
     dashSyncCurriculum_();
   }catch(e){
     showToast('추가하지 못했어요. 다시 시도해 주세요.');
