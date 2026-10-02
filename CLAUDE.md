@@ -251,7 +251,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `LESSON_OPEN[lessonId]`(없으면 완료=접힘·미완료=펼침)에 있다. 토글은 `#timeline`의 이벤트 위임 하나이므로 카드 마크업을 바꿀 땐
   `.lesson-toggle`/`data-lid`를 지킬 것. "그 밖의 기록"은 `.ref-card`+`.ref-ico` 공통 카드다 — 성적조회 카드(`#gradeCard`)의
   `gradeIntro`/`gradeForm`/`gradeResultWrap` id와 피드백 카드의 `#feedbackInboxList`/`fb-ask-btn`은 JS가 직접 참조한다.
-- **학생 화면 미리보기 (v64)**: 두 종류다. ① 샘플(로그인 화면, 가짜 학번, `PREVIEW_REAL=false`) ② 실제 학생(`previewAsStudent()` —
+- **학생 화면 미리보기 (v64)**: **v70 — ①(읽기 전용 샘플 미리보기)은 없앴다.** 로그인 화면 "🧪 학생 화면 테스트"는 이제 그 반 99번 `미리보기 학생`(예: `20599`)으로 **진짜 로그인**하는 기록 테스트 모드(`TEST_WRITE_MODE`, 쓰기가 시트에 실제로 저장됨, `PREVIEW_MODE`는 안 켬)다. 남은 읽기 전용 미리보기는 ②뿐이다. 옛 설명: 두 종류다. ① 샘플(로그인 화면, 가짜 학번, `PREVIEW_REAL=false`) ② 실제 학생(`previewAsStudent()` —
   대시보드 학생 카드의 "학생 화면 보기", 그 학생의 진짜 `mode=student` 응답을 읽기 전용 렌더링, `PREVIEW_REAL=true`). 쓰기는 전부 기존
   `PREVIEW_MODE` 가드로 막힌다 — **새 쓰기/읽음 처리 코드를 추가할 땐 반드시 이 가드를 넣을 것**(안 그러면 교사가 미리보기만 해도 학생
   데이터가 바뀐다). 활동 링크는 `withStudentParams()`가 `&preview=1`을 붙인다. `refreshStudentData()`는 샘플에서만 재조회를 건너뛴다.
