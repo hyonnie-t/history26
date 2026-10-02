@@ -53,6 +53,10 @@
         <input type="checkbox" id="previewSample">
         완료·AI코멘트 예시도 같이 보기
       </label>
+      <label class="chk-label" style="margin-bottom:12px;">
+        <input type="checkbox" id="previewWrite">
+        🧪 실제로 기록되는 테스트 모드 (그 반 99번 "미리보기 학생" 계정으로 진짜 로그인)
+      </label>
       <button class="btn-gate" id="btnPreviewStart">미리보기 시작</button>
     </div>
   </div>
@@ -851,6 +855,10 @@ let PREVIEW_MODE = false; // 교사용 "학생 화면 미리보기"에서 true �
  * 그 학생의 실제 mode=student 응답을 읽기 전용으로 그림). PREVIEW_REAL은 ②일 때만 true. PREVIEW_FROM_DASH는
  * 대시보드에서 들어왔음(종료 시 대시보드로 복귀, 이전/다음 학생 버튼 노출). */
 let PREVIEW_REAL = false, PREVIEW_FROM_DASH = false, PREVIEW_DASH_SCROLL = 0;
+/* v70 — 교사 "기록 테스트 모드": PREVIEW_MODE(읽기 전용)와 달리 99번 테스트 계정으로 진짜 로그인해 쓰기가 실제로 저장된다.
+ * 학생 화면 코드는 PREVIEW_MODE만 보고 쓰기를 막으므로, 이 모드에선 PREVIEW_MODE를 켜지 않고 배너만 따로 띄운다. */
+let TEST_WRITE_MODE = false;
+const TEST_STUDENT_NAME = '미리보기 학생';
 let DASH_STUDENT_ORDER = []; // renderDash가 매번 갱신 — 미리보기 "이전/다음 학생" 이동 순서
 let CHECKIN_PLAN = null; // v17: 이제 checkin_data.js 정적 값이 아니라 mode=checkinPlan API로 채움 (loadCheckinPlan)
 
@@ -1239,7 +1247,12 @@ function renderPortal(){
   requestAnimationFrame(() => pv.classList.add('shown'));
 
   $('portalEyebrow').textContent = `2학기 · ${SESSION.grade}학년 ${cur.subject}`;
-  $('previewBanner').style.display = PREVIEW_MODE ? 'flex' : 'none';
+  $('previewBanner').style.display = (PREVIEW_MODE || TEST_WRITE_MODE) ? 'flex' : 'none';
+  if(TEST_WRITE_MODE){
+    $('previewBannerText').textContent = `🧪 기록 테스트 모드 — ${SESSION.studentId}(${TEST_STUDENT_NAME}) 계정으로 실제 저장돼요. 끝나면 대시보드/시트에서 이 학번 기록을 지워 주세요.`;
+    $('btnExitPreview').textContent = '종료';
+    $('btnPrevStudent').style.display = $('btnNextStudent').style.display = 'none';
+  }
   if(PREVIEW_MODE){
     $('previewBannerText').textContent = PREVIEW_REAL
       ? `👀 ${SESSION.name} 학생(${SESSION.studentId})의 실제 화면 — 읽기 전용이에요. 기록·읽음 처리는 일어나지 않고, 활동 링크도 미리보기 모드로 열려요.`
@@ -2480,7 +2493,7 @@ $('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
 function exitToLogin(){
   store.del('portal_session');
   SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; CHECKIN_CTX = null;
-  PREVIEW_REAL = false; PREVIEW_FROM_DASH = false;
+  PREVIEW_REAL = false; PREVIEW_FROM_DASH = false; TEST_WRITE_MODE = false;
   $('portalView').style.display = 'none';
   $('portalView').classList.remove('shown');
   $('checkinView').style.display = 'none';
@@ -5519,6 +5532,19 @@ async function startPreview(){
   const withSample = $('previewSample').checked;
   const cur = CONFIG.CURRICULUM[grade];
   if(!cur){ showToast('해당 학년 설정을 찾을 수 없어요.'); return; }
+
+  /* v70 — 기록 테스트 모드: 읽기 전용 미리보기가 아니라 그 반 99번 테스트 계정으로 실제 로그인한다.
+   * 로그인 유지(portal_session)는 지운다 — 안 그러면 다음에 이 기기로 열 때 테스트 계정으로 자동 입장한다. */
+  if($('previewWrite').checked){
+    const sid = `${grade}${String(ban).padStart(2,'0')}99`;
+    $('teacherGate').style.display = 'none';
+    $('previewGate').style.display = 'none';
+    TEST_WRITE_MODE = true;
+    await login(sid, TEST_STUDENT_NAME);
+    store.del('portal_session');
+    if(!SESSION){ TEST_WRITE_MODE = false; } // 로그인 실패 — 로그인 화면의 오류 메시지를 그대로 보여준다
+    return;
+  }
 
   PREVIEW_MODE = true;
   SESSION = { studentId: `${grade}${String(ban).padStart(2,'0')}99`, name: '미리보기 학생', grade, ban, num: 99 };
