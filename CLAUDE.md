@@ -173,7 +173,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   포털 진행률·포인트 계산에 잡힌다. 디자인 기준선("역사책 페이지" 컨셉)은 hyonnie.md 참고. **새로 만들거나
   수정할 땐 `webapp-builder` 스킬을 반드시 따른다.** 모든 웹앱에 기본으로 들어가야 하는 필수 요소는
   ① `CONFIG.SHEET_WEBAPP_URL` 하드코딩, ② `?sid=&name=` URL 파라미터 자동채움(5자리 학번), ③ `?preview=1`
-  미리보기 모드(자동채움 + 시트 저장 없이 동작), ④ 서술형 입력엔 정답 아닌 맥락 단서만 주는 힌트 토글, ⑥ **작성 과정 신호** — `snippets/focus_guard.js`를 넣고 최종 제출 body에 `Object.assign(body, FocusGuard.payload())`로 이탈·붙여넣기 값을 같이 보낸다(서술형 활동에 한함, 상세는 아래 "작성 과정 신호" 항목)이다.
+  미리보기 모드(자동채움 + 시트 저장 없이 동작), ④ 서술형 입력엔 정답 아닌 맥락 단서만 주는 힌트 토글, ⑥ **작성 과정 신호** — `snippets/focus_guard.js`를 넣고 최종 제출 body에 `Object.assign(body, FocusGuard.payload())`로 이탈·붙여넣기 값을 같이 보낸다(서술형 활동에 한함, 상세는 아래 "작성 과정 신호" 항목), ⑦ **어휘 점검** — 학생 화면 문장을 읽고 중2~3이 모를 낱말을 뽑아 `GLOSSARY`에 풀이를 넣고(`snippets/glossary.js`로 밑줄을 입힌다), 끝내기 전에 `node snippets/vocab_check.mjs <앱 폴더>`가 누락 0건이어야 한다(상세는 아래 "어휘 풀이" 항목)이다.
   코드 작성·수정 뒤엔 반복 실수 체크리스트 세 가지를 반드시 재확인한다 — (a) URL/스프레드시트 ID 등을
   옮겨 적을 때 육안 확인 말고 grep/diff로 원본과 대조(조용한 전송 실패의 주 원인이었음), (b) IIFE로
   즉시 실행하는 코드는 TDZ 에러가 안 나게 함수 선언을 먼저 끝내고 `init()` 같은 실행 호출은 파일 맨
@@ -225,6 +225,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   두 신호를 따로 둬야 근거가 흐려지지 않는다. 참고 구현은 `snippets/focus_guard.js`(헤드리스 Chromium으로 이탈 카운트·**5초 미만
   무시**·패들렛 링크 클릭 자동 면제(`allowHosts`)·`exempt()`·새로고침 유지·붙여넣기 합산 확인함). 폰·다른 기기·분할 화면은 못 잡으므로 단독 증거로 쓰지 말 것. 백엔드 v37
   배포 전엔 24~26열이 안 생겨 대시보드에 표시가 안 나온다(오류는 없음). 기존 웹앱엔 소급 적용 안 함.
+
+- **어휘 풀이 (v71)**: 학생들이 낱말 뜻을 찾으러 웹앱을 벗어난다는 효니 관찰에서, 앱 안에서 바로 뜻을 보게 했다. `snippets/glossary.js`가 화면에 그려진
+  글자(DOM)에서 `GLOSSARY` 키를 찾아 `.term`으로 감싸고(MutationObserver로 화면이 다시 그려져도 유지) 누르면 뜻을 보여준다. 앱의 렌더링 코드를 안 고친다.
+  풀이 UI가 없는 앱은 하단 시트까지 이 파일이 만들고(`Glossary.start({ terms: GLOSSARY })`), 이미 UI가 있는 앱은 밑줄만 입힌다(`tag`/`sheet:false`/`style:false`/`skip`).
+  textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, addEventListener로 눌리는 span(진행 단계 칩 등)은 `skip` 선택자로 직접 뺀다. 같은 낱말은 한 문단에서 첫 번째만 긋는다.
+  **풀이 규칙**: ① 낱말 뜻만 쓴다(교과서에 없는 사실을 넣지 않는다) ② 풀이 속에 더 어려운 말을 쓰지 않는다 ③ 사실이 섞인 풀이(인지세법·청교도 등)는 교과서 대조 뒤 넣는다
+  ④ 사료 원문·번역은 바꾸지 않고 낱말에만 풀이를 붙인다 ⑤ 화면엔 검증 표시를 쓰지 않는다. 활동이 학생에게 직접 풀어 쓰게 하는 한자어 개념어(정당성·피지배자)도 효니 결정으로 뜻풀이는 준다 —
+  단 활동의 답(근거가 어디서 나오는지)을 풀이에 쓰지 않는다. **기계 검사**: `snippets/hard_words.json`(어려운 낱말 목록, 앱을 만들 때마다 늘린다)에 있는 낱말이 앱 문장에 나오는데 `GLOSSARY`에 없으면
+  `snippets/vocab_check.mjs`가 실패한다. 목록이 아는 낱말만 잡으므로 새 앱은 사람이 먼저 읽고 낱말을 뽑아 목록에 추가할 것(스킬 ⑦). 버튼·제목 안 낱말은 밑줄이 안 그어지는데 검사는 구분 못 한다.
+  적용: `us_declaration`/`Joseon-Sarim`(공용 시트), `tax_regime`/`Joseon-Bungdang`(기존 UI 유지). 기존 앱에 소급하는 건 이 4개뿐이다.
 
 - **교사↔학생 개인 메시지 (v62)**: 교사가 먼저 시작하는 1:1 스레드. 질문함(학생이 먼저 물음, 질문 1+답변
   1 구조)과 **별개 시트**(백엔드 `개인메시지`)라 질문함·질문왕 배지 집계엔 영향이 없다. 학생 포털은
