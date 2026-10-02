@@ -4406,6 +4406,15 @@ function dashFocusText_(f){
  * 백엔드 v39 재배포 전엔 컬럼이 없어 빈값이라 표시 자체가 안 나온다. 학생 화면 노출 금지. */
 function dashBaselineNote_(r){ return String(r['평소대비'] || '').trim(); }
 function dashBaselineKind_(note){ return note.startsWith('평소와 다름') ? 'diff' : note.startsWith('평소 범위') ? 'same' : ''; }
+/* v73 — 교차 확인: 글 판정(🔍 중간/높음)과 행동 신호(이탈·붙여넣기가 FOCUS_*_WARN 이상)가 같은 기록에서 함께 걸린 경우.
+ * 두 근거가 서로 다른 출처라 겹칠 때 더 눈여겨볼 만하다는 표시일 뿐이다 — ⚠️ 의심도 등급·반복 횟수(items.length)·검토 표시·
+ * Gemini 프롬프트엔 영향이 없다(확정 원칙). 박스에서 먼저 정렬하고 칩에 👁을 붙이는 데만 쓴다. 학생 화면 노출 금지. */
+function dashCrossCheck_(r){
+  const lv = String(r['AI작성의심도']||'').trim();
+  if(lv !== '중간' && lv !== '높음') return false;
+  const f = dashFocusSignal_(r);
+  return !!(f && f.flagged);
+}
 const REC_OPEN = new Set(); // v65 — 상세 카드에서 펼친 기록(재렌더돼도 안 접히게, 검토 버튼 누른 뒤 자리 유지)
 function dashSuspectStats_(){
   const latest = {}; // sid → gameName → 등급이 있는 가장 최근 행
@@ -4425,6 +4434,7 @@ function dashSuspectStats_(){
     stats[sid] = {
       sid, name: String(items[0].studentName||''), p: parseStudentId(sid), items,
       high: items.filter(r => String(r['AI작성의심도']).trim() === '높음').length,
+      cross: items.filter(dashCrossCheck_).length,   // v73 — 정렬·표시 전용, 횟수와 무관
       open: items.filter(r => !dashSuspectReview_(r)).length   // v65 — 아직 검토 표시 안 한 건수
     };
   });
@@ -4435,7 +4445,7 @@ function dashSuspectChipHtml_(sid){
   if(!s) return '';
   const rep = s.items.length >= SUSPECT_REPEAT_MIN;
   const done = s.open === 0; // 전부 검토 표시됨 — 횟수는 그대로 두고 ✓만 덧붙임
-  return `<span class="suspect-chip${rep ? ' rep' : ''}${done ? ' checked' : ''}" title="AI 작성 의심 ${s.items.length}건${done ? ' (전부 확인함)' : `, 미확인 ${s.open}건`} — 참고용, 확정 아님">🔍×${s.items.length}${done ? ' ✓' : ''}</span>`;
+  return `<span class="suspect-chip${rep ? ' rep' : ''}${done ? ' checked' : ''}" title="AI 작성 의심 ${s.items.length}건${s.cross ? `(글 판정+이탈·붙여넣기가 함께 걸린 기록 ${s.cross}건 👁)` : ''}${done ? ' (전부 확인함)' : `, 미확인 ${s.open}건`} — 참고용, 확정 아님">🔍×${s.items.length}${done ? ' ✓' : ''}${s.cross ? ` 👁${s.cross}` : ''}</span>`;
 }
 function dashRenderSuspectBox_(){
   SUSPECT_STATS = dashSuspectStats_();
@@ -4444,19 +4454,22 @@ function dashRenderSuspectBox_(){
   const ban = $('selBan').value;
   const inScope = Object.values(SUSPECT_STATS).filter(s =>
     s.p && s.p.grade === grade && banMatches_(ban, grade, s.p.ban))
-    .sort((a,b) => b.items.length - a.items.length || b.high - a.high || a.p.ban - b.p.ban || a.p.num - b.p.num);
+    .sort((a,b) => (b.cross > 0) - (a.cross > 0) || b.items.length - a.items.length || b.high - a.high || a.p.ban - b.p.ban || a.p.num - b.p.num);
   if(!inScope.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
   const needs = inScope.filter(s => s.open > 0);
   const repeat = needs.filter(s => s.items.length >= SUSPECT_REPEAT_MIN);
   const once = needs.filter(s => s.items.length < SUSPECT_REPEAT_MIN);
   const cleared = inScope.filter(s => s.open === 0);
   const openTotal = inScope.reduce((n, s) => n + s.open, 0);
+  const crossTotal = inScope.reduce((n, s) => n + s.cross, 0); // v73 — 글 판정+행동 신호가 함께 걸린 기록(표시용)
   const repeatAll = inScope.filter(s => s.items.length >= SUSPECT_REPEAT_MIN).length; // 검토 여부와 무관하게 센다
   const chipHtml = r => {
     const rv = dashSuspectReview_(r);
     const hi = String(r['AI작성의심도']).trim() === '높음';
     const bk = dashBaselineKind_(dashBaselineNote_(r));
-    return `<span class="si-act${hi ? ' hi' : ''}${rv ? ' rv' : ''}${bk === 'same' ? ' bl-same' : ''}" title="${escapeHtml((rv ? `[${rv}] ` : '') + String(r['AI작성의심근거']||'근거 없음') + (dashBaselineNote_(r) ? ` / 평소 대비: ${dashBaselineNote_(r)}` : ''))}">${rv ? (rv === '상담함' ? '💬 ' : '✓ ') : ''}${escapeHtml(dashShorten(dashLessonTitle(String(r.gameName)), 12))}</span>`;
+    const cx = dashCrossCheck_(r);
+    const fs = cx ? dashFocusSignal_(r) : null;
+    return `<span class="si-act${hi ? ' hi' : ''}${rv ? ' rv' : ''}${bk === 'same' ? ' bl-same' : ''}${cx ? ' cross' : ''}" title="${escapeHtml((rv ? `[${rv}] ` : '') + String(r['AI작성의심근거']||'근거 없음') + (dashBaselineNote_(r) ? ` / 평소 대비: ${dashBaselineNote_(r)}` : '') + (fs ? ` / 교차 확인: ${dashFocusText_(fs)}` : ''))}">${cx ? '👁 ' : ''}${rv ? (rv === '상담함' ? '💬 ' : '✓ ') : ''}${escapeHtml(dashShorten(dashLessonTitle(String(r.gameName)), 12))}</span>`;
   };
   const rowHtml = s => `
     <li class="suspect-item" data-sid="${s.sid}">
@@ -4468,9 +4481,9 @@ function dashRenderSuspectBox_(){
   box.innerHTML = `
     <div class="suspect-head">
       🔍 <b>AI 작성 의심 확인</b>
-      <span class="suspect-sum">확인 필요 <b>${openTotal}건</b> · 반복 ${SUSPECT_REPEAT_MIN}회 이상 <b>${repeatAll}명</b></span>
+      <span class="suspect-sum">확인 필요 <b>${openTotal}건</b>${crossTotal ? ` · 👁 교차 확인 <b>${crossTotal}건</b>` : ''} · 반복 ${SUSPECT_REPEAT_MIN}회 이상 <b>${repeatAll}명</b></span>
     </div>
-    <div class="suspect-note">참고용 판정이라 확정이 아니에요. 1회는 평소 어휘 수준이 높은 학생일 수 있어서 참고만, 반복되면 이야기를 나눠 볼 만해요. 학생 상세 카드에서 "확인함/상담함"으로 표시해도 <b>횟수는 그대로</b> 남아요(오탐이어도 반복 여부를 볼 수 있게). 학생 화면에는 보이지 않아요.</div>
+    <div class="suspect-note">참고용 판정이라 확정이 아니에요. 1회는 평소 어휘 수준이 높은 학생일 수 있어서 참고만, 반복되면 이야기를 나눠 볼 만해요. 학생 상세 카드에서 "확인함/상담함"으로 표시해도 <b>횟수는 그대로</b> 남아요(오탐이어도 반복 여부를 볼 수 있게). 학생 화면에는 보이지 않아요. 👁은 글 판정과 화면 이탈·붙여넣기가 같은 기록에서 함께 걸렸다는 표시로, 먼저 정렬만 되고 <b>횟수·등급엔 영향이 없어요</b>(사료 확인 등 정당한 이탈도 포함).</div>
     ${repeat.length ? `<ul class="suspect-list rep">${repeat.map(rowHtml).join('')}</ul>` : ''}
     ${once.length ? `<details class="suspect-once"><summary>1회 해당 학생 ${once.length}명 보기</summary><ul class="suspect-list">${once.map(rowHtml).join('')}</ul></details>` : ''}
     ${cleared.length ? `<details class="suspect-once"><summary>확인 완료 ${cleared.length}명 보기</summary><ul class="suspect-list">${cleared.map(rowHtml).join('')}</ul></details>` : ''}`;
@@ -5222,6 +5235,9 @@ function dashDetailRowHtml(s, lessons, colspan){
         : '';
       const blNote = dashBaselineNote_(r); // v72
       const blKind = dashBaselineKind_(blNote);
+      const crossBadge = dashCrossCheck_(r)
+        ? `<span class="cross-badge" title="글 판정(${escapeHtml(suspectLevel)})과 작성 중 이탈·붙여넣기가 함께 걸렸어요 — 서로 다른 근거가 겹친 경우라 먼저 살펴볼 만하지만, 사료 확인 등 정당한 이탈도 포함돼요(참고용)">👁 교차 확인</span>`
+        : '';
       const baselineBadge = showSuspect && blKind
         ? `<span class="bl-badge ${blKind}" title="${escapeHtml(blNote)} — 같은 학생 이전 글과 비교한 참고 메모">${blKind === 'diff' ? '↗ 평소와 다름' : '≈ 평소 범위'}</span>`
         : '';
@@ -5241,6 +5257,7 @@ function dashDetailRowHtml(s, lessons, colspan){
             <span class="rec-title">${escapeHtml(dashLessonTitle(gameName))}</span>
             ${dupBadge}
             ${suspectBadge}
+            ${crossBadge}
             ${baselineBadge}
             ${focusBadge}
           </span>

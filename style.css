@@ -1483,4 +1483,6 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 .bl-badge.diff{color:var(--seal); background:rgba(176,58,46,.08);}
 .bl-badge.same{color:var(--ink-soft); background:var(--thead-bg);}
 .si-act.bl-same{opacity:.75;}
+.si-act.cross{box-shadow:inset 0 0 0 1.5px var(--amber-border,#d9a441);}
+.cross-badge{font-size:.72rem; font-weight:700; color:var(--amber-text); background:var(--amber-bg); border:1.5px solid var(--amber-border); padding:1px 8px; border-radius:999px; white-space:nowrap;}
 .focus-badge{font-size:.72rem; font-weight:700; color:var(--amber-text); background:var(--amber-bg); border:1px solid var(--amber-border); padding:1px 8px; border-radius:999px; white-space:nowrap;}
