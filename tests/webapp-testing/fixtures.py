@@ -85,6 +85,15 @@ def route_history26_backend(route, request):
         if "mode=checkinPlan" in url and "Admin" not in url:
             route.fulfill(status=200, content_type="application/json", body=_json(CHECKIN_PLAN_FIXTURE))
             return
+        # v70 — 교사 미리보기가 99번 테스트 계정으로 진짜 로그인(mode=student)하는 흐름을 위한 빈 학생 기록.
+        if "mode=student" in url:
+            route.fulfill(status=200, content_type="application/json", body=_json({
+                "result": "success", "activities": [], "presentationGrants": [], "badges": [],
+                "messages": [], "questions": [], "feedback": [], "classFeedback": []}))
+            return
+        if "mode=announcements" in url:
+            route.fulfill(status=200, content_type="application/json", body=_json({"result": "success", "rows": []}))
+            return
         route.fulfill(status=200, content_type="application/json", body=_json({"result": "error", "message": "no fixture for this GET"}))
         return
     if request.method == "POST":

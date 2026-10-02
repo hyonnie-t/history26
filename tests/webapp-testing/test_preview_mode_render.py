@@ -1,4 +1,7 @@
 """
+[v70 갱신] 교사 미리보기는 읽기 전용 샘플이 아니라 99번 "미리보기 학생" 계정으로 진짜 로그인하는
+"기록 테스트 모드"가 됐다 — 이 테스트의 쓰기(POST)는 fixtures.py가 전부 스텁이라 실제 시트에 안 닿는다.
+
 [우선순위 플로우 #1] 교사 "학생 화면 미리보기" — 학생 포털 전체 렌더 스모크 테스트.
 
 이 저장소는 GAS 백엔드가 별도 레포에 있고, 게임활동_로그 시트를 여러 개별
@@ -41,7 +44,7 @@ def check(label, cond):
     return cond
 
 
-def run_preview(page, grade_value, with_sample):
+def run_preview(page, grade_value):
     page.route(BACKEND_GLOB, route_history26_backend)
     page.goto(BASE_URL)
     page.wait_for_load_state("networkidle")
@@ -52,10 +55,6 @@ def run_preview(page, grade_value, with_sample):
 
     page.select_option("#previewGrade", grade_value)
     page.fill("#previewBan", "1")
-    if with_sample:
-        page.check("#previewSample")
-    else:
-        page.uncheck("#previewSample")
     page.click("#btnPreviewStart")
     page.wait_for_timeout(500)
 
@@ -66,10 +65,10 @@ def main():
         browser = launch_chromium(p)
 
         for grade in ["2", "3"]:
-            for with_sample in [False, True]:
+            if True:
                 page = browser.new_page()
-                label_prefix = f"[{grade}학년/샘플={with_sample}]"
-                run_preview(page, grade, with_sample)
+                label_prefix = f"[{grade}학년/테스트모드]"
+                run_preview(page, grade)
 
                 if not check(f"{label_prefix} portalView 표시", page.is_visible("#portalView")):
                     failures += 1

@@ -43,20 +43,13 @@
       <button class="btn-gate" id="btnGate">대시보드 열기</button>
       <p class="gate-error" id="gateError"></p>
     </div>
-    <button class="teacher-link" id="btnPreviewMode">👀 학생 화면 미리보기</button>
+    <button class="teacher-link" id="btnPreviewMode">🧪 학생 화면 테스트</button>
     <div id="previewGate">
       <label for="previewGrade" class="field-label-sm">학년</label>
       <select id="previewGrade"></select>
       <label for="previewBan" class="field-label-sm">반 (숫자만)</label>
       <input id="previewBan" type="number" min="1" max="20" value="1">
-      <label class="chk-label" style="margin-bottom:12px;">
-        <input type="checkbox" id="previewSample">
-        완료·AI코멘트 예시도 같이 보기
-      </label>
-      <label class="chk-label" style="margin-bottom:12px;">
-        <input type="checkbox" id="previewWrite">
-        🧪 실제로 기록되는 테스트 모드 (그 반 99번 "미리보기 학생" 계정으로 진짜 로그인)
-      </label>
+      <p class="muted" style="margin:0 0 12px;font-size:.85rem;">그 반 99번 "미리보기 학생" 계정으로 진짜 로그인해요. 기록이 실제로 저장되니 확인 뒤 지워 주세요.</p>
       <button class="btn-gate" id="btnPreviewStart">미리보기 시작</button>
     </div>
   </div>
@@ -5529,71 +5522,18 @@ function previewInitGradeOptions(){
 async function startPreview(){
   const grade = Number($('previewGrade').value);
   const ban = Math.max(1, Number($('previewBan').value) || 1);
-  const withSample = $('previewSample').checked;
   const cur = CONFIG.CURRICULUM[grade];
   if(!cur){ showToast('해당 학년 설정을 찾을 수 없어요.'); return; }
 
   /* v70 — 기록 테스트 모드: 읽기 전용 미리보기가 아니라 그 반 99번 테스트 계정으로 실제 로그인한다.
    * 로그인 유지(portal_session)는 지운다 — 안 그러면 다음에 이 기기로 열 때 테스트 계정으로 자동 입장한다. */
-  if($('previewWrite').checked){
-    const sid = `${grade}${String(ban).padStart(2,'0')}99`;
-    $('teacherGate').style.display = 'none';
-    $('previewGate').style.display = 'none';
-    TEST_WRITE_MODE = true;
-    await login(sid, TEST_STUDENT_NAME);
-    store.del('portal_session');
-    if(!SESSION){ TEST_WRITE_MODE = false; } // 로그인 실패 — 로그인 화면의 오류 메시지를 그대로 보여준다
-    return;
-  }
-
-  PREVIEW_MODE = true;
-  SESSION = { studentId: `${grade}${String(ban).padStart(2,'0')}99`, name: '미리보기 학생', grade, ban, num: 99 };
-
-  let activities = [], feedback = [];
-  if(withSample){
-    // v27: 활동 배열에서 URL 있는 활동만 최대 2개 뽑아 예시로 채움(차시 단위가 아니라 활동 단위).
-    // v28: 반 트랙 필터를 거친 차시에서만 뽑아야 미리보기 화면에도 실제로 나타남.
-    const sampleActs = [];
-    filterLessonsForBan(cur, ban).forEach(l => { l.activities.forEach(a => { if(a.url || a.urlByBan) sampleActs.push(a); }); });
-    activities = sampleActs.slice(0, 2).map((a, i) => ({
-      activityId: a.id,
-      achievement: i === 0 ? '상' : '중',
-      summary: '(예시) 자료를 근거로 판단 이유를 구체적으로 서술함',
-      aiComment: '(예시) 두 선택지의 차이를 잘 짚었어요. 다음엔 반대 입장도 함께 고려해보면 더 좋겠어요.',
-      reflection: '(예시 학생 서술) 내가 그 자리였다면 이런 선택을 했을 것 같다. 왜냐하면…',
-      timestamp: new Date().toISOString()
-    }));
-    feedback = [{ timestamp: new Date().toISOString(), activityId: '전체', feedback: '(예시) 이번 학기 전반적으로 성실하게 참여했어요.' }];
-  }
-  STUDENT_DATA = { activities, feedback };
-
+  const sid = `${grade}${String(ban).padStart(2,'0')}99`;
   $('teacherGate').style.display = 'none';
   $('previewGate').style.display = 'none';
-
-  /* v19: "체크인문항"에 등록만 돼 있고 "오늘의 차시"로 지정 안 된 문항까지
-   * lessons[0]로 무조건 집어와서 미리보기가 뜨던 버그 수정. 실제 학생 흐름
-   * (maybeStartCheckin)과 동일하게 checkinToday API로 "오늘 지정된" 차시id를
-   * 확인해서, 그게 있을 때만 체크인 화면을 보여줌. 조회 실패·미지정 시엔
-   * 기존처럼 조용히 바로 포털로 진입. */
-  let lesson = null;
-  if(CHECKIN_PLAN && CHECKIN_PLAN[grade]){
-    try{
-      const res = await fetch(CONFIG.WEBAPP_URL
-        + "?mode=checkinToday&grade=" + encodeURIComponent(grade)
-        + "&ban=" + encodeURIComponent(ban));
-      const data = await res.json();
-      const lessonId = (data.result === 'success') ? data.lessonId : '';
-      if(lessonId){
-        lesson = (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) || null;
-      }
-    }catch(e){ lesson = null; }
-  }
-  if(lesson){
-    CHECKIN_CTX = { grade, lessonId: lesson.id, lesson, temperature: null };
-    enterCheckinFlow();
-  } else {
-    openBook(true);
-  }
+  TEST_WRITE_MODE = true;
+  await login(sid, TEST_STUDENT_NAME);
+  store.del('portal_session');
+  if(!SESSION){ TEST_WRITE_MODE = false; } // 로그인 실패 — 로그인 화면의 오류 메시지를 그대로 보여준다
 }
 $('btnPreviewMode').addEventListener('click', () => {
   const g = $('previewGate');
