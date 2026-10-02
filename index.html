@@ -1745,6 +1745,9 @@ async function selfCheck(btn){
     }
     STUDENT_DATA.activities.push({ activityId: activityId, achievement:'', summary:'', aiComment:'', reflection:'', selfCheck:true, timestamp:new Date().toISOString() });
     showToast("완료로 기록했어요! 도장이 찍혔어요 🎉");
+    // v69 — 완료 차시는 기본 접힘이라 방금 누른 카드가 접히면 "완료 취소"가 안 보인다. 이 카드는 펼친 채로 둔다.
+    const lessonEl = btn.closest('.lesson');
+    if(lessonEl) LESSON_OPEN[lessonEl.dataset.lid] = true;
     renderPortal();
   }catch(e){
     btn.disabled = false; btn.textContent = "활동을 끝냈어요 ✓";
