@@ -1495,6 +1495,9 @@ function renderPortal(){
   tl.querySelectorAll('.btn-check').forEach(btn => {
     btn.addEventListener('click', () => selfCheck(btn));
   });
+  tl.querySelectorAll('.btn-uncheck').forEach(btn => {
+    btn.addEventListener('click', () => cancelSelfCheck(btn));
+  });
 
   // v64 — 접기 도구(완료 개수 표시) + 헤더 토글은 이벤트 위임으로 한 번만 연결
   const doneN = lessons.filter(lessonDone).length;
@@ -1689,7 +1692,10 @@ function renderActivityBlock(l, act, idx, opts){
       ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
   } else {
     actions = `<a class="btn-go" href="${url}" target="_blank" rel="noopener">활동 열기 →</a>`
-      + (done ? '' : `<button class="btn-check" data-activity="${escapeHtml(act.id)}">활동을 끝냈어요 ✓</button>`);
+      + (done
+        // v69 — 자가체크로만 완료된 활동(최신 기록이 selfCheck)은 되돌릴 수 있다.
+        ? (latest && latest.selfCheck ? `<button class="btn-uncheck" data-activity="${escapeHtml(act.id)}">완료 취소</button>` : '')
+        : `<button class="btn-check" data-activity="${escapeHtml(act.id)}">활동을 끝냈어요 ✓</button>`);
   }
 
   const label = multi ? (act.title && act.title.trim() ? act.title.trim() : `${idx+1}활동`) : '';
@@ -1737,12 +1743,51 @@ async function selfCheck(btn){
       if(body && body.locked) renderPortal(); // 화면이 최신 상태가 아니었을 수 있으니 다시 그림
       return;
     }
-    STUDENT_DATA.activities.push({ activityId: activityId, achievement:'', summary:'', aiComment:'', reflection:'', timestamp:new Date().toISOString() });
+    STUDENT_DATA.activities.push({ activityId: activityId, achievement:'', summary:'', aiComment:'', reflection:'', selfCheck:true, timestamp:new Date().toISOString() });
     showToast("완료로 기록했어요! 도장이 찍혔어요 🎉");
     renderPortal();
   }catch(e){
     btn.disabled = false; btn.textContent = "활동을 끝냈어요 ✓";
     showToast("기록하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.");
+  }
+}
+
+/* ── v69: 자가체크 취소 — "끝냈어요"를 잘못 눌렀을 때 되돌린다.
+ * 서버는 선택 요약이 '자가체크'인 행만 지우므로 실제 제출 기록은 못 지운다. */
+async function cancelSelfCheck(btn){
+  if(PREVIEW_MODE){
+    showToast('미리보기 모드예요 — 실제로 기록되지 않아요.');
+    return;
+  }
+  if(!confirm('이 활동의 "끝냈어요" 기록을 취소할까요?\n활동을 아직 안 끝냈다면 다시 하고 눌러 주세요.')) return;
+  const activityId = btn.dataset.activity;
+  btn.disabled = true; btn.textContent = "취소하는 중…";
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'cancelSelfCheck',
+        studentId: SESSION.studentId,
+        studentName: SESSION.name,
+        activityId: activityId
+      })
+    });
+    const body = await res.json().catch(() => null);
+    if(!body || body.result !== 'success'){
+      btn.disabled = false; btn.textContent = "완료 취소";
+      showToast((body && body.message) || "취소하지 못했어요. 다시 시도해 주세요.");
+      return;
+    }
+    // 자가체크 기록만 로컬에서 제거(가장 최근 1건) — 서버와 같은 기준
+    const acts = STUDENT_DATA.activities;
+    for(let i = acts.length - 1; i >= 0; i--){
+      if(acts[i].activityId === activityId && acts[i].selfCheck){ acts.splice(i, 1); break; }
+    }
+    showToast("완료를 취소했어요. 활동을 마친 뒤 다시 눌러 주세요.");
+    renderPortal();
+  }catch(e){
+    btn.disabled = false; btn.textContent = "완료 취소";
+    showToast("취소하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.");
   }
 }
 

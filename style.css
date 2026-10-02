@@ -701,6 +701,12 @@ button{font-family:inherit; cursor:pointer;}
 }
 .btn-check:hover{background:rgba(62,124,89,.08);}
 .btn-check:disabled{opacity:.5; cursor:wait;}
+.btn-uncheck{
+  min-height:46px; padding:10px 16px; font-size:.9rem; font-weight:600;
+  background:transparent; color:var(--ink-soft,#666); border:1.5px solid var(--line,#c9c2b3); border-radius:var(--radius-sm);
+}
+.btn-uncheck:hover{background:rgba(0,0,0,.05);}
+.btn-uncheck:disabled{opacity:.5; cursor:wait;}
 .badge-wait{
   display:inline-block; font-size:.85rem; color:var(--ink-soft);
   padding:8px 14px; border:1px dashed var(--line); border-radius:var(--radius-sm);
