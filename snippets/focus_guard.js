@@ -14,7 +14,7 @@
  * 설계 메모
  * - 포털 → 웹앱 이동은 새 페이지 로드라 이벤트로 안 잡힌다(제외 처리 불필요). 웹앱 "안"에서 탭/앱을
  *   벗어난 경우만 센다. 5초 미만 이탈(알림창·실수·잠깐 확인)은 세지 않는다.
- * - 학생에게 숨기지 않는다: 돌아오면 배너로 알리고 기록이 교사에게 집계로 간다고 말한다.
+ * - 학생에게 숨기지 않는다: 돌아오면 붉은 배너("확인"을 눌러야 닫힘)로 알리고 기록이 교사에게 집계로 간다고 말한다.
  * - 정당한 이탈(사료 링크 열기 등)이 웹앱 안에 있으면 그 직전에 FocusGuard.exempt()를 부른다.
  * - 새로고침으로 카운터가 초기화되지 않게 sessionStorage에 key별로 이어서 저장한다(막히면 메모리만).
  * - 참고 신호일 뿐이다. 폰·다른 기기·분할 화면은 못 잡는다 — 단독 증거로 쓰지 말 것.
@@ -27,7 +27,6 @@
   var awaySince = 0;      // 0이면 화면에 있는 상태
   var exemptUntil = 0;
   var started = false;
-  var bannerTimer = null;
 
   function storeKey() { return 'focus_guard:' + state.key; }
   function load() {
@@ -44,21 +43,49 @@
     try { sessionStorage.setItem(storeKey(), JSON.stringify(state)); } catch (e) { /* 무시 */ }
   }
 
+  // 눈에 띄게: 붉은 전폭 배너 + 큰 글씨 + 흔들림. 자동으로 사라지지 않고 학생이 "확인"을 눌러야 닫힌다.
+  // 흔들림은 prefers-reduced-motion이면 끈다. 입력은 막지 않는다(글쓰기 흐름을 끊지 않으려고).
+  function ensureBannerStyle() {
+    if (document.getElementById('focusGuardStyle')) return;
+    var st = document.createElement('style');
+    st.id = 'focusGuardStyle';
+    st.textContent = '@keyframes fgShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}' +
+      '40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}' +
+      '#focusGuardBanner.fg-shake{animation:fgShake .5s ease-in-out 2}' +
+      '@media (prefers-reduced-motion:reduce){#focusGuardBanner.fg-shake{animation:none}}';
+    document.head.appendChild(st);
+  }
+
   function showBanner(n) {
+    ensureBannerStyle();
     var el = document.getElementById('focusGuardBanner');
     if (!el) {
       el = document.createElement('div');
       el.id = 'focusGuardBanner';
-      el.setAttribute('role', 'status');
-      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:10px 16px;' +
-        'background:#FFF9EC;color:#8A6A14;border-bottom:1px solid #EAD9A8;font-size:.95rem;' +
-        'text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.12);';
+      el.setAttribute('role', 'alert');
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:16px;' +
+        'background:#B03A2E;color:#fff;font-size:1.15rem;font-weight:700;line-height:1.5;' +
+        'text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.4);display:none;' +
+        'align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 14px;';
+      var msg = document.createElement('span');
+      msg.id = 'focusGuardMsg';
+      msg.style.wordBreak = 'keep-all';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '확인';
+      btn.style.cssText = 'min-height:44px;min-width:72px;padding:0 18px;border:2px solid #fff;border-radius:6px;' +
+        'background:#fff;color:#B03A2E;font-size:1rem;font-weight:700;cursor:pointer;';
+      btn.addEventListener('click', function () { el.style.display = 'none'; });
+      el.appendChild(msg);
+      el.appendChild(btn);
       document.body.appendChild(el);
     }
-    el.textContent = '학습 화면을 벗어났다가 돌아왔어요 (' + n + '회). 이탈 기록은 선생님이 볼 수 있어요.';
-    el.style.display = 'block';
-    clearTimeout(bannerTimer);
-    bannerTimer = setTimeout(function () { el.style.display = 'none'; }, 8000);
+    document.getElementById('focusGuardMsg').textContent =
+      '⚠️ 학습 화면을 벗어났어요 (' + n + '번째). 이탈 기록은 선생님이 볼 수 있어요.';
+    el.style.display = 'flex';
+    el.classList.remove('fg-shake');
+    void el.offsetWidth; // 애니메이션 재시작
+    el.classList.add('fg-shake');
   }
 
   function leave() {
