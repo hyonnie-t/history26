@@ -1479,4 +1479,8 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 .suspect-review{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;}
 .suspect-status{font-size:.86rem; font-weight:700; color:var(--jade);}
 /* v68 작성 과정 신호 배지 — 의심 배지와 구분되게 호박색(참고용) */
+.bl-badge{font-size:.72rem; font-weight:700; padding:1px 8px; border-radius:999px; white-space:nowrap; border:1px solid var(--border,#d8d2c4);}
+.bl-badge.diff{color:var(--seal); background:rgba(176,58,46,.08);}
+.bl-badge.same{color:var(--ink-soft); background:var(--thead-bg);}
+.si-act.bl-same{opacity:.75;}
 .focus-badge{font-size:.72rem; font-weight:700; color:var(--amber-text); background:var(--amber-bg); border:1px solid var(--amber-border); padding:1px 8px; border-radius:999px; white-space:nowrap;}

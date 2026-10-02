@@ -4400,6 +4400,12 @@ function dashFocusText_(f){
   const m = Math.floor(f.sec / 60), s = f.sec % 60;
   return `화면 이탈 ${f.leaves}회(${m ? m + '분 ' : ''}${s}초) · 붙여넣기 ${f.paste}자`;
 }
+/* v72 — 평소 대비(게임활동_로그 27열 '평소대비'). 백엔드가 같은 학생의 이전 글(글자 수·문어체 종결 비율)과 비교해 GAS에서
+ * 로컬 계산한 메모('평소와 다름: …'/'평소 범위 …'/'기준 부족 …')다. Gemini 판정이 아니고 의심도 등급·반복 횟수(🔍×N)에 영향이
+ * 없다 — 이탈·붙여넣기 신호처럼 나란히만 보여준다("높음"인데 평소 범위면 잘 쓰는 학생의 오탐 가능성을 가늠하는 용도).
+ * 백엔드 v39 재배포 전엔 컬럼이 없어 빈값이라 표시 자체가 안 나온다. 학생 화면 노출 금지. */
+function dashBaselineNote_(r){ return String(r['평소대비'] || '').trim(); }
+function dashBaselineKind_(note){ return note.startsWith('평소와 다름') ? 'diff' : note.startsWith('평소 범위') ? 'same' : ''; }
 const REC_OPEN = new Set(); // v65 — 상세 카드에서 펼친 기록(재렌더돼도 안 접히게, 검토 버튼 누른 뒤 자리 유지)
 function dashSuspectStats_(){
   const latest = {}; // sid → gameName → 등급이 있는 가장 최근 행
@@ -4449,7 +4455,8 @@ function dashRenderSuspectBox_(){
   const chipHtml = r => {
     const rv = dashSuspectReview_(r);
     const hi = String(r['AI작성의심도']).trim() === '높음';
-    return `<span class="si-act${hi ? ' hi' : ''}${rv ? ' rv' : ''}" title="${escapeHtml((rv ? `[${rv}] ` : '') + String(r['AI작성의심근거']||'근거 없음'))}">${rv ? (rv === '상담함' ? '💬 ' : '✓ ') : ''}${escapeHtml(dashShorten(dashLessonTitle(String(r.gameName)), 12))}</span>`;
+    const bk = dashBaselineKind_(dashBaselineNote_(r));
+    return `<span class="si-act${hi ? ' hi' : ''}${rv ? ' rv' : ''}${bk === 'same' ? ' bl-same' : ''}" title="${escapeHtml((rv ? `[${rv}] ` : '') + String(r['AI작성의심근거']||'근거 없음') + (dashBaselineNote_(r) ? ` / 평소 대비: ${dashBaselineNote_(r)}` : ''))}">${rv ? (rv === '상담함' ? '💬 ' : '✓ ') : ''}${escapeHtml(dashShorten(dashLessonTitle(String(r.gameName)), 12))}</span>`;
   };
   const rowHtml = s => `
     <li class="suspect-item" data-sid="${s.sid}">
@@ -5213,6 +5220,11 @@ function dashDetailRowHtml(s, lessons, colspan){
       const suspectBadge = showSuspect
         ? `<span class="ai-suspect-badge${suspectReview ? ' reviewed' : ''}" title="근거는 아래 펼쳐서 확인 — 참고용 판정이며 확정 아님">🔍 ${suspectReview ? escapeHtml(suspectReview === '상담함' ? '상담함' : '확인함') : '확인 요청'} · ${escapeHtml(suspectLevel)}</span>`
         : '';
+      const blNote = dashBaselineNote_(r); // v72
+      const blKind = dashBaselineKind_(blNote);
+      const baselineBadge = showSuspect && blKind
+        ? `<span class="bl-badge ${blKind}" title="${escapeHtml(blNote)} — 같은 학생 이전 글과 비교한 참고 메모">${blKind === 'diff' ? '↗ 평소와 다름' : '≈ 평소 범위'}</span>`
+        : '';
       const focus = dashFocusSignal_(r); // v68
       const focusBadge = focus && focus.flagged
         ? `<span class="focus-badge" title="${escapeHtml(dashFocusText_(focus))} — 참고용 신호, 사료 확인 등 정당한 이탈도 포함돼요">👁 작성 중 이탈·붙여넣기</span>`
@@ -5229,6 +5241,7 @@ function dashDetailRowHtml(s, lessons, colspan){
             <span class="rec-title">${escapeHtml(dashLessonTitle(gameName))}</span>
             ${dupBadge}
             ${suspectBadge}
+            ${baselineBadge}
             ${focusBadge}
           </span>
           <span class="rec-summary-side">
@@ -5243,6 +5256,7 @@ function dashDetailRowHtml(s, lessons, colspan){
             <dt>1줄요약</dt><dd>${escapeHtml(String(r['1줄요약']||'—'))}</dd>
             <dt>판단근거</dt><dd>${escapeHtml(String(r['판단근거']||'—'))}</dd>
             ${focus ? `<dt>작성 과정</dt><dd>${escapeHtml(dashFocusText_(focus))} <span class="muted">(참고용 — 사료 확인·검색 등 정당한 이탈도 포함)</span></dd>` : ''}
+            ${showSuspect && blNote ? `<dt>평소 대비</dt><dd>${escapeHtml(blNote)} <span class="muted">(이전 글과 비교한 단순 통계 — 의심도와 별개, 참고용)</span></dd>` : ''}
             ${showSuspect ? `<dt>🔍 AI 작성 의심 근거</dt><dd>${escapeHtml(suspectReason||'—')} <span class="muted">(참고용 판정 — 확정 아님, 최종 판단은 교사)</span></dd>
             <dt>검토</dt><dd class="suspect-review" data-row="${rowNum || ''}">${reviewBtns} <span class="muted">표시해도 횟수(🔍×N)는 그대로 남아요.</span></dd>` : ''}
           </dl>
