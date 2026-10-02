@@ -11,6 +11,7 @@
  * - 건드리지 않는 곳: textarea·input·button·a·label·summary(눌러야 하는 것 안에 또 누르는 것을 넣지 않는다), 제목(h1~h6),
  *   onclick 속성·tab 역할·nav 안, 이미 .term 인 곳, 풀이 시트, 이탈 경고 배너, skip 옵션으로 넘긴 선택자, data-no-gloss 속성이 붙은 곳.
  * - addEventListener로 눌리는 span/div(예: 진행 단계 칩)는 속성으로 알아볼 수 없다. 그런 곳은 start의 skip 옵션으로 선택자를 넘긴다.
+ * - unique:true 옵션이면 문단이 아니라 화면(root) 전체에서 낱말마다 첫 번째만 긋는다(밑줄이 많아 읽기 불편할 때).
  * - 같은 낱말은 한 문단(블록)에서 첫 번째만 밑줄을 긋는다. 앱이 직접 입힌 .term(예: {용어})도 센다.
  * - 한 글자 키(예: 율)는 글자 앞뒤가 한글이면(효율·비율) 건너뛴다. 뒤에 조사(에·은·는·이·가·을·를·의·로·과·와·도)만 붙는 경우는 허용한다.
  * - 사료 원문·번역은 바꾸지 않는다(글자는 그대로, 감싸기만 한다). textContent는 달라지지 않는다.
@@ -19,7 +20,7 @@
 (function () {
   var terms = {};
   var re = null;
-  var cfg = { root: null, tag: 'button', sheet: true, style: true, skip: [] };
+  var cfg = { root: null, tag: 'button', sheet: true, style: true, skip: [], unique: false };
   var skipSel = '';
   var observer = null;
   var scheduled = false;
@@ -57,7 +58,7 @@
   function wrapNode(node, seen) {
     var text = node.nodeValue;
     var parent = node.parentElement;
-    var block = parent.closest(BLOCK) || document.body;
+    var block = cfg.unique ? cfg.root : (parent.closest(BLOCK) || document.body); // unique: 화면(root) 전체에서 낱말마다 첫 번째만
     var used = seen.get(block);
     if (!used) {
       used = {};
@@ -177,6 +178,7 @@
     if (opts.sheet === false) cfg.sheet = false;
     if (opts.style === false) cfg.style = false;
     cfg.skip = opts.skip || [];
+    if (opts.unique) cfg.unique = true;
     cfg.root = opts.root || document.body;
     skipSel = BASE_SKIP + (cfg.skip.length ? ',' + cfg.skip.join(',') : '');
     buildRegex();
