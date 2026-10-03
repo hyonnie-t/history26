@@ -22,24 +22,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `#checkinView` — 웰컴 체크인(감정 온도·단어칩·문항 응답)
   - `#portalView` — 학생용 메인 포털("나의 역사책": 탐구 나무, 타임라인, 자가체크, 공지사항, 질문함)
   - `#dashView` — 교사 대시보드(탭: 학생 기록 / 질문함 / 공지 관리 / 커리큘럼 관리 / 체크인 / 탐구포인트)
-  - `<script>` 블록(469번째 줄부터, `initPortal()` IIFE로 부팅)이 전체 로직을 담고 있으며 파일 내 주석
+  - `<script>` 블록(`initPortal()` IIFE로 부팅)이 전체 로직을 담고 있으며 파일 내 주석
     구분선(`/* ══...`, `/* ──...`)이 섹션 경계 역할을 한다. 새 기능을 찾을 땐 이 구분선 주석을 먼저 훑을 것.
 - **차시-활동 구조**: 커리큘럼 시트의 한 차시(행)에는 활동을 2개까지 담을 수 있다. 학생용
   `mode=curriculum` 응답은 배열로 파싱된 `l.activities`를 내려주고, 교사 대시보드용
   `mode=curriculumAdmin` 응답은 원본 JSON 문자열 `activitiesRaw`와 `activitiesCount`, `sequential`을
-  같이 내려준다 — `dashEditLesson()`(`index.html:2416` 부근)이 `activitiesRaw`를 파싱해 폼을 채우고,
-  `clLessonItemHtml()`(`index.html:2199`)이 목록 배지("활동 2개 · 🔒 순차")를 그린다. 학생 화면에서는
-  `renderLessonCard()`/`renderActivityBlock()`(`index.html:1113`, `1161`)이 활동별 블록을 나열하고,
-  `l.sequential`이 켜져 있으면 앞 활동을 `doneIds`에 넣기 전까지 다음 활동을 잠근다(`locked` 계산,
-  `index.html:1125`). **⚠️ 차시 "완료" 판정은 항상 그 차시의 모든 activities id가 `doneIds`에 들어있어야
-  성립하는 AND 조건**이며, 학생 쪽 `lessonDone()`(`index.html:955`)과 교사 대시보드 쪽
-  `lessonAllActivityIds_()`(`index.html:2740`)가 각자 같은 기준을 별도 구현한다 — 진행률·완료 뱃지·포인트
+  같이 내려준다 — `dashEditLesson()`이 `activitiesRaw`를 파싱해 폼을 채우고,
+  `clLessonItemHtml()`이 목록 배지("활동 2개 · 🔒 순차")를 그린다. 학생 화면에서는
+  `renderLessonCard()`/`renderActivityBlock()`이 활동별 블록을 나열하고,
+  `l.sequential`이 켜져 있으면 앞 활동을 `doneIds`에 넣기 전까지 다음 활동을 잠근다(`locked` 계산).
+  **⚠️ 차시 "완료" 판정은 항상 그 차시의 모든 activities id가 `doneIds`에 들어있어야
+  성립하는 AND 조건**이며, 학생 쪽 `lessonDone()`과 교사 대시보드 쪽
+  `lessonAllActivityIds_()`가 각자 같은 기준을 별도 구현한다 — 진행률·완료 뱃지·포인트
   로직을 고칠 땐 이 AND 조건이 두 곳 모두에서 깨지지 않는지 확인할 것.
 - **발표 탐구포인트**: 발표처럼 웹앱 밖에서 일어나는 활동에 포인트를 즉시 지급하는 통로. 교사가 학생 상세
-  카드(`.pp-box`) 또는 "탐구포인트" 탭(`dashPointBoxHtml_()`, `index.html:3455` 부근)에서 사고유형
+  카드(`.pp-box`) 또는 "탐구포인트" 탭(`dashPointBoxHtml_()`)에서 사고유형
   (판단/비교/해석/관점, 또는 "유형 없이")과 수준(하/중/상 — `PP_LEVELS`, +4/+6/+9점)을 골라 지급하면
   `grantPresentationPoint` action이 `level`과 함께 호출된다. 학생 화면은 `STUDENT_DATA.presentationGrants`를
-  커리큘럼 순회와 별도로 합산한다(`index.html:1113` 부근, `Number(g.points) || 6` 폴백). **서버가 `level`을
+  커리큘럼 순회와 별도로 합산한다(`Number(g.points) || 6` 폴백). **서버가 `level`을
   실제로 반영해 배포됐는지는 `history26_backend`의 CLAUDE.md 배포 상태를 확인할 것** — 배포 전이면 항상
   +6점·achievement='상'으로 고정 동작한다. ⚠️ '하'/'중'으로 지급한 발표는 학습 칭호(결정왕 등) 집계 대상에서
   빠진다(백엔드가 achievement==='상'인 것만 집계) — 포인트는 그대로 들어간다.
@@ -59,7 +59,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   공유한다. **⚠️ 이 베이스가 소스상 개별 규칙보다 앞에 있어야 `border-left` 같은 override가 정상 동작한다**
   — 새 카드류 UI를 추가할 땐 이 공통 베이스를 재사용할 것.
 - **학급 공통 피드백 & 피드백 알림**: 교사 대시보드 "학생 기록" 탭에서 학년+반+활동(하나)을 모두 골랐을
-  때만 `#classFbBox`가 나타나(`dashRenderClassFeedback()`, `index.html:3467` 부근) 그 범위 학생 글을
+  때만 `#classFbBox`가 나타나(`dashRenderClassFeedback()`) 그 범위 학생 글을
   모아 AI로 "교사용 리포트"·"학생 공지용 문구"·"대표적인 오개념"을 생성한다(`generateClassFeedback` action,
   조회는 `mode=classFeedback`). 학생 공지용 문구는 자동으로 학생 포털 활동 완료 카드에도 표시되고,
   **오개념은 교사 전용**이라 학생 화면엔 절대 안 내려간다. 반은 숫자 하나 또는 **"내 담당 반"**
@@ -83,10 +83,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   (`toggleOverviewMore()`)으로 펼친다 — 렌더마다 접힌 상태로 초기화된다. `renderPortal()`은 `$('id')`
   참조라 마크업 순서와 무관하게 동작한다. 세로모드에서 `.layout`이 2단→1단으로 붕괴하는 기준은
   **폭이 아니라 orientation**
-  (`@media (max-width:1024px) and (orientation:portrait), (max-width:640px) and (orientation:landscape)`,
-  `style.css:304` 부근)이다 — 그 외 가로모드는 폭이 좁아도 좌(서재)/우(본문) 2단을 유지한다. **⚠️ `.side-card`의
-  sticky↔static 전환 조건(`style.css:326` 부근)과 `.side-combined` 내부 스크롤 높이 제한 조건
-  (`style.css:344` 부근)은 정확히 같은 조건으로 맞춰야 한다** — 하나만 바꾸면 sticky는 걸리는데 높이
+  (`@media (max-width:1024px) and (orientation:portrait), (max-width:640px) and (orientation:landscape)`)이다 — 그 외 가로모드는 폭이 좁아도 좌(서재)/우(본문) 2단을 유지한다. **⚠️ `.side-card`의
+  sticky↔static 전환 조건과 `.side-combined` 내부 스크롤 높이 제한 조건은
+  정확히 같은 조건으로 맞춰야 한다** — 하나만 바꾸면 sticky는 걸리는데 높이
   제한이 안 걸려 카드가 뷰포트를 넘어가는 등 어긋난다. 사이드카드(나무·칭호첩) 높이는
   `layoutSideCard_()`(`renderBadges()` 뒤에 정의)가 `renderPortal()` 끝·`resize`/`orientationchange`
   시점에 `.side-combined`의 실제 `getBoundingClientRect().top`을 재서 `window.innerHeight - top - 16`을
@@ -96,7 +95,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   (`scrollHeight - clientHeight > 4`) `#badgeGroups`에 `.has-more` 클래스가 붙어 아래쪽에 페이드가 뜬다.
 - **복습용 클래스카드**: `#portfolioCard`(패들렛 포트폴리오)와 같은 구조로 `#classcardCard`가 있다.
   `cur.classcard`(`{title, desc, url}` 또는 반별로 다르면 `urlByBan`)가 있고 그 반의 URL이 비어있지
-  않을 때만 렌더링되며(`renderPortal()`, `index.html:1219` 부근), 없으면 조용히 숨는다. 값(제목·설명·
+  않을 때만 렌더링되며(`renderPortal()`), 없으면 조용히 숨는다. 값(제목·설명·
   초대코드 안내 문구·링크)은 교사 대시보드 "커리큘럼 관리 > 학년정보" 탭(`gi-cc-title`/`gi-cc-desc`/
   `gi-cc-url`, `dashSaveGradeInfo()`)에서 학년별로 저장하며, 포트폴리오와 같은 `action=updateGradeInfo`
   하나로 같이 저장된다. 서버 쪽 필드 배포 상태는 `history26_backend` CLAUDE.md 참고.
@@ -115,7 +114,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `courtCasePushPost_` 책임 — 이 저장소는 버튼과 결과 메시지 표시만 담당한다. 서버가 `result:'partial'`을
   돌려주면 사건은 만들어졌지만 진술은 자동으로 안 채워진 상태라는 뜻 — 안내 메시지를 그대로 보여준다.
 - **고민리스트 자원 카드 보너스**: 교사 대시보드 "탐구포인트" 탭 맨 아래 `#gmBonusBox` 카드
-  (`dashRenderGongminBonus_()`, `index.html:3804` 부근)가 개별 웹앱 `gongmin`
+  (`dashRenderGongminBonus_()`)가 개별 웹앱 `gongmin`
   (`GONGMIN_GAME_NAME = "4차시_공민왕개혁_고민리스트"`)의 2단계 자원 여부를 모아 보여주고 일괄 지급한다.
   `gongmin`은 학생용 웹앱이라 교사 토큰을 심을 수 없어 `choicesJson.volunteer` 플래그만 기록해서 보내고,
   여기서 교사가 확인한 뒤 자원자에게만 지급한다. 이미 로드된 `ROWS`를 gameName으로 걸러 쓰므로 별도 네트워크
@@ -126,7 +125,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **체크인 문항 자료(텍스트/이미지/없음)**: 관리자 폼의 "자료 형식"이 judgment/source_emotion 두 타입
   공통 필드다. judgment는 자료가 선택(비워두면 발문만), source_emotion은 필수. 이미지 선택 시
   `ckqHandleImageFileChange()`가 base64로 읽어 `uploadCheckinImage` action으로 Drive에 저장하고 반환된
-  URL을 자동으로 채운다. 학생 화면은 `renderCheckinSourceBoxHtml_()`(`index.html:898` 부근) 하나로
+  URL을 자동으로 채운다. 학생 화면은 `renderCheckinSourceBoxHtml_()` 하나로
   텍스트/이미지 자료를 공통 렌더링한다. "자료 형식"에 "없음"을 고르면 텍스트/이미지 입력 UI가 (사료 출처
   필드까지) 통째로 숨는다 — `ckqDefaultSourceFormatForType_()`가 유형별 기본값(judgment=없음,
   source_emotion=텍스트)을 정한다.
@@ -151,7 +150,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   그룹에만 보이고 토글도 반영되지 않는다.
 - **성적조회**: 별도 GAS 스크립트로 있던 "엑셀 성적표 → 학생 개인 조회"를 포털에 통합했다. **포털
   로그인(`login()`)은 무변경** — 학생 포털 "그 밖의 기록" 영역의 `#gradeCard`(포트폴리오와 같은
-  `.portfolio-card` 구조, `index.html:189` 부근)에서만 학번+이름(`SESSION`)에 비밀번호까지 3중 매칭을
+  `.portfolio-card` 구조)에서만 학번+이름(`SESSION`)에 비밀번호까지 3중 매칭을
   추가로 요구한다(`mode=grade`, `openGradeGate()`/`submitGradeLookup()`). 매칭 실패 사유(학번/이름/
   비밀번호 중 뭐가 틀렸는지)는 서버가 이미 통일된 메시지로만 반환하므로 프론트도 그대로 보여줄 뿐 원인을
   구분하지 않는다(무차별 대입 단서 차단). 교사 대시보드 "🧮 성적관리" 탭(`panelGrades`)이 성적 엑셀 업로드
@@ -282,7 +281,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 교사 대시보드의 학생 상세 카드에 있는 "🧭 SEL 특성 보기" 버튼은 이 저장소의 `WEBAPP_URL`과 무관한
 **완전히 별도의 Apps Script 웹앱**을 새 팝업 창으로 여는 딥링크일 뿐이다. `SEL_APP_URL`
-(`index.html:1605`) 상수에 그 웹앱 주소가 하드코딩돼 있고, `openSelPopup(sid)`(`index.html:1607`)가
+상수에 그 웹앱 주소가 하드코딩돼 있고, `openSelPopup(sid)`가
 학번(`sid`) 하나만 쿼리 파라미터로 실어 팝업을 띄운다. 그 팝업 안의 화면·데이터·계산 로직은 전부 그
 외부 프로젝트(`sel_backend_v1.gs`) 책임이며, 이 저장소 코드에는 포함돼 있지 않다.
 
@@ -290,6 +289,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 빌드 도구, 패키지 매니저, 린터, 테스트 러너가 없다. `npm install`/`build`/`test` 같은 커맨드는 존재하지
   않는다.
+- **브라우저 확인은 `tests/webapp-testing/`에 있다.** 러너는 아니고 Playwright 스크립트 모음이다
+  (`fixtures.py`=가짜 서버 응답, `_pw_helpers.py`=브라우저 실행, `test_*.py`=`[PASS]`/`[FAIL]` 출력 스모크,
+  사용법은 같은 폴더 `README.md`). 화면만 보고 싶으면 `python3 -m http.server 8765 &` 뒤
+  `node tests/webapp-testing/shot.js http://localhost:8765/index.html <출력폴더> <접두어>`가 폰 360·태블릿
+  820·PC 1280 세 폭으로 찍고 콘솔 오류를 알려준다(playwright 모듈 경로는 스크립트가 알아서 찾는다 —
+  세션마다 경로를 새로 찾지 말 것). 새 화면은 이 세 폭으로 확인하는 게 v63 이후 기준이다.
+- **샌드박스에서 `script.google.com`(Apps Script)·`*.github.io`·`cdn.jsdelivr.net`은 접속이 막혀 있다**
+  (프록시가 CONNECT를 거부). 배포 확인·실제 응답 확인은 `curl`로 시도하지 말고 효니에게 URL을 열어 결과를
+  붙여 달라고 요청할 것. 백엔드 응답은 `fixtures.py`처럼 가짜 응답으로 시험한다.
 - 로컬 확인은 `index.html`을 정적 파일 서버로 열면 된다 (예: `python3 -m http.server`). `file://`로 직접
   열면 `config.js`/`checkin_data.js` 로드나 `fetch` 동작이 브라우저 정책상 막힐 수 있으니 반드시 로컬 서버를
   거친다.
@@ -298,9 +306,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   없다.
 - 배포는 이 정적 파일들을 그대로 호스팅(GitHub Pages 등)하는 방식으로 보인다. 별도의 CI 워크플로우
   (`.github/workflows`)는 없다.
-- **`index.html`은 4793줄짜리 단일 파일이다.** 통째로 Read하면 그 내용이 대화에 계속 남아 이후 모든
+- **`index.html`은 5천 줄이 넘는 단일 파일이다.** 통째로 Read하면 그 내용이 대화에 계속 남아 이후 모든
   턴에서 다시 처리된다 — 먼저 Grep으로 관련 함수/구분선 주석 위치를 찾고, 필요한 라인 범위만 Read할 것.
-  이 CLAUDE.md의 함수 참조가 대부분 `index.html:줄번호` 형식인 것도 그래서다.
+  이 CLAUDE.md는 줄번호 대신 함수·id 이름만 적는다(줄번호는 편집마다 밀려서 틀려진다) —
+  `grep -n "^function 이름" index.html`로 찾고 새로 쓸 때도 줄번호를 적지 말 것.
 
 ## 코드 컨벤션 / 알아둘 점
 
@@ -321,17 +330,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 교사용 "학생 화면 미리보기"(`PREVIEW_MODE`)는 실제 서버 기록을 만들지 않고 화면만 보여주는 모드이므로,
   포털 관련 함수를 수정할 때 이 플래그로 실제 API 호출/기록 여부가 분기되는 지점이 있는지 확인해야 한다.
 - `config.js`의 `POINTS_PER_LESSON`은 **현재 사용되지 않는 죽은 값**이다. 실제 포인트 지급은
-  `renderPortal()` 안의 `const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 }`
-  (`index.html:969`)에서 활동 단위로 계산한다 — 첫 완료 시 `FIRST`점, 이후 재도전마다 활동당
+  `renderPortal()` 안의 `const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 }`에서
+  활동 단위로 계산한다 — 첫 완료 시 `FIRST`점, 이후 재도전마다 활동당
   `RETRY_MAX`회까지 `RETRY`점씩 추가. `CONFIG.POINTS`는 `config.js`에도 `mode=curriculum` 응답에도
   없으므로 항상 이 기본값(10/5/2)이 쓰인다. 포인트 배점을 바꾸려면 `config.js`에
   `POINTS: { FIRST, RETRY, RETRY_MAX }` 객체를 추가하거나 이 기본값 리터럴을 직접 고쳐야 한다.
 - "칭호"라는 말은 서로 다른 두 시스템을 가리킨다. (1) `config.js`의 `RANKS`(포인트 누적 → 권지 사관/가주서/
   주서/사관/겸춘추/편수관/직제학/대제학 8단계, 학년별 문턱 분리) — 순수 프론트 로직으로, `renderPortal()`이
-  `CONFIG.RANKS[SESSION.grade]`와 점수를 비교해서 계산한다. (2) "칭호첩" 배지 시스템(`.badge-card`,
-  `index.html:95` 부근) — `learning`/`behavior`/`strength` 3개 카테고리, `once`/`repeat` 2가지 획득
-  타입의 배지를 `renderBadges()`/`renderBadgeChip()`(`index.html:1430`대)이 그리고, `checkNewBadges()`
-  (`index.html:1459`)가 로컬스토리지 기준선과 비교해 신규 획득만 토스트로 알린다. **이 저장소는
+  `CONFIG.RANKS[SESSION.grade]`와 점수를 비교해서 계산한다. (2) "칭호첩" 배지 시스템(`.badge-card`)
+  — `learning`/`behavior`/`strength` 3개 카테고리, `once`/`repeat` 2가지 획득
+  타입의 배지를 `renderBadges()`/`renderBadgeChip()`이 그리고, `checkNewBadges()`가
+  로컬스토리지 기준선과 비교해 신규 획득만 토스트로 알린다. **이 저장소는
   프론트엔드 렌더링·신규 획득 알림까지만 구현돼 있다.** 실제 배지 획득 판정(`computeBadges_`)은
   `hyonnie-t/history26_backend`의 `code.gs`가 `mode=student` 응답의 `STUDENT_DATA.badges` 필드로
   계산해서 내려주는 값이며, 교사 미리보기 모드(`PREVIEW_MODE`)에서는 이 필드 자체가 없으므로 두 함수
