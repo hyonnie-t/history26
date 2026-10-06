@@ -487,6 +487,28 @@ button{font-family:inherit; cursor:pointer;}
 .announce-item:first-of-type{border-top:none; padding-top:0;}
 .announce-item .an-meta{font-size:.76rem; color:var(--ink-soft); margin-bottom:2px;}
 
+/* v74 — 출석 도장 카드. 공통 카드 베이스를 쓰되 왼쪽 띠만 jade로. */
+.att-card{
+  background:var(--card); border:1px solid var(--line); border-left:5px solid var(--jade);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
+}
+.att-card[hidden]{display:none;}
+.att-head{display:flex; align-items:baseline; justify-content:space-between; gap:8px;}
+.att-head h2{font-family:var(--font-display); font-size:.98rem; color:var(--ink);}
+.att-days{font-size:.9rem; color:var(--ink-soft);}
+.att-days b{font-family:var(--font-display); font-size:1.3rem; color:var(--jade);}
+.att-sub{font-size:.84rem; color:var(--ink-soft); margin:4px 0 10px; line-height:1.5;}
+.att-moods{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:10px;}
+.att-mood{
+  min-height:var(--tap-min); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  padding:6px 4px; font-size:.78rem; color:var(--ink); background:var(--paper); border:1.5px solid var(--line);
+  border-radius:var(--radius); cursor:pointer; font-family:inherit;
+}
+.att-mood-e{font-size:1.3rem; line-height:1;}
+.att-mood.on{background:var(--jade-bg); border-color:var(--jade);}
+@media (max-width:380px){ .att-moods{grid-template-columns:1fr 1fr;} }
+.att-btn{width:100%;}
+
 /* v57 — 질문함/나의 달성도/보관함, 패들렛/클래스카드처럼 카드 하나를 여러 탭으로
  * 나눌 때 쓰는 공용 탭 컴포넌트. 대시보드 .dash-tabs와 같은 밑줄 탭 패턴이지만
  * 카드 패딩 안에서 쓰여 별도 클래스로 뺐다(.dash-tabs를 그대로 쓰면 대시보드 전용

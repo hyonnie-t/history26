@@ -249,3 +249,9 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 3구역 카드(`.cl-section`) + `.cl-field` 라벨·필수/선택 태그. 입력창 id는 그대로이고 `clToggleMulti()`만
 래퍼(`#clTypeField`/`#clUrlField`)를 토글한다.
 
+## 출석 도장 + 오늘의 기분 (v74)
+- 학생: `renderAttendance()`가 `STUDENT_DATA.attendance`(`days`/`todayDone`/`mood`/`next`)로 `#attCard`를 그린다. 필드가 없으면 카드를 숨긴다. 기분 칩은 고르기만 하고 "출석 도장 찍기"(`submitAttend`)에서 `action=attend`로 함께 보낸다. 오늘 이미 출석했고 기분이 비어 있으면 칩만 다시 열려 "기분 남기기"로 보낼 수 있다. `PREVIEW_MODE`는 기록하지 않고 토스트만 띄운다(테스트 모드 99번 계정은 진짜로 기록됨).
+- 칭호는 서버가 계산해 `badges`에 `att_lv{n}`(행동 칭호, 최고 티어 하나)으로 실어 보낸다. 티어 문턱·이름은 백엔드 `ATTEND_TIERS`가 단일 출처 — 프론트에 복제하지 않는다. 새 티어가 오르면 기존 `checkNewBadges()`가 토스트를 띄운다.
+- 교사: '📅 출석' 탭(`panelAttend`, `dashLoadAttend`/`renderAttendAdmin_`)이 학생별 누적일수·칭호·마지막 출석·오늘 기분을 누적순으로 보여준다. 학년·칭호 필터. 상점 지급은 앱이 하지 않고 이 목록을 보고 교사가 직접 한다.
+- 기분은 교사 탭에서 "오늘 고른 것"만 보인다(과거 기록 열람 UI 없음). 학생 화면에 다른 학생과 비교하는 표시는 없다.
+
