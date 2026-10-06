@@ -85,7 +85,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `grantPresentationPoint`의 `reason` 문자열(`GONGMIN_BONUS_REASON` 등)을 다른 용도로 재사용하지 않는다(중복 지급 판별이 오작동).
   - 성적조회는 `login()`을 건드리지 않고, 매칭 실패 사유(학번/이름/비밀번호 중 무엇이 틀렸는지)를 구분해 보여주지 않는다.
   - 체크인 문항 폼은 선택된 학년 탭(`CKQ_GRADE`)으로 저장된다. 옛 문항의 회수질문·재확인 값은 저장하면 교사 메모로 합쳐져 되돌릴 수 없다.
-- **개별 수업 웹앱**(`crusades`, `his_judge_goryeo` 등)은 이 저장소 밖 각자의 레포에 있고 `webapp-builder` 스킬을 반드시 따른다. 핵심: ①`CONFIG.SHEET_WEBAPP_URL` 하드코딩(옮겨 적은 URL은 grep/diff로 원본과 대조) ②`?sid=&name=`·`?preview=1` 지원 ③빌드 단계(번들러·프레임워크·TypeScript) 금지, plain HTML/CSS/JS ④배포는 "새 배포"가 아니라 "배포 관리 > 수정 > 새 버전"만(새 배포는 URL이 바뀌어 연결이 깨진다) ⑤서술형엔 `snippets/focus_guard.js`(새 웹앱 레포를 만들 때 **그 시점의 최신 파일을 복사해 넣는다** — 복사본이라 history26에서 고쳐도 기존 레포엔 자동 반영이 안 된다. 기존 레포 소급은 효니가 시킬 때만), 학생 화면 낱말엔 `snippets/glossary.js`·`vocab_check.mjs`. 전체 규칙은 `docs/features.md`의 "개별 수업 웹앱".
+- **개별 수업 웹앱**(`crusades`, `his_judge_goryeo` 등)은 이 저장소 밖 각자의 레포에 있고 `webapp-builder` 스킬을 반드시 따른다. 핵심: ①`CONFIG.SHEET_WEBAPP_URL` 하드코딩(옮겨 적은 URL은 grep/diff로 원본과 대조) ②`?sid=&name=`·`?preview=1` 지원 ③빌드 단계(번들러·프레임워크·TypeScript) 금지, plain HTML/CSS/JS ④배포는 "새 배포"가 아니라 "배포 관리 > 수정 > 새 버전"만(새 배포는 URL이 바뀌어 연결이 깨진다) ⑤모든 새 웹앱엔(서술형이 기본 형태라 유형 구분 없이) `snippets/focus_guard.js`(새 웹앱 레포를 만들 때 **그 시점의 최신 파일을 복사해 넣는다** — 복사본이라 history26에서 고쳐도 기존 레포엔 자동 반영이 안 된다. 기존 레포 소급은 효니가 시킬 때만), 학생 화면 낱말엔 `snippets/glossary.js`·`vocab_check.mjs`. 전체 규칙은 `docs/features.md`의 "개별 수업 웹앱".
 
 ## 외부 연동 — SEL(사회정서역량) 특성 보기
 

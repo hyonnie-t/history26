@@ -143,7 +143,7 @@ source_emotion=텍스트)을 정한다.
 포털 진행률·포인트 계산에 잡힌다. 디자인 기준선("역사책 페이지" 컨셉)은 hyonnie.md 참고. **새로 만들거나
 수정할 땐 `webapp-builder` 스킬을 반드시 따른다.** 모든 웹앱에 기본으로 들어가야 하는 필수 요소는
 ① `CONFIG.SHEET_WEBAPP_URL` 하드코딩, ② `?sid=&name=` URL 파라미터 자동채움(5자리 학번), ③ `?preview=1`
-미리보기 모드(자동채움 + 시트 저장 없이 동작), ④ 서술형 입력엔 정답 아닌 맥락 단서만 주는 힌트 토글, ⑥ **작성 과정 신호** — `snippets/focus_guard.js`를 넣고 최종 제출 body에 `Object.assign(body, FocusGuard.payload())`로 이탈·붙여넣기 값을 같이 보낸다(서술형 활동에 한함, 상세는 아래 "작성 과정 신호" 항목), ⑦ **어휘 점검** — 학생 화면 문장을 읽고 중2~3이 모를 낱말을 뽑아 `GLOSSARY`에 풀이를 넣고(`snippets/glossary.js`로 밑줄을 입힌다), 끝내기 전에 `node snippets/vocab_check.mjs <앱 폴더>`가 누락 0건이어야 한다(상세는 아래 "어휘 풀이" 항목)이다.
+미리보기 모드(자동채움 + 시트 저장 없이 동작), ④ 서술형 입력엔 정답 아닌 맥락 단서만 주는 힌트 토글, ⑥ **작성 과정 신호** — `snippets/focus_guard.js`를 넣고 최종 제출 body에 `Object.assign(body, FocusGuard.payload())`로 이탈·붙여넣기 값을 같이 보낸다(모든 새 웹앱에 넣는다 — 기본 형태가 서술형이라 유형 구분 없이. 상세는 아래 "작성 과정 신호" 항목), ⑦ **어휘 점검** — 학생 화면 문장을 읽고 중2~3이 모를 낱말을 뽑아 `GLOSSARY`에 풀이를 넣고(`snippets/glossary.js`로 밑줄을 입힌다), 끝내기 전에 `node snippets/vocab_check.mjs <앱 폴더>`가 누락 0건이어야 한다(상세는 아래 "어휘 풀이" 항목)이다.
 코드 작성·수정 뒤엔 반복 실수 체크리스트 세 가지를 반드시 재확인한다 — (a) URL/스프레드시트 ID 등을
 옮겨 적을 때 육안 확인 말고 grep/diff로 원본과 대조(조용한 전송 실패의 주 원인이었음), (b) IIFE로
 즉시 실행하는 코드는 TDZ 에러가 안 나게 함수 선언을 먼저 끝내고 `init()` 같은 실행 호출은 파일 맨
