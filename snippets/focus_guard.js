@@ -115,15 +115,39 @@
   }
 
   // 허용 도메인(패들렛 등)으로 가는 링크 클릭은 직후의 이탈을 면제한다. 새 탭이 열리며 blur가 바로 오므로 짧은 창이면 충분.
-  function onLinkClick(ev) {
-    var a = ev.target && ev.target.closest && ev.target.closest('a[href]');
-    if (!a) return;
+  function hostAllowed(url) {
     var host = '';
-    try { host = new URL(a.href, location.href).hostname.toLowerCase(); } catch (e) { return; }
+    try { host = new URL(url, location.href).hostname.toLowerCase(); } catch (e) { return false; }
     for (var i = 0; i < allowHosts.length; i++) {
       var h = allowHosts[i];
-      if (host === h || host.slice(-(h.length + 1)) === '.' + h) { exempt(10000); return; }
+      if (host === h || host.slice(-(h.length + 1)) === '.' + h) return true;
     }
+    return false;
+  }
+  function onLinkClick(ev) {
+    var a = ev.target && ev.target.closest && ev.target.closest('a[href]');
+    if (a && hostAllowed(a.href)) exempt(10000);
+  }
+
+  // v74 — 버튼+window.open으로 패들렛을 여는 경우도 면제한다(<a>만 보면 놓친다). 앱 코드를 안 고치려고 window.open을 감싼다.
+  function wrapWindowOpen() {
+    var orig = window.open;
+    if (typeof orig !== 'function') return;
+    window.open = function (url) {
+      if (url && hostAllowed(String(url))) exempt(10000);
+      return orig.apply(window, arguments);
+    };
+  }
+
+  // v74 — 패들렛을 iframe으로 박아 둔 화면: iframe 안을 누르면 부모 window에 blur가 오지만 학생은 화면을 떠난 게 아니다.
+  // 허용 도메인 iframe으로 포커스가 옮겨간 blur는 이탈로 안 센다. 포커스 이동이 반영되도록 한 틱 늦춰서 본다.
+  function onBlur() {
+    setTimeout(function () {
+      var ae = document.activeElement;
+      if (ae && ae.tagName === 'IFRAME' && hostAllowed(ae.src)) return;
+      if (document.hasFocus()) return; // 한 틱 사이에 이미 돌아온 경우
+      leave();
+    }, 0);
   }
 
   function start(opts) {
@@ -134,7 +158,8 @@
     if (opts && opts.allowHosts) allowHosts = opts.allowHosts;
     load();
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('blur', leave);
+    window.addEventListener('blur', onBlur);
+    wrapWindowOpen();
     window.addEventListener('focus', back);
     document.addEventListener('click', onLinkClick, true);
     document.addEventListener('paste', onPaste, true);
