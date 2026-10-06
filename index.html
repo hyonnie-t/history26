@@ -123,9 +123,6 @@
 
     <!-- 우측 메인 -->
     <main>
-      <!-- v74: 출석 도장 + 오늘의 기분(무드미터, 선택). attendance 필드가 없으면(구버전 백엔드) renderAttendance가 숨긴다. -->
-      <section class="att-card" id="attCard" aria-label="오늘의 출석" hidden></section>
-
       <section class="announce-card" id="announceCard" aria-label="공지사항">
         <h2>📢 공지사항</h2>
         <div id="announceList"></div>
@@ -323,7 +320,6 @@
     <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
     <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">🌡️ 체크인</button>
     <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">🎤 탐구포인트</button>
-    <button class="dash-tab" data-tab="attend" onclick="switchDashTab('attend')">📅 출석</button>
     <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">🧮 성적관리</button>
   </div>
 
@@ -800,18 +796,6 @@
   <!-- v54(2026-09-15 신규, 핸드오프 "성적조회 통합 v2") — 성적 엑셀 업로드 + 열람상태 토글.
        계정(학번·이름·비밀번호) 관리는 여기 UI를 따로 안 만들고 효니가 "계정" 시트를 직접
        열어 편집하기로 확정됨 — 이 탭은 성적 데이터 자체(엑셀 업로드)와 열람 기간만 다룬다. -->
-  <!-- v74: 출석 현황. 상점은 앱이 주지 않고, 여기 목록을 보고 교사가 직접 준다. -->
-  <div class="dash-panel" id="panelAttend" style="display:none;">
-    <p class="dash-hint">학생이 포털에서 "출석 도장"을 누른 날수예요. 상점은 이 목록을 보고 직접 주세요. 기분은 오늘 학생이 고른 경우만 보여요.</p>
-    <div class="cl-row" style="margin-bottom:10px;">
-      <select id="attGrade" onchange="renderAttendAdmin_()"><option value="">전체 학년</option><option value="2">2학년</option><option value="3">3학년</option></select>
-      <select id="attTier" onchange="renderAttendAdmin_()"><option value="0">칭호 전체</option></select>
-      <button class="btn btn-ghost btn-sm" onclick="dashLoadAttend(true)">새로고침</button>
-      <span class="muted" id="attSummary"></span>
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>학번</th><th>이름</th><th>누적</th><th>칭호</th><th>마지막 출석</th><th>오늘</th><th>기분</th></tr></thead><tbody id="attBody"></tbody></table></div>
-  </div>
-
   <div class="dash-panel" id="panelGrades" style="display:none;">
     <p class="dash-hint">
       성적 엑셀(.xlsx)을 올리면 자동으로 스프레드시트로 변환돼 조회용 시트로 지정돼요. 새로 올리면 이전 시트는 더 이상 조회되지 않아요.
@@ -1392,7 +1376,6 @@ function renderPortal(){
 
   /* 칭호첩(특별 칭호) — renderPortal은 로그인 직후·refreshStudentData 재조회 시
    * 둘 다에서 호출되므로 여기 한 곳에서만 처리하면 두 트리거를 모두 커버한다. */
-  renderAttendance(); // v74
   renderBadges(STUDENT_DATA.badges);
   checkNewBadges(STUDENT_DATA.badges);
   checkNewPresentationGrants(ppGrants);
@@ -2225,74 +2208,6 @@ function closeGradeResult_(){
  * 구조로 바뀌면서, 이전처럼 미획득 배지까지 흐리게(bc-locked) 다 그리면 활동이
  * 늘어날수록 칭호첩 목록이 한없이 길어짐 — "획득한 것만" 그리는 방식으로 변경.
  * ════════════════════════════════════════════════════════ */
-/* ════════════════════════════════════════════════════════
- * v74 — 출석 도장 + 오늘의 기분(무드미터) (2026-10-06 효니 요청)
- * 학생이 하루 한 번 눌러 누적일수를 쌓고, 일수에 따라 출석 칭호가 칭호첩에 오른다(판정은 백엔드 attendBadge_).
- * 기분은 에너지×유쾌 4분면 중 선택이고 안 골라도 출석은 된다. 미리보기 모드는 기록하지 않는다.
- * 같은 날 다시 눌러도 일수는 안 오르고 기분만 고칠 수 있다(서버가 날짜로 걸러냄).
- * ════════════════════════════════════════════════════════ */
-const ATT_MOODS = [
-  { k:'red',    e:'😣', t:'답답해요' },
-  { k:'yellow', e:'😄', t:'신나요' },
-  { k:'blue',   e:'😔', t:'축 처져요' },
-  { k:'green',  e:'😌', t:'편안해요' }
-];
-let ATT_PICK = '';
-let ATT_BUSY = false;
-
-function renderAttendance(){
-  const box = $('attCard');
-  if(!box) return;
-  const a = STUDENT_DATA && STUDENT_DATA.attendance;
-  if(!a){ box.hidden = true; return; }
-  box.hidden = false;
-  const moodNow = ATT_PICK || a.mood || '';
-  const chips = ATT_MOODS.map(m =>
-    `<button type="button" class="att-mood${moodNow === m.k ? ' on' : ''}" data-mood="${m.k}" aria-pressed="${moodNow === m.k}">
-       <span class="att-mood-e">${m.e}</span><span>${m.t}</span></button>`).join('');
-  const nextTxt = a.next ? `${a.next.emoji} ${a.next.name}까지 ${a.next.need}일` : '가장 높은 출석 칭호예요!';
-  const done = a.todayDone;
-  const canMood = !a.mood;                       // 오늘 기분을 이미 남겼으면 칩은 보여주기만
-  const btnLabel = done ? '기분 남기기' : '출석 도장 찍기';
-  const showBtn = !done || (canMood && ATT_PICK);
-  box.innerHTML = `
-    <div class="att-head">
-      <h2>📅 오늘의 출석</h2>
-      <span class="att-days">누적 <b>${a.days}</b>일</span>
-    </div>
-    <p class="att-sub">${done ? '✅ 오늘 출석했어요.' : '오늘 기분을 골라도 되고, 안 골라도 돼요.'} · 다음 칭호: ${escapeHtml(nextTxt)}</p>
-    ${(!done || canMood) ? `<div class="att-moods" role="group" aria-label="오늘의 기분">${chips}</div>` : ''}
-    ${showBtn ? `<button type="button" class="btn btn-sm att-btn" id="attBtn"${ATT_BUSY ? ' disabled' : ''}>${btnLabel}</button>` : ''}`;
-  box.querySelectorAll('.att-mood').forEach(b => b.addEventListener('click', () => {
-    ATT_PICK = (ATT_PICK === b.dataset.mood) ? '' : b.dataset.mood;
-    renderAttendance();
-  }));
-  const btn = $('attBtn');
-  if(btn) btn.addEventListener('click', submitAttend);
-}
-
-async function submitAttend(){
-  if(!SESSION || ATT_BUSY) return;
-  if(PREVIEW_MODE){ showToast('미리보기 모드예요 — 실제로 기록되지 않아요.'); return; }
-  ATT_BUSY = true; renderAttendance();
-  try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'attend', studentId: SESSION.studentId, studentName: SESSION.name, mood: ATT_PICK })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '실패');
-    ATT_PICK = '';
-    showToast(data.marked ? `📌 출석 도장! 누적 ${data.days}일` : '기분을 남겼어요.');
-    ATT_BUSY = false;
-    await refreshStudentData(true, true); // 칭호첩·누적일수 다시 그림(새 칭호는 checkNewBadges가 알림)
-  }catch(e){
-    showToast('출석을 기록하지 못했어요. 잠시 뒤 다시 눌러 주세요.');
-  }finally{
-    ATT_BUSY = false; renderAttendance();
-  }
-}
-
 const BADGE_CATEGORY_ORDER = ['learning', 'behavior', 'strength'];
 const BADGE_CATEGORY_LABEL = { learning: '학습 칭호', behavior: '행동 칭호', strength: '강점 칭호' };
 const BADGE_CATEGORY_CLASS = { learning: 'bc-blue', behavior: 'bc-orange', strength: 'bc-purple' };
@@ -2540,7 +2455,7 @@ $('inputName').addEventListener('keydown', e => {
  * 포털은 로그인 때 한 번만 데이터를 불러오므로, 학생이 다른 탭에서
  * 활동을 끝내고 돌아왔을 때를 위해 탭 복귀 시 자동으로 다시 조회한다. */
 let lastRefresh = Date.now();
-async function refreshStudentData(force, quiet){
+async function refreshStudentData(force){
   if(!SESSION) return;
   if(PREVIEW_MODE && !PREVIEW_REAL) return; // v64 — 샘플 미리보기는 가짜 학번이라 재조회하면 예시 데이터가 사라짐
   if($('portalView').style.display !== 'block') return;
@@ -2556,10 +2471,10 @@ async function refreshStudentData(force, quiet){
       STUDENT_DATA = data;
       STUDENT_DATA.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
       renderPortal();
-      if(force && !quiet) showToast('최신 기록으로 갱신했어요.');
+      if(force) showToast('최신 기록으로 갱신했어요.');
     }
   }catch(e){
-    if(force && !quiet) showToast('갱신하지 못했어요. 인터넷 연결을 확인해 주세요.');
+    if(force) showToast('갱신하지 못했어요. 인터넷 연결을 확인해 주세요.');
   }
 }
 document.addEventListener('visibilitychange', () => {
@@ -2716,42 +2631,8 @@ async function enterDash(token){
 }
 
 /* ── 대시보드 탭 전환 ── */
-/* v74 — 교사 '출석' 탭: 학생별 누적일수·칭호·오늘 기분. 상점 지급은 이 목록을 보고 교사가 직접 한다(앱은 안 줌). */
-let ATT_ADMIN = null;
-const ATT_MOOD_LABEL = { red:'😣 답답해요', yellow:'😄 신나요', blue:'😔 축 처져요', green:'😌 편안해요' };
-async function dashLoadAttend(force){
-  if(ATT_ADMIN && !force){ renderAttendAdmin_(); return; }
-  $('attBody').innerHTML = '<tr><td colspan="7" class="muted">불러오는 중…</td></tr>';
-  try{
-    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + '?mode=attendanceAdmin&token=' + encodeURIComponent(TOKEN));
-    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
-    ATT_ADMIN = data;
-    const sel = $('attTier');
-    sel.innerHTML = '<option value="0">칭호 전체</option>' + (data.tiers || []).map(t => `<option value="${t.lv}">Lv${t.lv} ${escapeHtml(t.name)} 이상 (${t.min}일)</option>`).join('');
-    renderAttendAdmin_();
-  }catch(e){
-    $('attBody').innerHTML = '<tr><td colspan="7" class="muted">불러오지 못했어요. 백엔드 v51이 배포됐는지 확인해 주세요.</td></tr>';
-  }
-}
-function renderAttendAdmin_(){
-  if(!ATT_ADMIN) return;
-  const g = $('attGrade').value, minTier = Number($('attTier').value) || 0;
-  const rows = (ATT_ADMIN.rows || []).filter(r => {
-    const p = parseStudentId(String(r.studentId));
-    return (!g || (p && String(p.grade) === g)) && r.tier >= minTier;
-  }).sort((a,b) => b.days - a.days || String(a.studentId).localeCompare(String(b.studentId)));
-  const todayN = rows.filter(r => r.todayDone).length;
-  $('attSummary').textContent = `${rows.length}명 · 오늘 출석 ${todayN}명`;
-  $('attBody').innerHTML = rows.length ? rows.map(r => `<tr>
-      <td>${escapeHtml(String(r.studentId))}</td><td>${escapeHtml(r.studentName)}</td><td><b>${r.days}</b>일</td>
-      <td>${r.tier ? 'Lv' + r.tier + ' ' + escapeHtml(r.tierName) : '—'}</td>
-      <td>${escapeHtml(r.last || '—')}</td><td>${r.todayDone ? '✅' : ''}</td>
-      <td>${escapeHtml(ATT_MOOD_LABEL[r.mood] || '')}</td></tr>`).join('')
-    : '<tr><td colspan="7" class="muted">아직 출석한 학생이 없어요.</td></tr>';
-}
-
 function switchDashTab(tab){
-  ['records','questions','announce','curriculum','checkin','points','attend','grades'].forEach(t => {
+  ['records','questions','announce','curriculum','checkin','points','grades'].forEach(t => {
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -2759,7 +2640,6 @@ function switchDashTab(tab){
     if(btn.dataset.tab === tab && btn.scrollIntoView) btn.scrollIntoView({ inline:'center', block:'nearest' }); // v63 — 모바일에선 탭 줄이 가로 스크롤
   });
   if(tab === 'grades') dashLoadGradeStatus_();
-  if(tab === 'attend') dashLoadAttend(false);
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
 }
 
