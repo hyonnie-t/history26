@@ -198,6 +198,8 @@ AI 의심도(글 판정)와 별개로, 수업 웹앱이 최종 제출 때 `focus
 태블릿에서 새로고침·실수로 닫음이 나도 쓰던 글이 안 날아가게 `snippets/draft_guard.js`가 화면의 `<textarea>`(와 `data-draft` 입력)를 localStorage에 0.4초 쉬었다 저장하고 다시 열면 비어 있는 같은 칸에 되돌려 넣는다.
 쓰는 법은 `DraftGuard.start({ key: CONFIG.GAME_NAME, sid })` 1번 + 서버 제출 **성공 직후** `DraftGuard.clear()`. 키는 `draft_guard:앱키:학번:칸이름`이라 공용 태블릿에서 학생끼리 안 섞이고, 7일 지난 건 버린다.
 **⚠️ ①`clear()`를 안 부르면 제출한 글이 다음에 열 때 또 복원된다 ②칸 이름은 id → name → `data-draft` → 문서 순번 순이라, 칸이 동적으로 바뀌는 앱은 칸에 id를 줘야 어긋나지 않는다 ③`?preview=1`에선 저장·복원 안 함 ④앱이 이미 채운 값은 덮어쓰지 않는다.**
+**⑤ 같은 칸 이름은 페이지당 한 번만 복원한다**(앱이 값을 직접 비우고 칸을 다시 그려도 옛 글이 되살아나지 않게). **⑥ 라운드마다 비우는 칸·복원이 헷갈리는 칸엔 `data-no-draft`**. **⑦ 동적으로 만드는 칸은 `data-draft="의미있는이름"`을 줘서 순서가 바뀌어도 같은 칸에 복원**(us_declaration 사례). **⑧ 앱이 이미 자기 localStorage에 답을 저장하면 넣지 않는다**(`joseon-sarim`, `french_revolution`이 이 경우).
+2026-10-07 적용: `imjin_1592`·`tax_regime`(인라인)·`joseon-bungdang`·`us_declaration`·`joseon-governance`(인라인)·`founding-of-joseon`(인라인), 각 레포 브랜치 `claude/vibrant-maxwell-orc4d7`. 나머지 기존 웹앱은 효니가 시킬 때만 소급한다. 인라인 앱은 스니펫을 고치면 그 복사본도 직접 다시 붙여야 한다.
 `focus_guard.js`와 같이 새 웹앱 레포를 만들 때 그 시점의 최신 파일을 복사해 넣는다(기존 웹앱엔 소급 안 됨, 효니가 시킬 때만). 학생 화면엔 "쓰던 글을 다시 불러왔어요." 토스트만 뜬다.
 
 ## 어휘 풀이 (v71)

@@ -14,11 +14,15 @@
  *         학번을 화면에서 입력받는 앱은 로그인 직후 DraftGuard.setSid(학번)을 부른다.
  *   ttlDays — 이 기간이 지난 임시저장은 버린다(기본 7). restoreNote — 복원했을 때 작은 안내를 띄울지(기본 true).
  *
+ * 제외: 라운드마다 값을 비우고 다시 쓰는 칸처럼 임시저장이 오히려 헷갈리는 칸엔 data-no-draft 속성을 붙인다.
+ *
  * 칸 식별: id → name → data-draft(직접 이름 지정) → 문서 안 순번(textarea#N). 같은 칸이 매번 같은 이름이
  *   되도록 앱이 id/name을 주는 게 가장 안전하다. 순번 방식은 화면 구성이 바뀌면 어긋날 수 있다.
  *
  * 설계 메모
  * - ?preview=1(교사 미리보기)에선 저장도 복원도 안 한다(교사가 친 글이 학생 태블릿 것처럼 남지 않게).
+ * - 같은 칸 이름은 페이지를 연 뒤 한 번만 복원한다. 앱이 값을 직접 비우고(예: 방향을 바꿔 ②를 지움) 칸을 다시 그려도
+ *   옛 임시저장이 되살아나지 않게 하려는 것 — 그 뒤의 글은 앱이 자기 상태로 다시 그린다.
  * - 복원은 "그 칸이 비어 있을 때만" 한다 — 앱이 이미 채운 값(서버에서 불러온 이전 제출 등)을 덮어쓰지 않는다.
  *   복원 뒤 input 이벤트를 한 번 쏴서 앱이 자기 상태(글자 수·제출 버튼 활성화)를 갱신하게 한다.
  * - 저장소가 막히면(사생활 보호 모드 등) 조용히 건너뛴다. 글쓰기 자체는 막지 않는다.
@@ -35,13 +39,13 @@
   var started = false;
   var preview = false;
   var timers = new WeakMap();
-  var restored = new WeakSet();
+  var restored = {};                  // 칸 이름별로 페이지당 한 번만 복원한다(아래 설계 메모)
   var noteTimer = 0;
 
   function prefix() { return PREFIX + state.key + ':' + state.sid + ':'; }
 
   function isField(el) {
-    return !!(el && el.matches && el.matches(selector) &&
+    return !!(el && el.matches && el.matches(selector) && !el.hasAttribute('data-no-draft') &&
       (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT'));
   }
 
@@ -69,15 +73,17 @@
   }
 
   function restoreField(el) {
-    if (restored.has(el) || !isField(el)) return;
-    restored.add(el);
+    if (!isField(el)) return;
+    var name = fieldName(el);
+    if (restored[name]) return;
+    restored[name] = true;
     if (el.value) return;                  // 앱이 이미 채웠으면 건드리지 않는다
-    var raw = lsGet(prefix() + fieldName(el));
+    var raw = lsGet(prefix() + name);
     if (!raw) return;
     var o;
     try { o = JSON.parse(raw); } catch (e) { return; }
     if (!o || typeof o.v !== 'string' || !o.v) return;
-    if (Date.now() - (Number(o.t) || 0) > ttlMs) { lsDel(prefix() + fieldName(el)); return; }
+    if (Date.now() - (Number(o.t) || 0) > ttlMs) { lsDel(prefix() + name); return; }
     var max = Number(el.getAttribute('maxlength'));
     el.value = max > 0 ? o.v.slice(0, max) : o.v;
     // 앱이 input 이벤트로 글자 수·버튼 상태를 갱신하게 알린다. 이 이벤트는 우리 리스너도 받지만 같은 값이라 무해하다.
@@ -171,7 +177,7 @@
   function setSid(sid) {
     state.sid = String(sid || 'anon');
     if (!started || preview) return;
-    restored = new WeakSet();
+    restored = {};
     restoreAll(document);
   }
 
