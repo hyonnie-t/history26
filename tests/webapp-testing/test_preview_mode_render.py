@@ -32,7 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from _pw_helpers import launch_chromium
 from fixtures import route_history26_backend
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_playwright
 
 BASE_URL = "http://localhost:8791"
 BACKEND_GLOB = "https://script.google.com/macros/s/*/exec*"
@@ -56,7 +56,12 @@ def run_preview(page, grade_value):
     page.select_option("#previewGrade", grade_value)
     page.fill("#previewBan", "1")
     page.click("#btnPreviewStart")
-    page.wait_for_timeout(500)
+    # v70 이후 테스트 모드는 진짜 로그인(mode=student → announcements)을 거친다 — 고정 500ms로는
+    # 그 왕복이 끝나기 전에 검사해서 늘 FAIL이 났다. 포털이 뜰 때까지 기다리고, 안 뜨면 아래 check가 FAIL을 찍는다.
+    try:
+        page.wait_for_selector("#portalView", state="visible", timeout=10000)
+    except PlaywrightTimeoutError:
+        pass
 
 
 def main():
