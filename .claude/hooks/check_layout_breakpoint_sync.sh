@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Stop hook — style.css에 커밋 안 된 변경이 있으면 .side-card의 sticky↔static
 # 전환 조건과 .side-combined 내부 스크롤 높이 제한 조건이 정확히 서로 반대
-# 조건인지 확인한다. CLAUDE.md: "이 두 조건은 정확히 같은(반대) 조건으로
+# 조건인지 확인한다. .claude/rules/style-css.md: "이 두 조건은 정확히 같은(반대) 조건으로
 # 맞춰야 한다 — 하나만 바꾸면 어긋난다". 불일치를 찾으면 참고용 경고만
 # systemMessage로 띄운다(강제 차단 없음).
 set -uo pipefail
@@ -50,7 +50,7 @@ else
 fi
 
 if [ "${#MSGS[@]}" -gt 0 ]; then
-  FULL_MSG="⚠️ .side-card/.side-combined 브레이크포인트 동기화 점검 (CLAUDE.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
+  FULL_MSG="⚠️ .side-card/.side-combined 브레이크포인트 동기화 점검 (.claude/rules/style-css.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
   python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$FULL_MSG"
 fi
 

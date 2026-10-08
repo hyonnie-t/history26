@@ -15,7 +15,7 @@ anthropics/skills 레포(`skills/webapp-testing/`)를 직접 열어 확인:
 - 번들 스크립트는 `scripts/with_server.py` 하나뿐 — 정적 서버든 dev 서버든
   포트가 뜰 때까지 기다렸다가 명령을 실행하고 끝나면 정리해주는 헬퍼.
 - 정적 HTML이면 서버 없이 `file://`로 열어보라고 권하지만, 이 저장소는
-  `config.js`/`checkin_data.js`를 `<script src>`로 불러오는 구조라 CLAUDE.md가
+  `config.js`/`checkin_data.js`를 `<script src>`로 불러오는 구조라 AGENTS.md가
   이미 경고한 대로 `file://`에서 fetch/스크립트 로드가 브라우저 정책에 막힐 수
   있다 — 그래서 항상 `python3 -m http.server`로 띄우고 접근했다.
 
@@ -163,7 +163,7 @@ kill %1
    빠짐없이 채워야 한다"(위 발견 #1 참고)는 교훈은 게임 레포마다 반복될
    것이다.
 2. **TDZ 콘솔 에러 스모크(`test_console_error_smoke.py`)는 수정 없이 거의
-   그대로 재사용 가능** — CLAUDE.md가 명시한 webapp-builder 스킬의 반복
+   그대로 재사용 가능** — docs/webapp-rules.md가 명시한 webapp-builder 스킬의 반복
    실수(IIFE를 파일 중간에서 실행)를 정확히 겨냥한 범용 테스트라, 새 웹앱마다
    진입점 URL과 "첫 상호작용" 셀렉터만 바꿔 끼우면 된다.
 3. **URL/ID 대조 자동화는 다음 세션 후보.** crusades·his_judge_goryeo 등
