@@ -1,8 +1,8 @@
 # history26 기능별 상세 노트
 
-`CLAUDE.md`에서 옮겨온 기능별 설명이다(내용은 그대로, 구조만 `##` 제목으로 바꿨다). **해당 기능을 고칠 때만** 읽는다 —
+옛 `CLAUDE.md`에서 옮겨온 기능별 설명이다(내용은 그대로, 구조만 `##` 제목으로 바꿨다). **해당 기능을 고칠 때만** 읽는다 —
 `grep -n "^## " docs/features.md`로 제목을 보고 필요한 섹션만 `sed -n`으로 읽을 것. 모든 기능에 걸리는 함정은
-`CLAUDE.md`의 "기능 노트 색인"에 한 줄씩 남겨뒀다. 버전별 경위는 `CHANGELOG.md`.
+`AGENTS.md` "절대 규칙"과 `.claude/rules/*`에 남겨뒀다. 버전별 경위는 `CHANGELOG.md`.
 
 ## 발표 탐구포인트
 발표처럼 웹앱 밖에서 일어나는 활동에 포인트를 즉시 지급하는 통로. 교사가 학생 상세
@@ -10,7 +10,7 @@
 (판단/비교/해석/관점, 또는 "유형 없이")과 수준(하/중/상 — `PP_LEVELS`, +4/+6/+9점)을 골라 지급하면
 `grantPresentationPoint` action이 `level`과 함께 호출된다. 학생 화면은 `STUDENT_DATA.presentationGrants`를
 커리큘럼 순회와 별도로 합산한다(`Number(g.points) || 6` 폴백). **서버가 `level`을
-실제로 반영해 배포됐는지는 `history26_backend`의 CLAUDE.md 배포 상태를 확인할 것** — 배포 전이면 항상
+실제로 반영해 배포됐는지는 `history26_backend`의 `docs/deploy-status.md`를 확인할 것** — 배포 전이면 항상
 +6점·achievement='상'으로 고정 동작한다. ⚠️ '하'/'중'으로 지급한 발표는 학습 칭호(결정왕 등) 집계 대상에서
 빠진다(백엔드가 achievement==='상'인 것만 집계) — 포인트는 그대로 들어간다.
 
@@ -60,7 +60,7 @@ sticky↔static 전환 조건과 `.side-combined` 내부 스크롤 높이 제한
 않을 때만 렌더링되며(`renderPortal()`), 없으면 조용히 숨는다. 값(제목·설명·
 초대코드 안내 문구·링크)은 교사 대시보드 "커리큘럼 관리 > 학년정보" 탭(`gi-cc-title`/`gi-cc-desc`/
 `gi-cc-url`, `dashSaveGradeInfo()`)에서 학년별로 저장하며, 포트폴리오와 같은 `action=updateGradeInfo`
-하나로 같이 저장된다. 서버 쪽 필드 배포 상태는 `history26_backend` CLAUDE.md 참고.
+하나로 같이 저장된다. 서버 쪽 필드 배포 상태는 `history26_backend` `docs/deploy-status.md` 참고.
 
 ## 포트폴리오·클래스카드 링크의 스킴 보정
 `renderPortal()`이 href를 세팅할 때 `ensureUrlScheme_()`
@@ -120,7 +120,7 @@ source_emotion=텍스트)을 정한다.
 값이 필요하면 저장 전에 확인할 것). 등록된 문항 목록은 진행중(`#ckqActiveList`, 기본 펼침)과 지난
 (`#ckqPastList`, `<details class="cl-past-collapse">`, 기본 접힘) 두 그룹으로 나뉘며, 개별 문항 항목의
 "지난 체크인으로 표시" 버튼(`dashToggleCheckinLessonPast()`)이 `toggleCheckinLessonPast` action을
-호출한다. 서버 배포 상태는 `history26_backend` CLAUDE.md 참고 — 배포 전엔 모든 문항이 항상 진행중
+호출한다. 서버 배포 상태는 `history26_backend` `docs/deploy-status.md` 참고 — 배포 전엔 모든 문항이 항상 진행중
 그룹에만 보이고 토글도 반영되지 않는다.
 
 ## 성적조회
@@ -134,38 +134,10 @@ source_emotion=텍스트)을 정한다.
 **학생별 비밀번호 관리 UI는 없음** — 효니가 "계정" 시트를 구글시트에서 직접 편집한다(핸드오프 확정
 사항). ⚠️ 매칭키가 원본의 "반+번호"가 아니라 history26 5자리 학번이라, 업로드하는 성적 엑셀의 학번
 열도 5자리 형식이어야 조회된다. 서버 쪽(`계정` 시트, `mode=grade`/`gradeStatus`,
-`action=uploadGradeExcel`/`setGradeDisplayStatus`) 배포 상태는 `history26_backend` CLAUDE.md 참고.
+`action=uploadGradeExcel`/`setGradeDisplayStatus`) 배포 상태는 `history26_backend` `docs/deploy-status.md` 참고.
 
 ## 개별 수업 웹앱은 이 저장소 밖에서 각자 따로 만들어진다
-`crusades`(십자군, 화면 하나짜리 판단형
-서술), `his_judge_goryeo`(3차시 역사법정, 검사/변호인/배심원 역할극) 등 — 전부 자기 레포에 단일
-`index.html`로 존재하고, `CONFIG.SHEET_WEBAPP_URL`로 같은 `history26_backend`를 직접 호출한다(대부분
-새 action 없이 기존 gameName 제출 경로만 씀). 이 저장소의 커리큘럼 관리 탭에서 activity id로 등록해야
-포털 진행률·포인트 계산에 잡힌다. 디자인 기준선("역사책 페이지" 컨셉)은 hyonnie.md 참고. **새로 만들거나
-수정할 땐 `webapp-builder` 스킬을 반드시 따른다.** 모든 웹앱에 기본으로 들어가야 하는 필수 요소는
-① `CONFIG.SHEET_WEBAPP_URL` 하드코딩, ② `?sid=&name=` URL 파라미터 자동채움(5자리 학번), ③ `?preview=1`
-미리보기 모드(자동채움 + 시트 저장 없이 동작), ④ 서술형 입력엔 정답 아닌 맥락 단서만 주는 힌트 토글, ⑥ **작성 과정 신호** — `snippets/focus_guard.js`를 넣고 최종 제출 body에 `Object.assign(body, FocusGuard.payload())`로 이탈·붙여넣기 값을 같이 보낸다(모든 새 웹앱에 넣는다 — 기본 형태가 서술형이라 유형 구분 없이. 상세는 아래 "작성 과정 신호" 항목), ⑦ **어휘 점검** — 학생 화면 문장을 읽고 중2~3이 모를 낱말을 뽑아 `GLOSSARY`에 풀이를 넣고(`snippets/glossary.js`로 밑줄을 입힌다), 끝내기 전에 `node snippets/vocab_check.mjs <앱 폴더>`가 누락 0건이어야 한다(상세는 아래 "어휘 풀이" 항목)이다.
-코드 작성·수정 뒤엔 반복 실수 체크리스트 세 가지를 반드시 재확인한다 — (a) URL/스프레드시트 ID 등을
-옮겨 적을 때 육안 확인 말고 grep/diff로 원본과 대조(조용한 전송 실패의 주 원인이었음), (b) IIFE로
-즉시 실행하는 코드는 TDZ 에러가 안 나게 함수 선언을 먼저 끝내고 `init()` 같은 실행 호출은 파일 맨
-마지막에 두기, (c) 드래그 기반 인터랙션(카드 나열·순서 재배열)엔 항상 화살표 버튼(▲▼) 같은 태블릿
-대체 수단을 같이 넣기. **⑤ 빌드 단계가 필요한 구조로 만들지 않는다** — webpack/vite 같은 번들러,
-React 같은 프레임워크, TypeScript 컴파일 단계를 쓰지 않고 `<script>` 태그로 직접 불러오는 plain
-HTML/CSS/JS만 쓴다. `index.html`(뼈대) + `config.js`(설정) + `data.js`(콘텐츠) + `app.js`(렌더링) +
-`style.css`(스타일)처럼 관심사별로 파일을 나누는 건 괜찮다 — **파일을 여러 개로 나누는 것과 빌드
-단계를 도입하는 건 다른 문제**, 금지 대상은 후자다(이 포털 자체도 `index.html`+`config.js`+
-`checkin_data.js`+`style.css`로 나눠져 있음). **기본 구성은 `index.html`+`style.css`+`data.js`(콘텐츠)+
-`app.js`(로직) 4파일이다** — 나누면 수정할 때 필요한 파일만 읽으면 돼서 유지보수 토큰이 줄지만
-(단일 `index.html`은 어떤 수정이든 통째로 읽어야 함), 파일마다 연결·헤더 주석 같은 이음새 비용이
-들어서 그 이상은 필요할 때만 늘린다. `config.js`는 URL·상수 몇 줄뿐이면 `app.js` 상단 `CONFIG`로
-합쳐도 된다. 순수 로직 분리(`logic.js`)와 단위 테스트는 판정·계산 로직이 있는 앱(예: 점수·유형 판정)
-에만 넣고 단순 서술형 앱엔 넣지 않는다. 배포 전 점검 스크립트(`verify.mjs`)와 긴 README도 필요할
-때만 만든다(붕당 분화 앱 `Joseon-Bungdang`이 이 부가 파일들을 전부 넣은 사례). 버전이 올라가면서 기존 웹앱들이 써온 plain
-HTML/CSS/JS 구조가 임의로 틀어지는 게 반복적으로 문제가 됐다 — 기존 웹앱(`crusades`,
-`his_judge_goryeo` 등)도 같은 구조인지는 미확인이니, 수정할 땐 그 레포의 기존 파일 구성을 먼저
-확인하고 거기 맞출 것. 배포는 절대 "새 배포"가
-아니라 "배포 관리 > 수정 > 새 버전"으로만 한다(새 배포는 URL이 바뀌어 포털 연결이 깨짐). 자세한 내용은
-스킬 파일 참고.
+→ `docs/webapp-rules.md`로 옮겼다(옛 CLAUDE.md·hyonnie.md의 웹앱 규칙과 합침). 웹앱 제작·수정 전엔 그 파일과 `webapp-builder` 스킬을 읽는다.
 
 ## AI 작성 의심 경고
 교사 대시보드 "학생 기록" 탭 상단 `#suspectBox`(`dashRenderSuspectBox_()`)가
@@ -224,7 +196,7 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 `dashMsgThreadHtml_()`(학생 상세 카드 안 위젯, 새 스레드는 여기서만 시작)가 그린다. "답장 대기"는 스레드의
 마지막 메시지가 학생 것인지로 판정하고 질문함 탭 배지에 합산한다. 학생 답장은 교사가 먼저 보낸 스레드에만
 서버가 허용한다. **⚠️ 백엔드 재배포 전엔 `messagesAdmin` 실패를 빈 목록으로 흡수하므로 대시보드는 정상이고
-메시지 보내기만 실패한다** — 배포 상태는 `history26_backend` CLAUDE.md 참고. AI 작성 의심 경고(v61)와는
+메시지 보내기만 실패한다** — 배포 상태는 `history26_backend` `docs/deploy-status.md` 참고. AI 작성 의심 경고(v61)와는
 연결하지 않았다(경고는 표시만, 대화는 교사가 확인 뒤 이 스레드로).
 
 ## UI 통일 레이어 (v63)
@@ -235,7 +207,7 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 (그게 통일이 깨진 원인이었다). 탭 줄(`.tab-nav`/`.dash-tabs`)은 ≤1024px에서 가로 스크롤이며 `switchDashTab`/
 `switchQuickTab`이 활성 탭을 스크롤 안으로 끌어온다 — **그리드 자식 안에 스크롤 컨테이너를 넣으면 `1fr` 열이 내용
 폭만큼 늘어난다**(`.layout`을 `minmax(0,1fr)`로 고친 이유). 폰(≤640px)에서 학생 표는 "최근 활동" 열을 숨긴다.
-새 화면을 추가한 뒤엔 PC·태블릿 세로/가로·폰 4개 뷰포트로 찍어 확인할 것.
+새 화면을 추가한 뒤엔 `tests/webapp-testing/shot.js`로 폰 360·태블릿 820·PC 1280 세 폭을 찍어 확인할 것.
 
 ## 연표 접기 / 그 밖의 기록 카드 (v64)
 `renderLessonCard()`가 `.lesson-toggle` 헤더 + `.lesson-body`로 나뉘고 접힘 상태는

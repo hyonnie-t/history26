@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stop hook — index.html/config.js/checkin_data.js에 커밋 안 된 변경이 있으면
-# CLAUDE.md "검증 메타데이터와 학생 화면 분리 원칙"의 완료 기준
+# .claude/rules/student-screen.md "검증 메타데이터 분리 원칙"의 완료 기준
 # ("검수", "대조", "미확인", "2차", "확인 전" 문자열이 학생 화면 렌더링
 # 문자열에 0건이어야 한다")을 점검한다.
 #
@@ -44,7 +44,7 @@ for S in "${TARGETS[@]}"; do
 done
 
 if [ "${#MSGS[@]}" -gt 0 ]; then
-  FULL_MSG="⚠️ 검증 메타데이터 유출 점검 (CLAUDE.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
+  FULL_MSG="⚠️ 검증 메타데이터 유출 점검 (.claude/rules/student-screen.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
   python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$FULL_MSG"
 fi
 
