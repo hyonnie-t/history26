@@ -4539,6 +4539,40 @@ function dashClassFeedbackBanParam_(grade, banScope){
   }
   return banScope;
 }
+/* v76 — 범위 표시 정리. ban이 콤마 목록(2개 반 이상)이면 "학년 공통", 반 하나면 "학급"이라고
+ * 부른다. 서버(classFeedbackForStudent_)는 개별 반 행을 묶음 행보다 우선해 학생에게 내려주므로,
+ * 같은 학년·활동의 다른 범위 행을 함께 보여줘서 어느 반이 어느 피드백을 받는지 대시보드에서 읽히게 한다. */
+function dashFbBanList_(ban){
+  return String(ban || '').split(',').map(x => Number(String(x).trim())).filter(n => n > 0);
+}
+function dashFbScopeName_(banList){
+  return banList.length > 1 ? '학년 공통' : '학급';
+}
+function dashFbScopeBans_(banList){
+  return banList.length > 1 ? banList.join(',') + '반' : banList[0] + '반';
+}
+/* 같은 학년·활동의 다른 범위 행 목록. 현재 보고 있는 범위(banParam)는 "지금 보는 중"으로 표시하고,
+ * 묶음 행은 개별 반 행에 가려지는 반(=학생에게 개별 것이 나가는 반)을 덧붙인다. */
+function dashFbScopeListHtml_(grade, banParam, activityId){
+  const rows = CLASS_FEEDBACKS.filter(f =>
+    Number(f.grade) === grade && String(f.activityId) === String(activityId) && String(f.studentText || '').trim());
+  if(rows.length < 2) return '';
+  const singles = new Set();
+  rows.forEach(f => { const l = dashFbBanList_(f.ban); if(l.length === 1) singles.add(l[0]); });
+  const items = rows
+    .map(f => ({ f, list: dashFbBanList_(f.ban) }))
+    .sort((a, b) => b.list.length - a.list.length)
+    .map(({ f, list }) => {
+      const covered = list.length > 1 ? list.filter(b => singles.has(b)) : [];
+      const note = covered.length ? ` <span class="muted">(${covered.join(',')}반은 개별 피드백이 우선)</span>` : '';
+      const cur = String(f.ban) === String(banParam) ? ' <span class="class-fb-live-badge">지금 보는 중</span>' : '';
+      return `<li>${dashFbScopeName_(list)} ${escapeHtml(dashFbScopeBans_(list))}${note}${cur}</li>`;
+    }).join('');
+  return `<div class="class-fb-section">
+      <div class="class-fb-section-label">같은 활동의 다른 범위 피드백</div>
+      <ul class="class-fb-scope-list">${items}</ul>
+    </div>`;
+}
 function dashRenderClassFeedback(){
   const box = $('classFbBox');
   if(!box) return;
@@ -4559,7 +4593,9 @@ function dashRenderClassFeedback(){
   const studentCount = new Set(scopedRows.map(r => String(r.studentId))).size;
   const activityLabel = dashLessonTitle(act);
   const existing = dashClassFeedbackFind_(grade, banParam, act);
-  const scopeLabel = banScope === 'mine' ? `내 담당 반(${escapeHtml(banParam)})` : `${escapeHtml(String(banScope))}반`;
+  const banList = dashFbBanList_(banParam);
+  const scopeName = dashFbScopeName_(banList);
+  const scopeLabel = escapeHtml(dashFbScopeBans_(banList));
 
   // v35 — 교사용 리포트와 학생 공지용 문구를 나눠서 보여줌. 학생용 문구는
   // studentGet_이 자동으로 학생 포털(활동 완료 카드)에도 실어 보내므로, 여기서는
@@ -4600,10 +4636,11 @@ function dashRenderClassFeedback(){
 
   box.innerHTML = `
     <div class="class-fb-head">
-      <span class="class-fb-title">🏫 ${grade}학년 ${scopeLabel} · ${escapeHtml(activityLabel)} — 학급 공통 피드백</span>
+      <span class="class-fb-title">🏫 ${grade}학년 ${scopeLabel} · ${escapeHtml(activityLabel)} — ${scopeName} 피드백</span>
       <span class="class-fb-count">참여 학생 글 ${studentCount}건</span>
     </div>
     ${bodyHtml}
+    ${dashFbScopeListHtml_(grade, banParam, act)}
     <button type="button" class="btn btn-sm class-fb-gen" ${disabled}>${genLabel}</button>
     ${studentCount ? '' : '<p class="muted" style="margin:6px 0 0;font-size:.82rem;">이 조건에 해당하는 학생 글이 아직 없어요.</p>'}
   `;
