@@ -57,3 +57,4 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 | 배지(칭호첩)·`?mode=`/`action=` 동작·배포 여부 | `history26_backend` 레포(AGENTS.md·`docs/deploy-status.md`) |
 | 테스트 스크립트 추가·수정 | `tests/webapp-testing/README.md` |
 | 과거 점검 기록·사고 이력 | `docs/status-log.md`, `CHANGELOG.md` |
+| 모델을 바꿔 새 세션을 열 때(핸드오프) | `docs/handoff-template.md` |
