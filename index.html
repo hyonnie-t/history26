@@ -2071,10 +2071,23 @@ async function askQuestion(){
   }
 }
 
+/* v77 — 웹앱 글쓰기 뒤 "패들렛 열기" 버튼용. 이 학생 반의 패들렛(포트폴리오) 주소를 ?padlet=로 함께 넘긴다.
+ * 웹앱 쪽도 padlet.com https만 받지만, 여기서도 걸러서 엉뚱한 주소가 웹앱으로 가지 않게 한다. 읽기 전용이라 PREVIEW_MODE 영향 없음. */
+function padletParam_(){
+  try{
+    const pf = (CONFIG.CURRICULUM[SESSION.grade] || {}).portfolio;
+    const raw = pf ? (pf.urlByBan ? (pf.urlByBan[SESSION.ban] || '') : (pf.url || '')) : '';
+    if(!raw) return '';
+    const u = new URL(ensureUrlScheme_(raw));
+    if(u.protocol !== 'https:' || !/(^|\.)padlet\.com$/.test(u.hostname)) return '';
+    return '&padlet=' + encodeURIComponent(u.href);
+  }catch(e){ return ''; }
+}
 function withStudentParams(url){
   const sep = url.includes('?') ? '&' : '?';
   return url + sep + 'sid=' + encodeURIComponent(SESSION.studentId)
              + '&name=' + encodeURIComponent(SESSION.name)
+             + padletParam_()
              + (PREVIEW_MODE ? '&preview=1' : ''); // v64 — 교사 미리보기에서 연 활동이 그 학생 이름으로 제출되지 않게(웹앱 공통 ?preview=1 규약)
 }
 
