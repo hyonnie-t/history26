@@ -1220,6 +1220,22 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 }
 
 
+/* v78 — 의심 기록 표 보기(시트처럼). 폭이 좁으면 .st-scroll이 가로 스크롤한다. */
+.st-tools{display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.85rem; margin:6px 0;}
+.st-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--paper);}
+.st-table{border-collapse:collapse; width:100%; min-width:860px; font-size:.82rem;}
+.st-table th, .st-table td{border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top;}
+.st-table thead th{position:sticky; top:0; background:var(--panel-alt); white-space:nowrap; font-weight:700;}
+.st-sort{cursor:pointer;}
+.st-sort.on{color:var(--seal);}
+.st-table tr.rv{opacity:.7;}
+.st-who{white-space:nowrap;}
+.st-lv.hi{color:var(--seal); font-weight:700;}
+.st-num{white-space:nowrap;}
+.st-num.warn{color:var(--seal); font-weight:700;}
+.st-bl.diff{color:var(--seal);}
+.st-text{max-width:340px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; cursor:pointer; word-break:break-word; white-space:pre-wrap;}
+.st-text.open{display:block; -webkit-line-clamp:unset; overflow:visible;}
 /* ══════════════ v63·v64 — UI 통일 레이어 (PC·태블릿·모바일 정리) — v64 규칙은 이 파일 맨 아래 ══════════════
  * 배경: 기능이 붙을 때마다 버튼·탭·폼이 제각각 스타일돼 있었다(같은 "보내기"가 어떤 곳은 알약형·
  * 어떤 곳은 사각형·어떤 곳은 브라우저 기본 버튼, 주 버튼 색이 인디고/오커 혼재, 폰에서 탭이 3줄로

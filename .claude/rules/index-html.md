@@ -28,7 +28,7 @@ paths:
   점수 비교. 탐구 나무 8단계와 1:1. (2) "칭호첩" 배지(`.badge-card`; `learning`/`behavior`/`strength` × `once`/`repeat`) —
   `renderBadges()`/`renderBadgeChip()`이 그리고 `checkNewBadges()`가 localStorage 기준선과 비교해 신규만 토스트.
   **판정(`computeBadges_`)은 `history26_backend`의 `code.gs`** → `mode=student`의 `STUDENT_DATA.badges`. 배지 작업은 백엔드 레포도 같이 연다.
-  코드 주석의 `backend_v23.gs`·`backend_v24.gs`·`ai_module_v9.gs`는 옛 파일명일 뿐 실제 파일이 아니다(지금은 `code.gs`·`ai_module_v9.3.gs`) — "레포에 없는 외부 파일"로 착각 금지.
+  코드 주석의 `backend_v23.gs`·`backend_v24.gs`·`ai_module_v9.gs`(옛 이름, 현재는 `ai_module.gs`)는 옛 파일명일 뿐 실제 파일이 아니다(지금은 `code.gs`·`ai_module.gs`) — "레포에 없는 외부 파일"로 착각 금지.
   `PREVIEW_MODE`에선 `badges` 필드가 없으므로 두 함수 모두 빈 값을 방어한다.
 
 ## 네트워크·세션·학번
