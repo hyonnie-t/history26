@@ -4499,11 +4499,88 @@ function dashRenderSuspectBox_(){
     <div class="suspect-note">참고용 판정이라 확정이 아니에요. 1회는 평소 어휘 수준이 높은 학생일 수 있어서 참고만, 반복되면 이야기를 나눠 볼 만해요. 학생 상세 카드에서 "확인함/상담함"으로 표시해도 <b>횟수는 그대로</b> 남아요(오탐이어도 반복 여부를 볼 수 있게). 학생 화면에는 보이지 않아요. 👁은 글 판정과 화면 이탈·붙여넣기가 같은 기록에서 함께 걸렸다는 표시로, 먼저 정렬만 되고 <b>횟수·등급엔 영향이 없어요</b>(사료 확인 등 정당한 이탈도 포함).</div>
     ${repeat.length ? `<ul class="suspect-list rep">${repeat.map(rowHtml).join('')}</ul>` : ''}
     ${once.length ? `<details class="suspect-once"><summary>1회 해당 학생 ${once.length}명 보기</summary><ul class="suspect-list">${once.map(rowHtml).join('')}</ul></details>` : ''}
-    ${cleared.length ? `<details class="suspect-once"><summary>확인 완료 ${cleared.length}명 보기</summary><ul class="suspect-list">${cleared.map(rowHtml).join('')}</ul></details>` : ''}`;
+    ${cleared.length ? `<details class="suspect-once"><summary>확인 완료 ${cleared.length}명 보기</summary><ul class="suspect-list">${cleared.map(rowHtml).join('')}</ul></details>` : ''}
+    <details class="suspect-once suspect-table-wrap" id="suspectTableWrap"${SUSPECT_TABLE.open ? ' open' : ''}><summary>📋 표로 보기 (${inScope.reduce((n, s) => n + s.items.length, 0)}건)</summary><div id="suspectTable"></div></details>`;
   box.style.display = 'block';
+  SUSPECT_SCOPE = inScope;
+  const tw = $('suspectTableWrap');
+  tw.addEventListener('toggle', () => { SUSPECT_TABLE.open = tw.open; if(tw.open) dashRenderSuspectTable_(); });
+  if(SUSPECT_TABLE.open) dashRenderSuspectTable_();
   box.querySelectorAll('.suspect-item').forEach(el => {
     el.addEventListener('click', () => dashJumpToStudent_(el.dataset.sid));
   });
+}
+
+/* v78 — 의심 기록 표 보기(시트처럼 한눈에). 박스는 학생별 누적이라 "의심 기록 전체를 줄 세워 훑기"엔 불편해서, 같은 집계(SUSPECT_STATS의
+ * 학생×활동 최신 행, 중간/높음)를 한 줄에 한 기록으로 펼친다. 학년·반 필터만 따르고 활동 필터는 무시(박스와 같음).
+ * ⚠️ 읽기 전용 표시라 PREVIEW_MODE 가드가 필요한 쓰기·ack가 없다. 정렬·"검토 대기만"은 화면용일 뿐 반복 횟수·의심도 등급·
+ * 검토 표시에 영향이 없고, 이탈·붙여넣기·평소대비는 의심도와 섞지 않고 열만 나란히 둔다(확정 원칙). 학생 화면 노출 금지(교사 대시보드 전용). */
+const SUSPECT_TABLE = { open:false, sort:'level', dir:1, pending:false };
+let SUSPECT_SCOPE = [];
+function dashSuspectTableRows_(){
+  const lvRank = r => String(r['AI작성의심도']).trim() === '높음' ? 0 : 1;
+  const sig = r => dashFocusSignal_(r);
+  const keys = {
+    level:  x => [lvRank(x.r), x.s.p.ban, x.s.p.num],
+    who:    x => [x.s.p.ban, x.s.p.num],
+    act:    x => [String(dashLessonTitle(String(x.r.gameName)))],
+    leaves: x => { const f = sig(x.r); return [f ? -f.leaves : 1]; },   // 신호 없는 옛 제출은 항상 맨 아래
+    paste:  x => { const f = sig(x.r); return [f ? -f.paste : 1]; },
+    review: x => [dashSuspectReview_(x.r) ? 1 : 0, lvRank(x.r)]
+  };
+  const kf = keys[SUSPECT_TABLE.sort] || keys.level;
+  let rows = [];
+  SUSPECT_SCOPE.forEach(s => s.items.forEach(r => rows.push({ s, r })));
+  if(SUSPECT_TABLE.pending) rows = rows.filter(x => !dashSuspectReview_(x.r));
+  const cmp = (a, b) => {
+    const ka = kf(a), kb = kf(b);
+    for(let i = 0; i < ka.length; i++){
+      if(ka[i] < kb[i]) return -1 * SUSPECT_TABLE.dir;
+      if(ka[i] > kb[i]) return 1 * SUSPECT_TABLE.dir;
+    }
+    return 0;
+  };
+  return rows.sort(cmp);
+}
+function dashRenderSuspectTable_(){
+  const el = $('suspectTable');
+  if(!el) return;
+  const rows = dashSuspectTableRows_();
+  const th = (key, label) => `<th class="st-sort${SUSPECT_TABLE.sort === key ? ' on' : ''}" data-sort="${key}">${label}${SUSPECT_TABLE.sort === key ? (SUSPECT_TABLE.dir === 1 ? ' ▲' : ' ▼') : ''}</th>`;
+  const body = rows.map(({ s, r }) => {
+    const hi = String(r['AI작성의심도']).trim() === '높음';
+    const f = dashFocusSignal_(r);
+    const note = dashBaselineNote_(r), bk = dashBaselineKind_(note);
+    const rv = dashSuspectReview_(r);
+    return `<tr${rv ? ' class="rv"' : ''}>
+      <td class="st-who"><b>${escapeHtml(s.name)}</b><div class="muted">${s.sid}</div><button class="btn btn-sm btn-ghost" data-jump="${s.sid}" type="button">상세 ↗</button></td>
+      <td>${escapeHtml(dashShorten(dashLessonTitle(String(r.gameName)), 18))}<div class="muted">${escapeHtml(String(r['성취수준'] || r.achievement || ''))}</div></td>
+      <td class="st-lv${hi ? ' hi' : ''}">${escapeHtml(String(r['AI작성의심도']).trim())}</td>
+      <td><div class="st-text" title="눌러서 펼치기">${escapeHtml(String(r['AI작성의심근거'] || '근거 없음'))}</div></td>
+      <td><div class="st-text" title="눌러서 펼치기">${escapeHtml(String(r.reflection || '—'))}</div></td>
+      <td class="st-num${f && f.leaves >= FOCUS_LEAVE_WARN ? ' warn' : ''}">${f ? `${f.leaves}회<div class="muted">${f.sec}초</div>` : '<span class="muted" title="신호 없음(옛 제출)">—</span>'}</td>
+      <td class="st-num${f && f.paste >= FOCUS_PASTE_WARN ? ' warn' : ''}">${f ? `${f.paste}자` : '<span class="muted" title="신호 없음(옛 제출)">—</span>'}</td>
+      <td class="st-bl${bk ? ' ' + bk : ''}">${escapeHtml(note || '—')}</td>
+      <td class="st-rv">${rv ? (rv === '상담함' ? '💬 상담함' : '✓ 문제없음') : '<span class="muted">대기</span>'}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="st-tools">
+      <label><input type="checkbox" id="stPending"${SUSPECT_TABLE.pending ? ' checked' : ''}> 검토 대기만</label>
+      <span class="muted">${rows.length}건 · 열 제목을 누르면 정렬 · 글을 누르면 펼침 · 참고용 판정(확정 아님)</span>
+    </div>
+    <div class="st-scroll"><table class="st-table">
+      <thead><tr>${th('who', '학생')}${th('act', '활동')}${th('level', '의심도')}<th>근거</th><th>학생 서술</th>${th('leaves', '이탈')}${th('paste', '붙여넣기')}<th>평소 대비</th>${th('review', '검토')}</tr></thead>
+      <tbody>${body || '<tr><td colspan="9" class="muted">표시할 기록이 없어요.</td></tr>'}</tbody>
+    </table></div>`;
+  $('stPending').addEventListener('change', e => { SUSPECT_TABLE.pending = e.target.checked; dashRenderSuspectTable_(); });
+  el.querySelectorAll('th[data-sort]').forEach(h => h.addEventListener('click', () => {
+    const k = h.dataset.sort;
+    if(SUSPECT_TABLE.sort === k) SUSPECT_TABLE.dir *= -1; else { SUSPECT_TABLE.sort = k; SUSPECT_TABLE.dir = 1; }
+    dashRenderSuspectTable_();
+  }));
+  el.querySelectorAll('.st-text').forEach(t => t.addEventListener('click', () => t.classList.toggle('open')));
+  el.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => dashJumpToStudent_(b.dataset.jump)));
 }
 
 function dashFilteredRows(){
