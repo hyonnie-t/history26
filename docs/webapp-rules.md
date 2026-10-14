@@ -4,8 +4,14 @@
 
 개별 수업 웹앱(`crusades` 십자군 판단형 서술, `his_judge_goryeo` 3차시 역사법정 역할극 등)은 **이 레포 밖 각자의 레포**에 있고,
 `CONFIG.SHEET_WEBAPP_URL`로 같은 `history26_backend`를 직접 호출한다(대부분 새 action 없이 기존 gameName 제출 경로만, 학생당 1행).
-이 레포의 커리큘럼 관리 탭에서 activity id로 등록해야 포털 진행률·포인트에 잡힌다. **새로 만들거나 고칠 땐 `webapp-builder` 스킬을
-반드시 따른다** — 아래는 스킬이 없는 환경에서도 지켜야 할 요지.
+이 레포의 커리큘럼 관리 탭에서 activity id로 등록해야 포털 진행률·포인트에 잡힌다.
+
+**세부 규칙의 원본은 이 문서다.** `webapp-builder` 스킬은 틀려도 에러 없이 빠지는 규칙(조용한 실패)과 배포 직전 점검만 담고,
+나머지는 이 문서를 가리킨다. 스킬과 이 문서가 다르면 이 문서를 따르고 어디가 다른지 효니에게 알린다. 새 규칙은 이 문서에 먼저 넣는다.
+스니펫 사용법의 세부는 `docs/features.md`의 세 섹션에 있다 — 이 문서를 읽을 때 같이 읽는다:
+- "작성 과정 신호" — `focus_guard.js`, 패들렛 자동 면제, 그 밖의 도메인은 `FocusGuard.exempt()`
+- "글쓰기 임시저장" — `draft_guard.js`, 제출 성공 직후 `clear()`, `data-draft`/`data-no-draft`
+- "어휘 풀이" — `glossary.js` 옵션, GLOSSARY 풀이 규칙, `vocab_check.mjs`
 
 ## 필수 요소
 1. `CONFIG.SHEET_WEBAPP_URL` 하드코딩 — 옮겨 적은 URL은 grep/diff로 원본과 대조.

@@ -11,6 +11,9 @@
 # 두면 조용하고, 새로 이런 라벨을 렌더링 문자열에 박아 넣을 때만 걸린다.
 # 휴리스틱이라 오탐 가능(학생/교사 화면 구분은 안 함) — 강제 차단 안 하고
 # 참고용 경고만 systemMessage로 띄운다.
+#
+# "대조"·"2차"는 낱말이 아니라 라벨 꼴로만 찾는다 — "제2차 세계대전", "대조적인"
+# 같은 정상 콘텐츠가 걸리는 오탐을 막으려고(2026-10-14). 패턴은 grep -E 정규식.
 set -uo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
@@ -24,7 +27,7 @@ CHANGED=$(git status --porcelain -- $FILES 2>/dev/null)
 DIFF=$(git diff HEAD -- $FILES 2>/dev/null)
 [ -z "$DIFF" ] && exit 0
 
-TARGETS=("검수" "대조" "미확인" "2차" "확인 전")
+TARGETS=("검수" "원문 대조|대조 전" "미확인" "\\[2차\\]|\\(2차\\)" "확인 전")
 MSGS=()
 
 for S in "${TARGETS[@]}"; do
@@ -32,13 +35,13 @@ for S in "${TARGETS[@]}"; do
   NEW_COUNT=0
   for f in $FILES; do
     [ -f "$f" ] || continue
-    hc=$(git show "HEAD:$f" 2>/dev/null | grep -oF "$S" | wc -l)
-    nc=$(grep -oF "$S" "$f" 2>/dev/null | wc -l)
+    hc=$(git show "HEAD:$f" 2>/dev/null | grep -oE "$S" | wc -l)
+    nc=$(grep -oE "$S" "$f" 2>/dev/null | wc -l)
     HEAD_COUNT=$((HEAD_COUNT + hc))
     NEW_COUNT=$((NEW_COUNT + nc))
   done
   if [ "$NEW_COUNT" -gt "$HEAD_COUNT" ]; then
-    SAMPLE=$(echo "$DIFF" | grep -E '^\+' | grep -F "$S" | head -2 | sed 's/^+/    /')
+    SAMPLE=$(echo "$DIFF" | grep -E '^\+' | grep -E "$S" | head -2 | sed 's/^+/    /')
     MSGS+=("'${S}' 등장 횟수가 늘어남(${HEAD_COUNT}→${NEW_COUNT}) — 검증 메타데이터가 학생 화면 렌더링 문자열에 새로 들어간 건 아닌지 확인:"$'\n'"${SAMPLE}")
   fi
 done
