@@ -1,3 +1,5 @@
 효니.local.md
 *.gs
 __pycache__/
+# 로컬 작업 메모(plan/checks/progress) — 커밋 금지
+.work/

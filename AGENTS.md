@@ -40,6 +40,12 @@ UI 텍스트·주석·커밋 메시지는 한국어.
   `node tests/webapp-testing/shot.js http://localhost:8765/index.html <출력폴더> <접두어>`로 폰360·태블릿820·PC1280 세 폭 확인
   (playwright 경로는 스크립트가 찾는다 — 세션마다 새로 찾지 말 것).
 - Stop 훅(`.claude/hooks/`)이 턴 끝에 Playwright 스모크·버전 재사용·`.side-card` 브레이크포인트·검증 메타 유출을 **경고만** 한다(차단 아님). 경고가 뜨면 고친다.
+- 커밋만은 PreToolUse 훅 `block_secret_commit.sh`가 **차단**한다: `.gs` 스테이징·`git add -f *.gs`, 추가된 줄의 API 키·개인키,
+  HEAD에 없던 새 배포 URL·시트 ID(규칙 5·6). 정상적인 새 URL이면 효니 확인 뒤 명령 앞에 `HISTORY26_ALLOW_SECRET=1`.
+- 끝낼 때 요구사항마다 **통과/실패/미확인 + 근거**(훅 결과·스크린샷 경로·테스트 출력)로 보고한다. 클라우드에서 못 본 배포·실제 응답은 "미확인".
+- 효니가 "틀렸어"로 정정한 건 같은 턴에 해당 `.claude/rules/*.md`(없으면 이 파일)에 한 줄로 남긴다. 다음 세션이 같은 실수를 안 하게.
+- 큰 작업(파일 3개 이상, 또는 세션을 넘길 것)만 `.work/`에 `plan.md`(단계·각 단계 확인 방법)·`checks.md`(요구사항|판정|근거)·
+  `progress.md`(끝난 단계·다음 단계)를 둔다. `.work/`는 gitignore됨 — 커밋 금지, 작은 수정엔 만들지 않는다.
 
 ## 작업 전 읽을 것 (라우팅)
 `.claude/rules/*`는 해당 파일을 Read/Edit하면 자동 로드되지만 **grep·sed로만 볼 땐 안 뜬다** — 그 파일을 고칠 거면 먼저 Read할 것.
