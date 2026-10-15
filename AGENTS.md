@@ -34,12 +34,27 @@ UI 텍스트·주석·커밋 메시지는 한국어.
   문서에 줄번호를 적지 말고 함수·id 이름만 쓴다(편집마다 밀림).
 - 코드 주석 관례: 바꾼 곳에 `vNN` + 왜 바꿨는지 짧게. 새 번호는 `CHANGELOG.md`에서 안 쓰인 번호인지 먼저 확인(재번호 사고 이력, Stop 훅도 경고).
   과거 경위는 `CHANGELOG.md`.
-- 샌드박스에서 `script.google.com`·`*.github.io`·`cdn.jsdelivr.net`은 막혀 있다. 실제 응답·배포 확인은 curl 말고
+- 클라우드 샌드박스에서 `script.google.com`·`*.github.io`·`cdn.jsdelivr.net`은 막혀 있다. 실제 응답·배포 확인은 curl 말고
   효니에게 URL을 열어 결과를 붙여 달라고 하고, 백엔드 응답은 `tests/webapp-testing/fixtures.py`처럼 가짜로 시험한다.
+  **로컬 세션은 이 차단이 없다 — 아래 "로컬 세션" 규칙을 따른다.**
 - 로컬 확인은 반드시 `python3 -m http.server 8765 &`(`file://`는 스크립트 로드·fetch가 막힌다). 새 화면은
   `node tests/webapp-testing/shot.js http://localhost:8765/index.html <출력폴더> <접두어>`로 폰360·태블릿820·PC1280 세 폭 확인
   (playwright 경로는 스크립트가 찾는다 — 세션마다 새로 찾지 말 것).
 - Stop 훅(`.claude/hooks/`)이 턴 끝에 Playwright 스모크·버전 재사용·`.side-card` 브레이크포인트·검증 메타 유출을 **경고만** 한다(차단 아님). 경고가 뜨면 고친다.
+
+## 로컬 세션 (효니 PC, Windows·OneDrive)
+클라우드에선 샌드박스가 막아 주던 것이 로컬에선 풀린다. 아래는 그걸 규칙으로 대신한 것이다.
+- **시트에 진짜로 쓰인다.** `WEBAPP_URL`·`SHEET_WEBAPP_URL`은 로컬에서 실제로 열린다. 호출은 GET(조회)만 하고,
+  POST·쓰기 action은 효니에게 먼저 묻는다. 시험은 `tests/webapp-testing/fixtures.py` 가짜 응답으로 한다.
+- **비밀 파일은 출력·커밋·로그에 옮기지 않는다.** `효니.local.md`, 백엔드 `.gas.local.json`, 구글 `token.json` 경로.
+  커밋 전 `git diff --cached`에서 URL·ID·토큰을 grep으로 확인한다(이 레포는 public).
+- **푸시는 작업 브랜치에만 한다.** `main` 병합은 효니가 한다. 효니가 시킨 적 없는 `main` 직접 푸시·force push 금지.
+- **OneDrive 안의 `.git`은 PC 3대가 동기화한다.** 한 번에 한 PC에서만 작업하고, 시작 전에 `git status`와
+  `.git/index.lock` 유무를 본다(락이 있으면 지우지 말고 효니에게 알린다). 끝나면 push까지 하고,
+  다른 PC로 넘어가기 전에 OneDrive 동기화가 끝났는지 효니에게 상기시킨다. 원본은 GitHub이니 푸시 안 한 변경만 잃을 수 있다.
+- **백엔드를 같이 고칠 땐** `history26_backend`를 형제 폴더로 두고 `--add-dir`로 연결한다. 백엔드 수정은 그 레포 규칙대로
+  `gas_sync.sh push`까지 하고, 재배포("새 버전")는 효니에게 요청한다.
+- Stop 훅은 bash다. Windows에선 Git Bash로 돌린다. 훅이 안 돌면 안 돈다고 말하고 같은 점검을 손으로 한다.
 
 ## 작업 전 읽을 것 (라우팅)
 `.claude/rules/*`는 해당 파일을 Read/Edit하면 자동 로드되지만 **grep·sed로만 볼 땐 안 뜬다** — 그 파일을 고칠 거면 먼저 Read할 것.
