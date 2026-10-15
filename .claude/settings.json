@@ -1,5 +1,14 @@
 {
   "model": "opusplan",
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(python3 -m http.server 8765*)",
+      "Bash(node tests/webapp-testing/shot.js*)"
+    ]
+  },
   "hooks": {
     "Stop": [
       {
