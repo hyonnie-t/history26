@@ -1524,3 +1524,52 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
   .unit-head{flex-wrap:wrap;}
   .unit-count{order:3; width:100%;}
 }
+
+/* ══════════════ v80 — 교사 대시보드: 학년 전환 · 학년정보 폼 · 커리큘럼 목록 ══════════════ */
+/* 학년 전환(2학년/3학년) — 학년정보 폼과 등록된 활동 목록이 같이 바뀐다 */
+.grade-seg{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px;}
+.grade-seg-btn{
+  display:inline-flex; align-items:center; gap:6px; min-height:var(--tap-min);
+  padding:8px 16px; border:1.5px solid var(--line); border-radius:999px;
+  background:var(--card); color:var(--ink-soft); font:inherit; font-size:.9rem; cursor:pointer;
+}
+.grade-seg-btn b{color:var(--ink);}
+.grade-seg-btn:hover{border-color:var(--indigo);}
+.grade-seg-btn.active{background:var(--indigo); border-color:var(--indigo); color:#fff;}
+.grade-seg-btn.active b{color:#fff;}
+.grade-seg-count{font-size:.75rem; opacity:.75; margin-left:2px;}
+
+/* 학년정보 블록 — 섹션 3개(단원 질문 / 링크 카드 / 담당 반) + 저장 줄 */
+.gi-block{padding:16px 18px;}
+.gi-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:4px;}
+.gi-head h4{font-family:var(--font-display); font-size:1.08rem; margin:0;}
+.gi-sub{font-size:.78rem; color:var(--ink-soft);}
+.gi-sec{padding:12px 0; border-top:1px dashed var(--line);}
+.gi-sec:first-of-type{border-top:none;}
+.gi-sec-title{font-size:.86rem; font-weight:700; color:var(--indigo); margin:0 0 6px;}
+.gi-sec-hint{font-size:.78rem; color:var(--ink-soft); margin:4px 0 8px;}
+.gi-block label{display:block; font-size:.78rem; color:var(--ink-soft); margin:8px 0 0;}
+.gi-block label > input, .gi-block label > textarea{margin-top:3px;}
+.gi-link-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px;}
+.gi-link-card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;}
+.gi-link-head{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:.88rem;}
+.gi-link-ico{font-size:1rem;}
+.gi-pill{margin-left:auto; font-size:.7rem; padding:2px 8px; border-radius:999px; background:var(--line); color:var(--ink-soft); white-space:nowrap;}
+.gi-pill.on{background:var(--jade); color:#fff;}
+.gi-link-card textarea{min-height:52px; font-size:.82rem;}
+.gi-two{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.gi-two label{margin-top:0;}
+.gi-save-bar{display:flex; justify-content:flex-end; padding-top:10px; border-top:1px solid var(--line);}
+.gi-save-bar button{margin-top:0;}
+@media (max-width:560px){
+  .gi-two{grid-template-columns:1fr;}
+  .gi-save-bar button{width:100%;}
+}
+
+/* 등록된 활동 목록 — 학년 머리글 요약, 삭제는 위험 동작으로 구분, 좁은 폭에선 버튼을 아래 줄로 */
+.cl-grade-meta{font-size:.78rem; font-weight:400; color:var(--ink-soft); margin-left:6px;}
+.an-toggle.cl-del{color:var(--seal); border-color:var(--seal);}
+.an-toggle.cl-del:hover{background:var(--seal); color:#fff;}
+@media (max-width:640px){
+  .cl-item-actions{width:100%; justify-content:flex-end; padding-left:22px;}
+}

@@ -431,8 +431,11 @@
       새로 추가한 활동은 기본적으로 <b>비공개</b>로 등록되니, 공개할 준비가 되면 아래 목록에서 전환해 주세요.
     </p>
 
+    <!-- v80 — 학년정보·등록된 활동을 학년별로 나눠 보기. 이 버튼이 두 영역의 학년을 같이 바꾼다(clSetGrade_). -->
+    <div class="grade-seg" id="clGradeSeg" role="tablist" aria-label="편집할 학년"></div>
+
     <details class="cl-collapse">
-      <summary>🏫 학년 정보 (단원 관통 질문 · 포트폴리오) <span class="cl-arrow">▶</span></summary>
+      <summary>🏫 학년 정보 (단원 질문 · 학생 화면 링크 · 담당 반) <span class="cl-arrow">▶</span></summary>
       <div class="cl-collapse-body">
         <div id="giForm"></div>
       </div>
@@ -2891,47 +2894,101 @@ function dashInitCurriculumForm(){
   clRefreshBadgeNameOptions(); // v24 — 데이터 로드 후 최신 BADGE_NAME_POOL로 초기 상태 맞춤
 }
 
-function dashRenderGradeInfoForm(){
+/* v80 — 학년 전환(2학년/3학년). 학년정보 폼과 등록된 활동 목록이 같은 학년을 보여준다.
+ * 두 학년 블록을 모두 그려 두고 숨김만 바꿔서, 다른 학년으로 넘어가도 입력 중인 내용이 지워지지 않는다. */
+let CL_GRADE = null;
+function clGradeList_(){
+  const set = new Set([...Object.keys(GRADE_INFO_ADMIN), ...LESSONS_ADMIN.map(l => String(l.grade))]);
+  return [...set].filter(Boolean).sort();
+}
+function clCurGrade_(){
+  const grades = clGradeList_();
+  if(!grades.includes(CL_GRADE)) CL_GRADE = grades[0] || null;
+  return CL_GRADE;
+}
+function clRenderGradeSeg_(){
+  const wrap = $('clGradeSeg');
+  if(!wrap) return;
+  const grades = clGradeList_();
+  const cur = clCurGrade_();
+  wrap.style.display = grades.length > 1 ? 'flex' : 'none';
+  wrap.innerHTML = grades.map(g => {
+    const subj = (GRADE_INFO_ADMIN[g] && GRADE_INFO_ADMIN[g].subject) || '';
+    const n = LESSONS_ADMIN.filter(l => String(l.grade) === g).length;
+    return `<button type="button" class="grade-seg-btn ${g === cur ? 'active' : ''}" role="tab" aria-selected="${g === cur}" onclick="clSetGrade_('${g}')">
+      <b>${g}학년</b> ${escapeHtml(subj)}<span class="grade-seg-count">${n}개 활동</span></button>`;
+  }).join('');
+}
+function clSetGrade_(g){
+  CL_GRADE = g;
+  clRenderGradeSeg_();
+  document.querySelectorAll('#giForm .gi-block, #clList .cl-grade-group').forEach(el => {
+    el.style.display = el.dataset.grade === g ? '' : 'none';
+  });
+  // "새 활동 추가" 폼의 학년도 맞춰 둔다(직접 바꿀 수도 있음)
+  const sel = $('clGrade');
+  if(sel && [...sel.options].some(o => o.value === g) && sel.value !== g){
+    sel.value = g; sel.dispatchEvent(new Event('change'));
+  }
+}
+
+function giLinkCardHtml_(icon, name, key, title, desc, url, titlePh){
+  const on = !!String(url || '').trim();
+  return `
+    <div class="gi-link-card">
+      <div class="gi-link-head">
+        <span class="gi-link-ico" aria-hidden="true">${icon}</span>
+        <b>${name}</b>
+        <span class="gi-pill ${on ? 'on' : ''}">${on ? '학생에게 보임' : '링크 없음 · 숨김'}</span>
+      </div>
+      <label>제목<input type="text" class="gi-${key}-title" placeholder="${titlePh}" value="${escapeHtml(title || '')}"></label>
+      <label>설명<input type="text" class="gi-${key}-desc" placeholder="한 줄 안내 (선택)" value="${escapeHtml(desc || '')}"></label>
+      <label>링크<textarea class="gi-${key}-url" placeholder="https://…  (반마다 다르면 5:https://… 처럼 한 줄에 하나)">${escapeHtml(url || '')}</textarea></label>
+    </div>`;
+}
+function giBlockHtml_(g){
+  const gi = GRADE_INFO_ADMIN[g];
+  const trackConfigured = (gi.hyoBansText || '').trim() || (gi.mihyunBansText || '').trim();
+  return `
+      <div class="gi-block" data-grade="${g}" style="${g === clCurGrade_() ? '' : 'display:none;'}">
+        <div class="gi-head"><h4>${g}학년 ${escapeHtml(gi.subject || '')}</h4><span class="gi-sub">학생 포털에 보이는 정보예요</span></div>
+        <section class="gi-sec">
+          <p class="gi-sec-title">단원 관통 질문</p>
+          <textarea class="gi-uq" placeholder="학생 포털 상단 배너에 보이는 질문">${escapeHtml(gi.unitQuestion || '')}</textarea>
+        </section>
+        <section class="gi-sec">
+          <p class="gi-sec-title">학생 화면 링크 카드</p>
+          <p class="gi-sec-hint">학습 연표 위 탭으로 보여요. 링크를 비워 두면 그 탭은 학생에게 안 보여요.</p>
+          <div class="gi-link-grid">
+            ${giLinkCardHtml_('📝', '패들렛(포트폴리오)', 'pf', gi.portfolioTitle, gi.portfolioDesc, gi.portfolioUrlText, '나의 패들렛')}
+            ${giLinkCardHtml_('🃏', '복습용 클래스카드', 'cc', gi.classcardTitle, gi.classcardDesc, gi.classcardUrlText, '복습용 클래스카드')}
+            ${giLinkCardHtml_('📖', '시험범위 교과서', 'tb', gi.textbookTitle, gi.textbookDesc, gi.textbookUrlText, '시험범위 교과서')}
+          </div>
+        </section>
+        <section class="gi-sec">
+          <p class="gi-sec-title">담당 반</p>
+          <div class="gi-two">
+            <label>효니 담당 반<input type="text" class="gi-hyo-bans" placeholder="예: 1,2,3,4" value="${escapeHtml(gi.hyoBansText || '')}"></label>
+            <label>미현쌤 담당 반<input type="text" class="gi-mihyun-bans" placeholder="예: 5,6,7,8" value="${escapeHtml(gi.mihyunBansText || '')}"></label>
+          </div>
+          <p class="gi-sec-hint">쉼표로 구분해요. 커리큘럼에서 담당을 효니/미현쌤으로 지정한 차시는 그 반에만 보여요.</p>
+          ${!trackConfigured ? '<p class="cl-hint">⚠️ 아직 비어있어요 — 이 상태에서 커리큘럼 "담당"을 효니/미현쌤으로 지정하면 그 차시는 <b>아무 반에도 안 보여요</b>. 담당을 나누려면 여기부터 채워야 해요.</p>' : ''}
+        </section>
+        <div class="gi-save-bar"><button onclick="dashSaveGradeInfo('${g}', this)">${g}학년 정보 저장</button></div>
+      </div>`;
+}
+/* grade를 주면 그 학년 블록만 다시 그린다(저장 직후 — 다른 학년 블록의 입력 중인 내용을 지우지 않으려고). */
+function dashRenderGradeInfoForm(grade){
   const wrap = $('giForm');
-  const grades = Object.keys(GRADE_INFO_ADMIN);
+  clRenderGradeSeg_();
+  const grades = Object.keys(GRADE_INFO_ADMIN).sort();
   if(!grades.length){
     wrap.innerHTML = '<p class="empty-hint">학년정보가 아직 없어요. (마이그레이션이 필요할 수 있어요)</p>';
     return;
   }
-  wrap.innerHTML = grades.map(g => {
-    const gi = GRADE_INFO_ADMIN[g];
-    const trackConfigured = (gi.hyoBansText || '').trim() || (gi.mihyunBansText || '').trim();
-    return `
-      <div class="gi-block" data-grade="${g}">
-        <h4>${g}학년 ${escapeHtml(gi.subject || '')}</h4>
-        <label>단원 관통 질문</label>
-        <textarea class="gi-uq">${escapeHtml(gi.unitQuestion || '')}</textarea>
-        <label>포트폴리오 제목</label>
-        <input type="text" class="gi-pf-title" value="${escapeHtml(gi.portfolioTitle || '')}">
-        <label>포트폴리오 설명</label>
-        <input type="text" class="gi-pf-desc" value="${escapeHtml(gi.portfolioDesc || '')}">
-        <label>포트폴리오 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
-        <textarea class="gi-pf-url">${escapeHtml(gi.portfolioUrlText || '')}</textarea>
-        <label>복습용 클래스카드 제목</label>
-        <input type="text" class="gi-cc-title" value="${escapeHtml(gi.classcardTitle || '')}">
-        <label>복습용 클래스카드 설명</label>
-        <input type="text" class="gi-cc-desc" value="${escapeHtml(gi.classcardDesc || '')}">
-        <label>복습용 클래스카드 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
-        <textarea class="gi-cc-url">${escapeHtml(gi.classcardUrlText || '')}</textarea>
-        <label>시험범위 교과서 제목 (v79)</label>
-        <input type="text" class="gi-tb-title" value="${escapeHtml(gi.textbookTitle || '')}">
-        <label>시험범위 교과서 설명</label>
-        <input type="text" class="gi-tb-desc" value="${escapeHtml(gi.textbookDesc || '')}">
-        <label>시험범위 교과서 링크 (PDF 등. 반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
-        <textarea class="gi-tb-url">${escapeHtml(gi.textbookUrlText || '')}</textarea>
-        <label>효니 담당 반 (쉼표로 구분, 예: 1,2,3,4) — 커리큘럼에서 "효니" 담당으로 지정한 차시가 이 반에만 보여요</label>
-        <input type="text" class="gi-hyo-bans" placeholder="예: 1,2,3,4" value="${escapeHtml(gi.hyoBansText || '')}">
-        <label>미현쌤 담당 반 (쉼표로 구분, 예: 5,6,7,8)</label>
-        <input type="text" class="gi-mihyun-bans" placeholder="예: 5,6,7,8" value="${escapeHtml(gi.mihyunBansText || '')}">
-        ${!trackConfigured ? '<p class="cl-hint">⚠️ 아직 비어있어요 — 이 상태에서 커리큘럼 "담당"을 효니/미현쌤으로 지정하면 그 차시는 <b>아무 반에도 안 보여요</b>. 담당을 나누려면 여기부터 채워야 해요.</p>' : ''}
-        <button onclick="dashSaveGradeInfo('${g}', this)">저장</button>
-      </div>`;
-  }).join('');
+  const old = grade && wrap.querySelector(`.gi-block[data-grade="${grade}"]`);
+  if(old){ old.outerHTML = giBlockHtml_(grade); return; }
+  wrap.innerHTML = grades.map(giBlockHtml_).join('');
 }
 
 async function dashSaveGradeInfo(grade, btn){
@@ -2952,6 +3009,7 @@ async function dashSaveGradeInfo(grade, btn){
     hyoBans: block.querySelector('.gi-hyo-bans').value.trim(),       // v28
     mihyunBans: block.querySelector('.gi-mihyun-bans').value.trim() // v28
   };
+  const btnLabel = btn.textContent;
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
     await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
@@ -2964,12 +3022,12 @@ async function dashSaveGradeInfo(grade, btn){
       textbookUrlText: payload.textbookUrlText,
       hyoBansText: payload.hyoBans, mihyunBansText: payload.mihyunBans
     });
-    showToast('학년정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.');
-    dashRenderGradeInfoForm();
+    showToast(`${grade}학년 정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.`);
+    dashRenderGradeInfoForm(grade); // v80 — 그 학년 블록만 새로 그림(다른 학년 입력 중인 내용 보존)
   }catch(e){
     showToast('저장하지 못했어요. 다시 시도해 주세요.');
   }finally{
-    btn.disabled = false; btn.textContent = '저장';
+    btn.disabled = false; btn.textContent = btnLabel;
   }
 }
 
@@ -3703,12 +3761,15 @@ function dashRenderLessons(){
     return;
   }
   const grades = [...new Set(LESSONS_ADMIN.map(l => l.grade))].sort();
+  const curG = clCurGrade_(); // v80 — 학년 전환 버튼이 고른 학년만 보이게
   let html = '';
   grades.forEach(g => {
     const all = LESSONS_ADMIN.filter(l => l.grade === g).sort((a,b) => a.order - b.order);
     const active = all.filter(l => !l.isPast);
     const past = all.filter(l => l.isPast);
-    html += `<h4 class="cl-grade-head">${g}학년</h4>`;
+    const pubN = active.filter(l => l.public).length;
+    html += `<div class="cl-grade-group" data-grade="${escapeHtml(g)}" style="${String(g) === curG ? '' : 'display:none;'}">`;
+    html += `<h4 class="cl-grade-head">${g}학년 <span class="cl-grade-meta">진행 ${active.length}개 · 공개 ${pubN}개 · 지난 활동 ${past.length}개</span></h4>`;
     html += `<div class="cl-active-list" data-grade="${escapeHtml(g)}">`
       + (active.length ? active.map(l => clLessonItemHtml(l, false)).join('') : '<p class="cl-past-hint">진행중/예정 활동이 없어요.</p>')
       + `</div>`;
@@ -3719,7 +3780,9 @@ function dashRenderLessons(){
           ${past.length ? past.map(l => clLessonItemHtml(l, true)).join('') : '<p class="cl-past-hint">지난 활동으로 표시된 항목이 없어요.</p>'}
         </div>
       </details>`;
+    html += `</div>`;
   });
+  clRenderGradeSeg_();
   list.innerHTML = html;
   bindClListEvents();
 }
@@ -3746,7 +3809,7 @@ function clLessonItemHtml(l, isPastItem){
         <button class="an-toggle" data-row="${l._row}" onclick="dashEditLesson(this)">수정</button>
         <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
         <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPast(this)">${isPastItem ? '진행중으로 되돌리기' : '지난 활동으로 표시'}</button>
-        <button class="an-toggle" data-row="${l._row}" data-id="${escapeHtml(l.id)}" onclick="dashDeleteLesson(this)">삭제</button>
+        <button class="an-toggle cl-del" data-row="${l._row}" data-id="${escapeHtml(l.id)}" onclick="dashDeleteLesson(this)">삭제</button>
       </div>
     </div>`;
 }
