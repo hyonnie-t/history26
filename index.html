@@ -195,36 +195,16 @@
         </div>
       </section>
 
-      <!-- v42 — 구조 재배치: 실제로 매번 할 일인 차시 목록을 최상단 근처(공지·KPI·단원질문
-           바로 다음)로 끌어올림. 이전엔 포트폴리오·피드백·질문함·달성도·보관함을 전부
-           지난 맨 아래에 있었고, 태블릿 세로모드(≤1024px)에선 좌측 사이드카드(나무·칭호첩)
-           까지 그 앞에 붙어 실제 활동에 닿기까지 스크롤이 아주 길었음(사이드카드 노출
-           순서는 style.css의 .layout order로 조정). 아래 "그 밖의 기록" 묶음은 참고용
-           정보라 뒤로 미룸 — 내용 삭제 없이 순서만 바꿈. -->
-      <div class="timeline-head">
-        <p class="timeline-eyebrow">학습 연표</p>
-        <div class="timeline-tools" id="timelineTools" style="display:none;">
-          <span class="timeline-count" id="timelineCount"></span>
-          <button type="button" class="btn-tiny" onclick="setDoneLessonsOpen_(false)">완료한 차시 접기</button>
-          <button type="button" class="btn-tiny" onclick="setDoneLessonsOpen_(true)">모두 펼치기</button>
-        </div>
-      </div>
-      <div class="timeline" id="timeline"></div>
-      <p class="status-line" id="statusLine"></p>
-
-      <div class="section-head">
-        <h2 class="section-head-title">그 밖의 기록</h2>
-        <p class="section-head-sub">포트폴리오 링크 · 성적 · 선생님 피드백을 한곳에 모았어요</p>
-      </div>
-
-      <!-- v57 — 패들렛(포트폴리오)·클래스카드를 탭 하나로 묶음. 둘 다 "학기 내내 고정
+      <!-- v79 — 학습 연표 위(상단)로 이동 + 시험범위 교과서 탭 추가(효니 요청: 나의 패들렛을 위로).
+           v57 — 패들렛(포트폴리오)·클래스카드를 탭 하나로 묶음. 둘 다 "학기 내내 고정
            노출되는 링크 카드"라는 성격이 같아 탭 전환만으로 둘 다 접근하게 하고 세로 공간을
            하나만큼만 차지하게 압축. 반에 클래스카드 URL이 없으면 그 탭 버튼 자체를 숨기고
            패들렛 탭만 남긴다(renderPortal 참고). -->
-      <section class="tab-card" id="refTabsCard" aria-label="패들렛 · 클래스카드" style="display:none;">
+      <section class="tab-card" id="refTabsCard" aria-label="패들렛 · 클래스카드 · 시험범위 교과서" style="display:none;">
         <div class="tab-nav" id="refTabNav" role="tablist">
           <button type="button" class="tab-btn" id="refTabBtnPortfolio" data-rtab="portfolio" onclick="switchRefTab('portfolio')">패들렛(포트폴리오)</button>
           <button type="button" class="tab-btn" id="refTabBtnClasscard" data-rtab="classcard" onclick="switchRefTab('classcard')">클래스카드</button>
+          <button type="button" class="tab-btn" id="refTabBtnTextbook" data-rtab="textbook" onclick="switchRefTab('textbook')">시험범위 교과서</button>
         </div>
         <div class="tab-panel ref-link-panel" id="refPanelPortfolio">
           <span class="ref-ico ref-ico-jade" aria-hidden="true">📝</span>
@@ -244,7 +224,38 @@
           </div>
           <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener">클래스카드 열기 →</a>
         </div>
+        <div class="tab-panel ref-link-panel" id="refPanelTextbook" style="display:none;">
+          <span class="ref-ico ref-ico-amber" aria-hidden="true">📖</span>
+          <div class="ref-text">
+            <p class="pf-label">시험범위 교과서</p>
+            <p class="pf-title" id="textbookTitle"></p>
+            <p class="pf-desc" id="textbookDesc"></p>
+          </div>
+          <a class="btn-go" id="textbookLinkBtn" href="#" target="_blank" rel="noopener">교과서 열기 →</a>
+        </div>
       </section>
+
+      <!-- v42 — 구조 재배치: 실제로 매번 할 일인 차시 목록을 최상단 근처(공지·KPI·단원질문
+           바로 다음)로 끌어올림. 이전엔 포트폴리오·피드백·질문함·달성도·보관함을 전부
+           지난 맨 아래에 있었고, 태블릿 세로모드(≤1024px)에선 좌측 사이드카드(나무·칭호첩)
+           까지 그 앞에 붙어 실제 활동에 닿기까지 스크롤이 아주 길었음(사이드카드 노출
+           순서는 style.css의 .layout order로 조정). 아래 "그 밖의 기록" 묶음은 참고용
+           정보라 뒤로 미룸 — 내용 삭제 없이 순서만 바꿈. -->
+      <div class="timeline-head">
+        <p class="timeline-eyebrow">학습 연표</p>
+        <div class="timeline-tools" id="timelineTools" style="display:none;">
+          <span class="timeline-count" id="timelineCount"></span>
+          <button type="button" class="btn-tiny" onclick="setDoneLessonsOpen_(false)">완료한 차시 접기</button>
+          <button type="button" class="btn-tiny" onclick="setDoneLessonsOpen_(true)">모두 펼치기</button>
+        </div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+      <p class="status-line" id="statusLine"></p>
+
+      <div class="section-head">
+        <h2 class="section-head-title">그 밖의 기록</h2>
+        <p class="section-head-sub">성적 · 선생님 피드백을 한곳에 모았어요</p>
+      </div>
 
       <!-- v54(2026-09-15, 핸드오프 "성적조회 통합 v2" 옵션 A) — 성적조회 진입점.
            포트폴리오·클래스카드와 다르게 "학기 내내 접근 가능한 링크"가 아니라
@@ -1415,14 +1426,25 @@ function renderPortal(){
     $('classcardLinkBtn').href = ensureUrlScheme_(ccUrl);
   }
 
+  /* v79 — 시험범위 교과서(PDF 등). 클래스카드와 같은 패턴(반별 urlByBan 우선, 없으면 공통 url). */
+  const tb = cur.textbook;
+  const tbUrl = tb ? (tb.urlByBan ? (tb.urlByBan[SESSION.ban] || '') : (tb.url || '')) : '';
+  const tbHas = !!(tb && tbUrl);
+  if (tbHas) {
+    $('textbookTitle').textContent = tb.title || '시험범위 교과서';
+    $('textbookDesc').textContent = tb.desc || '';
+    $('textbookLinkBtn').href = ensureUrlScheme_(tbUrl);
+  }
+
   /* v57 — 패들렛·클래스카드 탭 카드. 데이터가 전혀 없으면 카드 자체를 숨기고,
    * 하나만 있으면 탭 내비게이션을 숨긴 채(누를 탭이 하나뿐이면 의미 없음) 그 패널만 보여준다. */
   $('refTabBtnPortfolio').style.display = pfHas ? '' : 'none';
   $('refTabBtnClasscard').style.display = ccHas ? '' : 'none';
-  if (pfHas || ccHas) {
+  $('refTabBtnTextbook').style.display = tbHas ? '' : 'none';
+  if (pfHas || ccHas || tbHas) {
     $('refTabsCard').style.display = 'block';
-    $('refTabNav').style.display = (pfHas && ccHas) ? 'flex' : 'none';
-    switchRefTab(pfHas ? 'portfolio' : 'classcard');
+    $('refTabNav').style.display = ((pfHas ? 1 : 0) + (ccHas ? 1 : 0) + (tbHas ? 1 : 0)) > 1 ? 'flex' : 'none';
+    switchRefTab(pfHas ? 'portfolio' : (ccHas ? 'classcard' : 'textbook'));
   } else {
     $('refTabsCard').style.display = 'none';
   }
@@ -1493,10 +1515,33 @@ function renderPortal(){
   }
   $('statusLine').style.display = 'none';
 
-  tl.innerHTML = lessons.map((l, i) => renderLessonCard(l, i, {
-    doneIds, achieveMap, latestMap, fbByLesson, classFeedbackMap, lessonDone, lessonHasUrl
-  })).reverse().join(''); // v20: 화면 노출 순서만 최신순(역순)으로. "N차시" 라벨은 위 map에서
-                          // 원래 순서 기준 i+1로 이미 계산돼 있으므로 번호는 그대로 유지됨.
+  const cardCtx = { doneIds, achieveMap, latestMap, fbByLesson, classFeedbackMap, lessonDone, lessonHasUrl };
+  // v20: 화면 노출 순서만 최신순(역순)으로. "N차시" 라벨은 원래 순서 기준 i+1로 계산돼 번호는 그대로 유지됨.
+  // v79: 차시를 중단원별로 묶어 접고 펴게 함(UNIT_GROUPS는 config.js). 설정 없는 학년은 예전처럼 한 줄로 나열.
+  const unitOf = unitOfLessons_(SESSION.grade, lessons);
+  const groups = [];
+  lessons.forEach((l, i) => {
+    const name = unitOf[i];
+    let g = groups.find(x => x.name === name);
+    if(!g){ g = { name, items: [] }; groups.push(g); }
+    g.items.push({ l, i });
+  });
+  if(!groups.some(g => g.name)){
+    tl.innerHTML = lessons.map((l, i) => renderLessonCard(l, i, cardCtx)).reverse().join('');
+  } else {
+    tl.innerHTML = groups.slice().reverse().map((g, gi) => {
+      const doneN = g.items.filter(x => lessonDone(x.l)).length;
+      const open = unitIsOpen_(g.name, gi === 0);
+      return `<section class="unit-group ${open ? '' : 'collapsed'}" data-unit="${escapeHtml(g.name)}">
+        <button type="button" class="unit-head" aria-expanded="${open}">
+          <span class="unit-name">${escapeHtml(g.name)}</span>
+          <span class="unit-count">${doneN} / ${g.items.length}차시 완료</span>
+          <span class="unit-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="unit-body">${g.items.slice().reverse().map(x => renderLessonCard(x.l, x.i, cardCtx)).join('')}</div>
+      </section>`;
+    }).join('');
+  }
 
   tl.querySelectorAll('.btn-check').forEach(btn => {
     btn.addEventListener('click', () => selfCheck(btn));
@@ -1512,6 +1557,8 @@ function renderPortal(){
   if(!tl.dataset.bound){
     tl.dataset.bound = '1';
     const toggle = ev => {
+      const uh = ev.target.closest('.unit-head');
+      if(uh){ const ug = uh.closest('.unit-group'); setUnitOpen_(ug, ug.classList.contains('collapsed')); return; }
       const head = ev.target.closest('.lesson-toggle');
       if(!head) return;
       const lesson = head.closest('.lesson');
@@ -1615,8 +1662,30 @@ function setLessonOpen_(el, open){
   if(t) t.setAttribute('aria-expanded', String(open));
   LESSON_OPEN[el.dataset.lid] = open;
 }
+/* v79 — 중단원 묶음 접기. 기본은 가장 최근 단원만 펼침. 상태는 UNIT_OPEN에 기억(재렌더 유지). */
+const UNIT_OPEN = {};
+function unitIsOpen_(name, dflt){
+  return (name in UNIT_OPEN) ? UNIT_OPEN[name] : dflt;
+}
+function setUnitOpen_(el, open){
+  el.classList.toggle('collapsed', !open);
+  const h = el.querySelector('.unit-head');
+  if(h) h.setAttribute('aria-expanded', String(open));
+  UNIT_OPEN[el.dataset.unit] = open;
+}
+/* 차시 목록(교육과정 순서)에 중단원 이름을 붙인다. config.js의 UNIT_GROUPS[학년]에 id가 적힌 차시는 그 단원,
+ * 적히지 않은 차시(새로 추가한 것)는 바로 앞 차시의 단원을 이어받는다. 학년에 설정이 없으면 전부 ''. */
+function unitOfLessons_(grade, lessons){
+  const cfg = (CONFIG.UNIT_GROUPS && CONFIG.UNIT_GROUPS[grade]) || [];
+  if(!cfg.length) return lessons.map(() => '');
+  const byId = {};
+  cfg.forEach(u => (u.ids || []).forEach(id => { byId[id] = u.name; }));
+  let prev = cfg[0].name;
+  return lessons.map(l => (prev = byId[l.id] || prev));
+}
 /* open=false: 완료한 차시만 접기 / open=true: 전부 펼치기 */
 function setDoneLessonsOpen_(open){
+  if(open) document.querySelectorAll('#timeline .unit-group').forEach(el => setUnitOpen_(el, true));
   document.querySelectorAll('#timeline .lesson').forEach(el => {
     if(open) setLessonOpen_(el, true);
     else if(el.classList.contains('done')) setLessonOpen_(el, false);
@@ -1894,7 +1963,7 @@ function switchQuickTab(tab){
 }
 
 function switchRefTab(tab){
-  ['portfolio','classcard'].forEach(t => {
+  ['portfolio','classcard','textbook'].forEach(t => {
     $('refPanel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'flex' : 'none';
   });
   document.querySelectorAll('#refTabsCard .tab-btn').forEach(btn => {
@@ -2849,6 +2918,12 @@ function dashRenderGradeInfoForm(){
         <input type="text" class="gi-cc-desc" value="${escapeHtml(gi.classcardDesc || '')}">
         <label>복습용 클래스카드 링크 (반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
         <textarea class="gi-cc-url">${escapeHtml(gi.classcardUrlText || '')}</textarea>
+        <label>시험범위 교과서 제목 (v79)</label>
+        <input type="text" class="gi-tb-title" value="${escapeHtml(gi.textbookTitle || '')}">
+        <label>시험범위 교과서 설명</label>
+        <input type="text" class="gi-tb-desc" value="${escapeHtml(gi.textbookDesc || '')}">
+        <label>시험범위 교과서 링크 (PDF 등. 반마다 다르면 "반:URL" 줄바꿈으로, 같으면 한 줄만)</label>
+        <textarea class="gi-tb-url">${escapeHtml(gi.textbookUrlText || '')}</textarea>
         <label>효니 담당 반 (쉼표로 구분, 예: 1,2,3,4) — 커리큘럼에서 "효니" 담당으로 지정한 차시가 이 반에만 보여요</label>
         <input type="text" class="gi-hyo-bans" placeholder="예: 1,2,3,4" value="${escapeHtml(gi.hyoBansText || '')}">
         <label>미현쌤 담당 반 (쉼표로 구분, 예: 5,6,7,8)</label>
@@ -2871,6 +2946,9 @@ async function dashSaveGradeInfo(grade, btn){
     classcardTitle: block.querySelector('.gi-cc-title').value.trim(),   // v45
     classcardDesc: block.querySelector('.gi-cc-desc').value.trim(),     // v45
     classcardUrlText: block.querySelector('.gi-cc-url').value.trim(),   // v45
+    textbookTitle: block.querySelector('.gi-tb-title').value.trim(),   // v79
+    textbookDesc: block.querySelector('.gi-tb-desc').value.trim(),     // v79
+    textbookUrlText: block.querySelector('.gi-tb-url').value.trim(),   // v79
     hyoBans: block.querySelector('.gi-hyo-bans').value.trim(),       // v28
     mihyunBans: block.querySelector('.gi-mihyun-bans').value.trim() // v28
   };
@@ -2882,6 +2960,8 @@ async function dashSaveGradeInfo(grade, btn){
       portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText,
       classcardTitle: payload.classcardTitle, classcardDesc: payload.classcardDesc,
       classcardUrlText: payload.classcardUrlText,
+      textbookTitle: payload.textbookTitle, textbookDesc: payload.textbookDesc,
+      textbookUrlText: payload.textbookUrlText,
       hyoBansText: payload.hyoBans, mihyunBansText: payload.mihyunBans
     });
     showToast('학년정보를 저장했어요. 학생 화면엔 다음 새로고침부터 반영돼요.');

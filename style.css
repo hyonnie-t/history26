@@ -1503,3 +1503,24 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 .si-act.cross{box-shadow:inset 0 0 0 1.5px var(--amber-border,#d9a441);}
 .cross-badge{font-size:.72rem; font-weight:700; color:var(--amber-text); background:var(--amber-bg); border:1.5px solid var(--amber-border); padding:1px 8px; border-radius:999px; white-space:nowrap;}
 .focus-badge{font-size:.72rem; font-weight:700; color:var(--amber-text); background:var(--amber-bg); border:1px solid var(--amber-border); padding:1px 8px; border-radius:999px; white-space:nowrap;}
+
+/* ══════════════ v79 — 학습 연표 중단원 묶음 ══════════════ */
+.unit-group{margin-bottom:14px;}
+.unit-head{
+  display:flex; align-items:center; gap:10px; width:100%; min-height:var(--tap-min);
+  padding:10px 14px; margin:0 0 12px; text-align:left; cursor:pointer;
+  background:var(--card); border:1px solid var(--line); border-left:4px solid var(--indigo);
+  border-radius:var(--radius); box-shadow:var(--shadow); font:inherit; color:var(--ink);
+}
+.unit-head:hover{background:var(--paper);}
+.unit-head:focus-visible{outline:2px solid var(--indigo); outline-offset:3px;}
+.unit-name{flex:1; font-family:var(--font-display); font-weight:700; font-size:1.05rem;}
+.unit-count{font-size:.8rem; color:var(--ink-soft); white-space:nowrap;}
+.unit-chevron{color:var(--ink-soft); font-size:1.1rem; line-height:1; transition:transform .2s;}
+.unit-group.collapsed .unit-chevron{transform:rotate(-90deg);}
+.unit-group.collapsed .unit-body{display:none;}
+.unit-group.collapsed .unit-head{margin-bottom:0;}
+@media (max-width:480px){
+  .unit-head{flex-wrap:wrap;}
+  .unit-count{order:3; width:100%;}
+}
