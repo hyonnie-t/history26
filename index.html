@@ -2570,6 +2570,7 @@ $('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
 
 function exitToLogin(){
   store.del('portal_session');
+  store.del('portal_handoff'); // v81
   SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; CHECKIN_CTX = null;
   PREVIEW_REAL = false; PREVIEW_FROM_DASH = false; TEST_WRITE_MODE = false;
   $('portalView').style.display = 'none';
@@ -5834,6 +5835,8 @@ async function startPreview(){
   TEST_WRITE_MODE = true;
   await login(sid, TEST_STUDENT_NAME);
   store.del('portal_session');
+  /* v81 — 기출 오답노트·체크리스트 웹앱이 읽는 별도 키. portal_session은 위처럼 지워야 하므로(자동 입장 방지) 따로 둔다. 테스트 계정만 넣는다. */
+  if(SESSION) store.set('portal_handoff', JSON.stringify({ sid, name: TEST_STUDENT_NAME }));
   if(!SESSION){ TEST_WRITE_MODE = false; } // 로그인 실패 — 로그인 화면의 오류 메시지를 그대로 보여준다
 }
 $('btnPreviewMode').addEventListener('click', () => {
