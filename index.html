@@ -22,37 +22,42 @@
       <div class="book-frame">
         <p class="book-eyebrow">2026 · 2학기</p>
         <h1 class="book-title">역사 탐구 기록</h1>
-        <p class="book-sub">학번·이름·비밀번호를 쓰면 나의 역사책이 펼쳐져요.</p>
-        <div class="field">
-          <label for="inputId">학번</label>
-          <input id="inputId" type="text" inputmode="numeric" maxlength="5" placeholder="예: 30512" autocomplete="off">
-          <p class="hint">학년·반·번호 5자리 (3학년 5반 12번 → 30512)</p>
-        </div>
-        <div class="field">
-          <label for="inputName">이름</label>
-          <input id="inputName" type="text" placeholder="이름을 입력하세요" autocomplete="off">
+        <p class="book-sub">학번·이름·비밀번호로 나의 역사책을 펼쳐요.</p>
+        <!-- v84 — 비밀번호 칸이 늘어 표지가 화면보다 길어져서 학번·이름을 한 줄로 묶고 안내문을 줄임 -->
+        <div class="book-row">
+          <div class="field">
+            <label for="inputId">학번</label>
+            <input id="inputId" type="text" inputmode="numeric" maxlength="5" placeholder="30512" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="inputName">이름</label>
+            <input id="inputName" type="text" placeholder="이름" autocomplete="off">
+          </div>
+          <p class="hint book-row-hint">학년·반·번호 5자리 (3학년 5반 12번 → 30512)</p>
         </div>
         <!-- v83 — 학생끼리 서로의 기록에 못 들어가게 비밀번호 추가. 처음엔 공통 초기 비밀번호 → 바로 내 비밀번호로 변경. -->
         <div class="field" id="pwField">
           <label for="inputPw">비밀번호</label>
           <input id="inputPw" type="password" inputmode="numeric" maxlength="12" placeholder="비밀번호" autocomplete="current-password">
-          <p class="hint pw-initial">처음 로그인할 땐 초기 비밀번호 <b>0000</b>을 넣어요. 들어가면 바로 나만 아는 비밀번호로 바꿔야 해요.</p>
+          <p class="hint pw-initial">처음엔 초기 비밀번호 <b>0000</b> → 들어가서 바로 내 비밀번호로 바꿔요.</p>
         </div>
         <div id="pwChangeBox" style="display:none;">
-          <p class="book-notice">처음 로그인했어요. 나만 아는 새 비밀번호(숫자 4자리 이상)로 바꿔야 책이 펼쳐져요.</p>
-          <div class="field">
-            <label for="inputNewPw">새 비밀번호</label>
-            <input id="inputNewPw" type="password" inputmode="numeric" maxlength="12" placeholder="숫자 4~12자리" autocomplete="new-password">
-          </div>
-          <div class="field">
-            <label for="inputNewPw2">새 비밀번호 한 번 더</label>
-            <input id="inputNewPw2" type="password" inputmode="numeric" maxlength="12" placeholder="같은 번호를 한 번 더" autocomplete="new-password">
+          <p class="book-notice">처음 로그인했어요. 나만 아는 새 비밀번호(숫자 4~12자리)로 바꿔야 책이 펼쳐져요.</p>
+          <div class="book-row">
+            <div class="field">
+              <label for="inputNewPw">새 비밀번호</label>
+              <input id="inputNewPw" type="password" inputmode="numeric" maxlength="12" placeholder="4~12자리" autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="inputNewPw2">한 번 더</label>
+              <input id="inputNewPw2" type="password" inputmode="numeric" maxlength="12" placeholder="같은 번호" autocomplete="new-password">
+            </div>
           </div>
         </div>
         <button class="btn-open" id="btnLogin">책 펼치기</button>
         <div class="login-error" id="loginError"></div>
         <button type="button" class="book-link" id="btnPwReset">비밀번호를 잊었어요 · 초기화 요청하기</button>
-        <p class="book-foot">로그인은 이 기기에서 30일 동안 유지돼요. 함께 쓰는 기기라면 다 쓴 뒤 꼭 "책 덮기"를 눌러 로그아웃해 주세요.</p>
+        <p class="book-foot">이 기기에서 30일 동안 로그인이 유지돼요. 함께 쓰는 기기면 다 쓴 뒤 "책 덮기"를 눌러 주세요.</p>
       </div>
     </div>
   </div>
