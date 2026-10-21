@@ -10,6 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="stylesheet" href="style.css">
+<!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
+<script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
 <body>
 
@@ -20,7 +22,7 @@
       <div class="book-frame">
         <p class="book-eyebrow">2026 · 2학기</p>
         <h1 class="book-title">역사 탐구 기록</h1>
-        <p class="book-sub">학번과 이름을 쓰면 나의 역사책이 펼쳐져요.</p>
+        <p class="book-sub">학번·이름·비밀번호를 쓰면 나의 역사책이 펼쳐져요.</p>
         <div class="field">
           <label for="inputId">학번</label>
           <input id="inputId" type="text" inputmode="numeric" maxlength="5" placeholder="예: 30512" autocomplete="off">
@@ -30,8 +32,27 @@
           <label for="inputName">이름</label>
           <input id="inputName" type="text" placeholder="이름을 입력하세요" autocomplete="off">
         </div>
+        <!-- v83 — 학생끼리 서로의 기록에 못 들어가게 비밀번호 추가. 처음엔 공통 초기 비밀번호 → 바로 내 비밀번호로 변경. -->
+        <div class="field" id="pwField">
+          <label for="inputPw">비밀번호</label>
+          <input id="inputPw" type="password" inputmode="numeric" maxlength="12" placeholder="비밀번호" autocomplete="current-password">
+          <p class="hint">처음 로그인할 땐 선생님이 알려준 초기 비밀번호를 넣어요.</p>
+        </div>
+        <div id="pwChangeBox" style="display:none;">
+          <p class="book-notice">처음 로그인했어요. 나만 아는 새 비밀번호(숫자 4자리 이상)로 바꿔야 책이 펼쳐져요.</p>
+          <div class="field">
+            <label for="inputNewPw">새 비밀번호</label>
+            <input id="inputNewPw" type="password" inputmode="numeric" maxlength="12" placeholder="숫자 4~12자리" autocomplete="new-password">
+          </div>
+          <div class="field">
+            <label for="inputNewPw2">새 비밀번호 한 번 더</label>
+            <input id="inputNewPw2" type="password" inputmode="numeric" maxlength="12" placeholder="같은 번호를 한 번 더" autocomplete="new-password">
+          </div>
+        </div>
         <button class="btn-open" id="btnLogin">책 펼치기</button>
         <div class="login-error" id="loginError"></div>
+        <button type="button" class="book-link" id="btnPwReset">비밀번호를 잊었어요 · 초기화 요청하기</button>
+        <p class="book-foot">로그인은 이 기기에서 30일 동안 유지돼요. 함께 쓰는 기기라면 다 쓴 뒤 꼭 "책 덮기"를 눌러 로그아웃해 주세요.</p>
       </div>
     </div>
   </div>
@@ -49,7 +70,9 @@
       <select id="previewGrade"></select>
       <label for="previewBan" class="field-label-sm">반 (숫자만)</label>
       <input id="previewBan" type="number" min="1" max="20" value="1">
-      <p class="muted" style="margin:0 0 12px;font-size:.85rem;">그 반 99번 "미리보기 학생" 계정으로 진짜 로그인해요. 기록이 실제로 저장되니 확인 뒤 지워 주세요.</p>
+      <label for="previewToken" class="field-label-sm">교사 토큰</label>
+      <input id="previewToken" type="password" placeholder="교사 토큰" autocomplete="new-password">
+      <p class="muted" style="margin:0 0 12px;font-size:.85rem;">그 반 99번 "미리보기 학생" 계정으로 진짜 로그인해요. 기록이 실제로 저장되니 확인 뒤 지워 주세요. (v83부터 학생 로그인에 비밀번호가 있어서 교사 토큰으로 대신 들어가요.)</p>
       <button class="btn-gate" id="btnPreviewStart">미리보기 시작</button>
     </div>
   </div>
@@ -69,7 +92,8 @@
     </div>
     <div class="hstack-sm">
       <button class="btn-logout" id="btnPortalRefresh">↻ 새로고침</button>
-      <button class="btn-logout" id="btnLogout">책 덮기</button>
+      <button class="btn-logout" id="btnPwSettings">🔒 비밀번호</button>
+      <button class="btn-logout" id="btnLogout" title="로그아웃">책 덮기</button>
     </div>
   </header>
 
@@ -259,26 +283,23 @@
 
       <!-- v54(2026-09-15, 핸드오프 "성적조회 통합 v2" 옵션 A) — 성적조회 진입점.
            포트폴리오·클래스카드와 다르게 "학기 내내 접근 가능한 링크"가 아니라
-           별도 인증(비밀번호)이 필요한 조회라, 정적 링크 대신 카드 안에서 상태
-           (안내 → 비밀번호 입력 → 결과)를 직접 전환한다. 포털 로그인(SESSION)과
-           완전히 분리된 인증이라 studentId·name은 SESSION 값을 그대로 실어 보내되
-           비밀번호는 매번 새로 입력받는다(자동로그인 캐싱 안 함). -->
+           v83: 포털 로그인에 비밀번호가 생겨 성적용 비밀번호를 따로 받지 않는다(효니 확정) — 로그인 세션이
+           곧 인증이라 버튼을 누르면 바로 조회한다. 카드 안 상태 전환(안내 → 결과/오류)은 그대로. -->
       <section class="ref-card grade-card" id="gradeCard" aria-label="성적조회">
         <div class="ref-card-row">
           <span class="ref-ico ref-ico-seal" aria-hidden="true">🧮</span>
           <div class="ref-text">
             <p class="pf-label">나의 성적 확인하기</p>
-            <p class="pf-desc">비밀번호는 선생님이 알려준 값이에요. 성적 열람 기간에만 확인할 수 있어요.</p>
+            <p class="pf-desc">성적 열람 기간에만 확인할 수 있어요.</p>
           </div>
           <div id="gradeIntro">
             <button class="btn-go" id="gradeOpenBtn" onclick="openGradeGate()">성적 확인하기 →</button>
           </div>
         </div>
         <div id="gradeForm" class="grade-form" style="display:none;">
-          <input id="gradePasswordInput" type="password" placeholder="비밀번호" autocomplete="off">
           <div class="hstack-sm">
-            <button class="btn-go" id="gradeSubmitBtn" onclick="submitGradeLookup()">확인</button>
-            <button class="btn-logout" onclick="closeGradeGate_()">취소</button>
+            <button class="btn-go" id="gradeSubmitBtn" onclick="submitGradeLookup()">다시 확인</button>
+            <button class="btn-logout" onclick="closeGradeGate_()">닫기</button>
           </div>
           <p class="login-error" id="gradeError" style="display:none;"></p>
         </div>
@@ -332,6 +353,7 @@
     <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">🌡️ 체크인</button>
     <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">🎤 탐구포인트</button>
     <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">🧮 성적관리</button>
+    <button class="dash-tab" data-tab="accounts" onclick="switchDashTab('accounts')">🔐 학생 계정<span class="dq-badge" id="paBadge" style="display:none;"></span></button>
   </div>
 
   <div class="dash-panel" id="panelRecords">
@@ -831,8 +853,69 @@
     </div>
 
     <p class="dash-hint" style="margin-top:22px;">
-      학생별 비밀번호는 "계정" 시트에서 직접 관리해요(학번·이름·비밀번호 3열, 평문 저장) — 여기 대시보드엔 별도 편집 UI가 없어요.
+      v83부터 성적조회는 포털 로그인(🔐 학생 계정 탭)으로 확인해요. 옛 "계정" 시트 비밀번호는 로그인 세션이 없을 때만 쓰여요.
     </p>
+  </div>
+
+  <!-- v83 — 학생 로그인 비밀번호 관리. 비밀번호는 시트에 해시로만 있어 교사도 볼 수 없고, 잊으면 초기화만 한다. -->
+  <div class="dash-panel" id="panelAccounts" style="display:none;">
+    <p class="dash-hint">
+      학생은 학번·이름·비밀번호로 로그인해요. 처음엔 아래 <b>공통 초기 비밀번호</b>로 들어와 바로 자기 비밀번호(숫자 4자리 이상)로 바꿔요.
+      비밀번호는 암호화(해시)돼 저장돼서 선생님도 볼 수 없어요 — 잊은 학생은 초기화해 주면 초기 비밀번호로 다시 들어와요.
+    </p>
+
+    <p class="dash-section-title">초기화 요청</p>
+    <div id="paRequests" class="dash-hint">불러오는 중…</div>
+
+    <p class="dash-section-title">공통 초기 비밀번호</p>
+    <div id="paInitialStatus" class="dash-hint"></div>
+    <div class="filters">
+      <input type="password" id="paInitialPw" class="pa-input" inputmode="numeric" maxlength="12" placeholder="숫자 4~12자리" autocomplete="new-password">
+      <button type="button" class="btn btn-sm" onclick="dashSetInitialPw(this)">저장</button>
+    </div>
+
+    <p class="dash-section-title">로그인 필수</p>
+    <div id="paRequiredStatus" class="dash-hint"></div>
+    <div class="filters">
+      <button type="button" class="btn btn-sm" onclick="dashSetLoginRequired(this, true)">필수로 켜기</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="dashSetLoginRequired(this, false)">끄기</button>
+    </div>
+    <p class="dash-hint">켜면 비밀번호로 로그인하지 않은 화면(로그인 연결이 안 들어간 옛 웹앱 포함)의 제출·조회가 막혀요. 웹앱에 로그인 연결을 다 넣은 뒤 켜 주세요.</p>
+
+    <p class="dash-section-title">학생 계정</p>
+    <div class="filters">
+      <input type="search" id="paSearch" class="pa-input" placeholder="학번·이름으로 찾기" oninput="dashRenderPwAccounts_()">
+      <span class="dash-hint" id="paCount" style="margin:0;"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>학번</th><th>이름</th><th>상태</th><th>최근 로그인</th><th></th></tr></thead>
+        <tbody id="paAccounts"></tbody>
+      </table>
+    </div>
+
+    <p class="dash-section-title">전체 초기화</p>
+    <p class="dash-hint">학기 초처럼 모두 초기 비밀번호로 되돌릴 때만 써요. 모든 학생이 로그아웃되고 다음 로그인 때 비밀번호를 다시 정해요.</p>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="dashResetAllPw(this)">전체 초기화…</button>
+  </div>
+</div>
+
+<!-- v83 — 포털 안에서 비밀번호 바꾸기 -->
+<div id="pwDialog" class="pw-dialog" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="pwDialogTitle">
+  <div class="pw-dialog-card">
+    <p class="pw-dialog-title" id="pwDialogTitle">🔒 비밀번호 바꾸기</p>
+    <label for="pwCur" class="field-label-sm">지금 비밀번호</label>
+    <input id="pwCur" type="password" inputmode="numeric" maxlength="12" autocomplete="current-password">
+    <label for="pwNew" class="field-label-sm">새 비밀번호 (숫자 4~12자리)</label>
+    <input id="pwNew" type="password" inputmode="numeric" maxlength="12" autocomplete="new-password">
+    <label for="pwNew2" class="field-label-sm">새 비밀번호 한 번 더</label>
+    <input id="pwNew2" type="password" inputmode="numeric" maxlength="12" autocomplete="new-password">
+    <p class="pw-dialog-error" id="pwDialogError"></p>
+    <p class="muted" style="font-size:.85rem;margin:0 0 12px;">바꾸면 다른 기기에서는 로그아웃돼요.</p>
+    <div class="hstack-sm">
+      <button type="button" class="btn" id="pwDialogSave">바꾸기</button>
+      <button type="button" class="btn btn-ghost" id="pwDialogCancel">취소</button>
+    </div>
   </div>
 </div>
 
@@ -902,8 +985,11 @@ async function fetchJsonRetry_(url, maxAttempts, delayMs){
   throw lastErr;
 }
 
-/* ── 로그인 ── */
-async function login(sid, name, silent){
+/* ── 로그인 ──
+ * v83: 비밀번호 단계 추가. silent(자동 입장)는 이 기기에 같은 학번의 유효한 세션(H26Auth)이 있을 때만 들어가고,
+ * 없으면 학번·이름만 채워 둔 채 비밀번호를 기다린다. preAuthed는 세션을 방금 받은 경우(첫 비번 변경 직후·교사 테스트 모드). */
+let PW_CHANGE_CTX = null; // v83 — { sid, name, oldPw }: 초기 비밀번호로 맞게 들어와 새 비밀번호를 받는 중
+async function login(sid, name, silent, preAuthed){
   const parsed = parseStudentId(sid);
   if(!parsed){ showLoginError("학번은 숫자 5자리예요. 예: 30512"); return; }
   if(!name){ showLoginError("이름을 입력해 주세요."); return; }
@@ -926,6 +1012,29 @@ async function login(sid, name, silent){
   }
 
   const btn = $('btnLogin');
+
+  /* v83 — 세션 확보 */
+  const held = window.H26Auth && H26Auth.get();
+  if(silent && !(held && held.sid === sid)) return; // 자동 입장할 세션이 없음 — 입력칸만 채워진 채로 비밀번호를 기다린다
+  if(!silent && !preAuthed){
+    const pw = $('inputPw').value.trim();
+    if(!pw){ showLoginError("비밀번호를 입력해 주세요."); return; }
+    btn.disabled = true; btn.textContent = "확인하는 중…";
+    $('loginError').style.display = 'none';
+    try{
+      const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST',
+        body: JSON.stringify({ action: 'login', studentId: sid, name, password: pw }) });
+      const r = await res.json();
+      if(r.result !== 'success'){ showLoginError(r.message || "로그인하지 못했어요."); return; }
+      if(r.mustChange){ startFirstPwChange_(sid, name, pw); return; }
+      H26Auth.set(r.session);
+    }catch(e){
+      showLoginError("로그인하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요."); return;
+    }finally{
+      btn.disabled = false; btn.textContent = PW_CHANGE_CTX ? "새 비밀번호로 시작하기" : "책 펼치기";
+    }
+  }
+
   btn.disabled = true; btn.textContent = "책을 펼치는 중…";
   $('loginError').style.display = 'none';
 
@@ -935,7 +1044,13 @@ async function login(sid, name, silent){
       + "&name=" + encodeURIComponent(name);
     const res = await fetch(url);
     const data = await res.json();
+    if(data.needLogin){ // v83 — 세션 만료·다른 기기에서 비번 변경·교사 초기화
+      H26Auth.clear(); store.del('portal_session');
+      showLoginError(data.message || "다시 로그인해 주세요.");
+      return;
+    }
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+    $('inputPw').value = '';
 
     SESSION = { studentId: sid, name, ...parsed };
     STUDENT_DATA = data;
@@ -2234,26 +2349,25 @@ function showToast(msg){
  * 보여줄 뿐, 어떤 값이 틀렸는지 추측해서 알려주는 로직을 두지 않는다.
  * ════════════════════════════════════════════════════════ */
 function openGradeGate(){
+  // v83 — 성적용 비밀번호 없음. 로그인 세션(portal_auth.js가 &session=을 붙임)으로 바로 조회한다.
   $('gradeIntro').style.display = 'none';
   $('gradeForm').style.display = 'block';
-  $('gradePasswordInput').value = '';
   $('gradeError').style.display = 'none';
-  $('gradePasswordInput').focus();
+  submitGradeLookup();
 }
 function closeGradeGate_(){
   $('gradeForm').style.display = 'none';
   $('gradeIntro').style.display = 'block';
 }
 async function submitGradeLookup(){
-  const password = $('gradePasswordInput').value.trim();
-  if(!password){ showGradeError_('비밀번호를 입력해 주세요.'); return; }
   const btn = $('gradeSubmitBtn');
   btn.disabled = true; btn.textContent = '확인 중…';
+  $('gradeError').style.display = 'none';
   try{
+    if(PREVIEW_MODE) throw new Error('미리보기에서는 성적을 조회하지 않아요.');
     const url = CONFIG.WEBAPP_URL
       + "?mode=grade&studentId=" + encodeURIComponent(SESSION.studentId)
-      + "&name=" + encodeURIComponent(SESSION.name)
-      + "&password=" + encodeURIComponent(password);
+      + "&name=" + encodeURIComponent(SESSION.name);
     const res = await fetch(url);
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '조회에 실패했어요.');
@@ -2261,7 +2375,7 @@ async function submitGradeLookup(){
   }catch(e){
     showGradeError_(e.message || '조회에 실패했어요. 다시 시도해 주세요.');
   }finally{
-    btn.disabled = false; btn.textContent = '확인';
+    btn.disabled = false; btn.textContent = '다시 확인';
   }
 }
 function showGradeError_(msg){
@@ -2531,8 +2645,101 @@ function ackFeedbackItems_(items){
 
 /* ── 이벤트 바인딩 ── */
 $('btnLogin').addEventListener('click', () => {
+  if(PW_CHANGE_CTX){ submitFirstPwChange_(); return; } // v83
   login($('inputId').value.trim(), $('inputName').value.trim(), false);
 });
+/* ── v83 로그인 비밀번호: 첫 로그인 변경·초기화 요청·포털 안 변경 ── */
+const PW_RE_ = /^\d{4,12}$/;
+function setPwChangeMode_(on){
+  $('pwField').style.display = on ? 'none' : '';
+  $('pwChangeBox').style.display = on ? 'block' : 'none';
+  $('inputId').disabled = on; $('inputName').disabled = on;
+  $('btnLogin').textContent = on ? "새 비밀번호로 시작하기" : "책 펼치기";
+  $('btnPwReset').textContent = on ? "← 처음으로 돌아가기" : "비밀번호를 잊었어요 · 초기화 요청하기";
+  $('inputNewPw').value = ''; $('inputNewPw2').value = '';
+}
+function startFirstPwChange_(sid, name, oldPw){
+  PW_CHANGE_CTX = { sid, name, oldPw };
+  setPwChangeMode_(true);
+  $('loginError').style.display = 'none';
+  $('inputNewPw').focus();
+}
+function cancelFirstPwChange_(){
+  PW_CHANGE_CTX = null;
+  setPwChangeMode_(false);
+  $('inputPw').value = '';
+}
+async function submitFirstPwChange_(){
+  const ctx = PW_CHANGE_CTX;
+  const pw = $('inputNewPw').value.trim(), pw2 = $('inputNewPw2').value.trim();
+  if(!PW_RE_.test(pw)){ showLoginError("새 비밀번호는 숫자 4~12자리로 정해 주세요."); return; }
+  if(pw !== pw2){ showLoginError("두 번 적은 새 비밀번호가 서로 달라요."); return; }
+  const btn = $('btnLogin');
+  btn.disabled = true; btn.textContent = "저장하는 중…";
+  $('loginError').style.display = 'none';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify({
+      action: 'changePassword', studentId: ctx.sid, name: ctx.name, oldPassword: ctx.oldPw, newPassword: pw }) });
+    const r = await res.json();
+    if(r.result !== 'success'){ showLoginError(r.message || "비밀번호를 바꾸지 못했어요."); btn.disabled = false; btn.textContent = "새 비밀번호로 시작하기"; return; }
+    H26Auth.set(r.session);
+    cancelFirstPwChange_();
+    showToast("새 비밀번호를 저장했어요. 다음부터는 이 비밀번호로 로그인해요.");
+    btn.disabled = false;
+    await login(ctx.sid, ctx.name, false, true);
+  }catch(e){
+    showLoginError("비밀번호를 바꾸지 못했어요. 인터넷 연결을 확인해 주세요.");
+    btn.disabled = false; btn.textContent = "새 비밀번호로 시작하기";
+  }
+}
+$('inputPw').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnLogin').click(); });
+$('inputNewPw2').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnLogin').click(); });
+$('btnPwReset').addEventListener('click', async () => {
+  if(PW_CHANGE_CTX){ cancelFirstPwChange_(); return; } // 변경 단계에선 "처음으로 돌아가기"로 쓴다
+  const sid = $('inputId').value.trim(), name = $('inputName').value.trim();
+  if(!parseStudentId(sid) || !name){ showLoginError("학번(5자리)과 이름을 먼저 적은 뒤 눌러 주세요."); return; }
+  if(!confirm(sid + " " + name + " 학생의 비밀번호 초기화를 선생님께 요청할까요?")) return;
+  const btn = $('btnPwReset'); btn.disabled = true;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST',
+      body: JSON.stringify({ action: 'requestPasswordReset', studentId: sid, name }) });
+    const r = await res.json();
+    showLoginError(r.message || (r.result === 'success' ? "초기화 요청을 보냈어요." : "요청하지 못했어요."));
+  }catch(e){
+    showLoginError("요청하지 못했어요. 인터넷 연결을 확인해 주세요.");
+  }finally{ btn.disabled = false; }
+});
+function openPwDialog_(){
+  if(PREVIEW_MODE || TEST_WRITE_MODE){ showToast("미리보기·테스트 계정에서는 비밀번호를 바꿀 수 없어요."); return; }
+  ['pwCur','pwNew','pwNew2'].forEach(id => { $(id).value = ''; });
+  $('pwDialogError').style.display = 'none';
+  $('pwDialog').style.display = 'flex';
+  $('pwCur').focus();
+}
+function closePwDialog_(){ $('pwDialog').style.display = 'none'; }
+async function savePwDialog_(){
+  const cur = $('pwCur').value.trim(), pw = $('pwNew').value.trim(), pw2 = $('pwNew2').value.trim();
+  const err = msg => { $('pwDialogError').textContent = msg; $('pwDialogError').style.display = 'block'; };
+  if(!cur){ err("지금 비밀번호를 입력해 주세요."); return; }
+  if(!PW_RE_.test(pw)){ err("새 비밀번호는 숫자 4~12자리로 정해 주세요."); return; }
+  if(pw !== pw2){ err("두 번 적은 새 비밀번호가 서로 달라요."); return; }
+  const btn = $('pwDialogSave'); btn.disabled = true;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify({
+      action: 'changePassword', studentId: SESSION.studentId, name: SESSION.name, oldPassword: cur, newPassword: pw }) });
+    const r = await res.json();
+    if(r.result !== 'success'){ err(r.message === "학번·이름·비밀번호가 맞지 않아요." ? "지금 비밀번호가 맞지 않아요." : (r.message || "비밀번호를 바꾸지 못했어요.")); return; }
+    H26Auth.set(r.session);
+    closePwDialog_();
+    showToast("비밀번호를 바꿨어요. 다른 기기에서는 로그아웃됐어요.");
+  }catch(e){
+    err("비밀번호를 바꾸지 못했어요. 인터넷 연결을 확인해 주세요.");
+  }finally{ btn.disabled = false; }
+}
+$('btnPwSettings').addEventListener('click', openPwDialog_);
+$('pwDialogCancel').addEventListener('click', closePwDialog_);
+$('pwDialogSave').addEventListener('click', savePwDialog_);
+$('pwNew2').addEventListener('keydown', e => { if(e.key === 'Enter') savePwDialog_(); });
 $('inputName').addEventListener('keydown', e => {
   if(e.key === 'Enter') $('btnLogin').click();
 });
@@ -2549,9 +2756,15 @@ async function refreshStudentData(force){
   try{
     const url = CONFIG.WEBAPP_URL
       + "?mode=student&studentId=" + encodeURIComponent(SESSION.studentId)
-      + "&name=" + encodeURIComponent(SESSION.name);
+      + "&name=" + encodeURIComponent(SESSION.name)
+      + (PREVIEW_MODE ? "&token=" + encodeURIComponent(TOKEN) : ""); // v83 — 실제 학생 미리보기는 교사 토큰으로
     const res = await fetch(url);
     const data = await res.json();
+    if(data.needLogin && !PREVIEW_MODE){ // v83 — 다른 기기에서 비번을 바꿨거나 교사가 초기화했다
+      exitToLogin();
+      showLoginError(data.message || "다시 로그인해 주세요.");
+      return;
+    }
     if(data.result === 'success'){
       STUDENT_DATA = data;
       STUDENT_DATA.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
@@ -2571,6 +2784,9 @@ $('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
 function exitToLogin(){
   store.del('portal_session');
   store.del('portal_handoff'); // v81
+  if(window.H26Auth) H26Auth.clear(); // v83 — 이 기기의 로그인 세션(웹앱 공용)도 지운다
+  if(PW_CHANGE_CTX) cancelFirstPwChange_();
+  $('inputPw').value = '';
   SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; CHECKIN_CTX = null;
   PREVIEW_REAL = false; PREVIEW_FROM_DASH = false; TEST_WRITE_MODE = false;
   $('portalView').style.display = 'none';
@@ -2594,7 +2810,8 @@ async function previewAsStudent(sid, name, fromNav){
   showToast(`${name} 학생 화면을 불러오는 중이에요…`);
   try{
     const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
-      + '?mode=student&studentId=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(name));
+      + '?mode=student&studentId=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(name)
+      + '&token=' + encodeURIComponent(TOKEN)); // v83 — 로그인 필수가 켜져도 교사 토큰으로 통과
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     data.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
     if(!fromNav) PREVIEW_DASH_SCROLL = window.scrollY;
@@ -2708,6 +2925,7 @@ async function enterDash(token){
     dashRenderLessons();
     dashRenderGradeInfoForm();
     dashRenderGongminBonus_();
+    dashLoadPwAdmin_(); // v83 — 초기화 요청 수 배지(기다리지 않음)
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
     $('gateError').style.display = 'block';
@@ -2718,7 +2936,7 @@ async function enterDash(token){
 
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
-  ['records','questions','announce','curriculum','checkin','points','grades'].forEach(t => {
+  ['records','questions','announce','curriculum','checkin','points','grades','accounts'].forEach(t => {
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -2726,6 +2944,7 @@ function switchDashTab(tab){
     if(btn.dataset.tab === tab && btn.scrollIntoView) btn.scrollIntoView({ inline:'center', block:'nearest' }); // v63 — 모바일에선 탭 줄이 가로 스크롤
   });
   if(tab === 'grades') dashLoadGradeStatus_();
+  if(tab === 'accounts') dashLoadPwAdmin_(); // v83
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
 }
 
@@ -5288,6 +5507,118 @@ async function dashCourtCasePush(btn){
  * 파일을 base64로 읽어 action=uploadGradeExcel로 보낸다. 업로드에 성공하면
  * 그 시트가 즉시 활성 조회 대상이 된다(이전 시트는 더 이상 조회되지 않음 —
  * 원본 스크립트와 동일한 "덮어쓰기" 방식). */
+/* ════════════════════════════════════════════════════════
+ * 🔐 학생 계정 (v83) — 로그인 비밀번호 관리
+ * history26_backend mode=pwAdmin / action=resetStudentPassword·dismissPwRequest·setInitialPassword·setLoginRequired.
+ * 비밀번호 자체는 서버에도 해시로만 있어 여기서 보여줄 수 없다. 초기화는 되돌릴 수 없으니 매번 confirm.
+ * ════════════════════════════════════════════════════════ */
+let PA_DATA = null;
+async function dashLoadPwAdmin_(){
+  try{
+    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + '?mode=pwAdmin&token=' + encodeURIComponent(TOKEN));
+    if(data.result !== 'success') throw new Error(data.message || '불러오지 못했어요.');
+    PA_DATA = data;
+    const n = (data.requests || []).length;
+    $('paBadge').textContent = n; $('paBadge').style.display = n ? 'inline-block' : 'none';
+    dashRenderPwAdmin_();
+  }catch(e){
+    $('paRequests').textContent = '불러오지 못했어요: ' + e.message + ' (백엔드 v83 재배포 전이면 이 탭은 아직 동작하지 않아요.)';
+  }
+}
+function fmtPaTime_(v){
+  if(!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? '—' : (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function dashRenderPwAdmin_(){
+  const d = PA_DATA; if(!d) return;
+  const reqs = d.requests || [];
+  $('paRequests').innerHTML = !reqs.length ? '대기 중인 요청이 없어요.' :
+    '<div class="table-wrap"><table><thead><tr><th>요청 시각</th><th>학번</th><th>적은 이름</th><th>계정 이름</th><th></th></tr></thead><tbody>' +
+    reqs.map(r => {
+      const diff = r.accountName && r.accountName !== String(r.name).replace(/\s+/g,'');
+      return '<tr><td>' + fmtPaTime_(r.timestamp) + '</td><td>' + escapeHtml(r.studentId) + '</td><td>' + escapeHtml(r.name) + '</td>'
+        + '<td>' + (r.accountName ? escapeHtml(r.accountName) : '<span class="muted">(아직 로그인 안 함)</span>') + (diff ? ' ⚠️ 이름 다름' : '') + '</td>'
+        + '<td class="pa-actions"><button type="button" class="btn btn-sm" data-sid="' + escapeHtml(r.studentId) + '" data-name="' + escapeHtml(r.accountName || r.name) + '" onclick="dashResetPw(this)">초기화</button> '
+        + '<button type="button" class="btn btn-ghost btn-sm" onclick="dashDismissPwRequest(this,' + Number(r.row) + ')">무시</button></td></tr>';
+    }).join('') + '</tbody></table></div>';
+  $('paInitialStatus').textContent = d.initialSet
+    ? '설정돼 있어요. 바꾸면 아직 초기 상태인 학생부터 새 값으로 들어와요(이미 자기 비밀번호로 바꾼 학생은 그대로).'
+    : '⚠️ 아직 정하지 않았어요 — 정하기 전엔 아무 학생도 처음 로그인을 할 수 없어요.';
+  $('paRequiredStatus').textContent = d.loginRequired
+    ? '켜져 있어요 — 비밀번호로 로그인한 학생만 기록을 보고 제출할 수 있어요.'
+    : '꺼져 있어요 — 옛 화면(학번·이름만)도 아직 제출돼요. 로그인한 학생의 세션은 이미 학번 일치 검사를 받아요.';
+  dashRenderPwAccounts_();
+}
+function dashRenderPwAccounts_(){
+  const d = PA_DATA; if(!d) return;
+  const q = $('paSearch').value.trim();
+  const list = (d.accounts || []).filter(a => !q || a.studentId.indexOf(q) >= 0 || a.name.indexOf(q.replace(/\s+/g,'')) >= 0);
+  const done = (d.accounts || []).filter(a => a.state === '설정').length;
+  $('paCount').textContent = '계정 ' + (d.accounts || []).length + '명 · 자기 비밀번호로 바꾼 학생 ' + done + '명';
+  $('paAccounts').innerHTML = !list.length ? '<tr><td colspan="5" class="muted">아직 로그인한 학생이 없어요. (계정은 처음 로그인할 때 생겨요)</td></tr>' :
+    list.slice(0, 300).map(a => '<tr><td>' + escapeHtml(a.studentId) + '</td><td>' + escapeHtml(a.name) + '</td>'
+      + '<td>' + (a.state === '설정' ? '자기 비밀번호' : '<span class="muted">초기 상태</span>') + '</td>'
+      + '<td>' + fmtPaTime_(a.lastLogin) + '</td>'
+      + '<td class="pa-actions">' + (a.state === '설정' ? '<button type="button" class="btn btn-ghost btn-sm" data-sid="' + escapeHtml(a.studentId) + '" data-name="' + escapeHtml(a.name) + '" onclick="dashResetPw(this)">초기화</button>' : '') + '</td></tr>').join('');
+}
+async function dashPwPost_(body){
+  const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(Object.assign({ token: TOKEN }, body)) });
+  const r = await res.json();
+  if(r.result !== 'success') throw new Error(r.message || '실패했어요.');
+  return r;
+}
+async function dashResetPw(btn){
+  const sid = btn.dataset.sid, name = btn.dataset.name;
+  if(!confirm(sid + ' ' + name + ' 학생의 비밀번호를 초기 비밀번호로 되돌릴까요?\n\n그 학생은 모든 기기에서 로그아웃되고, 초기 비밀번호로 들어와 새 비밀번호를 다시 정해요.')) return;
+  btn.disabled = true;
+  try{
+    await dashPwPost_({ action: 'resetStudentPassword', studentIds: [sid] });
+    showToast(sid + ' ' + name + ' 학생을 초기화했어요.');
+    await dashLoadPwAdmin_();
+  }catch(e){ showToast('초기화하지 못했어요: ' + e.message); btn.disabled = false; }
+}
+async function dashDismissPwRequest(btn, row){
+  btn.disabled = true;
+  try{ await dashPwPost_({ action: 'dismissPwRequest', row }); await dashLoadPwAdmin_(); }
+  catch(e){ showToast('처리하지 못했어요: ' + e.message); btn.disabled = false; }
+}
+async function dashSetInitialPw(btn){
+  const pw = $('paInitialPw').value.trim();
+  if(!/^\d{4,12}$/.test(pw)){ showToast('초기 비밀번호는 숫자 4~12자리로 정해 주세요.'); return; }
+  if(!confirm('공통 초기 비밀번호를 지금 적은 값으로 저장할까요?\n저장하면 이 화면에서도 다시 볼 수 없으니 따로 적어 두세요.')) return;
+  btn.disabled = true;
+  try{
+    await dashPwPost_({ action: 'setInitialPassword', password: pw });
+    $('paInitialPw').value = '';
+    showToast('초기 비밀번호를 저장했어요.');
+    await dashLoadPwAdmin_();
+  }catch(e){ showToast('저장하지 못했어요: ' + e.message); }
+  finally{ btn.disabled = false; }
+}
+async function dashSetLoginRequired(btn, on){
+  if(on && !confirm('로그인 필수를 켤까요?\n\n비밀번호로 로그인하지 않은 화면(로그인 연결이 없는 옛 웹앱 포함)의 제출·조회가 바로 막혀요.')) return;
+  btn.disabled = true;
+  try{
+    await dashPwPost_({ action: 'setLoginRequired', on });
+    showToast(on ? '로그인 필수를 켰어요.' : '로그인 필수를 껐어요.');
+    await dashLoadPwAdmin_();
+  }catch(e){ showToast('바꾸지 못했어요: ' + e.message); }
+  finally{ btn.disabled = false; }
+}
+async function dashResetAllPw(btn){
+  const n = PA_DATA ? (PA_DATA.accounts || []).length : 0;
+  const typed = prompt('모든 학생(' + n + '명)의 비밀번호를 초기화해요. 모두 로그아웃되고 되돌릴 수 없어요.\n계속하려면 "전체 초기화"라고 적어 주세요.');
+  if(typed !== '전체 초기화') { if(typed !== null) showToast('입력이 달라서 취소했어요.'); return; }
+  btn.disabled = true;
+  try{
+    const r = await dashPwPost_({ action: 'resetStudentPassword', all: true });
+    showToast(r.reset + '명을 초기화했어요.');
+    await dashLoadPwAdmin_();
+  }catch(e){ showToast('초기화하지 못했어요: ' + e.message); }
+  finally{ btn.disabled = false; }
+}
+
 async function dashUploadGradeExcel(btn){
   const fileInput = $('gradeExcelFile');
   const file = fileInput.files[0];
@@ -5830,10 +6161,22 @@ async function startPreview(){
   /* v70 — 기록 테스트 모드: 읽기 전용 미리보기가 아니라 그 반 99번 테스트 계정으로 실제 로그인한다.
    * 로그인 유지(portal_session)는 지운다 — 안 그러면 다음에 이 기기로 열 때 테스트 계정으로 자동 입장한다. */
   const sid = `${grade}${String(ban).padStart(2,'0')}99`;
+  /* v83 — 학생 로그인에 비밀번호가 생겨서 테스트 계정은 교사 토큰으로 세션을 받는다(issueTestSession). */
+  const token = $('previewToken').value.trim() || TOKEN || store.get('dash_token_saved') || '';
+  if(!token){ showToast('교사 토큰을 입력해 주세요.'); $('previewToken').focus(); return; }
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST',
+      body: JSON.stringify({ action: 'issueTestSession', token, studentId: sid, name: TEST_STUDENT_NAME }) });
+    const r = await res.json();
+    if(r.result !== 'success'){ showToast(r.message === '인증 실패' ? '교사 토큰이 맞지 않아요.' : (r.message || '테스트 계정으로 들어가지 못했어요.')); return; }
+    H26Auth.set(r.session);
+  }catch(e){ showToast('테스트 계정으로 들어가지 못했어요. 인터넷 연결을 확인해 주세요.'); return; }
+  $('previewToken').value = '';
   $('teacherGate').style.display = 'none';
   $('previewGate').style.display = 'none';
   TEST_WRITE_MODE = true;
-  await login(sid, TEST_STUDENT_NAME);
+  $('inputPw').value = '';
+  await login(sid, TEST_STUDENT_NAME, false, true);
   store.del('portal_session');
   /* v81 — 기출 오답노트·체크리스트 웹앱이 읽는 별도 키. portal_session은 위처럼 지워야 하므로(자동 입장 방지) 따로 둔다. 테스트 계정만 넣는다. */
   if(SESSION) store.set('portal_handoff', JSON.stringify({ sid, name: TEST_STUDENT_NAME }));

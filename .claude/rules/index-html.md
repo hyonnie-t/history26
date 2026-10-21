@@ -34,7 +34,9 @@ paths:
 ## 네트워크·세션·학번
 - `fetch` 직접 호출과 `fetchJsonRetry_()`(기본 3회·700ms, Apps Script 재배포 직후 일시적 404/JSON 실패 흡수)가 섞여 있다.
   `Promise.all`로 묶는 곳(대시보드)은 `fetchJsonRetry_`를 쓴다(하나만 실패해도 전체 reject).
-- 학생 세션: `localStorage` `portal_session`(`store.get/set/del`)에 `{ sid, name }`만. 교사 `TOKEN`·`PREVIEW_MODE`는 메모리 변수.
+- 학생 세션: `localStorage` `portal_session`(`store.get/set/del`)에 `{ sid, name }`(자동 입장할 학번 기억용)과, v83부터 로그인 세션 `h26_auth`
+  (`{token, exp, sid, name}`, `H26Auth.get/set/clear` — `snippets/portal_auth.js`, 웹앱과 공유). 자동 입장은 `h26_auth`의 학번이 같을 때만.
+  `portal_auth.js`가 `window.fetch`를 감싸 Apps Script 호출에 `session`을 붙이므로 각 호출부는 세션을 직접 다루지 않는다. 교사 `TOKEN`·`PREVIEW_MODE`는 메모리 변수.
   "이 기기에서 로그인 유지"(`#tokenRemember`)를 켤 때만 `dash_token_saved`에 저장(v67, 옛 키 `dash_token`은 부팅 때 삭제).
 - 학번 파싱은 `parseStudentId()`가 단일 소스 — 학번 로직은 이것을 재사용.
 - `PREVIEW_MODE`: 포털 함수를 고칠 때 이 플래그로 API 호출/기록이 분기되는 지점이 있는지 확인(미리보기 종류는 features.md "학생 화면 미리보기").
