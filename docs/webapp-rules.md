@@ -36,6 +36,9 @@
 12. **서술형 제출은 최상위 `reflection`(학생 서술)을 반드시 보낸다.** 글을 `choicesJson` 안에만 넣으면 시트 G열이 비고 AI 분석이 그 행을 건너뛴다
     (`조선통치체제_가챠글쓰기` 91건 사고, 2026-10). `choiceSummary`(선택 요약)도 같이 보낸다. 새 웹앱은 끝내기 전에 `?preview=1`이 아닌 실제 제출 1건으로
     G열이 채워졌는지 시트에서 확인. 백엔드(v53)가 `choicesJson.writing`으로 보충하긴 하지만 안전망일 뿐이다.
+13. **로그인 세션 연동(v83, 효니 확정: 웹앱 전부)**: `<head>`의 `<meta charset>` 바로 다음, 앱 스크립트보다 먼저
+    `<script src="https://hyonnie-t.github.io/history26/snippets/portal_auth.js"></script>` 한 줄. 복사하지 말고 이 주소를 그대로 부른다(고칠 때 한 곳만 고치도록).
+    백엔드 호출은 `fetch` + GET 주소의 `studentId=` / POST `JSON.stringify` 본문이어야 세션이 붙는다(지금 웹앱 전부가 이 형태). 다른 방식이면 로그인 필수를 켤 때 막힌다.
 - 기존 레포에 focus/draft/glossary를 소급하는 건 효니가 시킬 때만(소급 완료 목록은 features.md 해당 섹션).
 
 ## 반복된 실수 — 작성·수정 뒤 매번 재확인

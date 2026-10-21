@@ -1,6 +1,6 @@
 # history26 — 2학기 역사 탐구 기록 (프론트엔드)
 
-중학교 역사 수업용 학생 포털(교사 "효니": 2학년 세계사·3학년 한국사). 학생은 5자리 학번(학년1+반2+번호2)+이름으로
+중학교 역사 수업용 학생 포털(교사 "효니": 2학년 세계사·3학년 한국사). 학생은 5자리 학번(학년1+반2+번호2)+이름+비밀번호(v83)로
 로그인해 차시 활동·체크인·질문함을 쓰고, 교사는 대시보드에서 기록·AI 코멘트·공지·커리큘럼·체크인 문항을 관리한다.
 **빌드·패키지 매니저·린터·테스트 러너 없는 정적 파일**(`index.html` 단일 SPA + `config.js`/`checkin_data.js`/`style.css`/`tree.js`).
 **백엔드는 이 레포에 없다** — `config.js`의 `WEBAPP_URL`(Apps Script, 데이터는 Google Sheets)이며 소스는
@@ -25,9 +25,11 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 6. **이 레포는 public**: URL/ID/토큰·반 정보 등 민감정보는 `효니.local.md`(gitignore됨)에만. 커밋 전 diff에 민감정보 없는지 확인.
 7. 긴 URL/ID(`WEBAPP_URL`, `SHEET_WEBAPP_URL`, 시트 ID)를 옮겨 적을 땐 육안 말고 grep/diff로 원본과 대조(조용한 전송 실패의 주원인).
 8. `grantPresentationPoint`의 `reason` 문자열(`GONGMIN_BONUS_REASON` 등)을 다른 용도로 재사용하지 않는다(중복 지급 판별 오작동).
-9. 성적조회는 `login()`을 건드리지 않고, 매칭 실패 사유(학번/이름/비밀번호 중 무엇)를 구분해 보여주지 않는다.
+9. 로그인·성적조회 모두 실패 사유(학번/이름/비밀번호 중 무엇)를 구분해 보여주지 않는다(서버 메시지를 그대로). 성적조회는 v83부터 별도 비밀번호 없이 로그인 세션으로 인증한다.
 10. 차시 "완료"는 그 차시 **모든** activity id가 `doneIds`에 있어야 하는 AND 조건 — 학생 `lessonDone()`과 대시보드
     `lessonAllActivityIds_()` 두 곳이 따로 구현한다. 진행률·완료 뱃지·포인트를 고치면 둘 다 확인.
+11. **학생 본인 데이터를 부르는 새 fetch는 `snippets/portal_auth.js`가 세션을 붙여 주는 형태로만** 쓴다: GET은 주소에 `studentId=`, POST는 `JSON.stringify` 문자열 본문.
+    FormData·URLSearchParams 본문이나 `studentId` 없는 GET은 세션이 안 붙어 로그인 필수(LOGIN_REQUIRED)를 켜면 막힌다. 상세 `docs/features.md` "학생 로그인 비밀번호".
 
 ## 작업 습관
 - **`index.html`(5천 줄+, 300KB)은 통째로 Read 금지** — `grep -n "^function 이름\|/\* ══" index.html`로 위치를 찾고 범위만 Read.
