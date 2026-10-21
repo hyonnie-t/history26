@@ -6162,7 +6162,7 @@ async function startPreview(){
    * 로그인 유지(portal_session)는 지운다 — 안 그러면 다음에 이 기기로 열 때 테스트 계정으로 자동 입장한다. */
   const sid = `${grade}${String(ban).padStart(2,'0')}99`;
   /* v83 — 학생 로그인에 비밀번호가 생겨서 테스트 계정은 교사 토큰으로 세션을 받는다(issueTestSession). */
-  const token = $('previewToken').value.trim() || TOKEN || store.get('dash_token_saved') || '';
+  const token = $('previewToken').value.trim() || TOKEN || ''; // 공용·학교 PC에서도 쓰므로 기기에 저장된 토큰은 읽지 않는다
   if(!token){ showToast('교사 토큰을 입력해 주세요.'); $('previewToken').focus(); return; }
   try{
     const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST',
