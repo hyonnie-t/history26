@@ -157,6 +157,8 @@ button{font-family:inherit; cursor:pointer;}
 /* v83 — 로그인 표지의 비밀번호 단계·초기화 요청 링크·공용 기기 안내 */
 .book-notice{font-size:.9rem; color:var(--cover-cream); background:rgba(243,231,208,.12);
   border-radius:var(--radius-xs); padding:10px 12px; margin-bottom:14px; line-height:1.5;}
+.pw-initial{color:var(--cover-cream); font-size:.9rem;}
+.pw-initial b{color:var(--gold); font-size:1.05rem; letter-spacing:.08em;}
 .book-link{display:block; width:100%; min-height:var(--tap-min); margin-top:10px; background:none; border:none;
   color:rgba(243,231,208,.85); font-size:.9rem; text-decoration:underline; text-underline-offset:3px;}
 .book-link:hover{color:var(--gold);}
