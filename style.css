@@ -1836,3 +1836,19 @@ html{scrollbar-gutter:stable;}
 /* 교사 대시보드 — 체크인 현황 컬럼 머리줄(인라인 스타일을 옮김) */
 #dashView .ck-stat-head{margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--row-line); align-items:center;}
 #dashView .ck-stat-grade{font-weight:700; font-size:.95rem;}
+
+/* ══════════════ v90 — 교사 대시보드 PC(넓은 화면) 편의 ══════════════ */
+@media (min-width:1280px){
+  #dashView{max-width:1360px;}
+  /* 학생 기록 표: 표가 화면에 다 들어가니 가로 스크롤 상자를 풀고, 머리줄을 탭 줄(44px) 아래에 붙여 따라오게 */
+  #panelRecords .table-wrap{overflow:visible;}
+  #panelRecords .table-wrap th{top:44px; z-index:5;}
+  /* 체크인 오늘·현황: 요약 표와 차시 설정을 나란히 → 오늘 결과(온도·저온도 학생)가 위로 올라옴 */
+  #ckSubToday{display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:var(--d-gap); align-items:start;}
+  #ckSubToday > .dash-card{margin:0;}
+  #ckSubToday > :nth-child(n+3){grid-column:1 / -1;}
+  #ckSummaryTables{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;}
+  #ckSummaryTables .table-wrap table{min-width:0;}
+  #ckSummaryTables th, #ckSummaryTables td{padding:9px 10px;}
+  #ckSummaryTables th:first-child, #ckSummaryTables td:first-child, #ckSummaryTables td:last-child{white-space:nowrap;}
+}

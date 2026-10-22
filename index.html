@@ -3110,7 +3110,7 @@ function switchClSubtab(sub){
 }
 
 function switchCkSubtab(sub){
-  $('ckSubToday').style.display = sub === 'today' ? 'block' : 'none';
+  $('ckSubToday').style.display = sub === 'today' ? '' : 'none'; // v90 — 'block'로 박으면 PC 2단 grid(style.css)를 덮어씀
   $('ckSubLessons').style.display = sub === 'lessons' ? 'block' : 'none';
   document.querySelectorAll('#panelCheckin .cl-subtab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.sub === sub);
@@ -4601,7 +4601,8 @@ function dashRenderQuestions(){
   const visible = dashVisibleQuestions_();
   const waiting = visible.filter(q => q.status !== '답변완료');
   const done = visible.filter(q => q.status === '답변완료');
-  const sorted = [...waiting, ...done]; // 대기중 먼저
+  const byNewest = (a, b) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0); // v90 — 그룹 안에선 최신 먼저
+  const sorted = [...waiting.sort(byNewest), ...done.sort(byNewest)]; // 대기중 먼저
   const badge = $('dqBadge');
   const msgWaiting = dashRenderMessages_(); // v62 — 학생 답장이 마지막인 스레드 수
   const totalWaiting = waiting.length + msgWaiting;
@@ -5405,8 +5406,8 @@ function renderDash(){
 
   $('tableBody').innerHTML = list.map(s => {
     const recentCell = s.recentRecord
-      ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp))}">
-           ${escapeHtml(dashShorten(dashLessonTitle(String(s.recentRecord.gameName)), 10))}
+      ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp) + ' · ' + dashLessonTitle(String(s.recentRecord.gameName)))}">
+           ${escapeHtml(dashShorten(dashLessonTitle(String(s.recentRecord.gameName)), 20))}<!-- v90 — 10자는 PC에서 너무 잘림, 전체 이름은 title -->
            <span class="tbl-dots" title="${escapeHtml(String(s.recentRecord['성취수준']||'분석 전'))}">${dashDots(String(s.recentRecord['성취수준']||'').trim())}</span>
          </span>`
       : '<span class="muted">—</span>';
