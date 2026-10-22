@@ -351,14 +351,14 @@
   </div>
 
   <div class="dash-tabs">
-    <button class="dash-tab active" data-tab="records" onclick="switchDashTab('records')">📋 학생 기록</button>
-    <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">💬 질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
-    <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">📢 공지 관리</button>
-    <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">📚 커리큘럼 관리</button>
-    <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">🌡️ 체크인</button>
-    <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">🎤 탐구포인트</button>
-    <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">🧮 성적관리</button>
-    <button class="dash-tab" data-tab="accounts" onclick="switchDashTab('accounts')">🔐 학생 계정<span class="dq-badge" id="paBadge" style="display:none;"></span></button>
+    <button class="dash-tab active" data-tab="records" onclick="switchDashTab('records')">학생 기록</button>
+    <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
+    <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">공지 관리</button>
+    <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">커리큘럼 관리</button>
+    <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">체크인</button>
+    <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">탐구포인트</button>
+    <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">성적관리</button>
+    <button class="dash-tab" data-tab="accounts" onclick="switchDashTab('accounts')">학생 계정<span class="dq-badge" id="paBadge" style="display:none;"></span></button>
   </div>
 
   <div class="dash-panel" id="panelRecords">
@@ -462,15 +462,15 @@
     <div class="grade-seg" id="clGradeSeg" role="tablist" aria-label="편집할 학년"></div>
 
     <details class="cl-collapse">
-      <summary>🏫 학년 정보 (단원 질문 · 학생 화면 링크 · 담당 반) <span class="cl-arrow">▶</span></summary>
+      <summary>학년 정보 (단원 질문 · 학생 화면 링크 · 담당 반) <span class="cl-arrow">▶</span></summary>
       <div class="cl-collapse-body">
         <div id="giForm"></div>
       </div>
     </details>
 
     <div class="cl-subtabs">
-      <button class="cl-subtab active" data-sub="add" onclick="switchClSubtab('add')">➕ 새 활동 추가</button>
-      <button class="cl-subtab" data-sub="list" onclick="switchClSubtab('list')">📋 등록된 활동</button>
+      <button class="cl-subtab active" data-sub="add" onclick="switchClSubtab('add')">새 활동 추가</button>
+      <button class="cl-subtab" data-sub="list" onclick="switchClSubtab('list')">등록된 활동</button>
     </div>
 
     <div class="cl-subpanel" id="clSubAdd">
@@ -609,22 +609,23 @@
 
   <div class="dash-panel" id="panelCheckin" style="display:none;">
     <p class="dash-hint">
-      "오늘의 체크인 차시"를 골라두면 학생이 로그인할 때 감정 온도 + 발문이 뜨고, 응답은 여기서 확인할 수 있어요.
+      기본은 <b>감정 체크인</b>이에요 — 학생이 로그인하면 감정 온도 + 감정칩(날마다 랜덤) 뒤에 포춘쿠키가 나와요.
+      "오늘의 체크인 차시"에서 수업 체크인을 고르면 그 문항(감정 온도 + 발문)이 대신 뜨고, 판단형 보기 순서는 학생마다 섞여요.
       학생 화면엔 회수 질문·연속 저온도 표시가 절대 노출되지 않아요.
     </p>
 
     <div class="cl-subtabs">
-      <button class="cl-subtab active" data-sub="today" onclick="switchCkSubtab('today')">🗓 오늘/현황</button>
-      <button class="cl-subtab" data-sub="lessons" onclick="switchCkSubtab('lessons')">📝 문항 관리</button>
+      <button class="cl-subtab active" data-sub="today" onclick="switchCkSubtab('today')">오늘 · 현황</button>
+      <button class="cl-subtab" data-sub="lessons" onclick="switchCkSubtab('lessons')">문항 관리</button>
     </div>
 
     <div class="cl-subpanel" id="ckSubToday">
       <!-- v40: 반별 오늘의 체크인 차시 요약 — "전체 반" 설정과 반별 override를 병합한
            유효 차시를 표로 한눈에 보여줌. 값과 함께 출처(전체 설정 vs 반별 지정)도 표기해서
            나중에 "전체 설정을 바꿨는데 이 반만 안 바뀐" 혼란을 줄이는 목적. -->
-      <div class="cl-collapse" style="margin-bottom:16px;">
-        <div style="padding:14px 16px;">
-          <h4 style="font-size:.9rem; font-weight:700; margin-bottom:10px;">📋 반별 오늘의 체크인 차시 요약</h4>
+      <div class="dash-card">
+        <div>
+          <h4 class="dash-card-title">반별 오늘의 체크인 차시 요약</h4>
           <p class="cl-hint" style="margin-bottom:10px;">"전체 설정"은 그 학년 공통값을 그대로 따르고 있다는 뜻이고, "반별 지정"은 그 반만 따로 골라둔 상태라는 뜻이에요.</p>
           <div id="ckSummaryTables"><p class="muted">불러오는 중…</p></div>
         </div>
@@ -632,9 +633,9 @@
 
       <!-- v41: 적용 대상을 공지 관리(v30)와 같은 "담당 학급반/전체/개별 반" 3분류 라디오로 개편.
            dashMyBans_()가 돌려주는 담당 반 목록을 그대로 재사용. -->
-      <div class="cl-collapse" style="margin-bottom:16px;">
-        <div style="padding:14px 16px;">
-          <h4 style="font-size:.9rem; font-weight:700; margin-bottom:10px;">🗓 오늘의 체크인 차시 설정</h4>
+      <div class="dash-card">
+        <div>
+          <h4 class="dash-card-title">오늘의 체크인 차시 설정</h4>
           <div class="cl-row" style="margin-bottom:8px;">
             <select id="ckSetGrade"></select>
           </div>
@@ -661,7 +662,7 @@
       <!-- v40: 담당 반 번호 체계가 학년별로 겹치지 않아(2학년 1~4반 / 3학년 5~8반) 반 선택을
            좌우가 공유할 수 없음 — 학년별 완전 독립 2단 배치로 감. -->
       <div class="cl-row" style="margin-bottom:12px; justify-content:flex-end;">
-        <button class="btn btn-ghost btn-sm" id="btnCkViewRefreshAll">🔄 전체 새로고침</button>
+        <button class="btn btn-ghost btn-sm" id="btnCkViewRefreshAll">전체 새로고침</button>
       </div>
       <div class="ck-two-col" id="ckStatCols"></div>
     </div>
@@ -681,10 +682,10 @@
         <div class="cl-past-list" id="ckqPastList"></div>
       </details>
 
-      <div class="cl-collapse">
-        <div style="padding:14px 16px;">
+      <div class="dash-card">
+        <div>
           <input type="hidden" id="ckqEditRow" value="">
-          <h4 id="ckqFormTitle" style="font-size:.9rem; font-weight:700; margin-bottom:10px;">➕ 새 문항 추가</h4>
+          <h4 id="ckqFormTitle" class="dash-card-title">새 문항 추가</h4>
           <!-- v86 — 수정 모드에서만 보이는 학년 이동 칸. 학년을 잘못 골라 등록한 문항을 옮긴다. -->
           <div class="cl-field" id="ckqMoveGradeWrap" style="display:none; margin-bottom:10px;">
             <label class="cl-field-label" for="ckqFormGrade">학년 (바꾸면 그 학년으로 옮겨요)</label>
@@ -817,7 +818,7 @@
          늘려야 함. 3학년 5~8반 전용 활동이라 학년은 고정하고 반만 고른다. 서버 쪽
          courtCasePushPost_가 스크립트 속성 RE_JUDGE_TEACHER_TOKEN을 요구한다 —
          history26_backend AGENTS.md 참고. -->
-    <p class="dash-section-title">🏛️ 역사법정 결과 re_judge에 등록</p>
+    <p class="dash-section-title">역사법정 결과 re_judge에 등록</p>
     <p class="dash-hint">3학년 반을 고르면 그 반 검사·변호인 발언문(+배심원 판결)을 모아 re_judge에 새 사건으로 자동 등록해요.</p>
     <div class="filters">
       <select id="ccPushBan">
@@ -834,7 +835,7 @@
          gongmin 웹앱은 학생용이라 교사 토큰을 못 심어(보안상 grantPresentationPoint를
          직접 못 부름) choicesJson.volunteer 플래그만 기록해 보내고, 여기서 교사가
          확인 후 일괄 지급한다. 내용은 dashRenderGongminBonus_()가 채운다. -->
-    <p class="dash-section-title">📋 고민리스트 자원 카드 보너스</p>
+    <p class="dash-section-title">고민리스트 자원 카드 보너스</p>
     <p class="dash-hint">2단계에서 카드를 1장 더 자원해서 쓴 학생에게만 탐구포인트를 차등 지급해요.</p>
     <div id="gmBonusBox"></div>
   </div>
@@ -1155,9 +1156,10 @@ let CK_SUBMITTING = false; // 응답 전송 중 중복 클릭 방지 — 버튼 
 
 async function maybeStartCheckin(){
   if(CHECKIN_PLAN === null) await loadCheckinPlan(); // 아직 백그라운드 로딩 중이면 여기서 기다림
-  if(!CHECKIN_PLAN) return false; // 시트 로딩 실패 등 — 조용히 건너뜀
-  const plan = CHECKIN_PLAN[SESSION.grade];
-  if(!plan) return false;
+  /* v88: 수업 체크인 문항을 못 불러와도(시트 실패·그 학년 문항 없음) 기본 감정 체크인은 뜬다.
+   * checkin_data.js 자체가 없을 때만(CHECKIN_EMOTION 미정의) 예전처럼 조용히 건너뜀. */
+  const plan = CHECKIN_PLAN && CHECKIN_PLAN[SESSION.grade];
+  const emo = (typeof CHECKIN_EMOTION !== 'undefined') ? CHECKIN_EMOTION : null;
   try{
     const url = CONFIG.WEBAPP_URL
       + "?mode=checkinToday&grade=" + encodeURIComponent(SESSION.grade)
@@ -1167,15 +1169,20 @@ async function maybeStartCheckin(){
     const res = await fetch(url);
     const data = await res.json();
     if(data.result !== 'success') return false;
-    const lessonId = data.lessonId;
-    if(!lessonId) return false; // 교사가 아직 오늘 차시를 안 골랐을 수 있음 — 에러 아님
+    const lessonId = data.lessonId || ''; // v88: 비어 있으면(교사가 안 골랐으면) 기본 감정 체크인
     /* v18: 하루 1번만 체크인하도록 복원. 백엔드는 계속 alreadyChecked를 계산해서
      * 내려주고 있었는데(v15부터), v17에서 프론트가 이 값을 무시하도록 바뀌어 있던 것.
      * 이미 오늘 체크인했으면 체크인 화면 없이 바로 포털로 들어감. */
     if(data.alreadyChecked) return false;
-    const lesson = plan.lessons.find(l => l.id === lessonId);
-    if(!lesson) return false; // id 불일치 등도 조용히 건너뜀
-    CHECKIN_CTX = { grade: SESSION.grade, lessonId, lesson, temperature: null };
+    const lesson = (plan && lessonId && !(emo && lessonId === emo.id))
+      ? (plan.lessons || []).find(l => l.id === lessonId) : null;
+    if(lesson){
+      CHECKIN_CTX = { grade: SESSION.grade, lessonId, lesson, temperature: null };
+      return true;
+    }
+    /* v88: 수업 체크인이 지정되지 않았거나, 지정된 문항을 못 찾으면(삭제 등) 감정 체크인으로. */
+    if(!emo) return false;
+    CHECKIN_CTX = { grade: SESSION.grade, lessonId: emo.id, lesson: { type: 'emotion_default' }, temperature: null };
     return true;
   }catch(e){
     return false;
@@ -1245,14 +1252,136 @@ function renderCheckinSourceBoxHtml_(source){
     </div>`;
 }
 
+/* v88: 보기 순서·감정칩을 학생·날짜마다 다르게 섞되, 같은 학생이 같은 날 새로고침하면 그대로 나오게
+ * 문자열 시드로 고정한 가짜 난수를 쓴다(학생회 웹앱과 같은 방식). */
+function ckRng_(seed){
+  let h = 1779033703 ^ seed.length;
+  for(let i = 0; i < seed.length; i++){ h = Math.imul(h ^ seed.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  const next = function(){
+    h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+  for(let i = 0; i < 6; i++) next(); // 비슷한 시드(학번만 다른 경우)의 첫 값이 서로 닮아 보기 순서가 한쪽으로 쏠리던 것을 풀어 준다
+  return next;
+}
+function ckShuffle_(arr, rnd){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function ckSeed_(tag){
+  const d = new Date();
+  const day = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  return String(SESSION.studentId) + '|' + day + '|' + tag;
+}
+
+/* v88: 오늘의 감정칩 — 유쾌 3 + 불쾌 3. 네 분면(r·y·b·g)에서 하나씩 뽑고, 유쾌 쪽(y·g)과 불쾌 쪽(r·b)에서
+ * 한 분면씩 더 골라 하나씩 보탠다. 단어 풀은 checkin_data.js의 CHECKIN_EMOTION.pool. */
+function ckTodayEmotionChips_(){
+  const emo = CHECKIN_EMOTION, rnd = ckRng_(ckSeed_('emotion'));
+  const by = {};
+  emo.pool.forEach(m => (by[m.q] = by[m.q] || []).push(m));
+  const sh = {};
+  ['r','y','b','g'].forEach(q => { sh[q] = ckShuffle_(by[q] || [], rnd); });
+  const picks = ['r','y','b','g'].map(q => sh[q][0]).filter(Boolean);
+  ['yg','rb'].forEach(side => { const q = side[Math.floor(rnd() * 2)]; if(sh[q][1]) picks.push(sh[q][1]); });
+  return ckShuffle_(picks, rnd).slice(0, emo.chipCount);
+}
+
+function ckFortuneText_(q){
+  const emo = CHECKIN_EMOTION, rnd = ckRng_(ckSeed_('fortune|' + q));
+  const key = emo.fortunes[q] ? q : ['r','y','b','g'][Math.floor(rnd() * 4)]; // 기타(직접 쓰기)는 아무 분면에서
+  const arr = emo.fortunes[key];
+  return arr[Math.floor(rnd() * arr.length)];
+}
+
+/* v88: 기본 감정 체크인 — 오른쪽 페이지에 감정칩 6개(+직접 쓰기). 고르면 바로 저장하고 포춘쿠키 단계로. */
+function renderEmotionDefaultBody_(body){
+  const emo = CHECKIN_EMOTION, chips = ckTodayEmotionChips_();
+  const customOn = CHECKIN_CONFIG.customInput && CHECKIN_CONFIG.customInput.enabled;
+  body.innerHTML = `
+    <p class="checkin-eyebrow">오늘의 마음</p>
+    <p class="checkin-q">${escapeHtml(emo.prompt)}</p>
+    <div class="chip-grid emo-grid">
+      ${chips.map((m, i) => `<button class="chip-btn emo-chip" data-i="${i}" type="button"><span class="emo-e" aria-hidden="true">${m.e}</span>${escapeHtml(m.t)}</button>`).join('')}
+      ${customOn ? `<button class="chip-btn chip-custom" id="chipCustomBtn" type="button">기타</button>` : ''}
+    </div>
+    ${customOn ? `
+    <div class="custom-input-wrap" id="customInputWrap" style="display:none;">
+      <input type="text" id="customInputField" maxlength="${CHECKIN_CONFIG.customInput.maxLength}" placeholder="${escapeHtml(CHECKIN_CONFIG.customInput.placeholder)}">
+      <p class="custom-notice">${escapeHtml(CHECKIN_CONFIG.customInput.notice)}</p>
+      <button class="btn-open" id="customInputSubmit" type="button" style="background:var(--indigo); color:#fff;">확인</button>
+    </div>` : ''}`;
+
+  const pick = (fields, q) => {
+    CK_SUBMITTING = true;
+    body.querySelectorAll('.chip-btn').forEach(b => b.disabled = true);
+    document.querySelector('.book-page-left').classList.add('done'); // 저장이 시작됐으니 왼쪽 온도는 더 못 바꾼다
+    submitCheckin(fields, { keepOpen: true }); // 저장은 바로 시작하고, 학생은 쿠키 단계로 넘어감
+    setTimeout(() => renderFortuneStep_(body, q), 380);
+  };
+  body.querySelectorAll('.emo-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
+      const m = chips[Number(btn.dataset.i)];
+      btn.classList.add('selected');
+      pick({ checkinType: 'source_emotion', word: m.t, custom: '' }, m.q);
+    });
+  });
+  const customBtn = $('chipCustomBtn');
+  if(customBtn){
+    customBtn.addEventListener('click', () => {
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
+      $('customInputWrap').style.display = 'block';
+      $('customInputField').focus();
+    });
+    $('customInputSubmit').addEventListener('click', () => {
+      if(CHECKIN_CTX.temperature == null || CK_SUBMITTING) return;
+      const val = $('customInputField').value.trim();
+      if(!val){ $('customInputField').focus(); return; }
+      pick({ checkinType: 'source_emotion', word: '기타', custom: val }, '');
+    });
+    $('customInputField').addEventListener('keydown', e => { if(e.key === 'Enter') $('customInputSubmit').click(); });
+  }
+}
+
+/* v88: 포춘쿠키 — 눌러서 쿠키를 깨면 고른 감정의 분면에 맞는 한마디가 나온다. */
+function renderFortuneStep_(body, q){
+  const text = ckFortuneText_(q);
+  body.innerHTML = `
+    <p class="checkin-eyebrow">오늘의 포춘쿠키</p>
+    <p class="checkin-q" id="fcPrompt">쿠키를 눌러 오늘의 한마디를 꺼내 봐</p>
+    <div class="fortune-stage">
+      <button type="button" class="fortune-cookie" id="fcCookie" aria-label="포춘쿠키 열기">
+        <img class="fc-img fc-whole" src="images/fortune_cookie.webp" alt="" width="480" height="365" aria-hidden="true">
+        <img class="fc-img fc-open" src="images/fortune_cookie_open.webp" alt="" width="480" height="365" aria-hidden="true">
+      </button>
+      <p class="fortune-slip" id="fcSlip" aria-live="polite" hidden>${escapeHtml(text)}</p>
+    </div>
+    <button type="button" class="fortune-go" id="fcGo" hidden>포털로 들어가기</button>`;
+  const cookie = $('fcCookie');
+  cookie.addEventListener('click', () => {
+    if(cookie.classList.contains('cracked')) return;
+    cookie.classList.add('cracked');
+    cookie.disabled = true;
+    $('fcPrompt').textContent = '오늘의 한마디';
+    $('fcSlip').hidden = false;
+    $('fcGo').hidden = false;
+    $('fcGo').focus();
+  });
+  $('fcGo').addEventListener('click', finishCheckinFlow);
+  cookie.focus();
+}
+
 function renderCheckinQuestionBody(body, lesson){
+  if(lesson.type === 'emotion_default'){ renderEmotionDefaultBody_(body); return; }
   if(lesson.type === 'judgment'){
     body.innerHTML = `
       <p class="checkin-eyebrow">발문</p>
       ${renderCheckinSourceBoxHtml_(lesson.source)}
       <p class="checkin-q" style="white-space:pre-wrap;">${escapeHtml(lesson.prompt)}</p>
       <div class="judg-options">
-        ${lesson.options.map(o => `
+        ${ckShuffle_(lesson.options, ckRng_(ckSeed_('judg|' + CHECKIN_CTX.lessonId))).map(o => `
           <button class="judg-btn" data-id="${escapeHtml(o.id)}" type="button">${escapeHtml(o.label)}</button>`).join('')}
       </div>`;
     body.querySelectorAll('.judg-btn').forEach(btn => {
@@ -1318,7 +1447,8 @@ function renderCheckinQuestionBody(body, lesson){
   }
 }
 
-async function submitCheckin(fields){
+async function submitCheckin(fields, opts){
+  const keepOpen = !!(opts && opts.keepOpen); // v88: 감정 체크인은 저장 뒤 포춘쿠키 단계가 이어진다
   const payload = Object.assign({
     action: 'checkin',
     studentId: SESSION.studentId,
@@ -1329,7 +1459,7 @@ async function submitCheckin(fields){
   }, fields);
   if(PREVIEW_MODE){
     /* 교사용 미리보기 — 화면 흐름만 보여주고 실제 시트에는 기록하지 않음 */
-    finishCheckinFlow();
+    if(!keepOpen) finishCheckinFlow();
     return;
   }
   try{
@@ -1337,7 +1467,7 @@ async function submitCheckin(fields){
   }catch(e){
     /* 체크인 기록 실패는 학생 흐름을 막지 않음 — 조용히 포털로 진입 */
   }
-  finishCheckinFlow();
+  if(!keepOpen) finishCheckinFlow();
 }
 
 /* ── 탐구 나무 SVG ──
@@ -2978,7 +3108,7 @@ function switchClSubtab(sub){
 }
 
 function switchCkSubtab(sub){
-  $('ckSubToday').style.display = sub === 'today' ? 'block' : 'none';
+  $('ckSubToday').style.display = sub === 'today' ? '' : 'none'; // v90 — 'block'로 박으면 PC 2단 grid(style.css)를 덮어씀
   $('ckSubLessons').style.display = sub === 'lessons' ? 'block' : 'none';
   document.querySelectorAll('#panelCheckin .cl-subtab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.sub === sub);
@@ -3352,7 +3482,7 @@ async function dashRenderCkSummaryTable_(){
       const rowsHtml = (await Promise.all(bans.map(async ban => {
         const lessonId = await ckFetchTodayLessonId_(grade, String(ban));
         const lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
-        const topic = lesson ? escapeHtml(lesson.topic) : '<span class="muted">미지정</span>';
+        const topic = lesson ? escapeHtml(lesson.topic) : '<span class="muted">감정 체크인 (기본)</span>'; // v88: 미지정 = 기본 감정 체크인
         const isOverride = lessonId !== allLessonId;
         const src = isOverride
           ? '<span class="ck-src-tag override">반별 지정</span>'
@@ -3383,9 +3513,9 @@ async function dashRenderCkSummaryTable_(){
 function dashRenderCkStatColumns_(){
   const grades = dashCheckinGrades_();
   $('ckStatCols').innerHTML = grades.map(grade => `
-    <div class="dash-questions ck-stat-col">
-      <div class="cl-row" style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--line);">
-        <span style="font-weight:700; align-self:center;">${grade}학년</span>
+    <div class="dash-card ck-stat-col">
+      <div class="cl-row ck-stat-head">
+        <span class="ck-stat-grade">${grade}학년</span>
         <select id="ckViewBan_${grade}"></select>
         <button class="btn btn-ghost btn-sm" id="btnCkViewRefresh_${grade}">새로고침</button>
       </div>
@@ -3406,7 +3536,10 @@ function dashRefreshCkSetLessons(){
   const lessons = (CHECKIN_PLAN[grade] && CHECKIN_PLAN[grade].lessons) || [];
   const pastIds = new Set(CHECKIN_LESSONS_ADMIN.filter(l => l.grade === grade && l.isPast).map(l => l.id));
   const visible = lessons.filter(l => !pastIds.has(l.id));
-  $('ckSetLesson').innerHTML = visible.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.topic)}</option>`).join('');
+  /* v88: 맨 위에 기본 '감정 체크인'을 둔다 — 수업 체크인을 걸었다가 다시 기본으로 돌아올 때 이걸 적용한다. */
+  const emoOpt = (typeof CHECKIN_EMOTION !== 'undefined')
+    ? `<option value="${escapeHtml(CHECKIN_EMOTION.id)}">${escapeHtml(CHECKIN_EMOTION.label)}</option>` : '';
+  $('ckSetLesson').innerHTML = emoOpt + visible.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.topic)}</option>`).join('');
 }
 
 /* v41 — "체크인 차시 적용 대상" 라디오 3분류(담당 학급반/전체/개별 반)에 따라
@@ -3445,7 +3578,7 @@ async function dashLoadCkSetCurrent(){
       const scope = ban === '전체' ? '전체 반' : (ban + '반');
       $('ckSetCurrent').textContent = lesson
         ? `현재 설정(${scope}): ${lesson.topic}`
-        : `현재 설정된 차시가 없어요(${scope}). 아래에서 골라 적용해 주세요.`;
+        : `현재 설정(${scope}): 감정 체크인 (기본) — 수업 체크인을 고르면 그걸로 바뀌어요.`;
     }
   }catch(e){
     $('ckSetCurrent').textContent = '현재 설정을 불러오지 못했어요.';
@@ -3583,7 +3716,7 @@ async function dashLoadCheckinAdmin(grade){
     const choiceGroups = {};
     rows.forEach(r => {
       const l = (CHECKIN_PLAN[grade] && CHECKIN_PLAN[grade].lessons || []).find(x => x.id === r.lessonId);
-      if(!choiceGroups[r.lessonId]) choiceGroups[r.lessonId] = { topic: l ? l.topic : r.lessonId, buckets: {} };
+      if(!choiceGroups[r.lessonId]) choiceGroups[r.lessonId] = { topic: l ? l.topic : ((typeof CHECKIN_EMOTION !== 'undefined' && r.lessonId === CHECKIN_EMOTION.id) ? '감정 체크인' : r.lessonId), buckets: {} };
       const g = choiceGroups[r.lessonId];
       let key, label;
       if(r.checkinType === 'judgment'){
@@ -3846,7 +3979,7 @@ function dashResetCheckinLessonForm(){
   $('ckqImagePreviewImg').src = '';
   $('ckqImageUploadStatus').textContent = '';
   $('ckqMoveGradeWrap').style.display = 'none'; // v86
-  $('ckqFormTitle').textContent = '➕ 새 문항 추가';
+  $('ckqFormTitle').textContent = '새 문항 추가';
   $('btnCkqSave').textContent = '문항 추가';
   $('btnCkqCancel').style.display = 'none';
   ckqToggleTypeFields();
@@ -3902,7 +4035,7 @@ function dashEditCheckinLesson(btn){
   $('ckqFormGrade').innerHTML = Object.keys(CHECKIN_PLAN || {}).map(g =>
     `<option value="${g}"${String(g) === String(l.grade) ? ' selected' : ''}>${g}학년</option>`).join('');
   $('ckqMoveGradeWrap').style.display = '';
-  $('ckqFormTitle').textContent = '✏️ 문항 수정';
+  $('ckqFormTitle').textContent = '문항 수정';
   $('btnCkqSave').textContent = '수정 저장';
   $('btnCkqCancel').style.display = 'inline-block';
   $('ckqFormTopic').focus();
@@ -4466,7 +4599,8 @@ function dashRenderQuestions(){
   const visible = dashVisibleQuestions_();
   const waiting = visible.filter(q => q.status !== '답변완료');
   const done = visible.filter(q => q.status === '답변완료');
-  const sorted = [...waiting, ...done]; // 대기중 먼저
+  const byNewest = (a, b) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0); // v90 — 그룹 안에선 최신 먼저
+  const sorted = [...waiting.sort(byNewest), ...done.sort(byNewest)]; // 대기중 먼저
   const badge = $('dqBadge');
   const msgWaiting = dashRenderMessages_(); // v62 — 학생 답장이 마지막인 스레드 수
   const totalWaiting = waiting.length + msgWaiting;
@@ -5270,8 +5404,8 @@ function renderDash(){
 
   $('tableBody').innerHTML = list.map(s => {
     const recentCell = s.recentRecord
-      ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp))}">
-           ${escapeHtml(dashShorten(dashLessonTitle(String(s.recentRecord.gameName)), 10))}
+      ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp) + ' · ' + dashLessonTitle(String(s.recentRecord.gameName)))}">
+           ${escapeHtml(dashShorten(dashLessonTitle(String(s.recentRecord.gameName)), 20))}<!-- v90 — 10자는 PC에서 너무 잘림, 전체 이름은 title -->
            <span class="tbl-dots" title="${escapeHtml(String(s.recentRecord['성취수준']||'분석 전'))}">${dashDots(String(s.recentRecord['성취수준']||'').trim())}</span>
          </span>`
       : '<span class="muted">—</span>';
