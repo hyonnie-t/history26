@@ -1873,3 +1873,63 @@ html{scrollbar-gutter:stable;}
 #dashView .cl-sum-note{font-weight:500; color:var(--ink-soft); font-size:.84rem; margin-left:6px;}
 #dashView .tbl-preview{max-width:420px; color:var(--ink-soft); font-size:.88rem; line-height:1.45;}
 #dashView .an-filter .spacer{flex:1;}
+
+/* ══════════════ v93 — 대시보드 위계 정리(머리글·탭·카드·글자 크기) ══════════════
+ * v87은 "한 틀로 맞추기"에 그쳐 눈이 갈 곳이 없었다: 머리글·탭·본문이 모두 작고 비슷한 회색, 종이색 바탕과 흰 카드의 차이도 미미.
+ * ① 머리글을 키우고 탭 줄을 흰 막대로 올려 바탕과 분리 ② 탭·본문 글자를 한 단계 키움 ③ 카드에 옅은 그림자 + 카드 안 제목·설명 규칙
+ * ④ 안내 글은 흐린 회색 대신 읽히는 색·크기. 맨 끝 유지(v87 규칙을 덮어쓴다). */
+#dashView{max-width:1160px; padding:24px 28px 96px;}
+
+/* 머리글 */
+#dashView .dash-top{margin-bottom:18px;}
+#dashView .dash-top .eyebrow{font-size:.78rem; font-weight:700; letter-spacing:.18em; color:var(--indigo); margin-bottom:4px;}
+#dashView .dash-top h1{font-size:1.85rem; line-height:1.2; letter-spacing:-.02em;}
+#dashView .top-actions .btn.btn-sm{min-height:38px; padding:6px 16px; font-size:.88rem;}
+
+/* 탭 줄 — 흰 막대 + 큰 글자 + 굵은 밑줄 */
+#dashView .dash-tabs{
+  top:8px; margin:0 0 24px; padding:0 10px; gap:4px; background:var(--card);
+  border:1px solid var(--d-line); border-radius:var(--radius); box-shadow:0 2px 10px rgba(35,38,44,.07);
+}
+#dashView .dash-tab{padding:15px 16px 13px; font-size:1rem; font-weight:600; color:var(--ink-soft); border-bottom-width:3px; transition:color .15s, background .15s;}
+#dashView .dash-tab:hover{color:var(--ink); background:var(--indigo-bg);}
+#dashView .dash-tab.active{color:var(--indigo); border-bottom-color:var(--indigo); font-weight:700; background:transparent;}
+
+/* 본문 글자 한 단계 키움 */
+#dashView .dash-panel{font-size:.97rem;}
+#dashView .dash-panel > .dash-hint, #dashView .dash-card-desc{
+  font-size:.95rem; line-height:1.65; color:var(--ink-soft); margin:0 0 var(--d-gap); max-width:68ch;
+}
+#dashView .dash-section-title{font-size:1.12rem; margin:36px 0 8px;}
+#dashView .dash-card-title, #dashView .gi-head h4{font-size:1.08rem; margin:0 0 6px;}
+#dashView .dash-card-desc{margin:0 0 16px;}
+#dashView .filters label{font-size:.9rem;}
+#dashView .table-wrap{font-size:.95rem;}
+#dashView .table-wrap th{font-size:.84rem;}
+
+/* 카드 — 종이색 바탕에서 한 겹 떠 보이게 */
+#dashView :is(.filters,.sum-card,.an-add-form,.dash-card,.cl-collapse,.cl-past-collapse,.gi-block,.stat-block,
+  .dm-box,.class-fb-box,.suspect-box,.table-wrap,#anList:not(:empty),#clList .cl-active-list,#dqList .dq-item){
+  box-shadow:0 1px 2px rgba(35,38,44,.05), 0 4px 14px rgba(35,38,44,.04);
+}
+#dashView .dash-card{padding:22px 24px;}
+#dashView #panelPoints .dash-card .pp-box{border:0; box-shadow:none; padding:0; background:none; margin:0;}
+#dashView #panelPoints .dash-card .pp-form{margin-top:12px; padding:14px 16px; border-width:1px; border-color:var(--d-line);}
+
+/* 탐구포인트 탭 */
+#dashView .pp-search{max-width:560px;}
+#dashView .pp-search input{min-height:48px; font-size:1rem; padding:10px 16px;}
+#dashView .dash-inline{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+#dashView .pp-picked{margin-top:16px;}
+#dashView .pp-picked-name{font-size:1.1rem;}
+#dashView .pp-recent-title{margin-top:24px; font-size:.88rem;}
+
+@media (max-width:1024px){
+  #dashView{padding:16px 16px 96px;}
+  #dashView .dash-tabs{margin:0 0 18px; padding:0 6px;}
+  #dashView .dash-tab{padding:13px 11px 11px; font-size:.92rem;}
+  #dashView .dash-top h1{font-size:1.55rem;}
+}
+@media (max-width:640px){
+  #dashView .dash-card{padding:16px 16px;}
+}
