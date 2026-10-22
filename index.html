@@ -821,17 +821,17 @@
        행 정보를 안 돌려줌) 세션 메모리에만 쌓아 보여주는 "방금 지급함" 확인용
        — 새로고침하면 비워짐, 영구 기록은 학생 상세 카드에서 그대로 확인 가능. -->
   <div class="dash-panel" id="panelPoints" style="display:none;">
-    <p class="dash-hint">
-      발표처럼 웹앱 밖에서 있었던 활동에 포인트를 즉시 지급해요. 학번 또는 이름으로 학생을 검색해서 바로 지급할 수 있어요.
-    </p>
-    <div class="filters">
-      <div class="student-search" id="ppSearchWrap" style="flex:1 1 320px; max-width:420px;">
+    <!-- v93 — 카드마다 제목·설명·조작을 한 덩어리로(.dash-card). 제목이 카드 밖에 따로 뜨던 걸 정리. -->
+    <section class="dash-card">
+      <h2 class="dash-card-title">학생에게 탐구포인트 지급</h2>
+      <p class="dash-card-desc">발표처럼 웹앱 밖에서 있었던 활동에 포인트를 즉시 지급해요. 학번 또는 이름으로 학생을 검색해서 바로 지급할 수 있어요.</p>
+      <div class="student-search pp-search" id="ppSearchWrap">
         <input type="text" id="ppSearch" placeholder="학번 또는 이름 검색" autocomplete="off">
         <div class="student-search-results" id="ppSearchResults" style="display:none;"></div>
       </div>
-    </div>
-    <div id="ppSelected"></div>
-    <div id="ppRecent"></div>
+      <div id="ppSelected"></div>
+      <div id="ppRecent"></div>
+    </section>
 
     <!-- 2026-09-04 신규: 역사법정(his_judge_goryeo) 검사/변호인 발언문+배심원 판결을
          re_judge(갈등조정 도구)에 자동 등록. gameName은 his_judge_goryeo의
@@ -839,26 +839,30 @@
          늘려야 함. 3학년 5~8반 전용 활동이라 학년은 고정하고 반만 고른다. 서버 쪽
          courtCasePushPost_가 스크립트 속성 RE_JUDGE_TEACHER_TOKEN을 요구한다 —
          history26_backend AGENTS.md 참고. -->
-    <p class="dash-section-title">역사법정 결과 re_judge에 등록</p>
-    <p class="dash-hint">3학년 반을 고르면 그 반 검사·변호인 발언문(+배심원 판결)을 모아 re_judge에 새 사건으로 자동 등록해요.</p>
-    <div class="filters">
-      <select id="ccPushBan">
-        <option value="5">3학년 5반</option>
-        <option value="6">3학년 6반</option>
-        <option value="7">3학년 7반</option>
-        <option value="8">3학년 8반</option>
-      </select>
-      <button type="button" id="ccPushBtn" onclick="dashCourtCasePush(this)">re_judge에 자동 등록</button>
-    </div>
-    <div id="ccPushStatus" class="dash-hint" style="min-height:18px;"></div>
+    <section class="dash-card">
+      <h2 class="dash-card-title">역사법정 결과 re_judge에 등록</h2>
+      <p class="dash-card-desc">3학년 반을 고르면 그 반 검사·변호인 발언문(+배심원 판결)을 모아 re_judge에 새 사건으로 자동 등록해요.</p>
+      <div class="dash-inline">
+        <select id="ccPushBan">
+          <option value="5">3학년 5반</option>
+          <option value="6">3학년 6반</option>
+          <option value="7">3학년 7반</option>
+          <option value="8">3학년 8반</option>
+        </select>
+        <button type="button" id="ccPushBtn" onclick="dashCourtCasePush(this)">re_judge에 자동 등록</button>
+      </div>
+      <div id="ccPushStatus" class="dash-hint" style="min-height:18px;"></div>
+    </section>
 
     <!-- 2026-09-07 신규: 공민왕 개혁 "고민리스트" 2단계 자원 카드 보너스.
          gongmin 웹앱은 학생용이라 교사 토큰을 못 심어(보안상 grantPresentationPoint를
          직접 못 부름) choicesJson.volunteer 플래그만 기록해 보내고, 여기서 교사가
          확인 후 일괄 지급한다. 내용은 dashRenderGongminBonus_()가 채운다. -->
-    <p class="dash-section-title">고민리스트 자원 카드 보너스</p>
-    <p class="dash-hint">2단계에서 카드를 1장 더 자원해서 쓴 학생에게만 탐구포인트를 차등 지급해요.</p>
-    <div id="gmBonusBox"></div>
+    <section class="dash-card">
+      <h2 class="dash-card-title">고민리스트 자원 카드 보너스</h2>
+      <p class="dash-card-desc">2단계에서 카드를 1장 더 자원해서 쓴 학생에게만 탐구포인트를 차등 지급해요.</p>
+      <div id="gmBonusBox"></div>
+    </section>
   </div>
 
   <!-- v54(2026-09-15 신규, 핸드오프 "성적조회 통합 v2") — 성적 엑셀 업로드 + 열람상태 토글.
