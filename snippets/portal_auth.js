@@ -7,7 +7,8 @@
  *   <script src="https://hyonnie-t.github.io/history26/snippets/portal_auth.js"></script>
  *
  * 웹앱 화면 가드: ?preview=1이 아니고 주소에 sid가 있는데 이 기기에 세션이 없거나 학번이 다르면
- * "포털에서 로그인해 주세요" 안내로 화면을 덮는다(친구 학번을 주소에 넣고 여는 것 방지).
+ * 화면을 덮고 그 자리에서 로그인(학번은 sid로 고정, 이름·비밀번호 입력)하게 한다(친구 학번을 주소에 넣고 여는 것 방지).
+ * 포털에서 로그인한 채로 넘어오면 세션이 있어 창이 뜨지 않고 바로 입장한다.
  * 포털 자신은 data-guard="off"로 가드를 끈다. 실제 차단은 서버(history26_backend studentGate_)가 한다 —
  * 이 가드는 학생이 헛수고하지 않게 미리 알려 주는 용도다.
  */
@@ -64,6 +65,10 @@
   var me = document.currentScript;
   if (me && me.getAttribute('data-guard') === 'off') return;
 
+  /* v89: 세션이 없을 때 "포털로 가세요" 안내만 띄우던 걸, 그 자리에서 로그인하는 창으로 바꿨다.
+   * 학번은 주소의 sid로 고정(친구 학번으로 못 들어가게), 이름·비밀번호만 받는다. 성공하면 세션을 저장하고 새로고침. */
+  var LOGIN_URL = 'https://script.google.com/macros/s/AKfycbyXSjCfWY_HiZFqW_OBR-FQDoIfF1z_STqyKWUI31MacHeY3u7hbirFSFDvW-5yuUHaJQ/exec';
+
   function guard() {
     var q = new URLSearchParams(location.search);
     if (q.get('preview') === '1') return;
@@ -71,25 +76,64 @@
     if (!sid) return;
     var a = read();
     if (a && a.sid === sid) return;
-    var msg = a
-      ? '이 기기에는 다른 학생 계정으로 로그인돼 있어요. 포털에서 "책 덮기"를 누른 뒤 내 계정으로 다시 로그인하고 활동을 열어 주세요.'
-      : '먼저 역사 탐구 기록 포털에서 비밀번호로 로그인한 뒤, 포털에서 이 활동을 열어 주세요.';
+    var other = !!a;
+
     var box = document.createElement('div');
-    box.setAttribute('role', 'alertdialog');
+    box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
     box.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;' +
-      'padding:16px;background:rgba(40,32,24,.55);font:16px/1.6 "Pretendard","Noto Sans KR",sans-serif;';
+      'padding:16px;background:rgba(40,32,24,.55);font:16px/1.6 "Pretendard","Noto Sans KR",sans-serif;overflow:auto;';
+    var inp = 'display:block;width:100%;box-sizing:border-box;min-height:44px;padding:8px 10px;margin:0 0 10px;font:inherit;' +
+      'border:1px solid #c9b99a;border-radius:4px;background:#fff;color:#2b241c;';
+    var lab = 'display:block;margin:0 0 2px;font-size:.9rem;color:#6b5d4c;text-align:left;';
     box.innerHTML =
-      '<div style="max-width:420px;width:100%;background:#fbf7ef;color:#2b241c;border:1px solid #c9b99a;border-radius:6px;' +
-      'box-shadow:0 6px 24px rgba(0,0,0,.18);padding:24px 20px;text-align:center;">' +
-      '<p style="margin:0 0 6px;font-size:1.15rem;font-weight:700;">🔒 로그인이 필요해요</p>' +
-      '<p style="margin:0 0 18px;" id="h26AuthMsg"></p>' +
-      '<a href="' + PORTAL_URL + '" style="display:inline-block;padding:12px 22px;min-height:44px;box-sizing:border-box;' +
-      'background:#7a4b2a;color:#fff;border-radius:4px;text-decoration:none;font-weight:600;">포털로 가기</a>' +
-      '<p style="margin:16px 0 0;font-size:.9rem;color:#6b5d4c;">함께 쓰는 기기라면 활동이 끝난 뒤 포털에서 꼭 "책 덮기"(로그아웃)를 눌러 주세요.</p>' +
-      '</div>';
-    box.querySelector('#h26AuthMsg').textContent = msg;
+      '<form id="h26Form" style="max-width:380px;width:100%;background:#fbf7ef;color:#2b241c;border:1px solid #c9b99a;border-radius:6px;' +
+      'box-shadow:0 6px 24px rgba(0,0,0,.18);padding:22px 20px;text-align:center;">' +
+      '<p style="margin:0 0 4px;font-size:1.15rem;font-weight:700;">🔒 로그인이 필요해요</p>' +
+      '<p id="h26AuthMsg" style="margin:0 0 14px;font-size:.95rem;"></p>' +
+      '<label style="' + lab + '" for="h26Sid">학번</label>' +
+      '<input id="h26Sid" readonly style="' + inp + 'background:#efe8d8;" autocomplete="username">' +
+      '<label style="' + lab + '" for="h26Name">이름</label>' +
+      '<input id="h26Name" style="' + inp + '" autocomplete="off">' +
+      '<label style="' + lab + '" for="h26Pw">비밀번호</label>' +
+      '<input id="h26Pw" type="password" style="' + inp + '" autocomplete="current-password">' +
+      '<p id="h26Err" role="alert" style="display:none;margin:0 0 10px;font-size:.9rem;color:#a02a1c;"></p>' +
+      '<button id="h26Go" type="submit" style="display:block;width:100%;min-height:44px;box-sizing:border-box;border:0;cursor:pointer;' +
+      'background:#7a4b2a;color:#fff;border-radius:4px;font:inherit;font-weight:600;">로그인</button>' +
+      '<p style="margin:14px 0 0;font-size:.85rem;color:#6b5d4c;">처음이거나 비밀번호를 바꿔야 하면 ' +
+      '<a href="' + PORTAL_URL + '" style="color:#7a4b2a;">포털</a>에서 로그인해 주세요. 함께 쓰는 기기라면 끝난 뒤 포털에서 "책 덮기"를 눌러 주세요.</p>' +
+      '</form>';
+    box.querySelector('#h26AuthMsg').textContent = other
+      ? '이 기기에는 다른 학생 계정이 로그인돼 있어요. 내 이름과 비밀번호로 다시 로그인해 주세요.'
+      : '이름과 비밀번호를 입력하면 바로 시작할 수 있어요.';
     document.body.appendChild(box);
+
+    var $ = function (id) { return box.querySelector('#' + id); };
+    $('h26Sid').value = sid;
+    setTimeout(function () { try { $('h26Name').focus(); } catch (e) { /* 무시 */ } }, 0);
+
+    function fail(m) {
+      var e = $('h26Err'); e.textContent = m; e.style.display = 'block';
+      $('h26Go').disabled = false; $('h26Go').textContent = '로그인';
+    }
+    $('h26Form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var name = $('h26Name').value.trim(), pw = $('h26Pw').value.trim();
+      if (!name) return fail('이름을 입력해 주세요.');
+      if (!pw) return fail('비밀번호를 입력해 주세요.');
+      $('h26Err').style.display = 'none';
+      $('h26Go').disabled = true; $('h26Go').textContent = '확인하는 중…';
+      // 감싼 fetch를 거치면 이전 계정 세션이 본문에 붙으므로 원래 fetch로 보낸다.
+      origFetch.call(window, LOGIN_URL, { method: 'POST', body: JSON.stringify({ action: 'login', studentId: sid, name: name, password: pw }) })
+        .then(function (res) { return res.json(); })
+        .then(function (r) {
+          if (!r || r.result !== 'success') return fail((r && r.message) || '로그인하지 못했어요.');
+          if (r.mustChange) return fail('처음 로그인이라 새 비밀번호를 정해야 해요. 아래 포털에서 먼저 로그인해 주세요.');
+          set(r.session);
+          location.reload();
+        })
+        .catch(function () { fail('로그인하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'); });
+    });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', guard);
   else guard();
