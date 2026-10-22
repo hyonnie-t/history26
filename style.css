@@ -1859,3 +1859,17 @@ html{scrollbar-gutter:stable;}
   #ckSummaryTables th, #ckSummaryTables td{padding:9px 10px;}
   #ckSummaryTables th:first-child, #ckSummaryTables td:first-child, #ckSummaryTables td:last-child{white-space:nowrap;}
 }
+
+/* v92 — 입력칸이 카드(흰색)와 거의 같은 색이라 안 보이던 것: 칸 배경을 한 톤 어둡게, 테두리를 진하게.
+ * 유형 select가 행 높이만큼 늘어나던 것도 라벨 달린 칸으로 맞췄다. 맨 끝 유지. */
+#dashView{--d-input-line:#B3AB96; --d-input-bg:#F3F0E6;}
+#dashView :is(input[type=text],input[type=search],input[type=password],input[type=number],select,textarea){
+  background:var(--d-input-bg); border-color:var(--d-input-line);
+}
+#dashView :is(input[type=text],input[type=search],input[type=password],input[type=number],select,textarea):hover{border-color:var(--ink-soft);}
+#dashView :is(input,select,textarea):focus{background:#fff;}
+#dashView .cl-form .cl-row{align-items:flex-end;}
+#dashView .cl-field select, #dashView .cl-field input{width:100%;}
+#dashView .cl-sum-note{font-weight:500; color:var(--ink-soft); font-size:.84rem; margin-left:6px;}
+#dashView .tbl-preview{max-width:420px; color:var(--ink-soft); font-size:.88rem; line-height:1.45;}
+#dashView .an-filter .spacer{flex:1;}

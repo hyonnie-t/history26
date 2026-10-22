@@ -419,6 +419,7 @@
         <tbody id="tableBody"></tbody>
       </table>
     </div>
+    <p class="dash-hint" id="actMissing" style="display:none;"></p>
   </div>
 
   <div class="dash-panel" id="panelQuestions" style="display:none;">
@@ -448,6 +449,23 @@
       <p class="an-target-hint" id="anTargetHint"></p>
       <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
       <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
+    </div>
+    <!-- v92 — 공지가 쌓이면 내 학급 것만 보고 싶어서: 보기 범위·상태 필터. 시트에 작성자 칸이 없어 "내가 올린 것"은
+         "내 담당 학급으로 지정한 공지"로 가늠한다(dashAnnounceVisible_). -->
+    <div class="filters an-filter">
+      <label for="anFilterScope">보기</label>
+      <select id="anFilterScope" onchange="dashRenderAnnouncements()">
+        <option value="all">전체 공지</option>
+        <option value="visible">내 학급에 보이는 공지</option>
+        <option value="mine">내 담당 학급으로 올린 공지</option>
+      </select>
+      <select id="anFilterStatus" onchange="dashRenderAnnouncements()" aria-label="공지 상태">
+        <option value="">게시중·보류 모두</option>
+        <option value="게시">게시중만</option>
+        <option value="보류">보류만</option>
+      </select>
+      <span class="spacer"></span>
+      <span class="dash-hint" id="anFilterCount" style="margin:0;"></span>
     </div>
     <div id="anList"></div>
   </div>
@@ -693,10 +711,13 @@
           </div>
           <div class="cl-form">
             <div class="cl-row">
-              <select id="ckqFormType">
-                <option value="judgment">judgment (판단형 2지선다)</option>
-                <option value="source_emotion">source_emotion (사료+단어칩)</option>
-              </select>
+              <div class="cl-field" style="flex:1 1 220px;">
+                <label class="cl-field-label" for="ckqFormType">유형</label>
+                <select id="ckqFormType">
+                  <option value="judgment">judgment (판단형 2지선다)</option>
+                  <option value="source_emotion">source_emotion (사료+단어칩)</option>
+                </select>
+              </div>
               <div class="cl-field" style="flex:1 1 160px;">
                 <label class="cl-field-label" for="ckqFormId">차시id <span class="cl-req">*필수</span></label>
                 <input id="ckqFormId" type="text" placeholder="예: w13-1">
@@ -893,17 +914,22 @@
     </div>
     <p class="dash-hint">켜면 비밀번호로 로그인하지 않은 화면(로그인 연결이 안 들어간 옛 웹앱 포함)의 제출·조회가 막혀요. 웹앱에 로그인 연결을 다 넣은 뒤 켜 주세요.</p>
 
-    <p class="dash-section-title">학생 계정</p>
-    <div class="filters">
-      <input type="search" id="paSearch" class="pa-input" placeholder="학번·이름으로 찾기" oninput="dashRenderPwAccounts_()">
-      <span class="dash-hint" id="paCount" style="margin:0;"></span>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>학번</th><th>이름</th><th>상태</th><th>최근 로그인</th><th></th></tr></thead>
-        <tbody id="paAccounts"></tbody>
-      </table>
-    </div>
+    <!-- v92 — 학생 계정 표는 길어서 기본으로 접어 두고, 접힌 제목줄에 인원 요약을 보여준다. -->
+    <details class="cl-collapse" id="paAccountsBox">
+      <summary>학생 계정 <span class="cl-sum-note" id="paSummary"></span> <span class="cl-arrow">▶</span></summary>
+      <div class="cl-collapse-body">
+        <div class="filters">
+          <input type="search" id="paSearch" class="pa-input" placeholder="학번·이름으로 찾기" oninput="dashRenderPwAccounts_()">
+          <span class="dash-hint" id="paCount" style="margin:0;"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>학번</th><th>이름</th><th>상태</th><th>최근 로그인</th><th></th></tr></thead>
+            <tbody id="paAccounts"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
 
     <p class="dash-section-title">전체 초기화</p>
     <p class="dash-hint">학기 초처럼 모두 초기 비밀번호로 되돌릴 때만 써요. 모든 학생이 로그아웃되고 다음 로그인 때 비밀번호를 다시 정해요.</p>
@@ -3133,6 +3159,8 @@ function dashInitAnnounceForm(){
   $('anGrade').innerHTML = '<option value="전체">전체 학년</option>' +
     grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
   dashOnAnnounceTargetChange_();
+  // v92 — 담당 학급을 아는 교사는 처음부터 "내 학급에 보이는 공지"만 보이게(건수가 옆에 나와 가려진 건 알 수 있다)
+  if(grades.some(g => dashMyBans_(g))) $('anFilterScope').value = 'visible';
 }
 
 /* v30: "담당 학급반" 대상 라디오가 선택된 상태에서 학년을 바꾸면 힌트 문구(담당 반 목록)도
@@ -3160,13 +3188,36 @@ function dashOnAnnounceTargetChange_(){
   }
 }
 
+/* v92 — 공지가 내 학급 대상인지. ban은 '전체' / '5' / '5,6,7,8'. grade가 '전체'면 모든 학년의 내 담당 반을 본다.
+ * mode 'visible': 내 반 학생에게 보이는 공지('전체' 대상 포함). 'mine': 반을 직접 지정했고 전부 내 담당 반인 공지. */
+function dashAnnounceVisible_(a, mode){
+  if(mode === 'all') return true;
+  const grades = String(a.grade) === '전체' ? Object.keys(CONFIG.CURRICULUM) : [String(a.grade)];
+  const isAll = String(a.ban) === '전체';
+  const bans = isAll ? [] : String(a.ban).split(',').map(b => Number(b.trim())).filter(Boolean);
+  return grades.some(g => {
+    const mine = dashMyBans_(g);
+    if(!mine) return false;
+    if(mode === 'visible') return isAll || bans.some(b => mine.includes(b));
+    return bans.length > 0 && bans.every(b => mine.includes(b));
+  });
+}
+
 function dashRenderAnnouncements(){
   const list = $('anList');
   if(!ANNOUNCEMENTS_ADMIN.length){
     list.innerHTML = '<p class="empty-hint">등록된 공지가 없어요.</p>';
+    $('anFilterCount').textContent = '';
     return;
   }
-  const sorted = [...ANNOUNCEMENTS_ADMIN].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const scope = $('anFilterScope').value, status = $('anFilterStatus').value;
+  const shown = ANNOUNCEMENTS_ADMIN.filter(a => dashAnnounceVisible_(a, scope) && (!status || a.status === status));
+  $('anFilterCount').textContent = `전체 ${ANNOUNCEMENTS_ADMIN.length}건 중 ${shown.length}건`;
+  if(!shown.length){
+    list.innerHTML = '<p class="empty-hint">조건에 맞는 공지가 없어요.' + (scope !== 'all' && !TEACHER_NAME ? ' (담당 학급을 알 수 없어 "전체 공지"로 봐야 해요.)' : '') + '</p>';
+    return;
+  }
+  const sorted = shown.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
   list.innerHTML = sorted.map(a => {
     const live = a.status === '게시';
     // v30: "담당 학급반"으로 게시하면 ban이 "5,6,7,8" 같은 콤마 리스트로 저장됨 — 목록에서는
@@ -5370,7 +5421,18 @@ function renderDash(){
     s.avgAchieve = dashAvgAchieveInfo_(Object.values(s.achieve));
   });
 
-  $('sumStudents').textContent = list.length;
+  /* v92 — 활동을 고르면 그 활동 글을 낸 학생만 표에 남기고(글 미리보기·제출 시각을 같이 보여줌),
+   * 기록은 있는데 이 활동만 안 낸 학생은 표 아래에 이름으로 알려 준다. */
+  const hasAct = s => s.records.some(r => String(r.gameName) === act);
+  const viewList = act ? list.filter(hasAct) : list;
+  const missing = act ? list.filter(s => !hasAct(s)) : [];
+  const missEl = $('actMissing');
+  if(act && missing.length){
+    missEl.style.display = '';
+    missEl.textContent = `이 활동 기록이 없는 학생 ${missing.length}명(다른 활동 기록은 있음): ` + missing.map(s => s.name).join(', ');
+  } else { missEl.style.display = 'none'; }
+
+  $('sumStudents').textContent = viewList.length;
   $('sumProgress').textContent = list.length
     ? Math.round(list.reduce((a,s)=>a+s.pct,0)/list.length) : 0;
 
@@ -5394,15 +5456,26 @@ function renderDash(){
 
   $('rowCount').textContent = `기록 ${rows.length}건`;
 
-  $('tableHead').innerHTML =
-    '<tr><th>학번</th><th>이름</th><th>진행률</th><th>최근 활동</th><th>평균 성취</th></tr>';
+  $('tableHead').innerHTML = act
+    ? '<tr><th>학번</th><th>이름</th><th>제출</th><th>성취</th><th>글 미리보기</th></tr>'
+    : '<tr><th>학번</th><th>이름</th><th>진행률</th><th>최근 활동</th><th>평균 성취</th></tr>';
 
-  if(!list.length){
+  if(!viewList.length){
     $('tableBody').innerHTML = `<tr><td colspan="5" class="empty-line">아직 이 조건에 해당하는 학생 기록이 없어요.</td></tr>`;
     return;
   }
 
-  $('tableBody').innerHTML = list.map(s => {
+  $('tableBody').innerHTML = viewList.map(s => {
+    let cells3;
+    if(act){
+      const mine = s.records.filter(r => String(r.gameName) === act)
+        .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const rec = mine[0], lv = String(rec['성취수준']||'').trim();
+      const text = String(rec['1줄요약'] || rec.choiceSummary || '').trim();
+      cells3 = `<td>${escapeHtml(formatDate(rec.timestamp))}${mine.length > 1 ? ` <span class="dup-badge">${mine.length}건</span>` : ''}</td>
+        <td><span class="tbl-dots" title="${escapeHtml(lv || '분석 전')}">${dashDots(lv)} ${escapeHtml(lv || '분석 전')}</span></td>
+        <td class="tbl-preview">${text ? escapeHtml(dashShorten(text, 70)) : '<span class="muted">—</span>'}</td>`;
+    }
     const recentCell = s.recentRecord
       ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp) + ' · ' + dashLessonTitle(String(s.recentRecord.gameName)))}">
            ${escapeHtml(dashShorten(dashLessonTitle(String(s.recentRecord.gameName)), 20))}<!-- v90 — 10자는 PC에서 너무 잘림, 전체 이름은 title -->
@@ -5416,9 +5489,9 @@ function renderDash(){
       <tr class="student-row" data-sid="${s.sid}">
         <td>${s.sid}</td>
         <td>${escapeHtml(s.name)}${s.hasUnreadFeedback ? '<span class="fb-dot" title="학생이 아직 확인 안 한 피드백이 있어요"></span>' : ''}${dashSuspectChipHtml_(s.sid)}</td>
-        <td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${s.totalLessons}</span></td>
+        ${act ? cells3 : `<td><span class="prog-mini"><span class="track"><span class="fill" style="width:${s.pct}%"></span></span>${s.doneCount}/${s.totalLessons}</span></td>
         <td>${recentCell}</td>
-        <td>${avgCell}</td>
+        <td>${avgCell}</td>`}
       </tr>
       ${openDetailSid === s.sid ? dashDetailRowHtml(s, filterLessonsForBan(cur, s.p.ban), 5) : ''}`;
   }).join('');
@@ -5711,6 +5784,7 @@ function dashRenderPwAccounts_(){
   const list = (d.accounts || []).filter(a => !q || a.studentId.indexOf(q) >= 0 || a.name.indexOf(q.replace(/\s+/g,'')) >= 0);
   const done = (d.accounts || []).filter(a => a.state === '설정').length;
   $('paCount').textContent = '계정 ' + (d.accounts || []).length + '명 · 자기 비밀번호로 바꾼 학생 ' + done + '명';
+  $('paSummary').textContent = '· ' + (d.accounts || []).length + '명 (자기 비밀번호 ' + done + '명)'; // v92
   $('paAccounts').innerHTML = !list.length ? '<tr><td colspan="5" class="muted">아직 로그인한 학생이 없어요. (계정은 처음 로그인할 때 생겨요)</td></tr>' :
     list.slice(0, 300).map(a => '<tr><td>' + escapeHtml(a.studentId) + '</td><td>' + escapeHtml(a.name) + '</td>'
       + '<td>' + (a.state === '설정' ? '자기 비밀번호' : '<span class="muted">초기 상태</span>') + '</td>'
