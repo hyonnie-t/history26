@@ -123,6 +123,10 @@ source_emotion=텍스트)을 정한다.
 호출한다. 서버 배포 상태는 `history26_backend` `docs/deploy-status.md` 참고 — 배포 전엔 모든 문항이 항상 진행중
 그룹에만 보이고 토글도 반영되지 않는다.
 
+
+## 기본 감정 체크인 (v88)
+오늘 차시가 비었거나 "감정체크인"이면 `maybeStartCheckin()`이 `CHECKIN_CTX.lesson.type="emotion_default"`로 만들고 `renderEmotionDefaultBody_()`가 오른쪽 페이지를 그린다(온도 → 감정칩 6개/기타 입력 → `renderFortuneStep_()` 포춘쿠키 → `finishCheckinFlow`). 데이터는 `checkin_data.js`의 `CHECKIN_EMOTION`(고정 문구, AI 없음). 칩·쿠키 문구·판단형 A/B 순서는 `ckSeed_()`(학생+날짜) 시드 난수로 정해져 새로고침해도 같다. 저장은 기존 `checkin` action 그대로(`lessonId:"감정체크인"`, `source_emotion`, `word`=감정). `alreadyChecked`는 학생+날짜 기준이라 백엔드 변경 없음. 학생 화면에 교사용 표현(검수·확인 전 등)을 넣지 말 것.
+
 ## 학생 로그인 비밀번호 (v83)
 목적은 **학생끼리 서로의 기록·성적에 못 들어가게** 하는 것(교사는 토큰으로 전부 본다). 서버 쪽은 `history26_backend` "학생 로그인 비밀번호".
 - **첫 로그인**: 교사가 대시보드 "🔐 학생 계정"에서 정한 **공통 초기 비밀번호**로 들어오면 서버가 `mustChange`만 주고, 표지가 "새 비밀번호" 단계
