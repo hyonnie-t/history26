@@ -39,6 +39,10 @@
 13. **로그인 세션 연동(v83, 효니 확정: 웹앱 전부)**: `<head>`의 `<meta charset>` 바로 다음, 앱 스크립트보다 먼저
     `<script src="https://hyonnie-t.github.io/history26/snippets/portal_auth.js"></script>` 한 줄. 복사하지 말고 이 주소를 그대로 부른다(고칠 때 한 곳만 고치도록).
     백엔드 호출은 `fetch` + GET 주소의 `studentId=` / POST `JSON.stringify` 본문이어야 세션이 붙는다(지금 웹앱 전부가 이 형태). 다른 방식이면 로그인 필수를 켤 때 막힌다.
+14. **글 복사 → 패들렛 열기 버튼(효니 확정: 글을 복사해 패들렛에 올리게 하는 앱 전부, 빠뜨리지 않는다)**: 마무리 화면의 `copyBtn` 옆에 `padletBtn`과 안내 `padlet-box`를 둔다.
+    링크는 레포에 적지 않고 `?mode=curriculum`의 학년별 `portfolio.urlByBan`에서 학번의 반으로 가져온다. 없으면 버튼을 숨기고 안내 문구를 보인다.
+    기준 구현은 `vienna_diary`의 `loadPadletUrl`/`renderPadlet`(학번이 정해지는 지점에서 불러온다). padlet.com은 FocusGuard가 자동 면제하므로 `exempt()`는 필요 없다.
+    사고: `suffrage_age`(2026-10-22)에 빠져 학생이 복사 후 패들렛으로 가지 못함. `copyBtn`이 있으면 `padletBtn`도 있는지 배포 전 grep으로 확인.
 - 기존 레포에 focus/draft/glossary를 소급하는 건 효니가 시킬 때만(소급 완료 목록은 features.md 해당 섹션).
 
 ## 반복된 실수 — 작성·수정 뒤 매번 재확인
