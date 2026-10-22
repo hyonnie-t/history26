@@ -1933,3 +1933,39 @@ html{scrollbar-gutter:stable;}
 @media (max-width:640px){
   #dashView .dash-card{padding:16px 16px;}
 }
+
+/* ══════════════ v94 — 그림 나무 장면 + 3학년 시험기간 연출 ══════════════
+ * 장면 상자는 480x520 비율 고정(이미지가 늦게 떠도 카드 높이가 안 튀어서 layoutSideCard_ 측정이 안정적).
+ * 위치·크기는 전부 상자 대비 %라 폰·태블릿 어디서나 같은 모습. 움직임은 동작 줄이기 설정이면 모두 끈다. */
+.tree-box{width:min(100%,220px); aspect-ratio:480/520; position:relative; margin:0 auto 6px;}
+@media (min-width:768px){ .tree-box{width:min(100%,250px);} }
+.tree-scene{position:absolute; inset:0; overflow:hidden; border-radius:inherit;}
+.tree-scene > svg{position:absolute; left:0; bottom:0; width:100%; height:auto;}
+.tree-sway{position:absolute; inset:0; transform-origin:50% 96%; animation:treeSway 7s ease-in-out infinite;}
+.tree-img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; user-select:none;}
+.tree-fx{position:absolute; height:auto; pointer-events:none; user-select:none; transform:translate(-50%,-50%) rotate(var(--rot,0deg)); filter:drop-shadow(0 1px 1px rgba(90,50,10,.28));}
+.tree-fx-fruit{animation:treeFruit 4.2s ease-in-out infinite; animation-delay:var(--i,0s);}
+.tree-fall{position:absolute; left:var(--x); top:12%; width:var(--s); height:auto; opacity:0; pointer-events:none; user-select:none;
+  filter:hue-rotate(-75deg) saturate(1.3); animation:treeFall var(--t) linear infinite; animation-delay:var(--d);}
+@keyframes treeSway{ 0%,100%{transform:rotate(-.7deg);} 50%{transform:rotate(.8deg);} }
+@keyframes treeFruit{ 0%,100%{transform:translate(-50%,-50%) rotate(-3deg);} 50%{transform:translate(-50%,-50%) rotate(3deg);} }
+@keyframes treeFall{
+  0%{top:18%; transform:translateX(0) rotate(0deg); opacity:0;}
+  10%{opacity:.9;}
+  50%{transform:translateX(14px) rotate(170deg);}
+  90%{opacity:.85;}
+  100%{top:88%; transform:translateX(-8px) rotate(340deg); opacity:0;}
+}
+/* 시험기간(3학년): 저녁 하늘 + 은은한 빛 + 반딧불 + 스탠드·책 소품 */
+.tree-box.is-exam{border-radius:18px; background:linear-gradient(180deg,#2D3270 0%,#6E4F93 40%,#E9955F 80%,#F6CF8E 100%); box-shadow:0 4px 14px rgba(45,50,112,.28);}
+.tree-glow{position:absolute; inset:0; pointer-events:none; background:radial-gradient(62% 46% at 50% 40%, rgba(255,205,125,.34), transparent 72%);}
+.tree-spark{position:absolute; width:var(--z); height:var(--z); border-radius:50%; background:#FFF3B0; pointer-events:none;
+  box-shadow:0 0 6px 2px rgba(255,236,150,.75); animation:treeSpark 3.6s ease-in-out infinite; animation-delay:var(--d);}
+@keyframes treeSpark{ 0%,100%{opacity:.15; transform:translateY(0) scale(.8);} 50%{opacity:1; transform:translateY(-6px) scale(1.1);} }
+.tree-prop{position:absolute; right:-1%; bottom:1%; width:34%; height:auto; pointer-events:none; user-select:none; filter:drop-shadow(0 4px 6px rgba(20,10,40,.35));}
+.exam-cheer{margin:0 auto 10px; font-size:.84rem; font-weight:700; line-height:1.5; color:var(--indigo);
+  background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25); border-radius:12px; padding:7px 12px;}
+@media (prefers-reduced-motion:reduce){
+  .tree-sway,.tree-fx-fruit,.tree-spark{animation:none;}
+  .tree-fall{display:none;}
+}
