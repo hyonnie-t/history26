@@ -210,3 +210,104 @@ function treeSvg(stage, leaves, totalLessons){
     ${defs}${ground}${trunk}${bark}${branches}${canopy}${texture}${fresh}${flowers}${fruits}${tufts}${fallen}
   </svg>`;
 }
+
+/* ══════════════ v94 — 그림 나무 장면(힉스필드 일러스트) + 3학년 시험기간 연출 ══════════════
+ * treeScene(stage, leaves, totalLessons, grade) → HTML 문자열. renderPortal()이 #treeBox에 넣는다.
+ *   - 단풍철(10월, ?season=autumn)엔 images/tree/tree_0~7.webp(귀여운 얼굴 나무 8단계) 위에 새잎·열매 그림을 얹는다.
+ *     진행률 규칙은 treeSvg와 같다(완료 차시 비율 × 단계별 상한). 나무가 바람에 살짝 흔들리고 낙엽이 천천히 떨어진다.
+ *   - 그 밖의 달은 예전 SVG 나무(treeSvg)를 그대로 쓴다.
+ *   - 시험기간(CONFIG.EXAM_PERIOD, 학년별)엔 저녁 하늘·반딧불·스탠드 소품을 더한다. 문구는 treeExamCheer_().
+ * 위치는 모두 장면 상자(480x520) 대비 %라서 카드 크기가 바뀌어도 어긋나지 않는다. */
+
+/* 단계별 잎 덩어리 타원(장면 대비 비율): 새잎·열매가 놓일 자리 */
+const TREE_CANOPY = [
+  null, null,
+  { cx: .495, cy: .563, rx: .146, ry: .124 },
+  { cx: .504, cy: .532, rx: .188, ry: .134 },
+  { cx: .505, cy: .469, rx: .221, ry: .152 },
+  { cx: .505, cy: .458, rx: .233, ry: .155 },
+  { cx: .498, cy: .425, rx: .235, ry: .165 },
+  { cx: .502, cy: .382, rx: .266, ry: .178 }
+];
+
+function treeExamActive_(grade){
+  try{
+    const q = new URLSearchParams(location.search).get('exam');
+    if(q === '1') return true;
+    if(q === '0') return false;
+  }catch(e){}
+  const cfg = window.PORTAL_CONFIG && window.PORTAL_CONFIG.EXAM_PERIOD && window.PORTAL_CONFIG.EXAM_PERIOD[grade];
+  if(!cfg) return false;
+  const d = new Date();
+  const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return today >= cfg.from && today <= cfg.to;
+}
+
+const TREE_CHEERS = [
+  '기말고사 기간이에요. 한 문제씩, 차분하게!',
+  '오늘 공부한 건 자기 전에 한 번만 더 떠올려 봐요.',
+  '나무도 쑥쑥, 여러분 실력도 쑥쑥 자라고 있어요.',
+  '잠은 꼭 자요. 푹 쉬어야 기억이 정리돼요.',
+  '헷갈리는 건 표시해 두면 시험 때 더 잘 보여요.'
+];
+function treeExamCheer_(){
+  const d = new Date();
+  const day = Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
+  return TREE_CHEERS[day % TREE_CHEERS.length];
+}
+
+function treeScene(stage, leaves, totalLessons, grade){
+  stage = Math.max(0, Math.min(7, stage || 0));
+  const exam = treeExamActive_(grade);
+  const autumn = treeSeason_() === 'autumn';
+  const ratio = totalLessons > 0 ? Math.min((leaves || 0) / totalLessons, 1) : 0;
+  const IMG = 'images/tree/';
+  const pct = v => (v * 100).toFixed(1) + '%';
+
+  let body;
+  if(autumn){
+    /* 새잎·열매: 시드 고정이라 같은 단계는 항상 같은 자리 */
+    let fx = '';
+    const C = TREE_CANOPY[stage];
+    if(C){
+      const leafCap = [0, 0, 4, 5, 6, 7, 9, 10][stage];
+      const acornCap = [0, 0, 0, 2, 3, 0, 0, 0][stage];
+      const fruitCap = [0, 0, 0, 0, 0, 3, 4, 6][stage];
+      const spotsN = 10, shown = Math.round(ratio * spotsN);
+      const sr = treeRand_(stage * 31 + 5);
+      const spots = [];
+      for(let i = 0; i < spotsN; i++){
+        const a = i * 2.39996 * 1.3 + sr() * 0.4, rad = 0.35 + 0.6 * sr();
+        spots.push({ x: C.cx + Math.cos(a) * rad * C.rx, y: C.cy + Math.sin(a) * rad * C.ry, r: sr() });
+      }
+      const put = (p, cls, file, w, rot) =>
+        `<img class="tree-fx ${cls}" src="${IMG}${file}" alt="" style="left:${pct(p.x)};top:${pct(p.y)};width:${w}%;--rot:${rot}deg;--i:${(p.r * 3).toFixed(2)}s" draggable="false">`;
+      spots.slice(0, Math.min(shown, leafCap)).forEach((p, i) => { fx += put(p, 'tree-fx-leaf', 'leaf.webp', 7.5, -50 + i * 33); });
+      spots.slice(0, Math.min(shown, acornCap)).forEach(p => { fx += put({ x: p.x + 0.02, y: p.y + 0.04, r: p.r }, 'tree-fx-fruit', 'acorn.webp', 7, 0); });
+      spots.slice(0, Math.min(shown, fruitCap)).forEach(p => { fx += put({ x: p.x + 0.02, y: p.y + 0.05, r: p.r }, 'tree-fx-fruit', 'persimmon.webp', 8.5, 0); });
+    }
+    /* 낙엽: 초록 잎 그림을 주황빛으로 물들여 재활용(CSS filter). 2단계부터 */
+    let fall = '';
+    if(stage >= 2){
+      const fr = treeRand_(777);
+      const n = Math.min(6, 2 + Math.floor(stage / 2));
+      for(let i = 0; i < n; i++){
+        fall += `<img class="tree-fall" src="${IMG}leaf.webp" alt="" draggable="false" style="--x:${(18 + fr() * 64).toFixed(0)}%;--s:${(3.2 + fr() * 1.6).toFixed(1)}%;--t:${(7 + fr() * 5).toFixed(1)}s;--d:${(-fr() * 10).toFixed(1)}s">`;
+      }
+    }
+    body = `<div class="tree-sway"><img class="tree-img" src="${IMG}tree_${stage}.webp" alt="" width="480" height="520" decoding="async" draggable="false">${fx}</div>${fall}`;
+  } else {
+    body = treeSvg(stage, leaves, totalLessons);
+  }
+
+  let extra = '';
+  if(exam){
+    const sr = treeRand_(2026);
+    let sparks = '';
+    for(let i = 0; i < 9; i++){
+      sparks += `<span class="tree-spark" style="left:${(6 + sr() * 88).toFixed(0)}%;top:${(4 + sr() * 62).toFixed(0)}%;--d:${(sr() * 4).toFixed(1)}s;--z:${(3 + sr() * 3).toFixed(1)}px"></span>`;
+    }
+    extra = `<span class="tree-glow"></span>${sparks}<img class="tree-prop" src="${IMG}study_prop.webp" alt="" width="300" height="270" draggable="false">`;
+  }
+  return `<div class="tree-scene${exam ? ' is-exam' : ''}">${body}${extra}</div>`;
+}

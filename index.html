@@ -126,6 +126,7 @@
     <aside class="side-card side-combined" aria-label="내 탐구 나무 · 칭호첩">
       <div class="side-fixed">
         <div class="tree-box" id="treeBox" role="img" aria-label="탐구 나무"></div>
+        <p class="exam-cheer" id="examCheer" hidden></p>
         <p class="side-name" id="sideName">—</p>
         <p class="side-class" id="sideClass">—</p>
         <span class="rank-badge">🏷️ <span id="rankName">견습 사관</span></span>
@@ -1669,7 +1670,12 @@ function renderPortal(){
     $('rankNext').textContent = '최고 칭호에 도달했어요!';
     requestAnimationFrame(() => { $('rankFill').style.width = '100%'; });
   }
-  $('treeBox').innerHTML = treeSvg(rankIdx, doneLessonsCount, active.length);
+  /* v94: 그림 나무 장면(단풍철) + 3학년 시험기간 연출. 응원 문구는 시험기간에만 보인다. */
+  $('treeBox').innerHTML = treeScene(rankIdx, doneLessonsCount, active.length, SESSION.grade);
+  const examOn_ = !!$('treeBox').querySelector('.is-exam');
+  $('treeBox').classList.toggle('is-exam', examOn_);
+  const cheerEl_ = $('examCheer');
+  if(cheerEl_){ cheerEl_.hidden = !examOn_; if(examOn_) cheerEl_.textContent = treeExamCheer_(); }
   $('treeBox').setAttribute('aria-label',
     `탐구 나무 ${rankIdx + 1}단계, 완료한 활동 ${doneLessonsCount}개`);
 
