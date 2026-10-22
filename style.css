@@ -1614,3 +1614,225 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 @media (max-width:640px){
   .cl-item-actions{width:100%; justify-content:flex-end; padding-left:22px;}
 }
+
+
+/* ══════════════ v87 — 교사 대시보드 리디자인 (통일 레이어) ══════════════
+ * 배경: v63 통일 뒤에도 탭마다 바탕·테두리·버튼·제목 모양이 달랐다(어떤 탭은 카드, 어떤 탭은 종이 위에 맨 폼,
+ * 탭 이모지·점선·알약·사각 혼재, 탭을 옮길 때마다 폭이 흔들림). 아래 규칙으로 #dashView 안만 한 틀로 맞춘다.
+ * 원칙: ① 모든 묶음은 같은 카드(흰 바탕·1px 선·같은 안쪽 여백) ② 제목은 .dash-card-title / .dash-section-title 둘뿐
+ * ③ 버튼 3종(주=인디고, 보조=테두리, 위험=붉은 테두리), 모두 사각 ④ 입력창 높이·선·포커스 하나 ⑤ 목록 구분선은 실선 한 겹
+ * ⑥ 탭 두 단계: 위쪽 큰 탭=밑줄, 안쪽 서브탭·학년 전환=칸막이(segmented). 이모지는 탭·제목에서 뺐다.
+ * 파일 맨 끝 유지(특이도 같으면 뒤가 이김) — 옮기지 말 것. */
+html{scrollbar-gutter:stable;}
+#dashView{
+  --d-gap:16px; --d-pad:18px 20px; --d-line:var(--line); --d-input-line:#CFC8B6;
+  max-width:1120px; padding:20px 24px 96px;
+}
+#dashView :is(input,select,textarea,button){font-family:inherit;}
+
+/* 머리글 */
+#dashView .dash-top{align-items:center; margin-bottom:12px;}
+#dashView .dash-top h1{font-size:1.45rem; line-height:1.25;}
+#dashView .dash-top .eyebrow{font-size:.72rem; letter-spacing:.22em; margin-bottom:2px;}
+#dashView .top-actions{gap:6px;}
+
+/* 큰 탭 — 이모지 없이 글자만, 스크롤해도 따라온다 */
+#dashView .dash-tabs{
+  position:sticky; top:0; z-index:20; gap:2px; margin:0 -24px 20px; padding:0 24px;
+  background:var(--paper); border-bottom:1px solid var(--d-line);
+}
+#dashView .dash-tab{padding:12px 14px; font-size:.93rem; font-weight:600; border-bottom-width:2px; letter-spacing:-.01em;}
+#dashView .dash-tab.active{color:var(--indigo); border-bottom-color:var(--indigo); font-weight:700;}
+#dashView .dash-tab .dq-badge{margin-left:5px; top:-1px; font-size:.7rem; padding:1px 8px;}
+
+/* 한 화면의 위아래 리듬 */
+#dashView .dash-panel > .dash-hint{
+  font-size:.86rem; line-height:1.6; color:var(--ink-soft); margin:0 0 var(--d-gap); max-width:72ch;
+}
+#dashView .dash-hint b{color:var(--ink);}
+
+/* 카드 — 모든 묶음이 쓰는 한 가지 모양 */
+#dashView :is(.filters,.sum-card,.an-add-form,.dash-card,.cl-collapse,.cl-past-collapse,.gi-block,.stat-block,
+  .dm-box,.class-fb-box,.suspect-box,.pp-box,.table-wrap,#anList:not(:empty),#clList .cl-active-list,#dqList .dq-item){
+  background:var(--card); border:1px solid var(--d-line); border-radius:var(--radius); box-shadow:none;
+}
+#dashView :is(.filters,.sum-card,.an-add-form,.dash-card,.gi-block){padding:var(--d-pad);}
+#dashView :is(.filters,.an-add-form,.dash-card,.cl-collapse,.cl-past-collapse,.gi-block,.table-wrap,.summary,.stat-block,
+  .dm-box,.class-fb-box,.suspect-box,#anList,#dqList .dq-item){margin-bottom:var(--d-gap);}
+#dashView .dash-card > div{padding:0;}
+#dashView .cl-collapse summary, #dashView .cl-past-collapse summary{padding:14px 20px; font-size:.93rem; font-weight:700; color:var(--ink);}
+#dashView .cl-collapse .cl-collapse-body{padding:0 20px 18px;}
+#dashView .cl-past-collapse summary{color:var(--ink-soft); font-weight:600;}
+#dashView .cl-past-collapse .cl-past-list{padding:0 20px 14px;}
+#dashView #dqList .dq-item{padding:var(--d-pad);}
+#dashView #dqList .dq-item:first-of-type{padding-top:18px;}
+#dashView .filters{align-items:center; gap:10px 12px;}
+#dashView .summary{gap:var(--d-gap);}
+#dashView .sum-card h3{font-size:.8rem; letter-spacing:.01em;}
+
+/* 제목 */
+#dashView .dash-card-title, #dashView .gi-head h4{
+  font-family:var(--font-body); font-size:.98rem; font-weight:700; color:var(--ink); margin:0 0 12px; letter-spacing:-.01em;
+}
+#dashView .dash-section-title{
+  font-size:1rem; font-weight:700; color:var(--ink); margin:32px 0 6px; padding:0; border:0; letter-spacing:-.01em;
+}
+#dashView .dash-section-title:first-child{margin-top:0;}
+#dashView .dash-section-title + .dash-hint{margin-bottom:10px;}
+#dashView .cl-grade-head{font-family:var(--font-body); font-size:.86rem; font-weight:700; color:var(--ink-soft); border-top:1px solid var(--row-line);}
+#dashView .cl-grade-head:first-child{border-top:0;}
+#dashView .gi-sec-title{font-size:.86rem; color:var(--ink);}
+#dashView .cl-activity-label{color:var(--ink);}
+
+/* 입력창 — 높이·선·포커스 하나 */
+#dashView :is(input[type=text],input[type=search],input[type=password],input[type=number],select,textarea){
+  min-height:40px; padding:8px 12px; font-size:.92rem; color:var(--ink);
+  background:var(--input-bg); border:1px solid var(--d-input-line); border-radius:var(--radius-sm); box-sizing:border-box;
+}
+#dashView textarea{padding:10px 12px; line-height:1.55; resize:vertical;}
+#dashView :is(input,select,textarea):focus{outline:none; border-color:var(--indigo); box-shadow:0 0 0 3px rgba(46,74,122,.16); background:#fff;}
+#dashView ::placeholder{color:var(--muted-2);}
+#dashView select{padding-right:30px;}
+#dashView .filters label{font-size:.84rem; font-weight:600; color:var(--ink-soft);}
+#dashView .cl-field-label{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
+#dashView .cl-opt{background:var(--thead-bg); color:var(--ink-soft);}
+#dashView .cl-hint, #dashView .gi-sec-hint, #dashView .an-target-hint{font-size:.8rem; color:var(--ink-soft);}
+#dashView .an-target-group{min-height:40px; gap:6px 16px;}
+#dashView .an-target-group label{font-size:.88rem; color:var(--ink);}
+
+/* 버튼 3종 — 주(인디고)·보조(테두리)·위험(붉은 테두리). 모두 사각, 높이 40/34.
+ * 선택자를 :is()로 묶으면 안의 가장 센 것에 특이도가 맞춰져 보조 버튼이 못 이기므로 하나씩 푼다. */
+#dashView .btn, #dashView .q-form button, #dashView .dq-reply-form button, #dashView .an-add-form button,
+#dashView .gi-block button, #dashView .cl-form button:not(.btn-ghost):not([style*="background:none"]),
+#dashView #btnCkqSave, #dashView #ccPushBtn, #dashView #gradeUploadBtn, #dashView #gradeStatusOnBtn, #dashView #gradeStatusOffBtn{
+  min-height:40px; padding:8px 18px; font-size:.9rem; font-weight:700; border-radius:var(--radius-sm);
+  background:var(--indigo); color:#fff; border:1px solid var(--indigo); letter-spacing:-.01em; transition:background .15s,border-color .15s;
+}
+#dashView .btn:hover, #dashView .q-form button:hover, #dashView .dq-reply-form button:hover, #dashView .an-add-form button:hover,
+#dashView .gi-block button:hover, #dashView .cl-form button:not(.btn-ghost):not([style*="background:none"]):hover,
+#dashView #btnCkqSave:hover, #dashView #ccPushBtn:hover, #dashView #gradeUploadBtn:hover, #dashView #gradeStatusOnBtn:hover, #dashView #gradeStatusOffBtn:hover{
+  background:var(--indigo-deep); border-color:var(--indigo-deep);
+}
+#dashView .btn.btn-sm{min-height:34px; padding:5px 13px; font-size:.84rem;}
+#dashView .btn.btn-ghost, #dashView button.an-toggle, #dashView button.cl-move,
+#dashView .cl-form button.btn-ghost, #dashView #btnCkqCancel{
+  background:var(--card); color:var(--ink-soft); border:1px solid var(--d-input-line); font-weight:600; border-radius:var(--radius-sm);
+}
+#dashView .btn.btn-ghost:hover, #dashView button.an-toggle:hover, #dashView button.cl-move:hover,
+#dashView .cl-form button.btn-ghost:hover, #dashView #btnCkqCancel:hover{
+  background:var(--paper); color:var(--ink); border-color:var(--ink-soft);
+}
+#dashView button.an-toggle{min-height:34px; padding:5px 13px; font-size:.84rem; cursor:pointer;}
+#dashView button.cl-move{min-height:34px; min-width:34px; padding:4px 0; font-size:.8rem;}
+#dashView button.an-toggle.cl-del{color:var(--seal); border-color:rgba(176,58,46,.45);}
+#dashView button.an-toggle.cl-del:hover{background:var(--seal); color:#fff; border-color:var(--seal);}
+#dashView button:disabled, #dashView .btn:disabled{background:var(--disabled-bg); border-color:var(--disabled-bg); color:#fff; cursor:wait;}
+#dashView .btn.btn-ghost:disabled{background:var(--thead-bg); border-color:var(--d-line); color:var(--muted-2);}
+#dashView .dq-reply-form{align-items:flex-end;}
+#dashView .dq-reply-form textarea{min-height:44px;}
+
+/* 서브탭·학년 전환 — 칸막이(segmented) 한 가지로 */
+#dashView :is(.cl-subtabs,.grade-seg){
+  display:inline-flex; gap:2px; padding:3px; margin:0 0 var(--d-gap); border:0; flex-wrap:wrap;
+  background:var(--thead-bg); border-radius:calc(var(--radius-sm) + 3px);
+}
+#dashView :is(.cl-subtab,.grade-seg-btn){
+  min-height:34px; padding:6px 16px; margin:0; border:0; border-radius:var(--radius-sm); background:transparent;
+  font-size:.88rem; font-weight:600; color:var(--ink-soft);
+}
+#dashView :is(.cl-subtab,.grade-seg-btn):hover{color:var(--ink); border-color:transparent;}
+#dashView :is(.cl-subtab,.grade-seg-btn).active{
+  background:var(--card); color:var(--indigo); font-weight:700; border-bottom:0; box-shadow:0 1px 3px rgba(35,38,44,.14);
+}
+#dashView .grade-seg-btn b{color:inherit;}
+
+/* 목록 — 카드 안에서 실선 한 겹으로 나눈다 */
+#dashView #anList:not(:empty), #dashView #clList .cl-active-list{padding:4px 20px;}
+#dashView :is(.an-item,.cl-item){border-top:1px solid var(--row-line); padding:14px 0;}
+#dashView :is(.an-item,.cl-item):first-of-type{border-top:0;}
+#dashView #clList .cl-active-list{margin-bottom:var(--d-gap);}
+#dashView .cl-item .cl-title, #dashView .an-item .an-text{font-size:.94rem; color:var(--ink);}
+#dashView .cl-item .cl-meta, #dashView .an-item .an-meta{font-size:.8rem;}
+#dashView .cl-drag-handle{color:var(--muted-2);}
+#dashView .cl-past-list .cl-item{opacity:1;}
+#dashView .cl-past-list .cl-title{color:var(--ink-soft);}
+#dashView .dq-item .dq-meta{font-size:.8rem; margin-bottom:6px;}
+#dashView .dq-item .dq-text{font-size:.95rem;}
+#dashView .empty-hint, #dashView #anList > p{padding:16px 0; margin:0; text-align:center; color:var(--ink-soft); font-size:.9rem;}
+
+/* 배지·상태 알약은 한 모양 */
+#dashView :is(.an-status,.q-status,.dup-badge,.ai-suspect-badge,.gi-pill,.ck-src-tag.override){
+  display:inline-block; font-size:.72rem; font-weight:700; line-height:1.5; padding:1px 9px; border-radius:999px; white-space:nowrap;
+}
+
+/* 표 */
+#dashView .table-wrap{padding:0;}
+#dashView .table-wrap table{font-size:.92rem;}
+#dashView .table-wrap th{background:var(--thead-bg); padding:11px 16px; font-size:.8rem; font-weight:700; color:var(--ink-soft); border-bottom:1px solid var(--d-line);}
+#dashView .table-wrap td{padding:12px 16px; border-bottom:1px solid var(--row-line);}
+#dashView .table-wrap tr:last-child td{border-bottom:0;}
+#dashView .table-wrap th:first-child, #dashView .table-wrap td:first-child{padding-left:20px;}
+
+/* 체크인 탭 */
+#dashView .stat-block{padding:14px 16px; margin-bottom:12px;}
+#dashView .stat-block-title{font-size:.84rem; color:var(--ink);}
+#dashView .ck-two-col{gap:var(--d-gap);}
+
+/* 안내 띠 */
+#dashView .ai-notice{border-radius:var(--radius-sm); padding:11px 16px; font-size:.88rem;}
+#dashView #panelRecords .filters{padding:14px 20px;}
+
+/* 폰·태블릿 */
+@media (max-width:1024px){
+  #dashView{padding:16px 16px 96px;}
+  #dashView .dash-tabs{margin:0 -16px 16px; padding:0 12px;}
+  #dashView .dash-tab{padding:12px 11px; font-size:.88rem;}
+}
+@media (max-width:640px){
+  #dashView :is(.filters,.sum-card,.an-add-form,.dash-card,.gi-block){padding:14px;}
+  #dashView :is(.cl-subtabs,.grade-seg){display:flex;}
+  #dashView :is(.cl-subtab,.grade-seg-btn){flex:1 1 auto; padding:6px 10px;}
+  #dashView #anList:not(:empty), #dashView #clList .cl-active-list{padding:2px 14px;}
+  #dashView .cl-collapse summary, #dashView .cl-past-collapse summary{padding:13px 14px;}
+  #dashView .cl-collapse .cl-collapse-body{padding:0 14px 14px;}
+}
+
+
+/* ══════════════ v88 — 기본 감정 체크인(감정칩 랜덤) + 포춘쿠키 ══════════════ */
+.book-page-left.done{pointer-events:none;}
+.emo-grid{gap:8px;}
+.emo-chip{display:inline-flex; align-items:center; gap:6px; padding:8px 14px 8px 11px;}
+.emo-e{font-size:1.15rem; line-height:1;}
+.fortune-stage{display:flex; flex-direction:column; align-items:center; gap:14px; margin:6px 0 18px; min-height:190px; justify-content:center;}
+.fortune-cookie{
+  background:none; border:0; padding:6px; width:min(210px, 70%); border-radius:var(--radius);
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.fortune-cookie:disabled{cursor:default;}
+.fc-svg{display:block; width:100%; height:auto; overflow:visible;}
+.fc-half path{stroke:#B98A3E; stroke-width:3; stroke-linejoin:round;}
+.fc-dome{fill:#EFC77C;}
+.fc-lip{fill:#D9A650;}
+.fc-half{transform-origin:70px 64px; transition:transform .5s cubic-bezier(.3,1.4,.5,1);}
+.fortune-cookie:not(.cracked){animation:fcWobble 2.2s ease-in-out infinite;}
+.fortune-cookie:not(.cracked):hover .fc-svg{transform:scale(1.04);}
+.fortune-cookie.cracked .fc-left{transform:translate(-9px, 6px) rotate(-17deg);}
+.fortune-cookie.cracked .fc-right{transform:translate(9px, 6px) rotate(17deg);}
+@keyframes fcWobble{0%,100%{transform:rotate(-3deg);} 50%{transform:rotate(3deg);}}
+.fortune-slip{
+  max-width:min(300px, 100%); margin:0; padding:12px 16px; text-align:center;
+  background:#FFFDF4; border:1px solid var(--amber-border); border-top:3px solid var(--ochre); border-radius:4px;
+  font-family:var(--font-display); font-size:1rem; line-height:1.7; color:var(--ink);
+  box-shadow:0 4px 12px rgba(35,38,44,.12); animation:fcSlip .5s ease both;
+}
+.fortune-slip[hidden], .fortune-go[hidden]{display:none;}
+@keyframes fcSlip{from{opacity:0; transform:translateY(-14px);} to{opacity:1; transform:none;}}
+.fortune-go{
+  display:block; width:100%; min-height:var(--tap-min); padding:10px 16px; font-size:.95rem; font-weight:700;
+  background:var(--indigo); color:#fff; border:0; border-radius:var(--radius-sm);
+}
+.fortune-go:hover{background:var(--indigo-deep);}
+
+/* 교사 대시보드 — 체크인 현황 컬럼 머리줄(인라인 스타일을 옮김) */
+#dashView .ck-stat-head{margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--row-line); align-items:center;}
+#dashView .ck-stat-grade{font-weight:700; font-size:.95rem;}
