@@ -1805,20 +1805,27 @@ html{scrollbar-gutter:stable;}
 .emo-e{font-size:1.15rem; line-height:1;}
 .fortune-stage{display:flex; flex-direction:column; align-items:center; gap:14px; margin:6px 0 18px; min-height:190px; justify-content:center;}
 .fortune-cookie{
-  background:none; border:0; padding:6px; width:min(210px, 70%); border-radius:var(--radius);
+  display:grid; background:none; border:0; padding:6px; width:min(250px, 76%); border-radius:var(--radius);
   cursor:pointer; -webkit-tap-highlight-color:transparent;
 }
 .fortune-cookie:disabled{cursor:default;}
-.fc-svg{display:block; width:100%; height:auto; overflow:visible;}
-.fc-half path{stroke:#B98A3E; stroke-width:3; stroke-linejoin:round;}
-.fc-dome{fill:#EFC77C;}
-.fc-lip{fill:#D9A650;}
-.fc-half{transform-origin:70px 64px; transition:transform .5s cubic-bezier(.3,1.4,.5,1);}
+/* v91: SVG 쿠키 → 힉스필드로 만든 사진 쿠키 2장(닫힘·깨짐)을 겹쳐 두고 바꿔 보인다 */
+.fc-img{
+  grid-area:1 / 1; display:block; width:100%; height:auto;
+  filter:drop-shadow(0 10px 12px rgba(120,72,20,.22));
+  transition:opacity .3s ease, transform .5s cubic-bezier(.3,1.4,.5,1);
+}
+.fc-open{opacity:0; transform:scale(.88);}
 .fortune-cookie:not(.cracked){animation:fcWobble 2.2s ease-in-out infinite;}
-.fortune-cookie:not(.cracked):hover .fc-svg{transform:scale(1.04);}
-.fortune-cookie.cracked .fc-left{transform:translate(-9px, 6px) rotate(-17deg);}
-.fortune-cookie.cracked .fc-right{transform:translate(9px, 6px) rotate(17deg);}
+.fortune-cookie:not(.cracked):hover .fc-whole{transform:scale(1.05);}
+.fortune-cookie.cracked{animation:fcPop .5s ease both;}
+.fortune-cookie.cracked .fc-whole{opacity:0; transform:scale(1.1);}
+.fortune-cookie.cracked .fc-open{opacity:1; transform:none;}
 @keyframes fcWobble{0%,100%{transform:rotate(-3deg);} 50%{transform:rotate(3deg);}}
+@keyframes fcPop{0%{transform:none;} 30%{transform:scale(.93) rotate(-5deg);} 65%{transform:scale(1.05) rotate(3deg);} 100%{transform:none;}}
+@media (prefers-reduced-motion:reduce){
+  .fortune-cookie:not(.cracked), .fortune-cookie.cracked{animation:none;}
+}
 .fortune-slip{
   max-width:min(300px, 100%); margin:0; padding:12px 16px; text-align:center;
   background:#FFFDF4; border:1px solid var(--amber-border); border-top:3px solid var(--ochre); border-radius:4px;
