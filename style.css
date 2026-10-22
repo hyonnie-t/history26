@@ -473,12 +473,14 @@ button{font-family:inherit; cursor:pointer;}
 .kpi .mini-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); transition:width .6s ease;}
 
 /* 단원 관통 질문 배너 */
+/* v85 — 카드 왼쪽 굵은 색 줄 대신 작은 이름표로 종류를 알림(학생 포털 카드 공통, 효니 선택 A안) */
 .unit-banner{
-  display:none; border-left:5px solid var(--seal);
+  display:none;
   padding:14px 18px; margin-bottom:14px;
 }
 .unit-banner .ub-label{
-  font-size:.76rem; letter-spacing:.22em; color:var(--seal); font-weight:700; margin-bottom:2px;
+  display:inline-block; font-size:.74rem; letter-spacing:.08em; color:var(--seal); font-weight:700;
+  background:rgba(176,58,46,.08); border-radius:999px; padding:2px 10px; margin-bottom:6px;
 }
 .unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
 
@@ -486,7 +488,7 @@ button{font-family:inherit; cursor:pointer;}
  * v57 — pf-label/title/desc는 .portfolio-card(성적조회 카드가 계속 씀) 밖에서도
  * .ref-link-panel(패들렛·클래스카드 탭 패널)이 재사용하므로 스코프를 풀었다. */
 .portfolio-card{
-  display:none; border-left:5px solid var(--jade);
+  display:none; /* v85 왼쪽 줄 제거 */
   padding:14px 18px; margin-bottom:14px;
   align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
 }
@@ -508,12 +510,14 @@ button{font-family:inherit; cursor:pointer;}
 
 /* 공지사항(학년+반별) */
 .announce-card{
-  display:none; background:var(--amber-bg); border:1px solid var(--amber-border);
-  border-left:5px solid var(--ochre); border-radius:var(--radius);
+  display:none; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--radius); /* v85 왼쪽 줄·노란 바탕 대신 이름표 */
   box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
 }
 .announce-card h2{
-  font-family:var(--font-display); font-size:.98rem; margin-bottom:8px; color:var(--amber-text);
+  display:inline-block; font-family:var(--font-body); font-size:.8rem; font-weight:700; margin-bottom:10px;
+  color:var(--amber-text); background:var(--amber-bg); border:1px solid var(--amber-border);
+  border-radius:999px; padding:2px 10px;
 }
 .announce-item{padding:8px 0; border-top:1px dashed var(--amber-border); font-size:.92rem; line-height:1.5;}
 .announce-item:first-of-type{border-top:none; padding-top:0;}
@@ -558,9 +562,12 @@ button{font-family:inherit; cursor:pointer;}
 .q-status.done{background:var(--jade-bg); color:var(--jade);}
 .q-answer{
   margin-top:6px; background:var(--indigo-bg); border-radius:var(--radius-sm); padding:8px 12px;
-  font-size:.9rem; line-height:1.5; border-left:3px solid var(--indigo);
+  font-size:.9rem; line-height:1.5; /* v85 왼쪽 줄 → "선생님 답변" 이름표 */
 }
-.q-answer b{color:var(--indigo-deep);}
+.q-answer b{
+  display:inline-block; font-size:.74rem; color:var(--indigo-deep); background:var(--card);
+  border:1px solid var(--line); border-radius:999px; padding:1px 9px; margin-bottom:2px;
+}
 
 /* 학기 총평 피드백 */
 .feedback-card{
@@ -1543,7 +1550,7 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 .unit-head{
   display:flex; align-items:center; gap:10px; width:100%; min-height:var(--tap-min);
   padding:10px 14px; margin:0 0 12px; text-align:left; cursor:pointer;
-  background:var(--card); border:1px solid var(--line); border-left:4px solid var(--indigo);
+  background:var(--card); border:1px solid var(--line); /* v85 왼쪽 줄 제거(접기 화살표·굵은 단원명으로 충분) */
   border-radius:var(--radius); box-shadow:var(--shadow); font:inherit; color:var(--ink);
 }
 .unit-head:hover{background:var(--paper);}
