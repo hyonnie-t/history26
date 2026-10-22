@@ -685,6 +685,11 @@
         <div style="padding:14px 16px;">
           <input type="hidden" id="ckqEditRow" value="">
           <h4 id="ckqFormTitle" style="font-size:.9rem; font-weight:700; margin-bottom:10px;">➕ 새 문항 추가</h4>
+          <!-- v86 — 수정 모드에서만 보이는 학년 이동 칸. 학년을 잘못 골라 등록한 문항을 옮긴다. -->
+          <div class="cl-field" id="ckqMoveGradeWrap" style="display:none; margin-bottom:10px;">
+            <label class="cl-field-label" for="ckqFormGrade">학년 (바꾸면 그 학년으로 옮겨요)</label>
+            <select id="ckqFormGrade"></select>
+          </div>
           <div class="cl-form">
             <div class="cl-row">
               <select id="ckqFormType">
@@ -3840,6 +3845,7 @@ function dashResetCheckinLessonForm(){
   $('ckqImagePreviewWrap').style.display = 'none';
   $('ckqImagePreviewImg').src = '';
   $('ckqImageUploadStatus').textContent = '';
+  $('ckqMoveGradeWrap').style.display = 'none'; // v86
   $('ckqFormTitle').textContent = '➕ 새 문항 추가';
   $('btnCkqSave').textContent = '문항 추가';
   $('btnCkqCancel').style.display = 'none';
@@ -3892,6 +3898,10 @@ function dashEditCheckinLesson(btn){
   $('ckqImageUploadStatus').textContent = '';
   ckqToggleTypeFields();
   ckqToggleSourceFormatFields();
+  // v86 — 학년 이동 칸: 수정할 때만 보이고, 기본값은 이 문항의 현재 학년.
+  $('ckqFormGrade').innerHTML = Object.keys(CHECKIN_PLAN || {}).map(g =>
+    `<option value="${g}"${String(g) === String(l.grade) ? ' selected' : ''}>${g}학년</option>`).join('');
+  $('ckqMoveGradeWrap').style.display = '';
   $('ckqFormTitle').textContent = '✏️ 문항 수정';
   $('btnCkqSave').textContent = '수정 저장';
   $('btnCkqCancel').style.display = 'inline-block';
@@ -3918,7 +3928,8 @@ async function dashDeleteCheckinLesson(btn){
 function ckqCollectFormData(){
   return {
     // v58 — 학년 select를 없애서 위 탭 값(CKQ_GRADE)을 그대로 쓴다.
-    grade: CKQ_GRADE,
+    // v86 — 수정 모드에서는 학년 이동 칸(ckqFormGrade) 값을 쓴다(새 문항은 여전히 탭 값).
+    grade: ($('ckqEditRow').value && $('ckqFormGrade').value) || CKQ_GRADE,
     id: $('ckqFormId').value.trim(),
     topic: $('ckqFormTopic').value.trim(),
     textbook: $('ckqFormTextbook').value.trim(),
@@ -3950,6 +3961,11 @@ async function dashSubmitCheckinLessonForm(btn){
   }
   if(payload.type === 'source_emotion' && !payload.sourceText && !payload.imageUrl){
     showToast('source_emotion 타입은 사료 텍스트 또는 이미지가 필요해요.'); return;
+  }
+  // v86 — 학년을 옮길 때 도착 학년에 같은 차시id가 있으면 두 문항이 섞이니 막는다.
+  if(editRow && CHECKIN_LESSONS_ADMIN.some(x => String(x._row) !== String(editRow)
+      && String(x.grade) === String(payload.grade) && String(x.id) === payload.id)){
+    showToast(`${payload.grade}학년에 같은 차시id(${payload.id})가 이미 있어서 옮길 수 없어요.`); return;
   }
   btn.disabled = true; btn.textContent = editRow ? '저장하는 중…' : '추가하는 중…';
   try{
