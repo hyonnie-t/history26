@@ -1969,3 +1969,8 @@ html{scrollbar-gutter:stable;}
   .tree-sway,.tree-fx-fruit,.tree-spark{animation:none;}
   .tree-fall{display:none;}
 }
+
+/* v95 — 발표 지급 폼의 유형 접기 */
+.pp-types-wrap{margin-bottom:8px;}
+.pp-types-sum{cursor:pointer; font-size:.9rem; color:var(--ink-soft); padding:6px 0;}
+.pp-types-wrap .pp-types{margin-top:6px;}
