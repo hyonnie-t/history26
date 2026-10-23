@@ -834,6 +834,9 @@
       <div id="ppRecent"></div>
     </section>
 
+    <!-- v95 — 안 쓰는 두 카드(re_judge 등록·고민리스트 보너스)는 지우지 않고 접어서 보관. 필요하면 펼쳐 쓴다. -->
+    <details class="pp-archive">
+    <summary class="dash-hint" style="cursor:pointer; margin:12px 0;">보관함 — 잘 안 쓰는 기능 (역사법정 re_judge 등록 · 고민리스트 보너스)</summary>
     <!-- 2026-09-04 신규: 역사법정(his_judge_goryeo) 검사/변호인 발언문+배심원 판결을
          re_judge(갈등조정 도구)에 자동 등록. gameName은 his_judge_goryeo의
          CONFIG.GAME_NAME과 반드시 일치시킬 것 — 다른 역할극 웹앱이 생기면 이 목록도
@@ -864,6 +867,7 @@
       <p class="dash-card-desc">2단계에서 카드를 1장 더 자원해서 쓴 학생에게만 탐구포인트를 차등 지급해요.</p>
       <div id="gmBonusBox"></div>
     </section>
+    </details>
   </div>
 
   <!-- v54(2026-09-15 신규, 핸드오프 "성적조회 통합 v2") — 성적 엑셀 업로드 + 열람상태 토글.
@@ -3171,6 +3175,7 @@ function dashInitAnnounceForm(){
   dashOnAnnounceTargetChange_();
   // v92 — 담당 학급을 아는 교사는 처음부터 "내 학급에 보이는 공지"만 보이게(건수가 옆에 나와 가려진 건 알 수 있다)
   if(grades.some(g => dashMyBans_(g))) $('anFilterScope').value = 'visible';
+  $('anFilterStatus').value = '게시'; // v95 — 보류 공지는 기본으로 접어 두고 "게시중"만 보여 줌(필터에서 바꾸면 그대로 보임)
 }
 
 /* v30: "담당 학급반" 대상 라디오가 선택된 상태에서 학년을 바꾸면 힌트 문구(담당 반 목록)도
@@ -3659,7 +3664,9 @@ async function dashApplyCkSet(){
 
   let bans, scopeLabel;
   if(type === 'all'){
-    bans = ['전체']; scopeLabel = '전체 반';
+    /* v95 — 반별 지정이 있으면 그 반은 "전체" 값보다 우선이라 학년 공통을 걸어도 안 바뀌었다.
+     * "전체"를 적용할 땐 이 학년 담당 반에도 같은 값을 같이 저장해 반별 지정을 덮어쓴다. */
+    bans = ['전체'].concat(dashTeachingBans_(grade).map(String)); scopeLabel = '전체 반(반별 지정 포함)';
   } else if(type === 'one'){
     const ban = $('ckSetBanOne').value;
     bans = [ban]; scopeLabel = ban + '반';
@@ -5484,7 +5491,7 @@ function renderDash(){
       const text = String(rec['1줄요약'] || rec.choiceSummary || '').trim();
       cells3 = `<td>${escapeHtml(formatDate(rec.timestamp))}${mine.length > 1 ? ` <span class="dup-badge">${mine.length}건</span>` : ''}</td>
         <td><span class="tbl-dots" title="${escapeHtml(lv || '분석 전')}">${dashDots(lv)} ${escapeHtml(lv || '분석 전')}</span></td>
-        <td class="tbl-preview">${text ? escapeHtml(dashShorten(text, 70)) : '<span class="muted">—</span>'}</td>`;
+        <td class="tbl-preview">${text ? escapeHtml(text) : '<span class="muted">—</span>'}</td>`; /* v95 — 70자에서 잘려 뒷부분이 안 보였음: 전체를 보여 줌 */
     }
     const recentCell = s.recentRecord
       ? `<span class="tbl-recent" title="${escapeHtml(formatDate(s.recentRecord.timestamp) + ' · ' + dashLessonTitle(String(s.recentRecord.gameName)))}">
@@ -5575,10 +5582,14 @@ function dashPointBoxHtml_(s, openByDefault){
   return `<div class="pp-box" data-sid="${s.sid}" data-name="${escapeHtml(s.name)}">
     ${toggleBtn}
     <div class="pp-form"${formHidden}>
-      <div class="pp-types">
-        ${PP_THINKING_TYPES.map(t => `<button type="button" class="pp-type-btn" data-type="${t}">${t}</button>`).join('')}
-        <button type="button" class="pp-type-btn pp-type-none is-selected" data-type="">유형 없이 지급</button>
-      </div>
+      <!-- v95 — 발표는 유형을 고민하지 않게 기본 '판단'으로 두고, 바꾸고 싶을 때만 펼친다. -->
+      <details class="pp-types-wrap">
+        <summary class="pp-types-sum">유형: <b>판단</b> (기본) — 바꾸려면 펼치기</summary>
+        <div class="pp-types">
+          ${PP_THINKING_TYPES.map(t => `<button type="button" class="pp-type-btn${t === '판단' ? ' is-selected' : ''}" data-type="${t}">${t}</button>`).join('')}
+          <button type="button" class="pp-type-btn pp-type-none" data-type="">유형 없이 지급</button>
+        </div>
+      </details>
       <div class="pp-levels">
         ${PP_LEVELS.map(l => `<button type="button" class="pp-level-btn${l.key === '중' ? ' is-selected' : ''}" data-level="${l.key}" data-points="${l.points}">${l.key} (+${l.points})</button>`).join('')}
       </div>
@@ -5594,6 +5605,8 @@ function dashPointToggle(btn){
 function dashPointTypeSelect(btn){
   btn.closest('.pp-types').querySelectorAll('.pp-type-btn').forEach(b => b.classList.remove('is-selected'));
   btn.classList.add('is-selected');
+  const sum = btn.closest('.pp-types-wrap').querySelector('.pp-types-sum');
+  sum.innerHTML = '유형: <b>' + (btn.dataset.type || '없음') + '</b>' + (btn.dataset.type === '판단' ? ' (기본)' : '') + ' — 바꾸려면 펼치기';
 }
 function dashPointLevelSelect(btn){
   btn.closest('.pp-levels').querySelectorAll('.pp-level-btn').forEach(b => b.classList.remove('is-selected'));
