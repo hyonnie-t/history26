@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=99">
+<link rel="stylesheet" href="style.css?v=100">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -6071,11 +6071,17 @@ async function dashLoadPerfStatus_(){
     }).join('');
     const asks = rows.filter(r => r.response === '이상 있음').sort((a, b) => a.studentId.localeCompare(b.studentId));
     const changed = rows.filter(r => r.response && r.answeredScore !== '' && Number(r.answeredScore) !== r.score);
+    const memoed = rows.filter(r => r.memoCount).sort((x, y) => x.studentId.localeCompare(y.studentId)); // v100: 메모가 달린 학생 = 점검 후보
     box.innerHTML = '<table class="grade-table">' + head + trs + '</table>'
       + '<p class="dash-section-title">이상 있음 (' + asks.length + '명)</p>'
       + (asks.length ? '<p class="dash-hint">확인 완료 ' + asks.filter(r => r.checked).length + '명 / ' + asks.length + '명</p>' // v99
           + '<div class="perf-asklist">' + asks.map(r => '<button type="button" id="perfAsk_' + escapeHtml(r.studentId) + '" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
           + escapeHtml(perfAskLabel_(r)) + '</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
+      + '<p class="dash-section-title">🔍 점검 후보 · 메모가 달린 학생 (' + memoed.length + '명)</p>' // v100
+      + (memoed.length ? '<p class="dash-hint">눌러서 열면 메모가 달린 글이 위로 와요. 맞다고 보면 글 아래 «점수 조정» 버튼으로 바로 고칠 수 있어요.</p>'
+          + '<div class="perf-asklist">' + memoed.map(r => '<button type="button" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
+          + escapeHtml((r.checked ? '✓ ' : '') + r.studentId + ' ' + r.name + ' ' + r.score + '점 · 메모 ' + r.memoCount) + '</button>').join('') + '</div>'
+          : '<p class="dash-hint">메모가 달린 학생이 없어요.</p>')
       + '<p class="dash-section-title">학생별 점수·조정</p>'
       + '<div class="filters"><select id="perfBanSel" onchange="dashRenderPerfStudents_()">'
       + Object.keys(byBan).sort().map(k => '<option value="' + k + '">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</option>').join('')
@@ -6200,7 +6206,8 @@ function perfModalRender_(sid, stu, rows, memos){
       const adj = excluded ? '' : '<div class="perf-adj"><span class="perf-adj-lbl">점수 조정</span>'
         + [3, 2, 1, 0].map(v => '<button type="button" class="perf-adj-btn' + (v === Number(r.score) ? ' is-now' : '') + '"'
           + (v === Number(r.score) ? ' disabled aria-pressed="true"' : '') + ' onclick="dashAdjustPerfPost_(' + r.order + ',' + v + ')">' + v + '점</button>').join('') + '</div>';
-      return '<div class="perf-evid-item' + (r.used === 'O' ? '' : ' perf-evid-off') + '">'
+      const flagged = memos.some(m => m.order === r.order && m.memo); // v100: 메모가 달린 글은 눈에 띄게
+      return '<div class="perf-evid-item' + (r.used === 'O' ? '' : ' perf-evid-off') + (flagged ? ' perf-evid-flag' : '') + '">'
         + '<div class="perf-evid-head"><span class="perf-evid-no">' + r.order + '번째 글</span><span>' + escapeHtml(fmtAt(r.date)) + '</span>'
         + '<span class="perf-evid-used">' + (r.used === 'O' ? '점수에 반영' : (excluded ? '점수 제외' : '미반영')) + '</span></div>'
         + '<p class="perf-evid-topic"><span>주제</span>' + escapeHtml(perfTopic_(r.preview)) + '</p>'
@@ -6210,7 +6217,7 @@ function perfModalRender_(sid, stu, rows, memos){
         + '<div class="perf-memo" id="perfMemo_' + r.order + '">' + perfMemoHtml_(r.order, memos) + '</div>' + adj + '</div>';
     }).join('');
     const keep = PERF_UI_KEEP && PERF_UI_KEEP.sid === sid ? PERF_UI_KEEP.open[s] : undefined; // v98: 조정 뒤 다시 그려도 펼침 상태 유지
-    return '<details class="perf-grp" data-s="' + s + '"' + ((keep === undefined ? s < 3 : keep) ? ' open' : '') + '><summary>' + s + '점짜리 글 ' + list.length + '개<span class="perf-grp-note">반영 ' + usedN + '개</span></summary>'
+    return '<details class="perf-grp" data-s="' + s + '"' + ((keep === undefined ? (s < 3 || list.some(r => memos.some(m => m.order === r.order && m.memo))) : keep) ? ' open' : '') + '><summary>' + s + '점짜리 글 ' + list.length + '개<span class="perf-grp-note">반영 ' + usedN + '개</span></summary>'
       + '<div class="perf-grp-body">' + items + '</div></details>';
   }).join('');
   PERF_EVID_LAST = { sid, name, showScore, max, rows, usedSum, used, title: rows[0].title, memos, checked };
@@ -6222,6 +6229,7 @@ function perfModalRender_(sid, stu, rows, memos){
     sum + bar + grp + '<div class="perf-modal-foot"><button type="button" class="btn-sm" onclick="perfCopyFeedback_()">피드백용 요약 복사</button>'
     + '<button type="button" class="btn-sm btn-ghost" onclick="perfModalClose_()">닫기</button></div>');
   if(PERF_UI_KEEP && PERF_UI_KEEP.sid === sid){ $('perfModalBody').scrollTop = PERF_UI_KEEP.scroll; PERF_UI_KEEP = null; }
+  else{ const fl = $('perfModalBody').querySelector('.perf-evid-flag'); if(fl) fl.scrollIntoView({ block:'start' }); } // v100: 처음 열 땐 메모 달린 글부터
 }
 /* v99 — 교사 메모(글마다·학생 전체, order 0)와 확인 완료 표시. 저장은 POST savePerfMemo → 백엔드 시트 `수행평가메모`.
  * 평소엔 «✎ 교사 메모 남기기» 버튼만 보이고, 누르면 그 자리에 입력창이 열린다. 학생 화면에는 내려가지 않는다. */
