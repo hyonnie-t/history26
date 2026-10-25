@@ -2062,3 +2062,13 @@ body.perf-modal-open{overflow:hidden;}
 
 .perf-asklist{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0;}
 .perf-askbtn{min-height:36px; padding:4px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer;}
+
+/* v101 — 수행평가 확인 현황 표(숫자 열 가운데·줄바꿈 없음) · 새로고침 줄 · 점수 변동 안내/재확인 대기 */
+.perf-toolbar{margin:0 0 10px;}
+.perf-stat-wrap{overflow-x:auto;}
+.grade-table.perf-stat th, .grade-table.perf-stat td{text-align:center; white-space:nowrap; width:auto;}
+.grade-table.perf-stat th.l, .grade-table.perf-stat td.l{text-align:left;}
+.grade-table.perf-stat td.perf-wait{font-weight:700; color:var(--amber-text-deep); background:var(--amber-bg);}
+.perf-wait-tag{display:inline-block; padding:0 6px; border-radius:999px; font-size:var(--fs-xs); white-space:nowrap; background:var(--amber-bg); color:var(--amber-text-deep);}
+.perf-askbtn-wait{background:var(--amber-bg); border-color:var(--amber-border); color:var(--amber-text-deep);}
+.perf-changed{margin:10px 0 0; padding:10px 12px; border-radius:8px; background:var(--amber-bg); border:1px solid var(--amber-border); color:var(--amber-text-deep); font-size:.95rem;}

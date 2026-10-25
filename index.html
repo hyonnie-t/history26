@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=100">
+<link rel="stylesheet" href="style.css?v=101">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -893,10 +893,8 @@
     <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). 2026-10-25 효니: 맨 위. -->
     <section class="dash-card">
       <h2 class="dash-card-title">수행평가 점수 확인 현황</h2>
-      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p>
-      <div class="filters">
-        <button type="button" onclick="dashLoadPerfStatus_()">새로고침</button>
-      </div>
+      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 누른 뒤에 점수가 바뀌면 학생 화면에 변동 안내가 뜨고 한 번 더 누르게 해요(그동안은 «재확인 대기»). 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p>
+      <div class="perf-toolbar"><button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_()">↻ 새로고침</button></div> <!-- v101: .filters 알약 바 대신 -->
       <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
     </section>
 
@@ -2654,7 +2652,10 @@ function renderPerfScore_(){
     const short = it.used < 10
       ? '<p class="perf-note">글이 10개보다 적어서, 모자란 만큼은 0점으로 계산됐어요.</p>' : '';
     let answer;
-    if(it.response){
+    if(perfChanged_(it)){ // v101: 응답한 뒤 점수가 바뀜 → 변동 고지 + 다시 확인
+      answer = '<p class="perf-changed">🔔 <b>점수가 달라졌어요.</b> 지난번에 확인할 때 ' + it.answeredScore + '점이었는데 지금은 <b>' + it.score + '점</b>이에요. 새 점수를 보고 한 번 더 눌러 주세요.</p>'
+        + perfButtons_(i);
+    }else if(it.response){
       const ok = it.response === '이상 없음';
       answer = '<p class="perf-answer ' + (ok ? 'perf-ok' : 'perf-ask') + '">'
         + (ok ? '✓ 확인했어요 (이상 없음)' : '✋ 어디서 감점됐는지 확인하고 싶어요 (이상 있음)') + '</p>'
@@ -2673,6 +2674,11 @@ function renderPerfScore_(){
       + '<div class="perf-actions" id="perfActions' + i + '">' + answer + '</div>'
       + '</div>';
   }).join('') + '<button class="btn-logout" style="margin-top:10px;" onclick="closePerfScore_()">닫기</button>';
+}
+/* v101 — 학생이 «이상 없음/이상 있음»을 누른 뒤 점수가 바뀌었는지. answeredScore는 응답 때 저장된 점수(백엔드 v101부터 내려옴, 없으면 변동 없음으로 본다). */
+function perfChanged_(it){
+  return !!it.response && it.answeredScore !== undefined && it.answeredScore !== '' && it.answeredScore !== null
+    && Number(it.answeredScore) !== Number(it.score);
 }
 function perfButtons_(i){
   return '<button class="btn-go perf-btn-ok" onclick="submitPerfResponse(' + i + ', \'ok\')">확인했어요 (이상 없음)</button>'
@@ -6048,6 +6054,10 @@ async function dashLoadGradeStatus_(){
     box.textContent = '❌ 상태를 불러오지 못했어: ' + e.message;
   }
 }
+/* v101 — 학생이 응답한 뒤 점수가 바뀌었는지(응답 때 점수 ≠ 지금 점수). */
+function perfAdminChanged_(r){
+  return !!r.response && r.answeredScore !== '' && r.answeredScore != null && Number(r.answeredScore) !== Number(r.score);
+}
 /* ── 수행평가 점수 확인 현황 (교사, v96) — 반별 응답 수와 "이상 있음" 학생 목록 ── */
 async function dashLoadPerfStatus_(){
   const box = $('perfAdminBox');
@@ -6061,18 +6071,24 @@ async function dashLoadPerfStatus_(){
     if(!rows.length){ box.textContent = '올라온 수행평가 점수가 없어요.'; return; }
     const byBan = {};
     rows.forEach(r => { (byBan[r.studentId.slice(0, 3)] = byBan[r.studentId.slice(0, 3)] || []).push(r); });
-    const head = '<tr><th>반</th><th>학생 수</th><th>이상 없음</th><th>이상 있음</th><th>아직 안 누름</th></tr>';
+    // v101: 응답한 뒤 점수가 바뀐 학생은 «재확인 대기»로 따로 센다(학생이 새 점수를 다시 눌러야 풀림). 한 행 합계 = 학생 수.
+    const head = '<tr><th class="l">반</th><th>학생 수</th><th>이상 없음</th><th>이상 있음</th><th>재확인 대기</th><th>아직 안 누름</th></tr>';
     const trs = Object.keys(byBan).sort().map(k => {
       const list = byBan[k];
-      const ok = list.filter(r => r.response === '이상 없음').length;
-      const ask = list.filter(r => r.response === '이상 있음').length;
-      return '<tr><td>' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</td><td>' + list.length + '</td><td>' + ok
-        + '</td><td>' + ask + '</td><td>' + (list.length - ok - ask) + '</td></tr>';
+      const wait = list.filter(perfAdminChanged_).length;
+      const ok = list.filter(r => r.response === '이상 없음' && !perfAdminChanged_(r)).length;
+      const ask = list.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).length;
+      return '<tr><td class="l">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</td><td>' + list.length + '</td><td>' + ok
+        + '</td><td>' + ask + '</td><td' + (wait ? ' class="perf-wait"' : '') + '>' + wait + '</td><td>' + (list.length - ok - ask - wait) + '</td></tr>';
     }).join('');
-    const asks = rows.filter(r => r.response === '이상 있음').sort((a, b) => a.studentId.localeCompare(b.studentId));
-    const changed = rows.filter(r => r.response && r.answeredScore !== '' && Number(r.answeredScore) !== r.score);
+    const asks = rows.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).sort((a, b) => a.studentId.localeCompare(b.studentId));
+    const changed = rows.filter(perfAdminChanged_).sort((a, b) => a.studentId.localeCompare(b.studentId));
     const memoed = rows.filter(r => r.memoCount).sort((x, y) => x.studentId.localeCompare(y.studentId)); // v100: 메모가 달린 학생 = 점검 후보
-    box.innerHTML = '<table class="grade-table">' + head + trs + '</table>'
+    box.innerHTML = '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
+      + (changed.length ? '<p class="dash-section-title">🔔 점수가 바뀌어 재확인 대기 (' + changed.length + '명)</p>' // v101
+          + '<p class="dash-hint">응답 뒤에 점수가 바뀐 학생이에요. 학생 화면에 «점수가 달라졌어요» 안내가 뜨고, 새 점수를 보고 다시 누르면 이 목록에서 빠져요.</p>'
+          + '<div class="perf-asklist">' + changed.map(r => '<button type="button" class="perf-askbtn perf-askbtn-wait" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
+          + escapeHtml(r.studentId + ' ' + r.name + ' ' + r.answeredScore + '→' + r.score + '점') + '</button>').join('') + '</div>' : '')
       + '<p class="dash-section-title">이상 있음 (' + asks.length + '명)</p>'
       + (asks.length ? '<p class="dash-hint">확인 완료 ' + asks.filter(r => r.checked).length + '명 / ' + asks.length + '명</p>' // v99
           + '<div class="perf-asklist">' + asks.map(r => '<button type="button" id="perfAsk_' + escapeHtml(r.studentId) + '" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
@@ -6085,8 +6101,7 @@ async function dashLoadPerfStatus_(){
       + '<p class="dash-section-title">학생별 점수·조정</p>'
       + '<div class="filters"><select id="perfBanSel" onchange="dashRenderPerfStudents_()">'
       + Object.keys(byBan).sort().map(k => '<option value="' + k + '">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</option>').join('')
-      + '</select></div><div id="perfStudentBox"></div>'
-      + (changed.length ? '<p class="dash-hint">⚠ 응답 뒤에 점수가 바뀐 학생: ' + changed.map(r => escapeHtml(r.studentId + ' ' + r.name)).join(', ') + '</p>' : '');
+      + '</select></div><div id="perfStudentBox"></div>';
     dashRenderPerfStudents_();
   }catch(e){
     box.textContent = '❌ 현황을 불러오지 못했어: ' + e.message;
@@ -6342,7 +6357,7 @@ function dashRenderPerfStudents_(){
     .sort((a, b) => a.studentId.localeCompare(b.studentId));
   box.innerHTML = '<div style="overflow-x:auto"><table class="grade-table"><tr><th>학번</th><th>이름</th><th>점수</th><th>응답</th><th></th></tr>'
     + list.map(r => '<tr><td>' + escapeHtml(r.studentId) + '</td><td>' + escapeHtml(r.name) + '</td><td><b>' + r.score + '</b> / ' + r.max + '</td><td>'
-      + escapeHtml(r.response || '—') + (r.checked ? ' <span class="perf-checked-tag">✓ 확인</span>' : '') // v99
+      + escapeHtml(r.response || '—') + (perfAdminChanged_(r) ? ' <span class="perf-wait-tag">재확인 대기 (' + escapeHtml(String(r.answeredScore)) + '→' + r.score + ')</span>' : '') + (r.checked ? ' <span class="perf-checked-tag">✓ 확인</span>' : '') // v99
       + (r.memoCount ? ' <span class="perf-memo-tag">메모 ' + r.memoCount + '</span>' : '') + '</td><td style="white-space:nowrap">'
       + '<button type="button" class="perf-askbtn" onclick="dashAdjustPerfScore_(\'' + escapeHtml(r.studentId) + '\')">점수 조정</button> '
       + '<button type="button" class="perf-askbtn" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">근거 보기</button></td></tr>').join('')
