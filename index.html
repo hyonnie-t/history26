@@ -6083,7 +6083,6 @@ async function dashLoadPerfStatus_(){
     }).join('');
     const asks = rows.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).sort((a, b) => a.studentId.localeCompare(b.studentId));
     const changed = rows.filter(perfAdminChanged_).sort((a, b) => a.studentId.localeCompare(b.studentId));
-    const memoed = rows.filter(r => r.memoCount).sort((x, y) => x.studentId.localeCompare(y.studentId)); // v100: 메모가 달린 학생 = 점검 후보
     box.innerHTML = '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
       + (changed.length ? '<p class="dash-section-title">🔔 점수가 바뀌어 재확인 대기 (' + changed.length + '명)</p>' // v101
           + '<p class="dash-hint">응답 뒤에 점수가 바뀐 학생이에요. 학생 화면에 «점수가 달라졌어요» 안내가 뜨고, 새 점수를 보고 다시 누르면 이 목록에서 빠져요.</p>'
@@ -6093,11 +6092,6 @@ async function dashLoadPerfStatus_(){
       + (asks.length ? '<p class="dash-hint">확인 완료 ' + asks.filter(r => r.checked).length + '명 / ' + asks.length + '명</p>' // v99
           + '<div class="perf-asklist">' + asks.map(r => '<button type="button" id="perfAsk_' + escapeHtml(r.studentId) + '" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
           + escapeHtml(perfAskLabel_(r)) + '</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
-      + '<p class="dash-section-title">🔍 점검 후보 · 메모가 달린 학생 (' + memoed.length + '명)</p>' // v100
-      + (memoed.length ? '<p class="dash-hint">눌러서 열면 메모가 달린 글이 위로 와요. 맞다고 보면 글 아래 «점수 조정» 버튼으로 바로 고칠 수 있어요.</p>'
-          + '<div class="perf-asklist">' + memoed.map(r => '<button type="button" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
-          + escapeHtml((r.checked ? '✓ ' : '') + r.studentId + ' ' + r.name + ' ' + r.score + '점 · 메모 ' + r.memoCount) + '</button>').join('') + '</div>'
-          : '<p class="dash-hint">메모가 달린 학생이 없어요.</p>')
       + '<p class="dash-section-title">학생별 점수·조정</p>'
       + '<div class="filters"><select id="perfBanSel" onchange="dashRenderPerfStudents_()">'
       + Object.keys(byBan).sort().map(k => '<option value="' + k + '">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</option>').join('')
