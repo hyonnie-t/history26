@@ -1991,13 +1991,50 @@ html{scrollbar-gutter:stable;}
 .perf-ok{color:#1a7f4b;}
 .perf-ask{color:#a35a00;}
 
-.perf-evid-item{padding:10px 12px; margin:8px 0; border:1px solid var(--line); border-radius:8px; background:#fff;}
-.perf-evid-off{opacity:.6;}
-.perf-evid-head{display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; font-size:.9rem; color:var(--ink-soft);}
+/* v97 — 이상 있음 학생 근거 팝업(점수 산출 근거 → 점수별 토글 → 글별 원문+근거) */
+body.perf-modal-open{overflow:hidden;}
+.perf-modal{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(30,26,20,.55);}
+.perf-modal[hidden]{display:none;}
+.perf-modal-card{width:100%; max-width:760px; max-height:92vh; display:flex; flex-direction:column; background:var(--paper,#fff); border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,.35); overflow:hidden;}
+.perf-modal-top{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); background:#fff;}
+.perf-modal-title{margin:0; font-size:1.05rem; color:var(--ink);}
+.perf-modal-title small{display:block; font-weight:400; font-size:.8rem; color:var(--ink-soft);}
+.perf-modal-x{min-width:44px; min-height:44px; border:0; background:none; font-size:1.4rem; cursor:pointer; color:var(--ink-soft);}
+.perf-modal-body{padding:14px 16px 20px; overflow-y:auto; overscroll-behavior:contain;}
+.perf-sum{border:1px solid var(--indigo); border-radius:10px; background:#fff; padding:12px 14px;}
+.perf-sum-total{margin:0; font-size:1.5rem; font-weight:800; color:var(--indigo);}
+.perf-sum-total span{font-size:.95rem; font-weight:400; color:var(--ink-soft); margin-left:6px;}
+.perf-sum-line{margin:6px 0 0; font-size:.92rem; color:var(--ink);}
+.perf-chips{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0;}
+.perf-chip{padding:6px 12px; border-radius:999px; border:1px solid var(--line); background:var(--paper,#faf7ee); font-size:.95rem;}
+.perf-chip b{font-size:1.05rem;}
+.perf-chip.s3{background:var(--jade-bg); border-color:var(--jade-border); color:var(--jade-text-deep);}
+.perf-chip.s2{background:#EAF0FA; border-color:#C9D7EE; color:#26406B;}
+.perf-chip.s1{background:var(--amber-bg); border-color:var(--amber-border); color:var(--amber-text-deep);}
+.perf-chip.s0{background:#FBE9E7; border-color:#EBC4BE; color:#7A2A20;}
+.perf-sum-warn{margin:8px 0 0; font-size:.85rem; color:var(--amber-text); background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:8px; padding:6px 10px;}
+.perf-grp{margin:12px 0 0; border:1px solid var(--line); border-radius:10px; background:#fff;}
+.perf-grp > summary{display:flex; align-items:center; gap:8px; min-height:44px; padding:8px 12px; cursor:pointer; font-weight:700; list-style:none;}
+.perf-grp > summary::-webkit-details-marker{display:none;}
+.perf-grp > summary::before{content:'\25B6'; font-size:.7rem; color:var(--ink-soft); transition:transform .15s;}
+.perf-grp[open] > summary::before{transform:rotate(90deg);}
+.perf-grp-note{margin-left:auto; font-weight:400; font-size:.85rem; color:var(--ink-soft);}
+.perf-grp-body{padding:0 12px 10px;}
+.perf-evid-item{padding:10px 12px; margin:8px 0; border:1px solid var(--line); border-radius:8px; background:var(--paper,#faf7ee);}
+.perf-evid-off{border-style:dashed;}
+.perf-evid-head{display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:.88rem; color:var(--ink-soft);}
 .perf-evid-no{font-weight:700; color:var(--ink);}
-.perf-evid-score{color:var(--indigo); font-size:1rem;}
-.perf-evid-reason{margin:6px 0 2px; color:var(--ink);}
-.perf-evid-prev{margin:2px 0 0; font-size:.85rem; color:var(--ink-soft); word-break:keep-all; overflow-wrap:anywhere;}
+.perf-evid-used{margin-left:auto; padding:1px 8px; border-radius:999px; border:1px solid var(--line); background:#fff; font-size:.8rem;}
+.perf-evid-off .perf-evid-used{color:#7A2A20; border-color:#EBC4BE;}
+.perf-evid-lbl{margin:8px 0 2px; font-size:.78rem; font-weight:700; letter-spacing:.02em; color:var(--ink-soft);}
+.perf-evid-reason{margin:0; padding:8px 10px; border-left:4px solid var(--indigo); background:#fff; border-radius:0 6px 6px 0; color:var(--ink); white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere;}
+.perf-evid-prev{margin:0; padding:8px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; font-size:.92rem; line-height:1.65; color:var(--ink); white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere;}
+.perf-evid-cut{margin:4px 0 0; font-size:.8rem; color:var(--amber-text);}
+.perf-modal-foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+@media (max-width:640px){
+  .perf-modal{padding:0; align-items:flex-end;}
+  .perf-modal-card{max-height:94vh; border-radius:14px 14px 0 0;}
+}
 
 .perf-asklist{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0;}
 .perf-askbtn{min-height:36px; padding:4px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer;}
