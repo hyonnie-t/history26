@@ -190,7 +190,12 @@ async function dashLoadPerfStatus_(){
     }).join('');
     const asks = rows.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).sort((a, b) => a.studentId.localeCompare(b.studentId));
     const changed = rows.filter(perfAdminChanged_).sort((a, b) => a.studentId.localeCompare(b.studentId));
-    box.innerHTML = '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
+    // v105: 표까지 내려가지 않아도 보이게 반별 응답 수(응답함/학생 수)를 칩으로 먼저 보여 준다.
+    const banSum = '<div class="perf-bansum">' + Object.keys(byBan).sort().map(k => {
+      const list = byBan[k];
+      return '<span class="perf-bansum-chip">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반 ' + list.filter(r => r.response).length + '/' + list.length + '</span>';
+    }).join('') + '</div>';
+    box.innerHTML = banSum + '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
       + (changed.length ? '<p class="dash-section-title">🔔 점수가 바뀌어 재확인 대기 (' + changed.length + '명)</p>' // v101
           + '<p class="dash-hint">응답 뒤에 점수가 바뀐 학생이에요. 학생 화면에 «점수가 달라졌어요» 안내가 뜨고, 새 점수를 보고 다시 누르면 이 목록에서 빠져요.</p>'
           + '<div class="perf-asklist">' + changed.map(r => '<button type="button" class="perf-askbtn perf-askbtn-wait" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'

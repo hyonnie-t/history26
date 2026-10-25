@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=104">
+<link rel="stylesheet" href="style.css?v=105">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -166,6 +166,15 @@
           </div>
         </div>
         <div id="perfBody" class="perf-body" style="display:none;"></div>
+      </section>
+
+      <!-- v105 — «지금 할 활동» 한 줄 카드. 공지 위. 내용은 renderNextActivity_()가 채우고, 전부 끝냈거나 열린 활동이 없으면 숨는다. -->
+      <section class="next-card" id="nextCard" aria-label="지금 할 활동" hidden>
+        <div class="next-text">
+          <span class="next-label">지금 할 활동</span>
+          <span class="next-title" id="nextTitle"></span>
+        </div>
+        <a class="btn-go" id="nextGo" href="#" target="_blank" rel="noopener">하러 가기 →</a>
       </section>
 
       <section class="announce-card" id="announceCard" aria-label="공지사항">
@@ -379,10 +388,11 @@
   </div>
 
   <div class="dash-panel" id="panelRecords">
-    <div class="ai-notice" id="aiNotice">
-      🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b> — 학생 화면에 이미 표시되고 있어요.
-      학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.
-    </div>
+    <!-- v105 — 설명 문장은 접어 두고 건수만 한 줄로. 접힘 상태는 localStorage(dash_fold_aiNotice)에 기억(dashFoldInit_). -->
+    <details class="ai-notice" id="aiNotice" data-fold="aiNotice">
+      <summary>🤖 <b>미검토 AI 코멘트 <span id="aiNoticeCount">0</span>건</b></summary>
+      <p class="ai-notice-body">학생 화면에 이미 표시되고 있어요. 학생 행을 눌러 상세에서 확인·수정·숨김 처리할 수 있어요.</p>
+    </details>
 
     <!-- v61: AI 작성 의심 경고 박스. 내용은 dashRenderSuspectBox_()가 매번 새로 그린다. -->
     <div class="suspect-box" id="suspectBox" style="display:none;"></div>
@@ -893,7 +903,8 @@
     <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). 2026-10-25 효니: 맨 위. -->
     <section class="dash-card">
       <h2 class="dash-card-title">수행평가 점수 확인 현황</h2>
-      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 누른 뒤에 점수가 바뀌면 학생 화면에 변동 안내가 뜨고 한 번 더 누르게 해요(그동안은 «재확인 대기»). 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p>
+      <details class="fold-note" data-fold="perfDesc"><summary>설명 보기</summary>
+      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 누른 뒤에 점수가 바뀌면 학생 화면에 변동 안내가 뜨고 한 번 더 누르게 해요(그동안은 «재확인 대기»). 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p></details> <!-- v105: 긴 설명 접기, 접힘 상태는 localStorage -->
       <div class="perf-toolbar"><button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_()">↻ 새로고침</button></div> <!-- v101: .filters 알약 바 대신 -->
       <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
     </section>
@@ -1001,11 +1012,11 @@
 <script src="checkin_data.js"></script>
 <script src="tree.js"></script>
 <script src="js/01-core-login.js?v=104"></script>
-<script src="js/02-checkin-portal.js?v=104"></script>
+<script src="js/02-checkin-portal.js?v=105"></script>
 <script src="js/03-grade-lookup.js?v=104"></script>
 <script src="js/04-perf-score.js?v=104"></script>
 <script src="js/05-badges-events.js?v=104"></script>
-<script src="js/06-dashboard.js?v=104"></script>
-<script src="js/07-dash-admin-boot.js?v=104"></script>
+<script src="js/06-dashboard.js?v=105"></script>
+<script src="js/07-dash-admin-boot.js?v=105"></script>
 </body>
 </html>

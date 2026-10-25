@@ -27,6 +27,17 @@ let openDetailSid = null;
 // 서버 재조회 없이 클라이언트에서만 관리.
 let PP_RECENT = [];
 
+/* v105 — <details data-fold="이름"> 접힘 상태를 localStorage(dash_fold_이름)에 기억. 기본은 접힘.
+ * 내용이 renderDash 등으로 다시 그려져도 같은 키로 복원되고, 리스너는 요소마다 한 번만 단다. */
+function dashFoldInit_(el){
+  if(!el || !el.dataset.fold) return;
+  const key = 'dash_fold_' + el.dataset.fold;
+  el.open = store.get(key) === '1';
+  if(el.dataset.foldBound) return;
+  el.dataset.foldBound = '1';
+  el.addEventListener('toggle', () => store.set(key, el.open ? '1' : '0'));
+}
+
 /* v22: 5개 요청 전부 fetchJsonRetry_로 재시도 처리. 이전엔 fetch 하나라도
  * 404(재배포 직후 googleusercontent 리다이렉트 불안정) 등으로 실패하면
  * Promise.all이 그대로 reject → 대시보드가 통째로 0/빈 값으로 뜨는 문제가 있었음. */
@@ -97,7 +108,11 @@ function switchDashTab(tab){
     btn.classList.toggle('active', btn.dataset.tab === tab);
     if(btn.dataset.tab === tab && btn.scrollIntoView) btn.scrollIntoView({ inline:'center', block:'nearest' }); // v63 — 모바일에선 탭 줄이 가로 스크롤
   });
-  if(tab === 'grades'){ dashLoadGradeStatus_(); dashLoadPerfStatus_(); }
+  if(tab === 'grades'){
+    document.querySelectorAll('#panelGrades details[data-fold]').forEach(dashFoldInit_); // v105
+    dashLoadGradeStatus_(); dashLoadPerfStatus_();
+  }
+  if(tab === 'points') ppRenderRecent_(); // v105 — 탭을 열 때마다 최근 지급 5건 갱신
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
 }
@@ -1636,6 +1651,7 @@ function dashVisibleQuestions_(){
     return mine ? mine.includes(Number(q.ban)) : true;
   });
 }
+const DQ_DONE_OPEN = new Set(); // v105 — 펼쳐 둔 «답변 완료» 질문의 시트 행 번호
 function dashRenderQuestions(){
   const list = $('dqList');
   const visible = dashVisibleQuestions_();
@@ -1656,7 +1672,8 @@ function dashRenderQuestions(){
     list.innerHTML = '<p class="empty-hint">아직 들어온 질문이 없어요.</p>';
     return;
   }
-  list.innerHTML = sorted.map(q => {
+  // v105 — 대기 중 질문은 위에 펼쳐 두고, 답변 완료는 한 줄(상태·학생·질문 앞부분)로 접는다. 펼친 항목은 DQ_DONE_OPEN에 기억해 재렌더(답변 수정 뒤)에도 유지.
+  const itemHtml = q => {
     const isDone = q.status === '답변완료';
     return `
       <div class="dq-item">
@@ -1670,7 +1687,19 @@ function dashRenderQuestions(){
           <button data-row="${q._row}" onclick="dashAnswerQuestion(this)">${isDone ? '답변 수정' : '답변 보내기'}</button>
         </div>
       </div>`;
-  }).join('');
+  };
+  list.innerHTML = sorted.map(q => q.status !== '답변완료' ? itemHtml(q) : `
+    <details class="dq-done" data-row="${q._row}"${DQ_DONE_OPEN.has(String(q._row)) ? ' open' : ''}>
+      <summary>
+        <span class="q-status done">답변완료</span>
+        <span class="dq-done-text"><b>${escapeHtml(q.studentName)}</b> · ${escapeHtml(q.question)}</span>
+        <span class="dq-done-meta">${q.grade}학년 ${q.ban}반 · ${formatDate(q.timestamp)}</span>
+      </summary>
+      ${itemHtml(q)}
+    </details>`).join('');
+  list.querySelectorAll('details.dq-done').forEach(d => {
+    d.addEventListener('toggle', () => { d.open ? DQ_DONE_OPEN.add(d.dataset.row) : DQ_DONE_OPEN.delete(d.dataset.row); });
+  });
 }
 
 /* ── 개인 메시지 스레드 (교사, v62) ──
@@ -2056,12 +2085,14 @@ function dashRenderSuspectBox_(){
       🔍 <b>AI 작성 의심 확인</b>
       <span class="suspect-sum">확인 필요 <b>${openTotal}건</b>${crossTotal ? ` · 👁 교차 확인 <b>${crossTotal}건</b>` : ''} · 반복 ${SUSPECT_REPEAT_MIN}회 이상 <b>${repeatAll}명</b></span>
     </div>
-    <div class="suspect-note">참고용 판정이라 확정이 아니에요. 1회는 평소 어휘 수준이 높은 학생일 수 있어서 참고만, 반복되면 이야기를 나눠 볼 만해요. 학생 상세 카드에서 "확인함/상담함"으로 표시해도 <b>횟수는 그대로</b> 남아요(오탐이어도 반복 여부를 볼 수 있게). 학생 화면에는 보이지 않아요. 👁은 글 판정과 화면 이탈·붙여넣기가 같은 기록에서 함께 걸렸다는 표시로, 먼저 정렬만 되고 <b>횟수·등급엔 영향이 없어요</b>(사료 확인 등 정당한 이탈도 포함).</div>
+    <details class="fold-note" data-fold="suspectNote"><summary>설명 보기</summary>
+    <div class="suspect-note">참고용 판정이라 확정이 아니에요. 1회는 평소 어휘 수준이 높은 학생일 수 있어서 참고만, 반복되면 이야기를 나눠 볼 만해요. 학생 상세 카드에서 "확인함/상담함"으로 표시해도 <b>횟수는 그대로</b> 남아요(오탐이어도 반복 여부를 볼 수 있게). 학생 화면에는 보이지 않아요. 👁은 글 판정과 화면 이탈·붙여넣기가 같은 기록에서 함께 걸렸다는 표시로, 먼저 정렬만 되고 <b>횟수·등급엔 영향이 없어요</b>(사료 확인 등 정당한 이탈도 포함).</div></details>
     ${repeat.length ? `<ul class="suspect-list rep">${repeat.map(rowHtml).join('')}</ul>` : ''}
     ${once.length ? `<details class="suspect-once"><summary>1회 해당 학생 ${once.length}명 보기</summary><ul class="suspect-list">${once.map(rowHtml).join('')}</ul></details>` : ''}
     ${cleared.length ? `<details class="suspect-once"><summary>확인 완료 ${cleared.length}명 보기</summary><ul class="suspect-list">${cleared.map(rowHtml).join('')}</ul></details>` : ''}
     <details class="suspect-once suspect-table-wrap" id="suspectTableWrap"${SUSPECT_TABLE.open ? ' open' : ''}><summary>📋 표로 보기 (${inScope.reduce((n, s) => n + s.items.length, 0)}건)</summary><div id="suspectTable"></div></details>`;
   box.style.display = 'block';
+  box.querySelectorAll('details[data-fold]').forEach(dashFoldInit_); // v105
   SUSPECT_SCOPE = inScope;
   const tw = $('suspectTableWrap');
   tw.addEventListener('toggle', () => { SUSPECT_TABLE.open = tw.open; if(tw.open) dashRenderSuspectTable_(); });
@@ -2365,6 +2396,7 @@ function renderDash(){
   const unrev = aiUnreviewedCount();
   $('aiNotice').style.display = unrev ? 'block' : 'none';
   $('aiNoticeCount').textContent = unrev;
+  dashFoldInit_($('aiNotice')); // v105
 
   dashRenderClassFeedback(); // v34
   dashRenderSuspectBox_();   // v61
@@ -2679,15 +2711,31 @@ function ppPickStudent_(sid, name){
 function ppClearSelected_(){
   $('ppSelected').innerHTML = '';
 }
+/* v105 — 최근 지급 5건. 이미 불러온 ROWS 중 발표 지급 행(gameName이 '발표_'로 시작 — 백엔드 PRESENTATION_PREFIX)을 최신순으로 5건 보여 준다.
+ * 이번 화면에서 방금 지급했지만 ROWS에는 아직 없는 건(PP_RECENT)도 합친다. 같은 학생·2분 이내 행이 ROWS에 있으면 같은 건으로 보고 한 번만 센다.
+ * 새 요청은 없고 읽기만 하므로 PREVIEW_MODE 분기는 필요 없다. 점수는 시트 22열(헤더 '탐구포인트(발표)'), 수준은 11열('성취수준'). */
+function ppRecentGrants_(){
+  const fromRows = ROWS.filter(r => String(r.gameName || '').indexOf('발표_') === 0).map(r => ({
+    sid: String(r.studentId), name: String(r.studentName || ''),
+    thinkingType: String(r.gameName).replace('발표_', '').replace('기타', ''),
+    level: String(r['성취수준'] || '').trim(), points: Number(r['탐구포인트(발표)']) || 0,
+    reason: String(r.choiceSummary || '').trim(), timestamp: r.timestamp
+  }));
+  const fresh = PP_RECENT.filter(g => !fromRows.some(r => r.sid === String(g.sid)
+    && Math.abs((Date.parse(r.timestamp) || 0) - (Date.parse(g.timestamp) || 0)) < 120000));
+  return [...fromRows, ...fresh]
+    .sort((x, y) => (Date.parse(y.timestamp) || 0) - (Date.parse(x.timestamp) || 0)).slice(0, 5);
+}
 function ppRenderRecent_(){
   const el = $('ppRecent');
   if(!el) return;
-  if(!PP_RECENT.length){ el.innerHTML = ''; return; }
-  el.innerHTML = `<p class="pp-recent-title">✅ 방금 지급함 (이 화면을 새로고침하면 목록만 비워져요 — 지급 기록 자체는 그대로 남아있어요)</p>`
-    + PP_RECENT.slice(0, 8).map(g => `
+  const list = ppRecentGrants_();
+  if(!list.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<p class="pp-recent-title">✅ 최근 지급 ${list.length}건</p>`
+    + list.map(g => `
       <div class="pp-recent-item">
         <span class="pp-recent-name">${escapeHtml(g.name)} <small>(${escapeHtml(g.sid)})</small></span>
-        <span class="pp-recent-type">${g.thinkingType ? escapeHtml(g.thinkingType) : '유형 없음'} · ${escapeHtml(g.level || '중')}(+${g.points || 6}점)</span>
+        <span class="pp-recent-type">${g.thinkingType ? escapeHtml(g.thinkingType) : '유형 없음'} · ${escapeHtml(g.level || '중')}(+${g.points || 6}점)${g.reason ? ' · ' + escapeHtml(dashShorten(g.reason, 24)) : ''}</span>
         <span class="pp-recent-time">${formatDate(g.timestamp)}</span>
       </div>`).join('');
 }

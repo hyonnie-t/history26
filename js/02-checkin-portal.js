@@ -427,6 +427,8 @@ function renderPortal(){
   function lessonHasUrl(l){ return l.activities.some(a => a.url || a.urlByBan); }
   function lessonDone(l){ return l.activities.every(a => doneIds.has(a.id)); }
 
+  renderNextActivity_(lessons, doneIds, lessonDone); // v105
+
   /* KPI: 진행률 (차시 단위) */
   const active = lessons.filter(lessonHasUrl);
   const doneCount = active.filter(lessonDone).length;
@@ -687,6 +689,28 @@ function renderPortal(){
       }
     });
   }
+}
+
+/* v105 — 첫 화면 «지금 할 활동» 카드. 교육과정 순서에서 아직 안 끝낸(lessonDone 거짓) 첫 차시의
+ * 첫 미완료 활동 중 이 반에 열려 있는 것(링크가 있는 것)을 골라 한 줄로 보여 준다. 링크는 카드의 "하러 가기"와 같은
+ * 규칙(module은 withStudentParams, 그 밖엔 원래 주소). 첫 미완료 활동은 앞 활동이 모두 끝난 상태라 순차 잠금에 걸리지 않는다.
+ * 읽기만 하는 표시라 PREVIEW_MODE 분기는 필요 없다(링크의 preview=1은 withStudentParams가 붙인다). */
+function renderNextActivity_(lessons, doneIds, lessonDone){
+  const card = $('nextCard');
+  if(!card) return;
+  let pick = null;
+  for(let i = 0; i < lessons.length && !pick; i++){
+    const l = lessons[i];
+    if(lessonDone(l)) continue;
+    const idx = l.activities.findIndex(a => !doneIds.has(a.id));
+    const act = l.activities[idx];
+    if(act && lessonActivityUrl(act)) pick = { l, i, act, idx };
+  }
+  if(!pick){ card.hidden = true; return; }
+  const url = lessonActivityUrl(pick.act);
+  $('nextTitle').textContent = `${pick.i + 1}차시 · ${activityDisplayTitle(pick.l, pick.act, pick.idx)}`;
+  $('nextGo').href = pick.act.type === 'module' ? withStudentParams(url) : ensureUrlScheme_(url);
+  card.hidden = false;
 }
 
 /* v27 — 활동 하나를 화면에 보여줄 이름. 차시에 활동이 1개뿐이면 차시 제목 그대로,
