@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=98">
+<link rel="stylesheet" href="style.css?v=99">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -6073,8 +6073,9 @@ async function dashLoadPerfStatus_(){
     const changed = rows.filter(r => r.response && r.answeredScore !== '' && Number(r.answeredScore) !== r.score);
     box.innerHTML = '<table class="grade-table">' + head + trs + '</table>'
       + '<p class="dash-section-title">이상 있음 (' + asks.length + '명)</p>'
-      + (asks.length ? '<div class="perf-asklist">' + asks.map(r => '<button type="button" class="perf-askbtn" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
-          + escapeHtml(r.studentId + ' ' + r.name + ' ' + r.score + '점') + ' · 근거 보기</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
+      + (asks.length ? '<p class="dash-hint">확인 완료 ' + asks.filter(r => r.checked).length + '명 / ' + asks.length + '명</p>' // v99
+          + '<div class="perf-asklist">' + asks.map(r => '<button type="button" id="perfAsk_' + escapeHtml(r.studentId) + '" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
+          + escapeHtml(perfAskLabel_(r)) + '</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
       + '<p class="dash-section-title">학생별 점수·조정</p>'
       + '<div class="filters"><select id="perfBanSel" onchange="dashRenderPerfStudents_()">'
       + Object.keys(byBan).sort().map(k => '<option value="' + k + '">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</option>').join('')
@@ -6167,13 +6168,15 @@ async function dashLoadPerfEvidence_(sid){
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     const rows = (data.rows || []).sort((a, b) => a.order - b.order);
     if(!rows.length){ $('perfModalBody').innerHTML = '<p class="dash-hint">올라온 근거가 없어요.</p>'; return; }
-    perfModalRender_(sid, stu, rows);
+    perfModalRender_(sid, stu, rows, (data.memos || []).filter(m => m.title === rows[0].title)); // v99: 교사 메모(재배포 전엔 없음)
   }catch(e){
     $('perfModalBody').innerHTML = '<p class="dash-hint">❌ 근거를 불러오지 못했어: ' + escapeHtml(e.message) + ' (백엔드 재배포 전이면 안 열려요)</p>';
   }
 }
-function perfModalRender_(sid, stu, rows){
+function perfModalRender_(sid, stu, rows, memos){
   const name = stu ? stu.name : rows[0].name;
+  memos = memos || [];
+  const checked = memos.some(m => m.order === 0 && m.checked);
   const fmtAt = v => { const d = new Date(v); return isNaN(d) ? String(v) : (d.getMonth() + 1) + '/' + d.getDate() + ((d.getHours() || d.getMinutes()) ? ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : ''); };
   const used = rows.filter(r => r.used === 'O');
   const usedSum = used.reduce((t, r) => t + Number(r.score || 0), 0);
@@ -6203,25 +6206,121 @@ function perfModalRender_(sid, stu, rows){
         + '<p class="perf-evid-topic"><span>주제</span>' + escapeHtml(perfTopic_(r.preview)) + '</p>'
         + '<p class="perf-evid-lbl">왜 ' + s + '점인가 (채점 근거)</p><p class="perf-evid-reason">' + escapeHtml(r.reason || '근거가 없어요') + '</p>'
         + '<p class="perf-evid-lbl">패들렛 원문</p><p class="perf-evid-prev">' + escapeHtml(r.preview || '(원문이 올라와 있지 않아요)') + '</p>'
-        + (cut ? '<p class="perf-evid-cut">※ 원문이 길어 앞부분만 저장돼 있어요. 전체는 패들렛에서 확인해 주세요.</p>' : '') + adj + '</div>';
+        + (cut ? '<p class="perf-evid-cut">※ 원문이 길어 앞부분만 저장돼 있어요. 전체는 패들렛에서 확인해 주세요.</p>' : '')
+        + '<div class="perf-memo" id="perfMemo_' + r.order + '">' + perfMemoHtml_(r.order, memos) + '</div>' + adj + '</div>';
     }).join('');
     const keep = PERF_UI_KEEP && PERF_UI_KEEP.sid === sid ? PERF_UI_KEEP.open[s] : undefined; // v98: 조정 뒤 다시 그려도 펼침 상태 유지
     return '<details class="perf-grp" data-s="' + s + '"' + ((keep === undefined ? s < 3 : keep) ? ' open' : '') + '><summary>' + s + '점짜리 글 ' + list.length + '개<span class="perf-grp-note">반영 ' + usedN + '개</span></summary>'
       + '<div class="perf-grp-body">' + items + '</div></details>';
   }).join('');
-  PERF_EVID_LAST = { sid, name, showScore, max, rows, usedSum, used, title: rows[0].title };
+  PERF_EVID_LAST = { sid, name, showScore, max, rows, usedSum, used, title: rows[0].title, memos, checked };
+  /* v99 — 확인 완료 표시 + 학생 전체 메모. 글별 메모는 각 글 카드 안(perfMemo_글순서). */
+  const bar = '<div class="perf-memo-bar"><button type="button" id="perfCheckBtn" class="btn-sm btn-ghost perf-check-btn' + (checked ? ' is-on' : '') + '"'
+    + ' aria-pressed="' + checked + '" onclick="perfCheckToggle_()">' + (checked ? '✓ 확인 완료' : '확인 완료로 표시') + '</button>'
+    + '<div class="perf-memo" id="perfMemo_0">' + perfMemoHtml_(0, memos) + '</div></div>';
   perfModalOpen_(sid + ' ' + name, '수행평가 점수 근거 · 패들렛 원문 기준 · 주제는 글 첫 줄에서 읽어 온 거예요',
-    sum + grp + '<div class="perf-modal-foot"><button type="button" class="btn-sm" onclick="perfCopyFeedback_()">피드백용 요약 복사</button>'
+    sum + bar + grp + '<div class="perf-modal-foot"><button type="button" class="btn-sm" onclick="perfCopyFeedback_()">피드백용 요약 복사</button>'
     + '<button type="button" class="btn-sm btn-ghost" onclick="perfModalClose_()">닫기</button></div>');
   if(PERF_UI_KEEP && PERF_UI_KEEP.sid === sid){ $('perfModalBody').scrollTop = PERF_UI_KEEP.scroll; PERF_UI_KEEP = null; }
 }
-/* 학생에게 알려 줄 때 붙여 쓸 수 있는 요약 텍스트(클립보드). 원문은 길어서 빼고 점수·근거만 담는다. */
+/* v99 — 교사 메모(글마다·학생 전체, order 0)와 확인 완료 표시. 저장은 POST savePerfMemo → 백엔드 시트 `수행평가메모`.
+ * 평소엔 «✎ 교사 메모 남기기» 버튼만 보이고, 누르면 그 자리에 입력창이 열린다. 학생 화면에는 내려가지 않는다. */
+function perfMemoHtml_(order, memos){
+  const m = (memos || (PERF_EVID_LAST && PERF_EVID_LAST.memos) || []).find(x => x.order === order);
+  const text = m && m.memo ? m.memo : '';
+  const label = order === 0 ? '학생 전체 메모' : '교사 메모';
+  if(!text) return '<button type="button" class="btn-sm btn-ghost perf-memo-open" onclick="perfMemoEdit_(' + order + ')">✎ ' + label + ' 남기기</button>';
+  return '<div class="perf-memo-note"><div class="perf-memo-head"><span class="perf-evid-lbl">' + label + '</span>'
+    + '<button type="button" class="btn-sm btn-ghost perf-memo-open" onclick="perfMemoEdit_(' + order + ')">수정</button></div>'
+    + '<p class="perf-memo-text">' + escapeHtml(text) + '</p></div>';
+}
+function perfMemoEdit_(order){
+  const box = $('perfMemo_' + order), d = PERF_EVID_LAST;
+  if(!box || !d) return;
+  const m = d.memos.find(x => x.order === order);
+  const label = order === 0 ? '학생 전체 메모' : order + '번째 글 교사 메모';
+  box.innerHTML = '<label class="perf-evid-lbl" for="perfMemoTa_' + order + '">' + label + '</label>'
+    + '<textarea id="perfMemoTa_' + order + '" class="perf-memo-ta" rows="3" maxlength="1000" placeholder="학생에게 줄 피드백이나 추가 채점 근거를 적어 두세요">' + escapeHtml(m ? m.memo : '') + '</textarea>'
+    + '<div class="perf-memo-acts"><button type="button" class="btn-sm" onclick="perfMemoSave_(' + order + ', this)">저장</button>'
+    + '<button type="button" class="btn-sm btn-ghost" onclick="perfMemoCancel_(' + order + ')">취소</button></div>';
+  $('perfMemoTa_' + order).focus();
+}
+function perfMemoCancel_(order){
+  const box = $('perfMemo_' + order);
+  if(box) box.innerHTML = perfMemoHtml_(order);
+}
+async function perfMemoPost_(body){
+  const d = PERF_EVID_LAST;
+  const res = await fetch(CONFIG.WEBAPP_URL, {
+    method:'POST',
+    body: JSON.stringify(Object.assign({ action:'savePerfMemo', token:TOKEN, studentId:d.sid, name:d.name, title:d.title }, body))
+  });
+  const data = await res.json();
+  if(data.result !== 'success') throw new Error(data.message || '저장 실패');
+  let m = d.memos.find(x => x.order === data.order);
+  if(!m){ m = { title:d.title, order:data.order, memo:'', checked:false }; d.memos.push(m); }
+  m.memo = data.memo; m.checked = data.checked; m.at = data.at;
+  const stu = PERF_ADMIN_ROWS.find(x => x.studentId === d.sid);
+  if(stu){ stu.checked = d.memos.some(x => x.order === 0 && x.checked); stu.memoCount = d.memos.filter(x => x.memo).length; }
+  return data;
+}
+async function perfMemoSave_(order, btn){
+  if(PREVIEW_MODE){ showToast('미리보기에서는 메모를 저장할 수 없어요.'); return; }
+  const ta = $('perfMemoTa_' + order);
+  if(!ta) return;
+  btn.disabled = true; btn.textContent = '저장 중…';
+  try{
+    await perfMemoPost_({ order, memo: ta.value.trim() });
+    perfMemoCancel_(order);
+    showToast(ta.value.trim() ? '✅ 메모를 저장했어요.' : '메모를 지웠어요.');
+    perfRefreshAdminLists_();
+  }catch(e){
+    btn.disabled = false; btn.textContent = '저장';
+    showToast('❌ ' + e.message + ' (백엔드 재배포 전이면 안 돼요)');
+  }
+}
+async function perfCheckToggle_(){
+  if(PREVIEW_MODE){ showToast('미리보기에서는 표시를 바꿀 수 없어요.'); return; }
+  const d = PERF_EVID_LAST, btn = $('perfCheckBtn');
+  if(!d || !btn) return;
+  const next = !d.memos.some(x => x.order === 0 && x.checked);
+  btn.disabled = true;
+  try{
+    await perfMemoPost_({ order: 0, checked: next });
+    btn.classList.toggle('is-on', next);
+    btn.setAttribute('aria-pressed', String(next));
+    btn.textContent = next ? '✓ 확인 완료' : '확인 완료로 표시';
+    showToast(next ? '✅ ' + d.name + ' 확인 완료로 표시했어요.' : '확인 완료 표시를 풀었어요.');
+    perfRefreshAdminLists_();
+  }catch(e){
+    showToast('❌ ' + e.message + ' (백엔드 재배포 전이면 안 돼요)');
+  }finally{
+    btn.disabled = false;
+  }
+}
+/* 확인 완료·메모가 바뀌면 «이상 있음» 목록 버튼과 학생별 표의 표시를 바로 고친다. */
+function perfAskLabel_(r){
+  return (r.checked ? '✓ ' : '') + r.studentId + ' ' + r.name + ' ' + r.score + '점 · ' + (r.checked ? '확인 완료' : '근거 보기');
+}
+function perfRefreshAdminLists_(){
+  const d = PERF_EVID_LAST;
+  const r = d && PERF_ADMIN_ROWS.find(x => x.studentId === d.sid);
+  const b = d && $('perfAsk_' + d.sid);
+  if(r && b){ b.textContent = perfAskLabel_(r); b.classList.toggle('is-checked', !!r.checked); }
+  dashRenderPerfStudents_();
+}
+/* 학생에게 알려 줄 때 붙여 쓸 수 있는 요약 텍스트(클립보드). 원문은 길어서 빼고 점수·근거만 담는다. v99: 교사 메모도 함께. */
 async function perfCopyFeedback_(){
   const d = PERF_EVID_LAST;
   if(!d) return;
+  const memoOf = o => { const m = (d.memos || []).find(x => x.order === o); return m && m.memo ? m.memo : ''; };
   const lines = [d.name + ' 수행평가 ' + d.showScore + '점' + (d.max !== '' ? '/' + d.max : '') + ' (글 ' + d.rows.length + '개 중 반영 ' + d.used.length + '개)'];
+  if(memoOf(0)) lines.push('※ ' + memoOf(0));
   [3, 2, 1, 0].forEach(s => {
-    d.rows.filter(r => Number(r.score) === s).forEach(r => lines.push('- ' + r.order + '번째 글 ' + s + '점' + (r.used === 'O' ? '' : '(미반영)') + ': ' + (r.reason || '')));
+    d.rows.filter(r => Number(r.score) === s).forEach(r => {
+      lines.push('- ' + r.order + '번째 글 ' + s + '점' + (r.used === 'O' ? '' : '(미반영)') + ': ' + (r.reason || ''));
+      if(memoOf(r.order)) lines.push('  ↳ 선생님 메모: ' + memoOf(r.order));
+    });
   });
   try{ await navigator.clipboard.writeText(lines.join('\n')); showToast('피드백용 요약을 복사했어요.'); }
   catch(e){ showToast('복사에 실패했어요.'); }
@@ -6235,7 +6334,8 @@ function dashRenderPerfStudents_(){
     .sort((a, b) => a.studentId.localeCompare(b.studentId));
   box.innerHTML = '<div style="overflow-x:auto"><table class="grade-table"><tr><th>학번</th><th>이름</th><th>점수</th><th>응답</th><th></th></tr>'
     + list.map(r => '<tr><td>' + escapeHtml(r.studentId) + '</td><td>' + escapeHtml(r.name) + '</td><td><b>' + r.score + '</b> / ' + r.max + '</td><td>'
-      + escapeHtml(r.response || '—') + '</td><td style="white-space:nowrap">'
+      + escapeHtml(r.response || '—') + (r.checked ? ' <span class="perf-checked-tag">✓ 확인</span>' : '') // v99
+      + (r.memoCount ? ' <span class="perf-memo-tag">메모 ' + r.memoCount + '</span>' : '') + '</td><td style="white-space:nowrap">'
       + '<button type="button" class="perf-askbtn" onclick="dashAdjustPerfScore_(\'' + escapeHtml(r.studentId) + '\')">점수 조정</button> '
       + '<button type="button" class="perf-askbtn" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">근거 보기</button></td></tr>').join('')
     + '</table></div>';

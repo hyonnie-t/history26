@@ -2037,6 +2037,22 @@ body.perf-modal-open{overflow:hidden;}
 .perf-adj-btn{min-width:56px; min-height:44px; padding:4px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:.95rem; cursor:pointer;}
 .perf-adj-btn:hover:not(:disabled){border-color:var(--indigo); color:var(--indigo);}
 .perf-adj-btn.is-now{background:var(--indigo); border-color:var(--indigo); color:#fff; font-weight:700; cursor:default; opacity:1;}
+/* v99 — 교사 메모(평소엔 작은 버튼만, 누르면 입력창)와 확인 완료 표시 */
+.perf-memo{margin-top:8px;}
+.perf-memo-open{min-height:36px; padding:4px 10px; font-size:var(--fs-sm);}
+.perf-memo-note{padding:6px 10px 8px; border:1px solid var(--amber-border); border-radius:6px; background:var(--amber-bg);}
+.perf-memo-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.perf-memo-head .perf-evid-lbl{margin:0; color:var(--amber-text);}
+.perf-memo-text{margin:2px 0 0; color:var(--amber-text-deep); white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere;}
+.perf-memo-ta{display:block; width:100%; box-sizing:border-box; min-height:72px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-xs); background:var(--input-bg); font:inherit; resize:vertical;}
+.perf-memo-acts{display:flex; gap:6px; margin-top:6px;}
+.perf-memo-bar{display:flex; flex-direction:column; gap:6px; margin-top:10px; padding:10px 12px; border:1px dashed var(--line); border-radius:10px; background:#fff;}
+.perf-check-btn{align-self:flex-start; min-height:var(--tap-min);}
+.perf-check-btn.is-on{background:var(--jade-bg); border-color:var(--jade-border); color:var(--jade-text-deep); font-weight:700;}
+.perf-askbtn.is-checked{background:var(--jade-bg); border-color:var(--jade-border); color:var(--jade-text-deep);}
+.perf-checked-tag, .perf-memo-tag{display:inline-block; padding:0 6px; border-radius:999px; font-size:var(--fs-xs); white-space:nowrap;}
+.perf-checked-tag{background:var(--jade-bg); color:var(--jade-text-deep);}
+.perf-memo-tag{background:var(--amber-bg); color:var(--amber-text-deep);}
 .perf-modal-foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
 @media (max-width:640px){
   .perf-modal{padding:0; align-items:flex-end;}
