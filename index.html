@@ -2647,6 +2647,7 @@ function renderPerfScore_(){
       const ok = it.response === '이상 없음';
       answer = '<p class="perf-answer ' + (ok ? 'perf-ok' : 'perf-ask') + '">'
         + (ok ? '✓ 확인했어요 (이상 없음)' : '✋ 어디서 감점됐는지 확인하고 싶어요 (이상 있음)') + '</p>'
+        + (ok ? '' : '<p class="perf-note">글별 점수는 여기서 보여 주지 않아요. <b>선생님께 와서 직접 확인해요.</b></p>')
         + '<button class="btn-logout" onclick="perfShowButtons_(' + i + ')">다시 선택하기</button>';
     }else{
       answer = perfButtons_(i);
@@ -2681,7 +2682,7 @@ async function submitPerfResponse(i, response){
     if(data.result !== 'success') throw new Error(data.message || '저장 실패');
     it.response = data.response;
     renderPerfScore_();
-    showToast(response === 'ok' ? '확인했어요. 고마워요!' : '확인 요청을 남겼어요. 선생님이 살펴볼게요.');
+    showToast(response === 'ok' ? '확인했어요. 고마워요!' : '요청을 남겼어요. 선생님께 와서 직접 확인해 주세요.');
   }catch(e){
     box.querySelectorAll('button').forEach(b => { b.disabled = false; });
     showToast('저장하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.');
@@ -6058,10 +6059,30 @@ async function dashLoadPerfStatus_(){
     const changed = rows.filter(r => r.response && r.answeredScore !== '' && Number(r.answeredScore) !== r.score);
     box.innerHTML = '<table class="grade-table">' + head + trs + '</table>'
       + '<p class="dash-section-title">이상 있음 (' + asks.length + '명)</p>'
-      + (asks.length ? '<p class="dash-hint">' + asks.map(r => escapeHtml(r.studentId + ' ' + r.name + ' ' + r.score + '점')).join(' · ') + '</p>' : '<p class="dash-hint">없어요.</p>')
+      + (asks.length ? '<div class="perf-asklist">' + asks.map(r => '<button type="button" class="perf-askbtn" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
+          + escapeHtml(r.studentId + ' ' + r.name + ' ' + r.score + '점') + ' · 근거 보기</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
+      + '<div id="perfEvidenceBox"></div>'
       + (changed.length ? '<p class="dash-hint">⚠ 응답 뒤에 점수가 바뀐 학생: ' + changed.map(r => escapeHtml(r.studentId + ' ' + r.name)).join(', ') + '</p>' : '');
   }catch(e){
     box.textContent = '❌ 현황을 불러오지 못했어: ' + e.message;
+  }
+}
+/* 이상 있음 학생 한 명의 글별 점수·근거 (교사 전용, mode=perfEvidenceAdmin). 학생 화면에는 이 데이터가 내려가지 않는다. */
+async function dashLoadPerfEvidence_(sid){
+  const box = $('perfEvidenceBox');
+  box.innerHTML = '<p class="dash-hint">불러오는 중…</p>';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL + '?mode=perfEvidenceAdmin&token=' + encodeURIComponent(TOKEN) + '&studentId=' + encodeURIComponent(sid));
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+    const rows = (data.rows || []).sort((a, b) => a.order - b.order);
+    if(!rows.length){ box.innerHTML = '<p class="dash-hint">' + escapeHtml(sid) + ' — 올라온 근거가 없어요.</p>'; return; }
+    const trs = rows.map(r => '<tr' + (r.used === 'O' ? '' : ' style="opacity:.55"') + '><td>' + r.order + '</td><td>' + escapeHtml(r.date) + '</td><td><b>' + r.score + '</b></td><td>'
+      + escapeHtml(r.used) + '</td><td>' + escapeHtml(r.reason) + '</td><td>' + escapeHtml(r.preview) + '</td></tr>').join('');
+    box.innerHTML = '<p class="dash-section-title">' + escapeHtml(sid + ' ' + rows[0].name) + ' — 글별 근거</p>'
+      + '<div style="overflow-x:auto"><table class="grade-table"><tr><th>글</th><th>작성일</th><th>점수</th><th>반영</th><th>근거</th><th>글 앞부분</th></tr>' + trs + '</table></div>';
+  }catch(e){
+    box.innerHTML = '<p class="dash-hint">❌ 근거를 불러오지 못했어: ' + escapeHtml(e.message) + ' (백엔드 재배포 전이면 안 열려요)</p>';
   }
 }
 async function dashSetGradeDisplayStatus(btn, status){
