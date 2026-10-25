@@ -255,3 +255,10 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 3구역 카드(`.cl-section`) + `.cl-field` 라벨·필수/선택 태그. 입력창 id는 그대로이고 `clToggleMulti()`만
 래퍼(`#clTypeField`/`#clUrlField`)를 토글한다.
 
+
+## 화면 정리 (v105)
+- **학생 «지금 할 활동» 카드**: `renderPortal()`이 `lessonDone` 정의 직후 `renderNextActivity_(lessons, doneIds, lessonDone)`를 부른다. 교육과정 순서(`lessons`, 이미 담당 트랙 필터링됨)에서 `lessonDone`이 거짓이고 첫 미완료 활동에 `lessonActivityUrl`이 있는 차시를 고른다 — 차시 완료 판정은 AND 조건 그대로(절대 규칙 10)이고 새 판정을 만들지 않는다. 링크는 module이면 `withStudentParams`(미리보기면 `&preview=1`), 아니면 `ensureUrlScheme_`. 첫 미완료 활동은 앞 활동이 끝난 상태라 순차 잠금에 걸리지 않는다. 읽기 전용이라 `PREVIEW_MODE` 분기 없음.
+- **접힘 기억**: `dashFoldInit_(el)` — `<details data-fold="이름">`을 localStorage `dash_fold_이름`('1'=펼침)에 맞추고 토글 때 저장한다. 기본 접힘. 다시 그려지는 박스(`#suspectBox`)는 그릴 때마다 호출한다. 새 접기 UI는 이 헬퍼를 쓴다.
+- **교사 질문함**: 대기 → `.dq-item` 펼침, 답변 완료 → `<details class="dq-done">` 한 줄 요약. 열린 상태는 시트 행 번호로 `DQ_DONE_OPEN`에 기억.
+- **탐구포인트 «최근 지급 5건»**: 백엔드가 지급을 `gameName='발표_<유형>'`(유형 없음은 `발표_기타`), 11열 수준(`성취수준`), 22열 점수(`탐구포인트(발표)`), `choiceSummary`=사유 행으로 쓴다(`grantPresentationPointPost_`). `mode=` 교사 기본 GET의 `ROWS`에서 그대로 읽으므로 새 요청이 없다. `switchDashTab('points')`가 매번 다시 그린다.
+- **성적관리**: `dashLoadPerfStatus_()`가 표 앞에 `.perf-bansum` 칩(응답함/학생 수)을 붙인다. 응답 = `r.response`가 비지 않음(재확인 대기 포함).
