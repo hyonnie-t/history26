@@ -2053,7 +2053,7 @@ body.perf-modal-open{overflow:hidden;}
 .perf-checked-tag, .perf-memo-tag{display:inline-block; padding:0 6px; border-radius:999px; font-size:var(--fs-xs); white-space:nowrap;}
 .perf-checked-tag{background:var(--jade-bg); color:var(--jade-text-deep);}
 .perf-memo-tag{background:var(--amber-bg); color:var(--amber-text-deep);}
-.perf-evid-flag{border-left:4px solid var(--amber-text-deep);}  /* v100: 메모가 달린 글(점검 후보) */
+.perf-evid-flag{background:var(--amber-bg);}  /* v100: 메모가 달린 글(점검 후보) — 옆줄 대신 옅은 바탕색 */
 .perf-modal-foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
 @media (max-width:640px){
   .perf-modal{padding:0; align-items:flex-end;}
