@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=97">
+<link rel="stylesheet" href="style.css?v=98">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -6116,8 +6116,50 @@ function perfModalOpen_(title, sub, html){
   document.body.classList.add('perf-modal-open');
   m.querySelector('.perf-modal-x').focus();
 }
+/* v98 — 글 첫 줄에서 «어떤 주제의 글인지» 읽어 온다(저장된 주제 칸은 없다). 못 읽으면 첫 줄 앞부분을 그대로 보여 준다. */
+function perfTopic_(text){
+  const first = String(text || '').trim().split('\n')[0].trim();
+  let m;
+  if((m = first.match(/^\[이자겸의 사대 수용에 대한 나의 입장:\s*(찬성|반대)\]/))) return '이자겸의 사대 수용 입장 (' + m[1] + ')';
+  if((m = first.match(/^최씨정권의 강화도 천도, 나는 \((.+?)\)/))) return '최씨 정권의 강화도 천도 (' + m[1] + ')';
+  if((m = first.match(/^1\.\s*\[(.+?)\]/))) return '조선 제도 비유 글 (' + m[1] + ')';
+  if((m = first.match(/^\[(.+?)\]/))) return m[1];
+  if(/^Q\./.test(first)) return '활동 뒤 질문 답변 — ' + first.replace(/^Q\.\s*/, '').slice(0, 26) + '…';
+  if(/^나는 신하 \d의 입장/.test(first)) return '왕권 vs 신권 입장 글 (' + first.slice(0, 12) + '…)';
+  return first ? '주제 표시 없음 — ' + first.slice(0, 20) + '…' : '(내용 없음)';
+}
+let PERF_UI_KEEP = null;
+/* v98 — 글 하나의 점수 조정(교사). POST adjustPerfPostScore → 반영 글·총점 재계산은 백엔드가 한다. */
+async function dashAdjustPerfPost_(order, score){
+  const d = PERF_EVID_LAST;
+  if(!d) return;
+  if(PREVIEW_MODE){ showToast('미리보기에서는 점수를 바꿀 수 없어요.'); return; }
+  const r = d.rows.find(x => x.order === order);
+  if(!r || Number(r.score) === score) return;
+  const reason = prompt(d.name + ' ' + order + '번째 글: ' + r.score + '점 → ' + score + '점으로 조정할게요.\n사유를 적어 주세요 (이력에 남아요, 비워도 돼요)', '');
+  if(reason === null) return;
+  const body = $('perfModalBody');
+  PERF_UI_KEEP = { sid: d.sid, scroll: body.scrollTop, open: {} };
+  body.querySelectorAll('.perf-grp').forEach(g => { PERF_UI_KEEP.open[g.dataset.s] = g.open; });
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'adjustPerfPostScore', token:TOKEN, studentId:d.sid, title:d.title, order, score, reason })
+    });
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조정 실패');
+    const stu = PERF_ADMIN_ROWS.find(x => x.studentId === d.sid);
+    if(stu) stu.score = data.total;
+    showToast('✅ ' + order + '번째 글 ' + data.previousPost + '점 → ' + data.score + '점, 총점 ' + data.previousTotal + '점 → ' + data.total + '점');
+    await dashLoadPerfEvidence_(d.sid);
+    if(typeof dashRenderPerfStudents_ === 'function') dashRenderPerfStudents_();
+  }catch(e){
+    showToast('❌ ' + e.message + ' (백엔드 재배포 전이면 안 돼요)');
+  }
+}
 async function dashLoadPerfEvidence_(sid){
   const stu = PERF_ADMIN_ROWS.find(x => x.studentId === sid);
+  if(!(PERF_UI_KEEP && PERF_UI_KEEP.sid === sid)) PERF_UI_KEEP = null; // 조정 뒤 다시 불러올 때만 펼침·스크롤 유지
   perfModalOpen_(sid + ' ' + (stu ? stu.name : ''), '수행평가 점수 근거', '<p class="dash-hint">불러오는 중…</p>');
   try{
     const res = await fetch(CONFIG.WEBAPP_URL + '?mode=perfEvidenceAdmin&token=' + encodeURIComponent(TOKEN) + '&studentId=' + encodeURIComponent(sid));
@@ -6150,20 +6192,28 @@ function perfModalRender_(sid, stu, rows){
     const usedN = cnt(used, s);
     const items = list.map(r => {
       const cut = r.preview && (r.preview.length === 300 || r.preview.length === 3000);
+      const excluded = String(r.used).indexOf('제외') === 0;
+      /* v98 — 글 점수 조정(0~3, 3점 글도 가능). 눌러 바꾸면 반영 글·총점이 다시 계산된다. */
+      const adj = excluded ? '' : '<div class="perf-adj"><span class="perf-adj-lbl">점수 조정</span>'
+        + [3, 2, 1, 0].map(v => '<button type="button" class="perf-adj-btn' + (v === Number(r.score) ? ' is-now' : '') + '"'
+          + (v === Number(r.score) ? ' disabled aria-pressed="true"' : '') + ' onclick="dashAdjustPerfPost_(' + r.order + ',' + v + ')">' + v + '점</button>').join('') + '</div>';
       return '<div class="perf-evid-item' + (r.used === 'O' ? '' : ' perf-evid-off') + '">'
         + '<div class="perf-evid-head"><span class="perf-evid-no">' + r.order + '번째 글</span><span>' + escapeHtml(fmtAt(r.date)) + '</span>'
-        + '<span class="perf-evid-used">' + (r.used === 'O' ? '점수에 반영' : '미반영') + '</span></div>'
+        + '<span class="perf-evid-used">' + (r.used === 'O' ? '점수에 반영' : (excluded ? '점수 제외' : '미반영')) + '</span></div>'
+        + '<p class="perf-evid-topic"><span>주제</span>' + escapeHtml(perfTopic_(r.preview)) + '</p>'
         + '<p class="perf-evid-lbl">왜 ' + s + '점인가 (채점 근거)</p><p class="perf-evid-reason">' + escapeHtml(r.reason || '근거가 없어요') + '</p>'
         + '<p class="perf-evid-lbl">패들렛 원문</p><p class="perf-evid-prev">' + escapeHtml(r.preview || '(원문이 올라와 있지 않아요)') + '</p>'
-        + (cut ? '<p class="perf-evid-cut">※ 원문이 길어 앞부분만 저장돼 있어요. 전체는 패들렛에서 확인해 주세요.</p>' : '') + '</div>';
+        + (cut ? '<p class="perf-evid-cut">※ 원문이 길어 앞부분만 저장돼 있어요. 전체는 패들렛에서 확인해 주세요.</p>' : '') + adj + '</div>';
     }).join('');
-    return '<details class="perf-grp"' + (s < 3 ? ' open' : '') + '><summary>' + s + '점짜리 글 ' + list.length + '개<span class="perf-grp-note">반영 ' + usedN + '개</span></summary>'
+    const keep = PERF_UI_KEEP && PERF_UI_KEEP.sid === sid ? PERF_UI_KEEP.open[s] : undefined; // v98: 조정 뒤 다시 그려도 펼침 상태 유지
+    return '<details class="perf-grp" data-s="' + s + '"' + ((keep === undefined ? s < 3 : keep) ? ' open' : '') + '><summary>' + s + '점짜리 글 ' + list.length + '개<span class="perf-grp-note">반영 ' + usedN + '개</span></summary>'
       + '<div class="perf-grp-body">' + items + '</div></details>';
   }).join('');
-  PERF_EVID_LAST = { sid, name, showScore, max, rows, usedSum, used };
-  perfModalOpen_(sid + ' ' + name, '수행평가 점수 근거 · 패들렛 원문 기준',
+  PERF_EVID_LAST = { sid, name, showScore, max, rows, usedSum, used, title: rows[0].title };
+  perfModalOpen_(sid + ' ' + name, '수행평가 점수 근거 · 패들렛 원문 기준 · 주제는 글 첫 줄에서 읽어 온 거예요',
     sum + grp + '<div class="perf-modal-foot"><button type="button" class="btn-sm" onclick="perfCopyFeedback_()">피드백용 요약 복사</button>'
     + '<button type="button" class="btn-sm btn-ghost" onclick="perfModalClose_()">닫기</button></div>');
+  if(PERF_UI_KEEP && PERF_UI_KEEP.sid === sid){ $('perfModalBody').scrollTop = PERF_UI_KEEP.scroll; PERF_UI_KEEP = null; }
 }
 /* 학생에게 알려 줄 때 붙여 쓸 수 있는 요약 텍스트(클립보드). 원문은 길어서 빼고 점수·근거만 담는다. */
 async function perfCopyFeedback_(){

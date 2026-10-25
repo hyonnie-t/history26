@@ -2030,6 +2030,13 @@ body.perf-modal-open{overflow:hidden;}
 .perf-evid-reason{margin:0; padding:8px 10px; border-left:4px solid var(--indigo); background:#fff; border-radius:0 6px 6px 0; color:var(--ink); white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere;}
 .perf-evid-prev{margin:0; padding:8px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; font-size:.92rem; line-height:1.65; color:var(--ink); white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere;}
 .perf-evid-cut{margin:4px 0 0; font-size:.8rem; color:var(--amber-text);}
+.perf-evid-topic{margin:6px 0 0; font-weight:700; color:var(--indigo); word-break:keep-all; overflow-wrap:anywhere;}
+.perf-evid-topic span{margin-right:8px; padding:1px 8px; border-radius:999px; background:var(--indigo-bg,#E8ECF6); color:var(--indigo); font-size:.75rem; font-weight:700;}
+.perf-adj{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; padding-top:8px; border-top:1px dashed var(--line);}
+.perf-adj-lbl{font-size:.8rem; font-weight:700; color:var(--ink-soft); margin-right:2px;}
+.perf-adj-btn{min-width:56px; min-height:44px; padding:4px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:.95rem; cursor:pointer;}
+.perf-adj-btn:hover:not(:disabled){border-color:var(--indigo); color:var(--indigo);}
+.perf-adj-btn.is-now{background:var(--indigo); border-color:var(--indigo); color:#fff; font-weight:700; cursor:default; opacity:1;}
 .perf-modal-foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
 @media (max-width:640px){
   .perf-modal{padding:0; align-items:flex-end;}
