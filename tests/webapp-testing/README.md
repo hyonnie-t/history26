@@ -153,6 +153,10 @@ python3 tests/webapp-testing/test_curriculum_reorder_mock.py
 kill %1
 ```
 
+Windows PC(효니 학교 PC)에서는 `python3`가 스토어 스텁이라 위 명령이 안 된다. 서버는 `npx.cmd --yes http-server@14.1.1 . -p 8791 -c-1`로 띄우고,
+테스트는 `uv run --python 3.12 --no-project --with playwright python tests/webapp-testing/<테스트>.py`로 돌린다.
+이때 `PWTEST_CHROMIUM_PATH`는 비워 둔다(지정하면 spawn UNKNOWN).
+
 (webapp-testing 스킬을 설치한 뒤에는 서버 기동을 `scripts/with_server.py`로
 대신해도 된다 — 위 수동 방식과 결과는 동일함.)
 

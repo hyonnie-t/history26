@@ -2,6 +2,9 @@
 [v70 갱신] 교사 미리보기는 읽기 전용 샘플이 아니라 99번 "미리보기 학생" 계정으로 진짜 로그인하는
 "기록 테스트 모드"가 됐다 — 이 테스트의 쓰기(POST)는 fixtures.py가 전부 스텁이라 실제 시트에 안 닿는다.
 
+[v83 갱신] 테스트 모드는 이제 교사 토큰이 있어야 시작된다(#previewToken이 비면 «교사 토큰을 입력해 주세요.» 토스트만 뜨고
+멈춘다). 이 테스트는 더미 토큰을 채우고, 서버로는 안 나간다 — fixtures.py가 action=issueTestSession을 가로채 가짜 세션을 돌려준다.
+
 [우선순위 플로우 #1] 교사 "학생 화면 미리보기" — 학생 포털 전체 렌더 스모크 테스트.
 
 이 저장소는 GAS 백엔드가 별도 레포에 있고, 게임활동_로그 시트를 여러 개별
@@ -36,6 +39,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_pla
 
 BASE_URL = "http://localhost:8791"
 BACKEND_GLOB = "https://script.google.com/macros/s/*/exec*"
+PREVIEW_DUMMY_TOKEN = "dummy-teacher-token"  # 진짜 교사 토큰이 아니다 — fixtures.py 스텁이 받아서 끝난다
 
 
 def check(label, cond):
@@ -55,6 +59,7 @@ def run_preview(page, grade_value):
 
     page.select_option("#previewGrade", grade_value)
     page.fill("#previewBan", "1")
+    page.fill("#previewToken", PREVIEW_DUMMY_TOKEN)  # v83 — 비면 startPreview가 토스트만 띄우고 끝난다
     page.click("#btnPreviewStart")
     # v70 이후 테스트 모드는 진짜 로그인(mode=student → announcements)을 거친다 — 고정 500ms로는
     # 그 왕복이 끝나기 전에 검사해서 늘 FAIL이 났다. 포털이 뜰 때까지 기다리고, 안 뜨면 아래 check가 FAIL을 찍는다.
@@ -80,6 +85,12 @@ def main():
                 if not check(f"{label_prefix} previewBanner(미리보기 안내) 표시", page.is_visible("#previewBanner")):
                     failures += 1
                 if not check(f"{label_prefix} loginView 숨김", page.is_hidden("#loginView")):
+                    failures += 1
+
+                # v83 — issueTestSession 응답의 session이 H26Auth(localStorage h26_auth)에 저장돼야 한다
+                auth = page.evaluate("JSON.parse(localStorage.getItem('h26_auth') || 'null')")
+                if not check(f"{label_prefix} 테스트 계정 세션 저장됨 (h26_auth sid={auth and auth.get('sid')!r})",
+                             bool(auth) and auth.get("sid") == f"{grade}0199"):
                     failures += 1
 
                 title = page.inner_text("#portalTitle")
