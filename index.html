@@ -893,7 +893,7 @@
     <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). 2026-10-25 효니: 맨 위. -->
     <section class="dash-card">
       <h2 class="dash-card-title">수행평가 점수 확인 현황</h2>
-      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 이상 있음 학생은 이름을 누르면 글별 근거를 볼 수 있어요.</p>
+      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 이상 있음 학생은 이름을 누르면 글별 근거를 볼 수 있어요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p>
       <div class="filters">
         <button type="button" onclick="dashLoadPerfStatus_()">새로고침</button>
       </div>
@@ -928,7 +928,6 @@
       </div>
     </details>
   </div>
-    <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
   </div>
 
   <!-- v83 — 학생 로그인 비밀번호 관리. 비밀번호는 시트에 해시로만 있어 교사도 볼 수 없고, 잊으면 초기화만 한다. -->
@@ -6058,6 +6057,7 @@ async function dashLoadPerfStatus_(){
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     const rows = data.rows || [];
+    PERF_ADMIN_ROWS = rows;
     if(!rows.length){ box.textContent = '올라온 수행평가 점수가 없어요.'; return; }
     const byBan = {};
     rows.forEach(r => { (byBan[r.studentId.slice(0, 3)] = byBan[r.studentId.slice(0, 3)] || []).push(r); });
@@ -6076,7 +6076,12 @@ async function dashLoadPerfStatus_(){
       + (asks.length ? '<div class="perf-asklist">' + asks.map(r => '<button type="button" class="perf-askbtn" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
           + escapeHtml(r.studentId + ' ' + r.name + ' ' + r.score + '점') + ' · 근거 보기</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
       + '<div id="perfEvidenceBox"></div>'
+      + '<p class="dash-section-title">학생별 점수·조정</p>'
+      + '<div class="filters"><select id="perfBanSel" onchange="dashRenderPerfStudents_()">'
+      + Object.keys(byBan).sort().map(k => '<option value="' + k + '">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</option>').join('')
+      + '</select></div><div id="perfStudentBox"></div>'
       + (changed.length ? '<p class="dash-hint">⚠ 응답 뒤에 점수가 바뀐 학생: ' + changed.map(r => escapeHtml(r.studentId + ' ' + r.name)).join(', ') + '</p>' : '');
+    dashRenderPerfStudents_();
   }catch(e){
     box.textContent = '❌ 현황을 불러오지 못했어: ' + e.message;
   }
@@ -6097,6 +6102,44 @@ async function dashLoadPerfEvidence_(sid){
       + '<div style="overflow-x:auto"><table class="grade-table"><tr><th>글</th><th>작성일</th><th>점수</th><th>반영</th><th>근거</th><th>글 앞부분</th></tr>' + trs + '</table></div>';
   }catch(e){
     box.innerHTML = '<p class="dash-hint">❌ 근거를 불러오지 못했어: ' + escapeHtml(e.message) + ' (백엔드 재배포 전이면 안 열려요)</p>';
+  }
+}
+/* v96g — 학생별 점수 표와 수동 조정(교사 전용). 조정은 POST adjustPerfScore, 이력은 백엔드 시트 `수행평가조정`. */
+let PERF_ADMIN_ROWS = [];
+function dashRenderPerfStudents_(){
+  const sel = $('perfBanSel'), box = $('perfStudentBox');
+  if(!sel || !box) return;
+  const list = PERF_ADMIN_ROWS.filter(r => r.studentId.slice(0, 3) === sel.value)
+    .sort((a, b) => a.studentId.localeCompare(b.studentId));
+  box.innerHTML = '<div style="overflow-x:auto"><table class="grade-table"><tr><th>학번</th><th>이름</th><th>점수</th><th>응답</th><th></th></tr>'
+    + list.map(r => '<tr><td>' + escapeHtml(r.studentId) + '</td><td>' + escapeHtml(r.name) + '</td><td><b>' + r.score + '</b> / ' + r.max + '</td><td>'
+      + escapeHtml(r.response || '—') + '</td><td style="white-space:nowrap">'
+      + '<button type="button" class="perf-askbtn" onclick="dashAdjustPerfScore_(\'' + escapeHtml(r.studentId) + '\')">점수 조정</button> '
+      + '<button type="button" class="perf-askbtn" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">근거 보기</button></td></tr>').join('')
+    + '</table></div>';
+}
+async function dashAdjustPerfScore_(sid){
+  const r = PERF_ADMIN_ROWS.find(x => x.studentId === sid);
+  if(!r) return;
+  const v = prompt(r.studentId + ' ' + r.name + ' — 현재 ' + r.score + '점 / ' + r.max + '점\n새 점수를 입력하세요 (0~' + r.max + ', 소수 가능)', String(r.score));
+  if(v === null) return;
+  const score = Number(String(v).trim());
+  if(!isFinite(score) || String(v).trim() === '' || score < 0 || score > r.max){ showToast('❌ 점수는 0~' + r.max + ' 사이 숫자로 입력해 주세요.'); return; }
+  if(score === r.score){ showToast('점수가 그대로예요.'); return; }
+  const reason = prompt('조정 사유를 적어 주세요 (이력에 남아요, 비워도 돼요)', '');
+  if(reason === null) return;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'adjustPerfScore', token:TOKEN, studentId:sid, title:r.title, score, reason })
+    });
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '조정 실패');
+    r.score = score;
+    showToast('✅ ' + r.name + ' ' + data.previous + '점 → ' + score + '점으로 조정했어요.');
+    dashRenderPerfStudents_();
+  }catch(e){
+    showToast('❌ ' + e.message + ' (백엔드 재배포 전이면 안 돼요)');
   }
 }
 async function dashSetGradeDisplayStatus(btn, status){
