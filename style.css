@@ -1974,3 +1974,21 @@ html{scrollbar-gutter:stable;}
 .pp-types-wrap{margin-bottom:8px;}
 .pp-types-sum{cursor:pointer; font-size:.9rem; color:var(--ink-soft); padding:6px 0;}
 .pp-types-wrap .pp-types{margin-top:6px;}
+
+/* v96 — 수행평가 점수 확인 카드 */
+.perf-body{margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);}
+.perf-item{padding:12px 0;}
+.perf-item + .perf-item{border-top:1px solid var(--line);}
+.perf-title{font-weight:700; color:var(--ink); margin:0 0 4px;}
+.perf-score{font-size:1.1rem; color:var(--ink-soft); margin:0 0 4px;}
+.perf-score b{font-size:2rem; color:var(--indigo);}
+.perf-sub, .perf-note, .perf-msg{font-size:.9rem; color:var(--ink-soft); margin:2px 0;}
+.perf-note{color:var(--ink);}
+.perf-actions{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
+.perf-actions button{width:100%; min-height:44px; text-align:center;}
+.perf-answer{font-weight:700; margin:0;}
+.perf-ok{color:#1a7f4b;}
+.perf-ask{color:#a35a00;}
+
+.perf-asklist{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0;}
+.perf-askbtn{min-height:36px; padding:4px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer;}
