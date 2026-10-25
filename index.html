@@ -6096,10 +6096,13 @@ async function dashLoadPerfEvidence_(sid){
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     const rows = (data.rows || []).sort((a, b) => a.order - b.order);
     if(!rows.length){ box.innerHTML = '<p class="dash-hint">' + escapeHtml(sid) + ' — 올라온 근거가 없어요.</p>'; return; }
-    const trs = rows.map(r => '<tr' + (r.used === 'O' ? '' : ' style="opacity:.55"') + '><td>' + r.order + '</td><td>' + escapeHtml(r.date) + '</td><td><b>' + r.score + '</b></td><td>'
-      + escapeHtml(r.used) + '</td><td>' + escapeHtml(r.reason) + '</td><td>' + escapeHtml(r.preview) + '</td></tr>').join('');
-    box.innerHTML = '<p class="dash-section-title">' + escapeHtml(sid + ' ' + rows[0].name) + ' — 글별 근거</p>'
-      + '<div style="overflow-x:auto"><table class="grade-table"><tr><th>글</th><th>작성일</th><th>점수</th><th>반영</th><th>근거</th><th>글 앞부분</th></tr>' + trs + '</table></div>';
+    const fmtAt = v => { const d = new Date(v); return isNaN(d) ? String(v) : (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    const items = rows.map(r => '<div class="perf-evid-item' + (r.used === 'O' ? '' : ' perf-evid-off') + '">'
+      + '<div class="perf-evid-head"><span class="perf-evid-no">' + r.order + '번째 글</span><span>' + escapeHtml(fmtAt(r.date)) + '</span>'
+      + '<b class="perf-evid-score">' + r.score + '점</b><span class="perf-evid-used">' + (r.used === 'O' ? '반영' : '미반영') + '</span></div>'
+      + '<p class="perf-evid-reason">' + escapeHtml(r.reason) + '</p>'
+      + '<p class="perf-evid-prev">' + escapeHtml(r.preview) + '</p></div>').join('');
+    box.innerHTML = '<p class="dash-section-title">' + escapeHtml(sid + ' ' + rows[0].name) + ' — 글별 근거</p>' + items;
   }catch(e){
     box.innerHTML = '<p class="dash-hint">❌ 근거를 불러오지 못했어: ' + escapeHtml(e.message) + ' (백엔드 재배포 전이면 안 열려요)</p>';
   }

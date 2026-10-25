@@ -1991,5 +1991,13 @@ html{scrollbar-gutter:stable;}
 .perf-ok{color:#1a7f4b;}
 .perf-ask{color:#a35a00;}
 
+.perf-evid-item{padding:10px 12px; margin:8px 0; border:1px solid var(--line); border-radius:8px; background:#fff;}
+.perf-evid-off{opacity:.6;}
+.perf-evid-head{display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; font-size:.9rem; color:var(--ink-soft);}
+.perf-evid-no{font-weight:700; color:var(--ink);}
+.perf-evid-score{color:var(--indigo); font-size:1rem;}
+.perf-evid-reason{margin:6px 0 2px; color:var(--ink);}
+.perf-evid-prev{margin:2px 0 0; font-size:.85rem; color:var(--ink-soft); word-break:keep-all; overflow-wrap:anywhere;}
+
 .perf-asklist{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0;}
 .perf-askbtn{min-height:36px; padding:4px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer;}
