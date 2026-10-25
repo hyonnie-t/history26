@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop hook — index.html/config.js/checkin_data.js에 커밋 안 된 변경이 있으면
+# Stop hook — index.html/js/*.js/config.js/checkin_data.js에 커밋 안 된 변경이 있으면
 # tests/webapp-testing/의 Playwright 테스트 5개를 자동으로 돌리고 결과를 보여준다.
 # 파일을 고칠 때마다(Edit 호출마다)가 아니라 턴이 끝날 때 한 번만 실행해서
 # 브라우저를 반복해서 켜는 비용을 줄인다. 변경된 파일이 없으면 조용히 종료한다.
@@ -8,7 +8,7 @@ set -uo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$REPO_ROOT" || exit 0
 
-CHANGED=$(git status --porcelain -- index.html config.js checkin_data.js 2>/dev/null)
+CHANGED=$(git status --porcelain -- index.html js/*.js config.js checkin_data.js 2>/dev/null)
 [ -z "$CHANGED" ] && exit 0
 
 if ! python3 -c "import playwright" 2>/dev/null; then
@@ -50,7 +50,7 @@ for f in tests/webapp-testing/test_login_validation.py \
 done
 
 if [ $OVERALL -eq 0 ]; then
-  HEADER="webapp-testing 자동 검증 통과 (index.html/config.js/checkin_data.js 변경 감지)"
+  HEADER="webapp-testing 자동 검증 통과 (index.html/js/*.js/config.js/checkin_data.js 변경 감지)"
 else
   HEADER="webapp-testing 자동 검증 실패 — 커밋 전에 확인 필요"
 fi

@@ -1,5 +1,7 @@
 # webapp-testing 도입 — 1차 결과 (2026-09-15)
 
+> 2026-10-25(v104)부터 포털 JS는 `index.html` 인라인이 아니라 `js/01~07-*.js`에 있다. 아래 본문의 `index.html:줄번호`·"`<script src>`는 둘뿐" 같은 서술은 당시 기록이다(지금은 함수 이름으로 `grep -n 이름 js/*.js`).
+
 핸드오프 "history26 포털 webapp-testing 스킬 도입 (v1)" 대응. 아래는 전부
 실제로 레포를 클론해 index.html을 로컬 서버로 띄우고 Playwright로 실행해
 확인한 결과다 — "확인했다"가 아니라 실행 로그로 남긴다.
