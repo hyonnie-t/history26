@@ -1,6 +1,7 @@
 ---
 paths:
   - "index.html"
+  - "js/*.js"
   - "config.js"
   - "checkin_data.js"
   - "tree.js"

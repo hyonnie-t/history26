@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop hook — index.html/config.js/checkin_data.js에 커밋 안 된 변경이 있으면
+# Stop hook — index.html/js/*.js/config.js/checkin_data.js에 커밋 안 된 변경이 있으면
 # .claude/rules/student-screen.md "검증 메타데이터 분리 원칙"의 완료 기준
 # ("검수", "대조", "미확인", "2차", "확인 전" 문자열이 학생 화면 렌더링
 # 문자열에 0건이어야 한다")을 점검한다.
@@ -19,7 +19,7 @@ set -uo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$REPO_ROOT" || exit 0
 
-FILES="index.html config.js checkin_data.js"
+FILES="index.html js/*.js config.js checkin_data.js"
 
 CHANGED=$(git status --porcelain -- $FILES 2>/dev/null)
 [ -z "$CHANGED" ] && exit 0

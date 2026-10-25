@@ -2,7 +2,7 @@
 
 중학교 역사 수업용 학생 포털(교사 "효니": 2학년 세계사·3학년 한국사). 학생은 5자리 학번(학년1+반2+번호2)+이름+비밀번호(v83)로
 로그인해 차시 활동·체크인·질문함을 쓰고, 교사는 대시보드에서 기록·AI 코멘트·공지·커리큘럼·체크인 문항을 관리한다.
-**빌드·패키지 매니저·린터·테스트 러너 없는 정적 파일**(`index.html` 단일 SPA + `config.js`/`checkin_data.js`/`style.css`/`tree.js`).
+**빌드·패키지 매니저·린터·테스트 러너 없는 정적 파일**(`index.html` 단일 SPA, 로직은 `js/01~07-*.js` 7개 + `config.js`/`checkin_data.js`/`style.css`/`tree.js`).
 **백엔드는 이 레포에 없다** — `config.js`의 `WEBAPP_URL`(Apps Script, 데이터는 Google Sheets)이며 소스는
 `hyonnie-t/history26_backend`(`?mode=` GET 조회 / `{action}` POST 변경, 교사 쓰기는 `token`). 배지 판정·AI 코멘트 생성도 거기다.
 개별 수업 웹앱(`crusades` 등)·SEL 팝업(`SEL_APP_URL`)·`re_judge`도 각자 다른 레포/프로젝트다.
@@ -32,7 +32,9 @@ UI 텍스트·주석·커밋 메시지는 한국어.
     FormData·URLSearchParams 본문이나 `studentId` 없는 GET은 세션이 안 붙어 로그인 필수(LOGIN_REQUIRED)를 켜면 막힌다. 상세 `docs/features.md` "학생 로그인 비밀번호".
 
 ## 작업 습관
-- **`index.html`(5천 줄+, 300KB)은 통째로 Read 금지** — `grep -n "^function 이름\|/\* ══" index.html`로 위치를 찾고 범위만 Read.
+- **포털 JS는 `js/` 7개 파일**(v104에서 `index.html` 인라인 `<script>`를 그대로 꺼냄, 합쳐 6천 줄·390KB). 가장 큰 `js/06-dashboard.js`(2.7천 줄)는 통째로 Read 금지 —
+  `grep -n "^function 이름\|/\* ──" js/*.js`로 파일·위치를 찾고 범위만 Read. 파일 순서 = 실행 순서(`index.html` 맨 아래 `<script src>` 순). 파일별 내용 표는 `.claude/rules/index-html.md`.
+  `js/*.js`를 고치면 `index.html`의 그 `<script src="...?v=NN">` 번호를 올린다(`style.css?v=`와 같은 캐시 키).
   문서에 줄번호를 적지 말고 함수·id 이름만 쓴다(편집마다 밀림).
 - 코드 주석 관례: 바꾼 곳에 `vNN` + 왜 바꿨는지 짧게. 새 번호는 `CHANGELOG.md`에서 안 쓰인 번호인지 먼저 확인(재번호 사고 이력, Stop 훅도 경고).
   과거 경위는 `CHANGELOG.md`.
@@ -63,7 +65,7 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 
 | 작업 | 먼저 읽기 |
 |---|---|
-| `index.html` 수정(포털·대시보드·차시/활동·포인트·칭호·세션) | `.claude/rules/index-html.md` |
+| `index.html`·`js/*.js` 수정(포털·대시보드·차시/활동·포인트·칭호·세션) | `.claude/rules/index-html.md` (파일별 내용 표) |
 | `style.css` 수정, 새 버튼·카드 | `.claude/rules/style-css.md` |
 | `config.js`/`checkin_data.js`(RANKS·BAN_SIZE·포인트·체크인) | `.claude/rules/config-data.md` |
 | 학생 화면 문구·사료·해석 콘텐츠 | `.claude/rules/student-screen.md` |
