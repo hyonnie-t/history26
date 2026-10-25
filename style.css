@@ -2109,3 +2109,8 @@ body.perf-modal-open{overflow:hidden;}
 .ai-notice > summary::-webkit-details-marker{display:none;}
 .ai-notice > summary::after{content:'설명 ▾'; margin-left:auto; font-size:.78rem; font-weight:500; color:var(--ink-soft);}
 .ai-notice[open] > summary::after{content:'접기 ▴';}
+
+/* v106 — 학생 계정 탭을 탐구포인트·성적관리와 같은 .dash-card 묶음으로. 카드 안의 표는 한 겹만, 상태줄은 본문 크기로(이 탭에만 — 다른 탭 화면은 그대로). */
+#dashView #panelAccounts .dash-card .table-wrap{box-shadow:none; margin:0;}
+#dashView #panelAccounts .dash-card > .dash-hint{font-size:.92rem; line-height:1.6; margin:0 0 12px;}
+#dashView #panelAccounts .dash-card > .dash-hint:last-child{margin-bottom:0;}
