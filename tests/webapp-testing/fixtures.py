@@ -17,6 +17,8 @@ gameName으로만 구분해서 같이 쓴다 — 즉 쓰기 action을 실제로 
 mock해 어떤 환경에서도 같은 결과가 나오게 만들었다.
 """
 
+import json
+
 CURRICULUM_FIXTURE = {
     "result": "success",
     "grades": {
@@ -97,12 +99,21 @@ def route_history26_backend(route, request):
         route.fulfill(status=200, content_type="application/json", body=_json({"result": "error", "message": "no fixture for this GET"}))
         return
     if request.method == "POST":
-        route.fulfill(status=200, content_type="application/json", body=_json({"result": "success"}))
+        # v83 — 교사 테스트 모드(startPreview)는 POST action=issueTestSession 응답의 session을 H26Auth.set()에 넣는다.
+        # session 필드가 없으면 H26Auth.set이 조용히 예외를 삼켜 세션 없이 진행되므로, 실제 응답 모양({token,exp,sid,name})을 흉내 낸다.
+        body = _json({"result": "success"})
+        try:
+            req = json.loads(request.post_data or "{}")
+        except ValueError:
+            req = {}
+        if req.get("action") == "issueTestSession":
+            body = _json({"result": "success", "session": {
+                "token": "fixture-session-token", "exp": 4102444800000,
+                "sid": req.get("studentId", ""), "name": req.get("name", "")}})
+        route.fulfill(status=200, content_type="application/json", body=body)
         return
     route.continue_()
 
 
 def _json(obj):
-    import json
-
     return json.dumps(obj)
