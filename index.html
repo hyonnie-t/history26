@@ -153,6 +153,21 @@
 
     <!-- 우측 메인 -->
     <main>
+      <!-- v96 — 수행평가 점수 확인(2026-10-25 효니: 학생이 바로 보도록 화면 맨 위). 점수를 본 뒤 "이상 없음 / 이상 있음"을 눌러 선생님께 알린다(개별 안내는 따로 안 함). -->
+      <section class="ref-card grade-card" id="perfCard" aria-label="수행평가 점수 확인">
+        <div class="ref-card-row">
+          <span class="ref-ico ref-ico-seal" aria-hidden="true">📝</span>
+          <div class="ref-text">
+            <p class="pf-label">수행평가 점수 확인하기</p>
+            <p class="pf-desc">점수를 보고 이상 없는지 눌러 주세요.</p>
+          </div>
+          <div id="perfIntro">
+            <button class="btn-go" id="perfOpenBtn" onclick="openPerfScore()">점수 보기 →</button>
+          </div>
+        </div>
+        <div id="perfBody" class="perf-body" style="display:none;"></div>
+      </section>
+
       <section class="announce-card" id="announceCard" aria-label="공지사항">
         <h2>📢 공지사항</h2>
         <div id="announceList"></div>
@@ -291,7 +306,7 @@
            포트폴리오·클래스카드와 다르게 "학기 내내 접근 가능한 링크"가 아니라
            v83: 포털 로그인에 비밀번호가 생겨 성적용 비밀번호를 따로 받지 않는다(효니 확정) — 로그인 세션이
            곧 인증이라 버튼을 누르면 바로 조회한다. 카드 안 상태 전환(안내 → 결과/오류)은 그대로. -->
-      <section class="ref-card grade-card" id="gradeCard" aria-label="성적조회">
+      <section class="ref-card grade-card" id="gradeCard" aria-label="성적조회" hidden style="display:none;"> <!-- 2026-10-25 효니: 지금은 안 쓰는 기간이라 학생 화면에서 숨김(필요하면 hidden·display:none만 지우면 됨) -->
         <div class="ref-card-row">
           <span class="ref-ico ref-ico-seal" aria-hidden="true">🧮</span>
           <div class="ref-text">
@@ -315,20 +330,6 @@
         </div>
       </section>
 
-      <!-- v96 — 수행평가 점수 확인. 점수를 본 뒤 "이상 없음 / 이상 있음"을 눌러 선생님께 알린다(개별 안내는 따로 안 함). -->
-      <section class="ref-card grade-card" id="perfCard" aria-label="수행평가 점수 확인">
-        <div class="ref-card-row">
-          <span class="ref-ico ref-ico-seal" aria-hidden="true">📝</span>
-          <div class="ref-text">
-            <p class="pf-label">수행평가 점수 확인하기</p>
-            <p class="pf-desc">점수를 보고 이상 없는지 눌러 주세요.</p>
-          </div>
-          <div id="perfIntro">
-            <button class="btn-go" id="perfOpenBtn" onclick="openPerfScore()">점수 보기 →</button>
-          </div>
-        </div>
-        <div id="perfBody" class="perf-body" style="display:none;"></div>
-      </section>
 
       <!-- v42 — "학기 총평" 전용 카드(구 #feedbackCard)는 제거. fbGeneral(차시에
            안 속한 피드백)도 fbAll에 포함돼 아래 모아보기에 "학기 총평" 라벨로
@@ -889,34 +890,44 @@
        계정(학번·이름·비밀번호) 관리는 여기 UI를 따로 안 만들고 효니가 "계정" 시트를 직접
        열어 편집하기로 확정됨 — 이 탭은 성적 데이터 자체(엑셀 업로드)와 열람 기간만 다룬다. -->
   <div class="dash-panel" id="panelGrades" style="display:none;">
-    <p class="dash-hint">
-      성적 엑셀(.xlsx)을 올리면 자동으로 스프레드시트로 변환돼 조회용 시트로 지정돼요. 새로 올리면 이전 시트는 더 이상 조회되지 않아요.
-    </p>
-    <p class="dash-hint">
-      ⚠️ 학생이 성적조회에서 쓰는 매칭키는 history26 학번(5자리)이에요 — 엑셀의 학번 열도 5자리 형식이어야 조회돼요.
-    </p>
-    <div class="filters">
-      <input type="file" id="gradeExcelFile" accept=".xlsx,.xls">
-      <button type="button" id="gradeUploadBtn" onclick="dashUploadGradeExcel(this)">업로드</button>
-    </div>
-    <div id="gradeUploadStatus" class="dash-hint" style="min-height:18px;"></div>
+    <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). 2026-10-25 효니: 맨 위. -->
+    <section class="dash-card">
+      <h2 class="dash-card-title">수행평가 점수 확인 현황</h2>
+      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 이상 있음 학생은 이름을 누르면 글별 근거를 볼 수 있어요.</p>
+      <div class="filters">
+        <button type="button" onclick="dashLoadPerfStatus_()">새로고침</button>
+      </div>
+      <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
+    </section>
 
-    <p class="dash-section-title">열람 상태</p>
-    <div id="gradeStatusBox" class="dash-hint">불러오는 중…</div>
-    <div class="filters">
-      <button type="button" id="gradeStatusOnBtn" onclick="dashSetGradeDisplayStatus(this,'ON')">열람 열기</button>
-      <button type="button" id="gradeStatusOffBtn" onclick="dashSetGradeDisplayStatus(this,'OFF')">열람 닫기</button>
-    </div>
+    <details class="cl-collapse" id="gradeLegacyBox">
+      <summary>나의 성적 확인하기(엑셀 성적조회) 관리 <span class="cl-sum-note">지금은 학생 화면에서 숨김</span> <span class="cl-arrow">▶</span></summary>
+      <div class="cl-collapse-body">
+      <p class="dash-hint">
+        성적 엑셀(.xlsx)을 올리면 자동으로 스프레드시트로 변환돼 조회용 시트로 지정돼요. 새로 올리면 이전 시트는 더 이상 조회되지 않아요.
+      </p>
+      <p class="dash-hint">
+        ⚠️ 학생이 성적조회에서 쓰는 매칭키는 history26 학번(5자리)이에요 — 엑셀의 학번 열도 5자리 형식이어야 조회돼요.
+      </p>
+      <div class="filters">
+        <input type="file" id="gradeExcelFile" accept=".xlsx,.xls">
+        <button type="button" id="gradeUploadBtn" onclick="dashUploadGradeExcel(this)">업로드</button>
+      </div>
+      <div id="gradeUploadStatus" class="dash-hint" style="min-height:18px;"></div>
 
-    <p class="dash-hint" style="margin-top:22px;">
-      v83부터 성적조회는 포털 로그인(🔐 학생 계정 탭)으로 확인해요. 옛 "계정" 시트 비밀번호는 로그인 세션이 없을 때만 쓰여요.
-    </p>
+      <p class="dash-section-title">열람 상태</p>
+      <div id="gradeStatusBox" class="dash-hint">불러오는 중…</div>
+      <div class="filters">
+        <button type="button" id="gradeStatusOnBtn" onclick="dashSetGradeDisplayStatus(this,'ON')">열람 열기</button>
+        <button type="button" id="gradeStatusOffBtn" onclick="dashSetGradeDisplayStatus(this,'OFF')">열람 닫기</button>
+      </div>
 
-    <!-- v96 — 수행평가 점수 확인 응답 현황(점수는 백엔드 uploadPerfScores로 올림) -->
-    <p class="dash-section-title">수행평가 점수 확인 현황</p>
-    <div class="filters">
-      <button type="button" onclick="dashLoadPerfStatus_()">새로고침</button>
-    </div>
+      <p class="dash-hint" style="margin-top:22px;">
+        v83부터 성적조회는 포털 로그인(🔐 학생 계정 탭)으로 확인해요. 옛 "계정" 시트 비밀번호는 로그인 세션이 없을 때만 쓰여요.
+      </p>
+      </div>
+    </details>
+  </div>
     <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
   </div>
 
