@@ -1984,6 +1984,7 @@ html{scrollbar-gutter:stable;}
 .perf-score b{font-size:2rem; color:var(--indigo);}
 .perf-sub, .perf-note, .perf-msg{font-size:.9rem; color:var(--ink-soft); margin:2px 0;}
 .perf-note{color:var(--ink);}
+.perf-final-note{font-size:.9rem; color:#a35a00; background:#fff6e3; border:1px solid #f0d9a8; border-radius:8px; padding:8px 10px; margin:10px 0 0;}
 .perf-actions{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
 .perf-actions button{width:100%; min-height:44px; text-align:center;}
 .perf-answer{font-weight:700; margin:0;}

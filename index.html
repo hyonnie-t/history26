@@ -154,12 +154,12 @@
     <!-- 우측 메인 -->
     <main>
       <!-- v96 — 수행평가 점수 확인(2026-10-25 효니: 학생이 바로 보도록 화면 맨 위). 점수를 본 뒤 "이상 없음 / 이상 있음"을 눌러 선생님께 알린다(개별 안내는 따로 안 함). -->
-      <section class="ref-card grade-card" id="perfCard" aria-label="수행평가 점수 확인" hidden style="display:none;"> <!-- 2026-10-25 효니: 점수 수동 조정 중이라 학생 화면에서 일단 비공개(다시 열 때 hidden·display:none만 지우면 됨) -->
+      <section class="ref-card grade-card" id="perfCard" aria-label="수행평가 점수 확인"> <!-- v96f 2026-10-25 효니: 점수 재확인이 끝나 다시 공개. 비공개로 돌릴 땐 이 section에 hidden style="display:none;"을 붙인다 -->
         <div class="ref-card-row">
           <span class="ref-ico ref-ico-seal" aria-hidden="true">📝</span>
           <div class="ref-text">
             <p class="pf-label">수행평가 점수 확인하기</p>
-            <p class="pf-desc">점수를 보고 이상 없는지 눌러 주세요.</p>
+            <p class="pf-desc">지금까지 쓴 글로 매긴 점수예요. 최종 점수는 학기말에 나와요.</p>
           </div>
           <div id="perfIntro">
             <button class="btn-go" id="perfOpenBtn" onclick="openPerfScore()">점수 보기 →</button>
@@ -2670,6 +2670,7 @@ function renderPerfScore_(){
       + '<p class="perf-sub">작성한 글 ' + it.written + '개 중 점수가 높은 ' + it.used + '개를 반영했어요'
       + (counts ? ' (' + counts + ')' : '') + '</p>'
       + short
+      + '<p class="perf-final-note">⚠ 이 점수는 <b>최종 점수가 아니에요.</b> 학기말에 나오는 점수가 최종 점수이고, 그때 점수가 달라질 수 있어요.</p>'
       + '<div class="perf-actions" id="perfActions' + i + '">' + answer + '</div>'
       + '</div>';
   }).join('') + '<button class="btn-logout" style="margin-top:10px;" onclick="closePerfScore_()">닫기</button>';
