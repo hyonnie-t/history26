@@ -144,6 +144,7 @@ source_emotion=텍스트)을 정한다.
 - **교사 쪽**: 대시보드 "학생 화면 보기"(`previewAsStudent`)·미리보기 재조회는 `&token=`으로 통과. 로그인 화면 "🧪 학생 화면 테스트"는 이제 교사 토큰을 받아
   `issueTestSession`으로 99번 테스트 세션을 받는다(예전엔 아무나 99번으로 들어갈 수 있었다).
 - 백엔드 재배포 전엔 `action=login`이 없어 로그인이 실패한다 — **포털 배포는 백엔드 "새 버전" 배포 뒤에** 한다.
+- **교사 탭 화면(v106)**: `#panelAccounts`는 다른 탭처럼 `#dashView` 안의 `.dash-panel`이고, 본문은 `.dash-card`(제목 `.dash-card-title`·설명 `.dash-card-desc`) 4장(«초기화 요청»·«공통 초기 비밀번호»·«로그인 필수»·«전체 초기화») + 학생 계정 `cl-collapse` 표다. 카드 안 입력·버튼 줄은 `.filters` 말고 `.dash-inline`(`.filters`는 그 자체가 카드). 2026-10-25까지는 `#panelGrades` 뒤의 남는 `</div>`가 `#dashView`를 먼저 닫아 이 탭만 `body` 직속이었고 그래서 통일 레이어가 안 먹었다 — 패널을 새로 넣을 땐 `el.closest('#dashView')`로 한 번 확인한다.
 
 ## 성적조회
 별도 GAS 스크립트로 있던 "엑셀 성적표 → 학생 개인 조회"를 포털에 통합했다. v83부터 **성적용 비밀번호를 따로 받지 않는다**(효니 확정) —
