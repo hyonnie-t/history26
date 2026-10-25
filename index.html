@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=96i">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -6096,7 +6096,7 @@ async function dashLoadPerfEvidence_(sid){
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     const rows = (data.rows || []).sort((a, b) => a.order - b.order);
     if(!rows.length){ box.innerHTML = '<p class="dash-hint">' + escapeHtml(sid) + ' — 올라온 근거가 없어요.</p>'; return; }
-    const fmtAt = v => { const d = new Date(v); return isNaN(d) ? String(v) : (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    const fmtAt = v => { const d = new Date(v); return isNaN(d) ? String(v) : (d.getMonth() + 1) + '/' + d.getDate() + ((d.getHours() || d.getMinutes()) ? ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : ''); };
     const items = rows.map(r => '<div class="perf-evid-item' + (r.used === 'O' ? '' : ' perf-evid-off') + '">'
       + '<div class="perf-evid-head"><span class="perf-evid-no">' + r.order + '번째 글</span><span>' + escapeHtml(fmtAt(r.date)) + '</span>'
       + '<b class="perf-evid-score">' + r.score + '점</b><span class="perf-evid-used">' + (r.used === 'O' ? '반영' : '미반영') + '</span></div>'
