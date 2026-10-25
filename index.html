@@ -1721,6 +1721,7 @@ function renderPortal(){
   checkNewFeedback(fbAll); // v36
   renderMessages();        // v62
   checkNewMessages_();     // v62
+  checkNewAnnouncements_(STUDENT_DATA.announcements); // v103
   // v44 — 사이드카드 높이 재계산은 배지 목록이 그려진 뒤(내용이 바뀌어야 다시 잴 의미가
   // 있음) 페인트 한 번 지난 다음에 해야 정확한 위치를 잰다(레이아웃 함수 정의는 아래).
   requestAnimationFrame(layoutSideCard_);
@@ -2841,6 +2842,35 @@ function checkNewBadges(badges){
     ? `🎉 ${newlyEarned[0].name} 획득!`
     : `🎉 ${newlyEarned[0].name} 외 ${newlyEarned.length - 1}개 칭호 획득!`;
   showToast(msg);
+}
+
+/* v103 — 새 공지 알림. 공지엔 id가 없고 올린 시각(timestamp)뿐이라 시각 문자열을 키로 쓴다.
+ * checkNewBadges와 같은 패턴: 학번별로 "이미 본 공지 키" 목록을 localStorage에 두고, 기준선에 없던
+ * 공지가 있을 때만 토스트 한 번. 첫 조회(기준선 없음)에는 알리지 않고 기준선만 저장 — 안 그러면
+ * 처음 쓰는 기기에서 기존 공지가 전부 "새 공지"로 뜬다. 토스트는 단일 슬롯이라 칭호 토스트가 떠 있으면
+ * 끝난 뒤에 띄운다. 미리보기(교사가 학생 화면 보기)는 읽음 기준선도 건드리지 않는다. */
+function checkNewAnnouncements_(items){
+  if(!SESSION || PREVIEW_MODE) return;
+  if(!Array.isArray(items)) return; // 조회 실패(빈 배열과 구분 안 됨)로 기준선이 지워지는 걸 막기 위해 배열일 때만
+  if(!items.length) return;
+  const key = 'ann_seen_' + SESSION.studentId;
+  const keys = items.map(a => String(a.timestamp));
+  const raw = store.get(key);
+  if(raw === null){
+    store.set(key, JSON.stringify(keys));
+    return;
+  }
+  let prev = [];
+  try{ prev = JSON.parse(raw) || []; }catch(e){ prev = []; }
+  const prevSet = new Set(prev);
+  const fresh = keys.filter(k => !prevSet.has(k));
+  if(!fresh.length) return;
+  store.set(key, JSON.stringify(Array.from(new Set(prev.concat(keys)))));
+  const msg = fresh.length === 1 ? '📢 새 공지가 1건 있어요' : `📢 새 공지가 ${fresh.length}건 있어요`;
+  const busy = $('toast') && $('toast').classList.contains('show');
+  // 항상 한 틱 뒤로 미룬다: 수동 새로고침(refreshStudentData(true))은 renderPortal 직후 "최신 기록으로 갱신했어요"를
+  // 띄워 이 토스트를 덮어쓰는데, 기준선은 이미 저장돼 알림이 영영 사라지기 때문.
+  setTimeout(() => showToast(msg), busy ? 2800 : 0);
 }
 
 /* v31(핸드오프 "발표 탐구포인트 학생 화면 반영") — checkNewBadges와 같은 패턴:
