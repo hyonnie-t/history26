@@ -2609,10 +2609,11 @@ async function openPerfScore(){
   body.style.display = 'block';
   body.innerHTML = '<p class="perf-msg">불러오는 중…</p>';
   try{
-    if(PREVIEW_MODE) throw new Error('미리보기에서는 점수를 조회하지 않아요.');
+    if(PREVIEW_MODE && !PREVIEW_REAL) throw new Error('샘플 미리보기에서는 점수를 조회하지 않아요. 학생을 골라 미리보기하면 그 학생 점수가 보여요.');
     const url = CONFIG.WEBAPP_URL
       + '?mode=perfScore&studentId=' + encodeURIComponent(SESSION.studentId)
-      + '&name=' + encodeURIComponent(SESSION.name);
+      + '&name=' + encodeURIComponent(SESSION.name)
+      + (PREVIEW_MODE ? '&token=' + encodeURIComponent(TOKEN) : ''); // 교사 미리보기는 교사 토큰으로 통과(읽기 전용)
     const res = await fetch(url);
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '조회에 실패했어요.');
@@ -2670,6 +2671,7 @@ function perfShowButtons_(i){
   $('perfActions' + i).innerHTML = perfButtons_(i);
 }
 async function submitPerfResponse(i, response){
+  if(PREVIEW_MODE){ showToast('미리보기에서는 응답을 저장하지 않아요.'); return; }
   const it = PERF_ITEMS[i];
   const box = $('perfActions' + i);
   box.querySelectorAll('button').forEach(b => { b.disabled = true; });
