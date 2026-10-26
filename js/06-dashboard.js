@@ -477,10 +477,59 @@ function dashCheckinGrades_(){
 /* v40 — "오늘의 체크인 차시" 조회를 캐시까지 포함해 한 곳으로 모음(요약 표·통계 컬럼의
  * 회수 질문 조회가 같은 (학년,반) 조합을 중복 요청하지 않도록). dashLoadCkSetCurrent()는
  * "설정 편집" 폼용이라 항상 최신값이 필요해 이 캐시를 거치지 않고 직접 조회한다. */
+/* v118 — 체크인 탭 로딩 단축(백엔드 v102 mode=checkinSettingsAdmin).
+ * 반 카드가 학년×(전체+반) checkinToday 10여 번(건당 2~3초, 서로 늦춤)을 쏘던 걸 설정 시트 한 번 읽기로 대신한다.
+ * 해석 규칙은 백엔드 checkinTodayGet_과 같다: 특정 반 행 우선(값이 ''여도 그게 우선), 없으면 «전체» 행, 그것도 없으면 ''.
+ * 재배포 전 백엔드는 이 mode를 몰라 success가 아닌 응답을 주므로 CK_SETTINGS_OK=false로 기억하고 옛 방식으로 돌아간다. */
+let CK_SETTINGS_OK = null; // null 미시도 / true 성공 / false 이 백엔드는 모름(세션 동안 다시 안 시도)
+let CK_SETTINGS_PENDING = null;
+function ckLoadSettings_(){
+  if(CK_SETTINGS_OK === false) return Promise.resolve(false);
+  if(CK_SETTINGS_PENDING) return CK_SETTINGS_PENDING;
+  const p = (async () => {
+    try{
+      const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + '?mode=checkinSettingsAdmin&token=' + encodeURIComponent(TOKEN));
+      if(data.result !== 'success' || !Array.isArray(data.settings)){ CK_SETTINGS_OK = false; return false; }
+      Object.keys(CONFIG.BAN_SIZE || {}).forEach(grade => {
+        const sets = data.settings.filter(r => String(r.grade) === String(grade));
+        const lastOf = ban => { const m = sets.filter(r => String(r.ban) === ban); return m.length ? m[m.length - 1] : null; };
+        const all = lastOf('전체');
+        const allId = all ? String(all.lessonId || '') : '';
+        const put = (key, id) => { if(CK_TODAY_LESSON[key] === undefined) CK_TODAY_LESSON[key] = id; }; // v111: «적용»으로 이미 들어온 새 값은 덮지 않는다
+        put(grade + '-전체', allId);
+        dashTeachingBans_(grade).forEach(ban => { const m = lastOf(String(ban)); put(grade + '-' + ban, m ? String(m.lessonId || '') : allId); });
+      });
+      CK_SETTINGS_OK = true;
+      return true;
+    }catch(e){
+      CK_SETTINGS_OK = false;
+      return false;
+    }finally{
+      CK_SETTINGS_PENDING = null;
+    }
+  })();
+  CK_SETTINGS_PENDING = p;
+  return p;
+}
+/* v118 — 오늘 응답은 학년별 두 번(각 5~6초, 서로 늦춤) 대신 학년 없이 한 번 받아 학번 첫 자리로 나눈다(백엔드 checkinAdmin은 grade가 비면 전체).
+ * 20초 안의 반 바꾸기는 그대로 재사용하고, 새로고침 버튼은 CK_ADMIN_CACHE = null로 버리고 다시 받는다. */
+let CK_ADMIN_CACHE = null; // { at, p }
+function ckAdminFetch_(){
+  if(CK_ADMIN_CACHE && Date.now() - CK_ADMIN_CACHE.at < 20000) return CK_ADMIN_CACHE.p;
+  const p = fetchJsonRetry_(CONFIG.WEBAPP_URL + '?mode=checkinAdmin&token=' + encodeURIComponent(TOKEN));
+  CK_ADMIN_CACHE = { at: Date.now(), p };
+  p.catch(() => { if(CK_ADMIN_CACHE && CK_ADMIN_CACHE.p === p) CK_ADMIN_CACHE = null; });
+  return p;
+}
 const CK_TODAY_PENDING = {}; // v111: 키별 진행 중 조회(요약 렌더가 동시에 여러 번 돌아도 GAS 요청은 한 번만)
 async function ckFetchTodayLessonId_(grade, ban){
   const cacheKey = grade + '-' + ban;
   if(CK_TODAY_LESSON[cacheKey] !== undefined) return CK_TODAY_LESSON[cacheKey];
+  if(CK_SETTINGS_OK !== false){ // v118: 설정 일괄 조회가 채워 줬는지 먼저 본다
+    // 최대 3초만 기다린다 — 재배포 전 백엔드는 이 mode를 몰라 느린 응답(전체 기록)을 주니, 안 오면 옛 방식(반별 checkinToday)으로 넘어간다.
+    await Promise.race([ckLoadSettings_(), new Promise(r => setTimeout(r, 3000))]);
+    if(CK_TODAY_LESSON[cacheKey] !== undefined) return CK_TODAY_LESSON[cacheKey];
+  }
   if(CK_TODAY_PENDING[cacheKey]) return CK_TODAY_PENDING[cacheKey];
   const p = (async () => {
     try{
@@ -501,6 +550,8 @@ async function ckFetchTodayLessonId_(grade, ban){
 }
 
 async function dashInitCheckinForm(){
+  /* v118: 설정·오늘 응답 조회는 문항(plan)과 무관하니 plan을 기다리지 않고 같이 시작한다(서로 겹쳐 총 대기 = 가장 느린 하나). */
+  ckLoadSettings_(); ckAdminFetch_().catch(() => {});
   await loadCheckinPlan(); // 대시보드 들어올 때마다 시트에서 최신 문항으로 새로고침
   if(!CHECKIN_PLAN){
     $('panelCheckin').innerHTML = '<p style="color:var(--ink-soft); padding:16px;">체크인문항 시트를 불러오지 못했어요. 새로고침해 주세요.</p>';
@@ -804,10 +855,9 @@ async function dashLoadCheckinAdmin(grade){
   if(!grade) return;
   $('ckList_' + grade).innerHTML = '<p class="muted">불러오는 중…</p>';
   try{
-    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
-      + '?mode=checkinAdmin&token=' + encodeURIComponent(TOKEN) + '&grade=' + encodeURIComponent(grade));
+    const data = await ckAdminFetch_(); // v118: 학년별 따로 받지 않고 한 번 받은 걸 나눈다
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
-    let rows = data.rows || [];
+    let rows = (data.rows || []).filter(r => String(r.studentId).charAt(0) === String(grade));
     /* v111: 반 카드(응답 수·연속 저온도)가 읽는 캐시 — 반 필터 전, 학생당 최신 1건으로 걸러 담는다. */
     const latestAll = {};
     rows.forEach(r => {
