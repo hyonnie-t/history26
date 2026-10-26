@@ -129,7 +129,7 @@ source_emotion=텍스트)을 정한다.
 
 ## 체크인 대시보드 «오늘 한눈에» (v110·v111)
 교사 «체크인 → 오늘·현황» 맨 위. 반마다 카드 한 장(`dashRenderCkSummaryTable_()`): 오늘 차시 칩(수업=초록 `.is-lesson`, 기본 감정=회색 `.is-default` — 클래스를 `lesson`/`default`로 쓰면 타임라인 `.lesson::before` 동그라미가 붙는다), 출처(전체 설정/반별 지정), 응답 n/총원 + 막대, 연속 저온도 버튼, «바꾸기».
-- **응답 수·저온도는 `CK_ROWS`**(학년→오늘 응답, 학생당 최신 1건)에서 읽는다. `dashLoadCheckinAdmin()`이 `checkinAdmin` 결과를 반 필터 전에 담고 요약을 다시 그린다(`CK_SUM_SEQ`로 늦게 끝난 옛 렌더 버림). 응답이 있는 반은 `BAN_SIZE`에 없어도 «담당 외»(점선 카드, 총원 없이 «n명 응답»)로 나온다.
+- **응답 수·저온도는 `CK_ROWS`**(학년→오늘 응답, 학생당 최신 1건)에서 읽는다. `dashLoadCheckinAdmin()`이 `checkinAdmin` 결과를 반 필터 전에 담고 요약을 다시 그린다(`CK_SUM_SEQ`로 늦게 끝난 옛 렌더 버림). v112부터 `BAN_SIZE`에 총원이 있는 담당 반만 카드·알림·팝업·응답 상세에 나온다(응답이 있어도 다른 선생님 반은 뺀다).
 - **`checkinToday`는 교사 `token`을 붙여야 한다**(v83 학생 로그인 게이트). 안 붙이면 `needLogin` 오류가 «설정 없음»으로 읽혀 모든 반이 «감정 체크인 (기본)»으로 보이던 사고가 v110 이전에 있었다 — 대시보드에서 `checkinToday`를 부르는 곳(`ckFetchTodayLessonId_`·`dashLoadCkSetCurrent`)은 항상 `&token=`.
 - «바꾸기»(`ckEditFromCard_`)는 설정 폼만 채운다(개별 반 + 현재 차시). 저장은 기존 «적용»(`dashApplyCkSet`) 그대로.
 - 연속 저온도 알림·팝업(`ckLowOpen_`, `perfModalOpen_` 재사용, 명단 복사·새로고침)은 교사 전용 읽기 값이라 학생 화면에 안 나온다. 긴 설명 3곳은 `details[data-fold]`로 접혀 있다(`dash_fold_ckDesc`·`ckLegend`·`ckSetDesc`).
