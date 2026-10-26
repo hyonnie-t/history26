@@ -529,7 +529,7 @@ async function dashInitCheckinForm(){
 
 /* v111 — 요약 표를 «반 카드»로 바꿨다. 카드마다 오늘 차시(수업=초록 칩, 기본 감정=회색 칩) + 출처 + 응답 n/총원 + 연속 저온도 + «바꾸기».
  * 응답 수·저온도는 dashLoadCheckinAdmin이 CK_ROWS(학년→오늘 응답, 학생당 최신 1건)에 담아 두면 거기서 읽는다(추가 fetch 없음).
- * 응답이 있는 반은 담당 반(BAN_SIZE)이 아니어도 «담당 외»로 같이 보여 준다 — 요약에 안 보이던 반(예: 훈구와 사림 응답)이 있었다.
+ * v112부터 담당 반(BAN_SIZE)만 보여 준다(다른 선생님 반은 카드·알림·팝업·응답 상세에서 뺀다).
  * 연속 저온도는 교사 전용 값(lowStreakAlert)이라 학생 화면과 무관하다. */
 let CK_ROWS = {};
 let CK_SUM_SEQ = 0;
@@ -581,7 +581,7 @@ async function dashRenderCkSummaryTable_(){
         const low = CK_ROWS[grade] ? ckLowRows_(grade, ban).length : 0;
         lowTotal += low;
         const lowBtn = low
-          ? `<button type="button" class="ck-low-btn" title="누르면 명단이 열려요" onclick="ckLowOpen_('${grade}','${ban}')">⚠ 연속 저온도 ${low}명</button>` : '';
+          ? `<button type="button" class="ck-low-btn" title="최근 3회 연속 저온도 — 누르면 명단이 열려요" onclick="ckLowOpen_('${grade}','${ban}')">⚠ 저온도 ${low}명</button>` : '';
         return `
           <div class="ck-card">
             <div class="ck-card-head"><span class="ck-card-ban">${ban}반</span>${src}</div>
@@ -707,7 +707,7 @@ function dashOnCkSetTargetChange_(){
     const grade = $('ckSetGrade').value;
     const mine = dashMyBans_(grade);
     $('ckSetCurrent').textContent = mine
-      ? `적용하면 ${grade}학년 담당 반(${mine.join(',')}반) 전체에 각각 따로 지정돼요. 반별 현재 값은 위 요약 표를 확인하세요.`
+      ? `적용하면 ${grade}학년 담당 반(${mine.join(',')}반) 전체에 각각 따로 지정돼요. 반별 현재 값은 위 반 카드를 확인하세요.`
       : '이 학년은 담당 반 트랙이 설정돼 있지 않아요 — "전체"나 "개별 반"을 선택해 주세요.';
   } else {
     dashLoadCkSetCurrent();
@@ -786,9 +786,8 @@ async function dashApplyCkSet(){
 
 /* v40: 컬럼마다 학년이 고정이라 grade를 인자로 받음(과거엔 ckViewGrade select 값이었음). */
 function dashRefreshCkViewBans(grade){
-  const g = Number(grade);
-  const bans = [...new Set(ROWS.map(r => parseStudentId(String(r.studentId)))
-    .filter(p => p && p.grade === g).map(p => p.ban))].sort((a,b)=>a-b);
+  /* v113: 내가 맡은 반(BAN_SIZE>0)만 고른다 — 학생 기록(ROWS)에 있다고 다른 선생님 반을 넣지 않는다(카드·응답 상세 집계와 같은 기준). */
+  const bans = dashTeachingBans_(grade);
   $('ckViewBan_' + grade).innerHTML = '<option value="">전체 반</option>'
     + bans.map(b => `<option value="${b}">${b}반</option>`).join('');
 }

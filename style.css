@@ -1278,7 +1278,7 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .ck-card{display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--row-line); border-radius:var(--radius-sm); background:var(--paper);}
 .ck-card-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
 .ck-card-ban{font-weight:700; font-size:1.05rem;}
-.ck-chip{align-self:flex-start; max-width:100%; padding:5px 12px; border:1px solid; border-radius:999px; font-size:.9rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere;}
+.ck-chip{align-self:flex-start; max-width:100%; padding:5px 12px; border:1px solid; border-radius:999px; font-size:.9rem; font-weight:700; line-height:1.35; word-break:keep-all; overflow-wrap:break-word;}
 .ck-chip.is-lesson{background:var(--jade-bg); border-color:var(--jade-border); color:var(--jade-text-deep);}
 .ck-chip.is-default{background:#fff; border-color:var(--line); color:var(--ink-soft); font-weight:600;}
 .ck-prog{height:6px; border-radius:999px; background:var(--row-line); overflow:hidden;}
@@ -1290,7 +1290,7 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .ck-alert{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; background:rgba(176,58,46,.06); border-left:3px solid var(--seal); border-radius:var(--radius-xs); padding:10px 14px; margin-bottom:12px; font-size:.9rem;}
 /* 태블릿(세로·가로)은 손가락으로 누르니 카드·버튼을 키운다 */
 @media (min-width:700px) and (max-width:1200px){
-  .ck-cards{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
+  .ck-cards{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));} /* v113: 담당 반이 4개씩이라 태블릿 768에서도 4칸이 한 줄에 들어가게(190이면 3+1로 갈라졌다) */
   .ck-card-ban{font-size:1.15rem;}
   .ck-chip{font-size:1rem;}
   .ck-low-btn{min-height:var(--tap-min);}
