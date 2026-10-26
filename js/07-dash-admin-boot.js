@@ -1147,9 +1147,10 @@ $('ckStatCols').addEventListener('change', (e) => {
 });
 $('ckStatCols').addEventListener('click', (e) => {
   const m = e.target.id.match(/^btnCkViewRefresh_(\d+)$/);
-  if(m) dashLoadCheckinAdmin(m[1]);
+  if(m){ CK_ADMIN_CACHE = null; dashLoadCheckinAdmin(m[1]); } // v118: 새로고침은 캐시를 버리고 다시 받는다
 });
 $('btnCkViewRefreshAll').addEventListener('click', () => {
+  CK_ADMIN_CACHE = null; // v118
   dashRenderCkSummaryTable_();
   dashCheckinGrades_().forEach(grade => dashLoadCheckinAdmin(grade));
 });
@@ -1162,6 +1163,7 @@ $('btnDashRefresh').addEventListener('click', async () => {
     dashRenderGongminBonus_();
     if(CK_ADMIN_LOADED && CHECKIN_PLAN){
       CK_TODAY_LESSON = {};
+      CK_ADMIN_CACHE = null; // v118
       await dashLoadCkSetCurrent();
       dashRenderCkSummaryTable_();
       dashCheckinGrades_().forEach(grade => dashLoadCheckinAdmin(grade));
