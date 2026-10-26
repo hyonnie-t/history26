@@ -537,8 +537,13 @@ function ckBanKey_(grade, ban){ return String(grade) + String(ban).padStart(2, '
 function ckRowsOfBan_(grade, ban){
   return (CK_ROWS[grade] || []).filter(r => String(r.studentId).slice(0, 3) === ckBanKey_(grade, ban));
 }
+/* v112: 담당 반(BAN_SIZE>0)만 본다 — 다른 선생님 반 학생은 카드·알림·팝업에 넣지 않는다. */
+function ckMineRows_(grade){
+  const mine = dashTeachingBans_(grade).map(b => ckBanKey_(grade, b));
+  return (CK_ROWS[grade] || []).filter(r => mine.includes(String(r.studentId).slice(0, 3)));
+}
 function ckLowRows_(grade, ban){
-  return (CK_ROWS[grade] || []).filter(r => r.lowStreakAlert && (!ban || String(r.studentId).slice(0, 3) === ckBanKey_(grade, ban)));
+  return ckMineRows_(grade).filter(r => r.lowStreakAlert && (!ban || String(r.studentId).slice(0, 3) === ckBanKey_(grade, ban)));
 }
 async function dashRenderCkSummaryTable_(){
   const box = $('ckSummaryTables');
@@ -553,8 +558,7 @@ async function dashRenderCkSummaryTable_(){
   try{
     const per = await Promise.all(grades.map(async grade => {
       const teaching = dashTeachingBans_(grade);
-      const respBans = (CK_ROWS[grade] || []).map(r => Number(String(r.studentId).slice(1, 3))).filter(n => n > 0);
-      const bans = Array.from(new Set(teaching.concat(respBans))).sort((a, b) => a - b);
+      const bans = teaching; // v112: 내가 맡은 반만 (응답이 있다고 다른 선생님 반 카드를 만들지 않는다)
       const allLessonId = await ckFetchTodayLessonId_(grade, '전체');
       const lessonIds = await Promise.all(bans.map(ban => ckFetchTodayLessonId_(grade, String(ban))));
       return { grade, teaching, bans, allLessonId, lessonIds };
@@ -570,8 +574,7 @@ async function dashRenderCkSummaryTable_(){
           : '<span class="ck-chip is-default">감정 체크인 (기본)</span>'; // v88: 미지정 = 기본 감정 체크인
         const isOverride = lessonId !== allLessonId;
         const src = isOverride ? '<span class="ck-src-tag override">반별 지정</span>' : '<span class="ck-src-tag">전체 설정</span>';
-        const isTeaching = teaching.includes(ban);
-        const total = isTeaching ? CONFIG.BAN_SIZE[grade][ban] : null;
+        const total = CONFIG.BAN_SIZE[grade][ban];
         const done = CK_ROWS[grade] ? ckRowsOfBan_(grade, ban).length : null; // null = 아직 안 불러옴
         const pct = (total && done !== null) ? Math.min(100, Math.round(done / total * 100)) : 0;
         const prog = done === null ? '응답 불러오는 중…' : (total ? `<b>${done}</b> / ${total}명 응답` : `<b>${done}</b>명 응답`);
@@ -580,8 +583,8 @@ async function dashRenderCkSummaryTable_(){
         const lowBtn = low
           ? `<button type="button" class="ck-low-btn" title="누르면 명단이 열려요" onclick="ckLowOpen_('${grade}','${ban}')">⚠ 연속 저온도 ${low}명</button>` : '';
         return `
-          <div class="ck-card${isTeaching ? '' : ' is-other'}">
-            <div class="ck-card-head"><span class="ck-card-ban">${ban}반${isTeaching ? '' : ' <small class="ck-other-tag">담당 외</small>'}</span>${src}</div>
+          <div class="ck-card">
+            <div class="ck-card-head"><span class="ck-card-ban">${ban}반</span>${src}</div>
             ${chip}
             <div class="ck-prog" aria-hidden="true"><i style="width:${pct}%"></i></div>
             <div class="ck-card-meta">${prog}</div>
@@ -810,6 +813,10 @@ async function dashLoadCheckinAdmin(grade){
     dashRenderCkSummaryTable_();
     const ban = $('ckViewBan_' + grade).value; // '' = 전체 반 보기
     if(ban) rows = rows.filter(r => { const p = parseStudentId(String(r.studentId)); return p && p.ban === Number(ban); });
+    else{ // v112: «전체 반» = 내가 맡은 반 전체 (다른 선생님 반 응답은 세지 않는다)
+      const mine = dashTeachingBans_(grade);
+      rows = rows.filter(r => { const p = parseStudentId(String(r.studentId)); return p && mine.includes(p.ban); });
+    }
 
     /* 회수 질문 — 특정 반을 골랐을 때만 그 반의 "오늘 차시" 기준으로 표시.
      * "전체 반" 보기에서는 반마다 차시가 다를 수 있어 하나로 특정할 수 없으므로 생략. */
@@ -865,11 +872,12 @@ async function dashLoadCheckinAdmin(grade){
     }).join('');
 
     /* 특이사항 — 연속 저온도 학생만 따로 모음 */
-    const alertRows = rows.filter(r => r.lowStreakAlert);
-    const alertHtml = alertRows.length
-      ? `<div class="stat-alert-box">
-          <p class="stat-alert-title">⚠ 최근 3회 연속 저온도 (${alertRows.length}명)</p>
-          <p class="stat-alert-names">${alertRows.map(r => escapeHtml(r.studentName) + '(' + escapeHtml(String(r.studentId)) + ')').join(', ')}</p>
+    /* v112: 명단을 본문에 줄줄이 펼치지 않고 숫자 + «명단 보기»(팝업 ckLowOpen_)로 둔다. */
+    const alertCount = rows.filter(r => r.lowStreakAlert).length;
+    const alertHtml = alertCount
+      ? `<div class="stat-alert-box ck-detail-alert">
+          <p class="stat-alert-title">⚠ 최근 3회 연속 저온도 (${alertCount}명)</p>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="ckLowOpen_('${grade}','${escapeHtml(ban)}')">명단 보기</button>
         </div>`
       : '';
 
@@ -896,10 +904,10 @@ async function dashLoadCheckinAdmin(grade){
       const bucketsHtml = Object.values(g.buckets)
         .sort((a,b) => b.students.length - a.students.length)
         .map(b => `
-          <div class="choice-bucket">
-            <p class="choice-bucket-title">${escapeHtml(b.label)} <small>(${b.students.length}명)</small></p>
+          <details class="choice-bucket choice-fold">
+            <summary class="choice-bucket-title">${escapeHtml(b.label)} <small>(${b.students.length}명)</small></summary>
             <p class="choice-bucket-names">${b.students.join(', ')}</p>
-          </div>`).join('');
+          </details>`).join('');
       return `
         <div class="stat-block">
           <p class="stat-block-title">${escapeHtml(g.topic)} — 선택 분포</p>
@@ -915,7 +923,7 @@ async function dashLoadCheckinAdmin(grade){
       ${alertHtml}
       ${choiceHtml}`;
 
-    $('ckList_' + grade).innerHTML = rows.map(r => {
+    const listHtml = rows.map(r => {
       let choiceText;
       if(r.checkinType === 'judgment'){
         const l = (CHECKIN_PLAN[grade].lessons || []).find(x => x.id === r.lessonId);
@@ -934,6 +942,8 @@ async function dashLoadCheckinAdmin(grade){
           <div class="q-text">${escapeHtml(choiceText)}</div>
         </div>`;
     }).join('');
+    /* v112: 학생별 응답은 기본 접어 둔다(펼쳤을 때만 줄줄이 보임). */
+    $('ckList_' + grade).innerHTML = `<details class="ck-list-fold"><summary>학생별 응답 ${rows.length}명 보기</summary>${listHtml}</details>`;
   }catch(e){
     $('ckStats_' + grade).innerHTML = '';
     $('ckList_' + grade).innerHTML = '<p class="muted">불러오지 못했어요: ' + escapeHtml(e.message) + '</p>';
