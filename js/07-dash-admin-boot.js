@@ -196,7 +196,7 @@ async function dashLoadPerfStatus_(){
       return '<span class="perf-bansum-chip">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반 ' + list.filter(r => r.response).length + '/' + list.length + '</span>';
     }).join('') + '</div>';
     const noneAll = rows.filter(r => !r.response).length; // v107
-    box.innerHTML = banSum + '<div class="perf-toolbar"><button type="button" class="perf-askbtn perf-askbtn-none" onclick="perfNoneOpen_(\'\')">👀 아직 안 누른 학생 보기 (' + noneAll + '명)</button></div>'
+    box.innerHTML = banSum + '<div class="perf-toolbar"><button type="button" class="perf-askbtn perf-askbtn-ov" onclick="perfOverviewOpen_(\'\')">🗂️ 반별 한눈에 보기</button> <button type="button" class="perf-askbtn perf-askbtn-none" onclick="perfNoneOpen_(\'\')">👀 아직 안 누른 학생 보기 (' + noneAll + '명)</button></div>'
       + '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
       + (changed.length ? '<p class="dash-section-title">🔔 점수가 바뀌어 재확인 대기 (' + changed.length + '명)</p>' // v101
           + '<p class="dash-hint">응답 뒤에 점수가 바뀐 학생이에요. 학생 화면에 «점수가 달라졌어요» 안내가 뜨고, 새 점수를 보고 다시 누르면 이 목록에서 빠져요.</p>'
@@ -290,6 +290,39 @@ async function perfNoneCopy_(ban){
   const lines = keys.map(k => perfBanName_(k) + ' (' + g[k].length + '명): ' + g[k].map(r => r.name).join(', '));
   try{ await navigator.clipboard.writeText('수행평가 점수 확인 — 아직 안 누른 학생\n' + lines.join('\n')); showToast('명단을 복사했어요.'); }
   catch(e){ showToast('복사에 실패했어요.'); }
+}
+/* v108 — 반별 한눈에 보기(교사 전용, 읽기 전용). 반마다 «아직 안 누름 / 재확인 대기 / 이상 있음 / 이상 없음»을 번호·이름 칩으로 나눠 보여 준다.
+ * 챙길 학생(앞 3칸)은 펼치고 이상 없음은 접어 둔다. 상태 판정은 현황 표와 같은 규칙(재확인 대기 = perfAdminChanged_). 데이터는 PERF_ADMIN_ROWS 그대로. */
+function perfStatusOf_(r){
+  if(!r.response) return 'none';
+  if(perfAdminChanged_(r)) return 'wait';
+  return r.response === '이상 있음' ? 'ask' : 'ok';
+}
+function perfOverviewOpen_(ban){
+  const rows = PERF_ADMIN_ROWS.slice().sort((a, b) => a.studentId.localeCompare(b.studentId));
+  const bans = Array.from(new Set(rows.map(r => r.studentId.slice(0, 3)))).sort();
+  const show = ban ? [ban] : bans;
+  const defs = [['none', '❔ 아직 안 누름', 'perf-ov-none'], ['wait', '🔔 재확인 대기', 'perf-ov-wait'], ['ask', '⚠️ 이상 있음', 'perf-ov-ask'], ['ok', '✅ 이상 없음', 'perf-ov-ok']];
+  const chip = (r, st) => {
+    const extra = st === 'wait' ? ' ' + r.answeredScore + '→' + r.score + '점' : (st === 'ask' && r.checked ? ' ✓확인함' : '');
+    return '<span class="perf-ov-chip ' + st + '">' + escapeHtml(Number(r.studentId.slice(3)) + '번 ' + r.name + extra) + '</span>';
+  };
+  const cards = show.map(k => {
+    const list = rows.filter(r => r.studentId.slice(0, 3) === k);
+    const by = { none: [], wait: [], ask: [], ok: [] };
+    list.forEach(r => by[perfStatusOf_(r)].push(r));
+    const todo = by.none.length + by.wait.length + by.ask.filter(r => !r.checked).length;
+    const sum = defs.map(d => '<span class="perf-ov-n ' + d[0] + '">' + d[1].slice(0, 2).trim() + ' ' + by[d[0]].length + '</span>').join('');
+    const secs = defs.map((d, i) => by[d[0]].length
+      ? '<details class="perf-ov-sec ' + d[2] + '"' + (i < 3 ? ' open' : '') + '><summary>' + d[1] + ' <b>' + by[d[0]].length + '명</b></summary><div class="perf-ov-chips">' + by[d[0]].map(r => chip(r, d[0])).join('') + '</div></details>'
+      : '<div class="perf-ov-sec ' + d[2] + ' is-empty">' + d[1] + ' <b>0명</b></div>').join('');
+    return '<section class="perf-ov-card"><h4>' + perfBanName_(k) + ' <small>' + list.length + '명 · ' + (todo ? '챙길 학생 ' + todo + '명' : '챙길 학생 없음 🎉') + '</small></h4><div class="perf-ov-sum">' + sum + '</div>' + secs + '</section>';
+  }).join('');
+  const tabs = '<div class="perf-ov-tabs"><button type="button" class="perf-askbtn' + (ban ? '' : ' is-checked') + '" onclick="perfOverviewOpen_(\'\')">전체 반</button>'
+    + bans.map(k => '<button type="button" class="perf-askbtn' + (k === ban ? ' is-checked' : '') + '" onclick="perfOverviewOpen_(\'' + k + '\')">' + perfBanName_(k) + '</button>').join('')
+    + '<button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_().then(() => perfOverviewOpen_(\'' + ban + '\'))">↻ 새로고침</button></div>';
+  perfModalOpen_((ban ? perfBanName_(ban) + ' ' : '') + '반별 한눈에 보기', '수행평가 점수 확인', tabs + (cards || '<p class="dash-hint">올라온 학생이 없어요.</p>')
+    + '<p class="dash-hint">«이상 있음»의 ✓는 선생님이 확인 완료한 학생이에요. 이상 있음 학생의 근거는 현황 화면의 이상 있음 버튼에서 열어요.</p>');
 }
 let PERF_UI_KEEP = null;
 /* v98 — 글 하나의 점수 조정(교사). POST adjustPerfPostScore → 반영 글·총점 재계산은 백엔드가 한다. */
