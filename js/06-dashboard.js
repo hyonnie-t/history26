@@ -482,7 +482,8 @@ async function ckFetchTodayLessonId_(grade, ban){
   if(CK_TODAY_LESSON[cacheKey] !== undefined) return CK_TODAY_LESSON[cacheKey];
   try{
     const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
-      + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban));
+      + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban)
+      + '&token=' + encodeURIComponent(TOKEN)); // v110: v83 로그인 게이트가 token 없는 조회를 막아 요약표가 전부 «감정 체크인(기본)»으로 보였다
     const lessonId = (data.result === 'success') ? (data.lessonId || '') : '';
     CK_TODAY_LESSON[cacheKey] = lessonId;
     return lessonId;
@@ -624,7 +625,8 @@ async function dashLoadCkSetCurrent(){
   if(!grade) return;
   try{
     const res = await fetch(CONFIG.WEBAPP_URL
-      + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban));
+      + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban)
+      + '&token=' + encodeURIComponent(TOKEN)); // v110: 같은 이유(교사 token으로 게이트 통과)
     const data = await res.json();
     if(data.result === 'success'){
       CK_TODAY_LESSON[grade + '-' + ban] = data.lessonId || '';
