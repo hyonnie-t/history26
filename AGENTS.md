@@ -52,7 +52,7 @@ UI 텍스트·주석·커밋 메시지는 한국어.
   POST·쓰기 action은 효니에게 먼저 묻는다. 시험은 `tests/webapp-testing/fixtures.py` 가짜 응답으로 한다.
 - **비밀 파일은 출력·커밋·로그에 옮기지 않는다.** `효니.local.md`, 백엔드 `.gas.local.json`, 구글 `token.json` 경로.
   커밋 전 `git diff --cached`에서 URL·ID·토큰을 grep으로 확인한다(이 레포는 public).
-- **푸시는 작업 브랜치에만 한다.** `main` 병합은 효니가 한다. 효니가 시킨 적 없는 `main` 직접 푸시·force push 금지.
+- **푸시는 작업 브랜치에만 한다.** PR 병합은 클로드가 한다(2026-10-25 효니 지시: 검증→PR→`gh pr merge`→로컬 main 맞추기→배포 확인). 효니가 시킨 적 없는 `main` 직접 푸시·force push 금지.
 - **OneDrive 안의 `.git`은 PC 3대가 동기화한다.** 한 번에 한 PC에서만 작업하고, 시작 전에 `git status`와
   `.git/index.lock` 유무를 본다(락이 있으면 지우지 말고 효니에게 알린다). 끝나면 push까지 하고,
   다른 PC로 넘어가기 전에 OneDrive 동기화가 끝났는지 효니에게 상기시킨다. 원본은 GitHub이니 푸시 안 한 변경만 잃을 수 있다.
