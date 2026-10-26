@@ -2140,3 +2140,30 @@ body.perf-modal-open{overflow:hidden;}
 .perf-ov-chip{padding:4px 10px;border-radius:999px;font-size:.92em;background:#eee}
 .perf-ov-chip.none{background:#e4e4e4}.perf-ov-chip.wait{background:#ffe9b5}.perf-ov-chip.ask{background:#ffd0d0}.perf-ov-chip.ok{background:#d6f0d9}
 @media (min-width:768px){.perf-ov-chip{font-size:1em;padding:5px 12px}}
+
+/* v109 — 학생별 점수·조정 카드 목록 */
+.perf-stu-tabs{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px;}
+.perf-stu-tab{min-height:40px; padding:4px 14px; border:1px solid var(--line); border-radius:999px; background:#fff; font-size:.9rem; cursor:pointer; color:var(--ink);}
+.perf-stu-tab b{margin-left:2px;}
+.perf-stu-tab.is-on{background:var(--indigo); border-color:var(--indigo); color:#fff;}
+.perf-stu-list{display:flex; flex-direction:column; gap:8px;}
+.perf-stu{display:grid; grid-template-columns:minmax(120px,1.1fr) auto minmax(0,1.6fr) auto; align-items:center; gap:8px 16px; padding:10px 14px; background:#fff; border:1px solid var(--line); border-left:5px solid #3a9a4a; border-radius:10px;}
+.perf-stu.s-none{border-left-color:#888;} .perf-stu.s-wait{border-left-color:#e0a000;} .perf-stu.s-ask{border-left-color:#d33;}
+.perf-stu-who{display:flex; flex-direction:column; line-height:1.3;}
+.perf-stu-no{font-size:.78rem; color:var(--ink-soft);}
+.perf-stu-name{font-size:1.05rem;}
+.perf-stu-score{white-space:nowrap; text-align:right;}
+.perf-stu-score b{font-size:1.4rem;}
+.perf-stu-score span{font-size:.82rem; color:var(--ink-soft); margin-left:3px;}
+.perf-stu-state{display:flex; flex-wrap:wrap; gap:4px 6px; align-items:center;}
+.perf-stu-st{display:inline-block; padding:3px 10px; border-radius:999px; font-size:.85rem; font-weight:600; white-space:nowrap;}
+.perf-stu-st.s-none{background:#e4e4e4;} .perf-stu-st.s-wait{background:#ffe9b5;} .perf-stu-st.s-ask{background:#ffd0d0;} .perf-stu-st.s-ok{background:#d6f0d9;}
+.perf-stu-acts{display:flex; gap:6px;}
+.perf-stu-btn{min-height:44px; padding:4px 14px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:.92rem; white-space:nowrap; cursor:pointer;}
+.perf-stu-btn-main{background:var(--indigo); border-color:var(--indigo); color:#fff;}
+@media (max-width:820px){
+  .perf-stu{grid-template-columns:1fr auto; }
+  .perf-stu-state{grid-column:1/-1; order:3;}
+  .perf-stu-acts{grid-column:1/-1; order:4;}
+  .perf-stu-btn{flex:1;}
+}

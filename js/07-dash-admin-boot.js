@@ -524,18 +524,33 @@ async function perfCopyFeedback_(){
 }
 /* v96g — 학생별 점수 표와 수동 조정(교사 전용). 조정은 POST adjustPerfScore, 이력은 백엔드 시트 `수행평가조정`. */
 let PERF_ADMIN_ROWS = [];
+/* v109 — «학생별 점수·조정»: 좁은 표 대신 학생 한 줄 카드(점수 크게·상태 색 칩·큰 버튼) + 상태 필터. */
+let PERF_STU_FILTER = 'all';
+function perfStuFilter_(f){ PERF_STU_FILTER = f; dashRenderPerfStudents_(); }
 function dashRenderPerfStudents_(){
   const sel = $('perfBanSel'), box = $('perfStudentBox');
   if(!sel || !box) return;
-  const list = PERF_ADMIN_ROWS.filter(r => r.studentId.slice(0, 3) === sel.value)
+  const all = PERF_ADMIN_ROWS.filter(r => r.studentId.slice(0, 3) === sel.value)
     .sort((a, b) => a.studentId.localeCompare(b.studentId));
-  box.innerHTML = '<div style="overflow-x:auto"><table class="grade-table"><tr><th>학번</th><th>이름</th><th>점수</th><th>응답</th><th></th></tr>'
-    + list.map(r => '<tr><td>' + escapeHtml(r.studentId) + '</td><td>' + escapeHtml(r.name) + '</td><td><b>' + r.score + '</b> / ' + r.max + '</td><td>'
-      + escapeHtml(r.response || '—') + (perfAdminChanged_(r) ? ' <span class="perf-wait-tag">재확인 대기 (' + escapeHtml(String(r.answeredScore)) + '→' + r.score + ')</span>' : '') + (r.checked ? ' <span class="perf-checked-tag">✓ 확인</span>' : '') // v99
-      + (r.memoCount ? ' <span class="perf-memo-tag">메모 ' + r.memoCount + '</span>' : '') + '</td><td style="white-space:nowrap">'
-      + '<button type="button" class="perf-askbtn" onclick="dashAdjustPerfScore_(\'' + escapeHtml(r.studentId) + '\')">점수 조정</button> '
-      + '<button type="button" class="perf-askbtn" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">근거 보기</button></td></tr>').join('')
-    + '</table></div>';
+  const st = r => perfStatusOf_(r);
+  const todo = r => st(r) === 'none' || st(r) === 'wait' || (st(r) === 'ask' && !r.checked);
+  const FILTERS = [['all', '전체', all.length], ['todo', '챙길 학생', all.filter(todo).length], ['none', '안 누름', all.filter(r => st(r) === 'none').length],
+    ['wait', '재확인', all.filter(r => st(r) === 'wait').length], ['ask', '이상 있음', all.filter(r => st(r) === 'ask').length]];
+  const f = PERF_STU_FILTER;
+  const list = all.filter(r => f === 'all' || (f === 'todo' ? todo(r) : st(r) === f));
+  const LBL = { none:'아직 안 누름', wait:'재확인 대기', ask:'이상 있음', ok:'이상 없음' };
+  const tabs = '<div class="perf-stu-tabs">' + FILTERS.map(x => '<button type="button" class="perf-stu-tab' + (f === x[0] ? ' is-on' : '') + '" onclick="perfStuFilter_(\'' + x[0] + '\')">' + x[1] + ' <b>' + x[2] + '</b></button>').join('') + '</div>';
+  const rowsHtml = list.map(r => {
+    const k = st(r), sid = escapeHtml(r.studentId);
+    const chip = '<span class="perf-stu-st s-' + k + '">' + LBL[k] + (k === 'wait' ? ' ' + escapeHtml(String(r.answeredScore)) + '→' + r.score + '점' : '') + '</span>'
+      + (r.checked ? '<span class="perf-checked-tag">✓ 확인함</span>' : '') + (r.memoCount ? '<span class="perf-memo-tag">메모 ' + r.memoCount + '</span>' : '');
+    return '<div class="perf-stu s-' + k + '"><div class="perf-stu-who"><span class="perf-stu-no">' + sid + '</span><b class="perf-stu-name">' + escapeHtml(r.name) + '</b></div>'
+      + '<div class="perf-stu-score"><b>' + r.score + '</b><span>/ ' + r.max + '점</span></div>'
+      + '<div class="perf-stu-state">' + chip + '</div>'
+      + '<div class="perf-stu-acts"><button type="button" class="perf-stu-btn" onclick="dashAdjustPerfScore_(\'' + sid + '\')">점수 조정</button>'
+      + '<button type="button" class="perf-stu-btn perf-stu-btn-main" onclick="dashLoadPerfEvidence_(\'' + sid + '\')">근거 보기</button></div></div>';
+  }).join('');
+  box.innerHTML = tabs + '<div class="perf-stu-list">' + (rowsHtml || '<p class="dash-hint">이 조건에 맞는 학생이 없어요 🎉</p>') + '</div>';
 }
 async function dashAdjustPerfScore_(sid){
   const r = PERF_ADMIN_ROWS.find(x => x.studentId === sid);
