@@ -186,7 +186,7 @@ async function dashLoadPerfStatus_(){
       const ok = list.filter(r => r.response === '이상 없음' && !perfAdminChanged_(r)).length;
       const ask = list.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).length;
       return '<tr><td class="l">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</td><td>' + list.length + '</td><td>' + ok
-        + '</td><td>' + ask + '</td><td' + (wait ? ' class="perf-wait"' : '') + '>' + wait + '</td><td>' + (list.length - ok - ask - wait) + '</td></tr>';
+        + '</td><td>' + ask + '</td><td' + (wait ? ' class="perf-wait"' : '') + '>' + wait + '</td><td>' + perfNoneCell_(k, list.length - ok - ask - wait) + '</td></tr>'; // v107: 아직 안 누름 숫자를 누르면 명단 팝업
     }).join('');
     const asks = rows.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).sort((a, b) => a.studentId.localeCompare(b.studentId));
     const changed = rows.filter(perfAdminChanged_).sort((a, b) => a.studentId.localeCompare(b.studentId));
@@ -195,7 +195,9 @@ async function dashLoadPerfStatus_(){
       const list = byBan[k];
       return '<span class="perf-bansum-chip">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반 ' + list.filter(r => r.response).length + '/' + list.length + '</span>';
     }).join('') + '</div>';
-    box.innerHTML = banSum + '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
+    const noneAll = rows.filter(r => !r.response).length; // v107
+    box.innerHTML = banSum + '<div class="perf-toolbar"><button type="button" class="perf-askbtn perf-askbtn-none" onclick="perfNoneOpen_(\'\')">👀 아직 안 누른 학생 보기 (' + noneAll + '명)</button></div>'
+      + '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
       + (changed.length ? '<p class="dash-section-title">🔔 점수가 바뀌어 재확인 대기 (' + changed.length + '명)</p>' // v101
           + '<p class="dash-hint">응답 뒤에 점수가 바뀐 학생이에요. 학생 화면에 «점수가 달라졌어요» 안내가 뜨고, 새 점수를 보고 다시 누르면 이 목록에서 빠져요.</p>'
           + '<div class="perf-asklist">' + changed.map(r => '<button type="button" class="perf-askbtn perf-askbtn-wait" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
@@ -255,6 +257,39 @@ function perfTopic_(text){
   if(/^Q\./.test(first)) return '활동 뒤 질문 답변 — ' + first.replace(/^Q\.\s*/, '').slice(0, 26) + '…';
   if(/^나는 신하 \d의 입장/.test(first)) return '왕권 vs 신권 입장 글 (' + first.slice(0, 12) + '…)';
   return first ? '주제 표시 없음 — ' + first.slice(0, 20) + '…' : '(내용 없음)';
+}
+/* v107 — «아직 안 누름» 명단 팝업(교사 전용, 읽기 전용이라 PREVIEW_MODE 가드 불필요). 반 키(예 101) 또는 ''(전체)를 받아
+ * 반별로 묶어 보여 주고, 복사 버튼은 알림장·메신저에 붙여 쓸 "1학년 1반 (N명): 이름, 이름" 줄을 만든다. 데이터는 PERF_ADMIN_ROWS 그대로(추가 fetch 없음). */
+function perfBanName_(k){ return Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반'; }
+function perfNoneCell_(k, n){
+  return n ? '<button type="button" class="perf-none-num" title="누르면 명단이 열려요" onclick="perfNoneOpen_(\'' + escapeHtml(k) + '\')">' + n + '</button>' : '0';
+}
+function perfNoneGroups_(ban){
+  const g = {};
+  PERF_ADMIN_ROWS.filter(r => !r.response && (!ban || r.studentId.slice(0, 3) === ban)).forEach(r => {
+    (g[r.studentId.slice(0, 3)] = g[r.studentId.slice(0, 3)] || []).push(r);
+  });
+  Object.keys(g).forEach(k => g[k].sort((a, b) => a.studentId.localeCompare(b.studentId)));
+  return g;
+}
+function perfNoneOpen_(ban){
+  const g = perfNoneGroups_(ban), keys = Object.keys(g).sort();
+  const total = keys.reduce((n, k) => n + g[k].length, 0);
+  const all = PERF_ADMIN_ROWS.filter(r => !ban || r.studentId.slice(0, 3) === ban).length;
+  const title = (ban ? perfBanName_(ban) + ' ' : '') + '아직 안 누른 학생 ' + total + '명';
+  if(!total){ perfModalOpen_(title, '', '<p class="dash-hint">모두 눌렀어요 🎉</p>'); return; }
+  const body = '<p class="dash-hint">«이상 없음/이상 있음»을 한 번도 누르지 않은 학생이에요. 전체 ' + all + '명 중 ' + total + '명. 점수가 바뀌어 다시 눌러야 하는 학생은 «재확인 대기»라서 여기엔 안 들어와요.</p>'
+    + '<div class="perf-none-actions"><button type="button" class="perf-askbtn" onclick="perfNoneCopy_(\'' + escapeHtml(ban) + '\')">📋 명단 복사</button>'
+    + '<button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_().then(() => perfNoneOpen_(\'' + escapeHtml(ban) + '\'))">↻ 새로고침</button></div>'
+    + keys.map(k => '<details class="perf-grp perf-none-grp" open><summary>' + perfBanName_(k) + ' <span class="perf-none-cnt">' + g[k].length + '명</span></summary>'
+      + '<div class="perf-asklist perf-none-list">' + g[k].map(r => '<span class="perf-none-chip">' + escapeHtml(Number(r.studentId.slice(3)) + '번 ' + r.name) + '</span>').join('') + '</div></details>').join('');
+  perfModalOpen_(title, '수행평가 점수 확인', body);
+}
+async function perfNoneCopy_(ban){
+  const g = perfNoneGroups_(ban), keys = Object.keys(g).sort();
+  const lines = keys.map(k => perfBanName_(k) + ' (' + g[k].length + '명): ' + g[k].map(r => r.name).join(', '));
+  try{ await navigator.clipboard.writeText('수행평가 점수 확인 — 아직 안 누른 학생\n' + lines.join('\n')); showToast('명단을 복사했어요.'); }
+  catch(e){ showToast('복사에 실패했어요.'); }
 }
 let PERF_UI_KEEP = null;
 /* v98 — 글 하나의 점수 조정(교사). POST adjustPerfPostScore → 반영 글·총점 재계산은 백엔드가 한다. */
