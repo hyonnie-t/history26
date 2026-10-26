@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=109">
+<link rel="stylesheet" href="style.css?v=111">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -653,11 +653,14 @@
   </div>
 
   <div class="dash-panel" id="panelCheckin" style="display:none;">
-    <p class="dash-hint">
-      기본은 <b>감정 체크인</b>이에요 — 학생이 로그인하면 감정 온도 + 감정칩(날마다 랜덤) 뒤에 포춘쿠키가 나와요.
-      "오늘의 체크인 차시"에서 수업 체크인을 고르면 그 문항(감정 온도 + 발문)이 대신 뜨고, 판단형 보기 순서는 학생마다 섞여요.
-      학생 화면엔 회수 질문·연속 저온도 표시가 절대 노출되지 않아요.
-    </p>
+    <!-- v111: 긴 설명은 접어 두고(상태는 dash_fold_ckDesc에 기억) 핵심은 «오늘 한눈에» 카드가 보여 준다. -->
+    <details class="fold-note" data-fold="ckDesc"><summary>체크인 설명 보기</summary>
+      <p class="dash-hint">
+        기본은 <b>감정 체크인</b>이에요 — 학생이 로그인하면 감정 온도 + 감정칩(날마다 랜덤) 뒤에 포춘쿠키가 나와요.
+        "오늘의 체크인 차시"에서 수업 체크인을 고르면 그 문항(감정 온도 + 발문)이 대신 뜨고, 판단형 보기 순서는 학생마다 섞여요.
+        학생 화면엔 회수 질문·연속 저온도 표시가 절대 노출되지 않아요.
+      </p>
+    </details>
 
     <div class="cl-subtabs">
       <button class="cl-subtab active" data-sub="today" onclick="switchCkSubtab('today')">오늘 · 현황</button>
@@ -668,17 +671,22 @@
       <!-- v40: 반별 오늘의 체크인 차시 요약 — "전체 반" 설정과 반별 override를 병합한
            유효 차시를 표로 한눈에 보여줌. 값과 함께 출처(전체 설정 vs 반별 지정)도 표기해서
            나중에 "전체 설정을 바꿨는데 이 반만 안 바뀐" 혼란을 줄이는 목적. -->
-      <div class="dash-card">
+      <!-- v111: 요약 표 → 반 카드(오늘 차시 칩 + 응답 n/총원 + 연속 저온도 + «바꾸기»). 응답이 있는 반은 담당 반이 아니어도 나온다.
+           연속 저온도 학생은 카드 묶음 맨 위 알림(#ckAlertBox)으로 올리고, 숫자를 누르면 명단 팝업(perfModalOpen_ 재사용)이 열린다. -->
+      <div class="dash-card ck-overview">
         <div>
-          <h4 class="dash-card-title">반별 오늘의 체크인 차시 요약</h4>
-          <p class="cl-hint" style="margin-bottom:10px;">"전체 설정"은 그 학년 공통값을 그대로 따르고 있다는 뜻이고, "반별 지정"은 그 반만 따로 골라둔 상태라는 뜻이에요.</p>
+          <h4 class="dash-card-title">오늘 한눈에 — 반별 체크인</h4>
+          <div id="ckAlertBox"></div>
+          <details class="fold-note" data-fold="ckLegend"><summary>표시 설명 보기</summary>
+            <p class="cl-hint">"전체 설정"은 그 학년 공통값을 그대로 따르고 있다는 뜻이고, "반별 지정"은 그 반만 따로 골라둔 상태라는 뜻이에요. 초록 칩은 수업 체크인, 회색 칩은 기본 감정 체크인이에요. "담당 외"는 담당 반이 아닌데 오늘 응답이 있는 반이에요.</p>
+          </details>
           <div id="ckSummaryTables"><p class="muted">불러오는 중…</p></div>
         </div>
       </div>
 
       <!-- v41: 적용 대상을 공지 관리(v30)와 같은 "담당 학급반/전체/개별 반" 3분류 라디오로 개편.
            dashMyBans_()가 돌려주는 담당 반 목록을 그대로 재사용. -->
-      <div class="dash-card">
+      <div class="dash-card" id="ckSetCard">
         <div>
           <h4 class="dash-card-title">오늘의 체크인 차시 설정</h4>
           <div class="cl-row" style="margin-bottom:8px;">
@@ -699,14 +707,17 @@
             <select id="ckSetLesson" style="flex:1 1 220px;"></select>
             <button class="btn btn-sm" id="btnCkSetApply">적용</button>
           </div>
-          <p class="cl-hint" style="margin-bottom:6px;">"담당 학급반"은 로그인한 선생님이 맡은 반 전체에, "전체"는 그 학년 공통으로, "개별 반"은 고른 반 하나에만 적용돼요. 담당 학급반·개별 반은 그 반만의 별도 지정(override)이라 전체 설정보다 우선해요.</p>
+          <details class="fold-note" data-fold="ckSetDesc"><summary>적용 대상 설명 보기</summary>
+            <p class="cl-hint" style="margin-bottom:6px;">"담당 학급반"은 로그인한 선생님이 맡은 반 전체에, "전체"는 그 학년 공통으로, "개별 반"은 고른 반 하나에만 적용돼요. 담당 학급반·개별 반은 그 반만의 별도 지정(override)이라 전체 설정보다 우선해요.</p>
+          </details>
           <p id="ckSetCurrent" style="font-size:.85rem; color:var(--ink-soft);"></p>
         </div>
       </div>
 
       <!-- v40: 담당 반 번호 체계가 학년별로 겹치지 않아(2학년 1~4반 / 3학년 5~8반) 반 선택을
            좌우가 공유할 수 없음 — 학년별 완전 독립 2단 배치로 감. -->
-      <div class="cl-row" style="margin-bottom:12px; justify-content:flex-end;">
+      <div class="cl-row" style="margin-bottom:12px; justify-content:space-between; align-items:center;">
+        <h4 class="dash-card-title" style="margin:0;">학년별 응답 상세</h4>
         <button class="btn btn-ghost btn-sm" id="btnCkViewRefreshAll">전체 새로고침</button>
       </div>
       <div class="ck-two-col" id="ckStatCols"></div>
@@ -1026,7 +1037,7 @@
 <script src="js/03-grade-lookup.js?v=104"></script>
 <script src="js/04-perf-score.js?v=104"></script>
 <script src="js/05-badges-events.js?v=104"></script>
-<script src="js/06-dashboard.js?v=110"></script>
+<script src="js/06-dashboard.js?v=111"></script>
 <script src="js/07-dash-admin-boot.js?v=109"></script>
 </body>
 </html>

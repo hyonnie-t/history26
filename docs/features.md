@@ -127,6 +127,13 @@ source_emotion=텍스트)을 정한다.
 ## 기본 감정 체크인 (v88)
 오늘 차시가 비었거나 "감정체크인"이면 `maybeStartCheckin()`이 `CHECKIN_CTX.lesson.type="emotion_default"`로 만들고 `renderEmotionDefaultBody_()`가 오른쪽 페이지를 그린다(온도 → 감정칩 6개/기타 입력 → `renderFortuneStep_()` 포춘쿠키 → `finishCheckinFlow`). 데이터는 `checkin_data.js`의 `CHECKIN_EMOTION`(고정 문구, AI 없음). 칩·쿠키 문구·판단형 A/B 순서는 `ckSeed_()`(학생+날짜) 시드 난수로 정해져 새로고침해도 같다. 저장은 기존 `checkin` action 그대로(`lessonId:"감정체크인"`, `source_emotion`, `word`=감정). `alreadyChecked`는 학생+날짜 기준이라 백엔드 변경 없음. 학생 화면에 교사용 표현(검수·확인 전 등)을 넣지 말 것.
 
+## 체크인 대시보드 «오늘 한눈에» (v110·v111)
+교사 «체크인 → 오늘·현황» 맨 위. 반마다 카드 한 장(`dashRenderCkSummaryTable_()`): 오늘 차시 칩(수업=초록 `.is-lesson`, 기본 감정=회색 `.is-default` — 클래스를 `lesson`/`default`로 쓰면 타임라인 `.lesson::before` 동그라미가 붙는다), 출처(전체 설정/반별 지정), 응답 n/총원 + 막대, 연속 저온도 버튼, «바꾸기».
+- **응답 수·저온도는 `CK_ROWS`**(학년→오늘 응답, 학생당 최신 1건)에서 읽는다. `dashLoadCheckinAdmin()`이 `checkinAdmin` 결과를 반 필터 전에 담고 요약을 다시 그린다(`CK_SUM_SEQ`로 늦게 끝난 옛 렌더 버림). 응답이 있는 반은 `BAN_SIZE`에 없어도 «담당 외»(점선 카드, 총원 없이 «n명 응답»)로 나온다.
+- **`checkinToday`는 교사 `token`을 붙여야 한다**(v83 학생 로그인 게이트). 안 붙이면 `needLogin` 오류가 «설정 없음»으로 읽혀 모든 반이 «감정 체크인 (기본)»으로 보이던 사고가 v110 이전에 있었다 — 대시보드에서 `checkinToday`를 부르는 곳(`ckFetchTodayLessonId_`·`dashLoadCkSetCurrent`)은 항상 `&token=`.
+- «바꾸기»(`ckEditFromCard_`)는 설정 폼만 채운다(개별 반 + 현재 차시). 저장은 기존 «적용»(`dashApplyCkSet`) 그대로.
+- 연속 저온도 알림·팝업(`ckLowOpen_`, `perfModalOpen_` 재사용, 명단 복사·새로고침)은 교사 전용 읽기 값이라 학생 화면에 안 나온다. 긴 설명 3곳은 `details[data-fold]`로 접혀 있다(`dash_fold_ckDesc`·`ckLegend`·`ckSetDesc`).
+
 ## 학생 로그인 비밀번호 (v83)
 목적은 **학생끼리 서로의 기록·성적에 못 들어가게** 하는 것(교사는 토큰으로 전부 본다). 서버 쪽은 `history26_backend` "학생 로그인 비밀번호".
 - **첫 로그인**: 교사가 대시보드 "🔐 학생 계정"에서 정한 **공통 초기 비밀번호**로 들어오면 서버가 `mustChange`만 주고, 표지가 "새 비밀번호" 단계

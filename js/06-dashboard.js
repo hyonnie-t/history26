@@ -477,19 +477,27 @@ function dashCheckinGrades_(){
 /* v40 — "오늘의 체크인 차시" 조회를 캐시까지 포함해 한 곳으로 모음(요약 표·통계 컬럼의
  * 회수 질문 조회가 같은 (학년,반) 조합을 중복 요청하지 않도록). dashLoadCkSetCurrent()는
  * "설정 편집" 폼용이라 항상 최신값이 필요해 이 캐시를 거치지 않고 직접 조회한다. */
+const CK_TODAY_PENDING = {}; // v111: 키별 진행 중 조회(요약 렌더가 동시에 여러 번 돌아도 GAS 요청은 한 번만)
 async function ckFetchTodayLessonId_(grade, ban){
   const cacheKey = grade + '-' + ban;
   if(CK_TODAY_LESSON[cacheKey] !== undefined) return CK_TODAY_LESSON[cacheKey];
-  try{
-    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
-      + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban)
-      + '&token=' + encodeURIComponent(TOKEN)); // v110: v83 로그인 게이트가 token 없는 조회를 막아 요약표가 전부 «감정 체크인(기본)»으로 보였다
-    const lessonId = (data.result === 'success') ? (data.lessonId || '') : '';
-    CK_TODAY_LESSON[cacheKey] = lessonId;
-    return lessonId;
-  }catch(e){
-    return '';
-  }
+  if(CK_TODAY_PENDING[cacheKey]) return CK_TODAY_PENDING[cacheKey];
+  const p = (async () => {
+    try{
+      const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
+        + '?mode=checkinToday&grade=' + encodeURIComponent(grade) + '&ban=' + encodeURIComponent(ban)
+        + '&token=' + encodeURIComponent(TOKEN)); // v110: v83 로그인 게이트가 token 없는 조회를 막아 요약표가 전부 «감정 체크인(기본)»으로 보였다
+      const lessonId = (data.result === 'success') ? (data.lessonId || '') : '';
+      if(CK_TODAY_LESSON[cacheKey] === undefined) CK_TODAY_LESSON[cacheKey] = lessonId; // v111: 조회 중에 «적용»으로 새 값이 들어갔으면 옛 응답으로 덮지 않는다
+      return CK_TODAY_LESSON[cacheKey];
+    }catch(e){
+      return '';
+    }finally{
+      delete CK_TODAY_PENDING[cacheKey];
+    }
+  })();
+  CK_TODAY_PENDING[cacheKey] = p;
+  return p;
 }
 
 async function dashInitCheckinForm(){
@@ -509,6 +517,7 @@ async function dashInitCheckinForm(){
   $('ckqGradeTabs').innerHTML = grades.map(g =>
     `<button type="button" class="cl-subtab${g === CKQ_GRADE ? ' active' : ''}" data-grade="${g}" onclick="switchCkqGradeTab_('${g}')">${g}학년</button>`
   ).join('');
+  document.querySelectorAll('#panelCheckin details[data-fold]').forEach(dashFoldInit_); // v111
   dashRefreshCkSetLessons();
   dashOnCkSetTargetChange_();
   dashRenderCkSummaryTable_();
@@ -518,48 +527,134 @@ async function dashInitCheckinForm(){
   dashRefreshCkSetLessons(); // v55 — CHECKIN_LESSONS_ADMIN(isPast)이 이제 막 채워졌으니 다시 걸러서 그림
 }
 
-/* v40 — 반별 체크인 차시 요약 표. "전체 반" 값과 반별 override 값을 각각 조회해서 비교하는
- * 방식으로 병합 — 백엔드에 "이 반이 override인지" 자체를 알려주는 필드가 없어서(체크인설정
- * 시트를 그대로 내려주는 API가 없음), 효과값이 전체 설정값과 다르면 반별 지정으로 판정한다.
- * (드물게 override 값을 전체 설정과 "같은 차시"로 지정한 경우엔 "전체 설정"으로 잘못
- * 표시될 수 있음 — 실제 적용 차시 자체는 맞으므로 화면상 혼란은 없음.) */
+/* v111 — 요약 표를 «반 카드»로 바꿨다. 카드마다 오늘 차시(수업=초록 칩, 기본 감정=회색 칩) + 출처 + 응답 n/총원 + 연속 저온도 + «바꾸기».
+ * 응답 수·저온도는 dashLoadCheckinAdmin이 CK_ROWS(학년→오늘 응답, 학생당 최신 1건)에 담아 두면 거기서 읽는다(추가 fetch 없음).
+ * 응답이 있는 반은 담당 반(BAN_SIZE)이 아니어도 «담당 외»로 같이 보여 준다 — 요약에 안 보이던 반(예: 훈구와 사림 응답)이 있었다.
+ * 연속 저온도는 교사 전용 값(lowStreakAlert)이라 학생 화면과 무관하다. */
+let CK_ROWS = {};
+let CK_SUM_SEQ = 0;
+function ckBanKey_(grade, ban){ return String(grade) + String(ban).padStart(2, '0'); }
+function ckRowsOfBan_(grade, ban){
+  return (CK_ROWS[grade] || []).filter(r => String(r.studentId).slice(0, 3) === ckBanKey_(grade, ban));
+}
+function ckLowRows_(grade, ban){
+  return (CK_ROWS[grade] || []).filter(r => r.lowStreakAlert && (!ban || String(r.studentId).slice(0, 3) === ckBanKey_(grade, ban)));
+}
 async function dashRenderCkSummaryTable_(){
   const box = $('ckSummaryTables');
   const grades = dashCheckinGrades_();
   if(!grades.length){
     box.innerHTML = '<p class="muted">담당 반 정보(config.js의 BAN_SIZE)가 없어요.</p>';
+    $('ckAlertBox').innerHTML = '';
     return;
   }
-  box.innerHTML = '<p class="muted">불러오는 중…</p>';
+  const seq = ++CK_SUM_SEQ;
+  if(!box.querySelector('.ck-cards')) box.innerHTML = '<p class="muted">불러오는 중…</p>'; // 이미 카드가 떠 있으면 깜빡이지 않게 그대로 두고 갈아끼운다
   try{
-    const tablesHtml = await Promise.all(grades.map(async grade => {
-      const bans = dashTeachingBans_(grade);
+    const per = await Promise.all(grades.map(async grade => {
+      const teaching = dashTeachingBans_(grade);
+      const respBans = (CK_ROWS[grade] || []).map(r => Number(String(r.studentId).slice(1, 3))).filter(n => n > 0);
+      const bans = Array.from(new Set(teaching.concat(respBans))).sort((a, b) => a - b);
       const allLessonId = await ckFetchTodayLessonId_(grade, '전체');
-      const rowsHtml = (await Promise.all(bans.map(async ban => {
-        const lessonId = await ckFetchTodayLessonId_(grade, String(ban));
-        const lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
-        const topic = lesson ? escapeHtml(lesson.topic) : '<span class="muted">감정 체크인 (기본)</span>'; // v88: 미지정 = 기본 감정 체크인
-        const isOverride = lessonId !== allLessonId;
-        const src = isOverride
-          ? '<span class="ck-src-tag override">반별 지정</span>'
-          : '<span class="ck-src-tag">전체 설정</span>';
-        return `<tr><td>${ban}반</td><td>${topic}</td><td>${src}</td></tr>`;
-      }))).join('');
-      return `
-        <div style="margin-bottom:14px;">
-          <p style="font-weight:700; font-size:.85rem; margin-bottom:6px;">[${grade}학년 담당반]</p>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>반</th><th>오늘 차시</th><th>비고</th></tr></thead>
-              <tbody>${rowsHtml}</tbody>
-            </table>
-          </div>
-        </div>`;
+      const lessonIds = await Promise.all(bans.map(ban => ckFetchTodayLessonId_(grade, String(ban))));
+      return { grade, teaching, bans, allLessonId, lessonIds };
     }));
-    box.innerHTML = tablesHtml.join('');
+    if(seq !== CK_SUM_SEQ) return; // 더 새 렌더가 이미 시작됨
+    let lowTotal = 0;
+    const html = per.map(({ grade, teaching, bans, allLessonId, lessonIds }) => {
+      const cards = bans.map((ban, i) => {
+        const lessonId = lessonIds[i];
+        const lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
+        const chip = lesson
+          ? `<span class="ck-chip is-lesson">${escapeHtml(lesson.topic)}</span>`
+          : '<span class="ck-chip is-default">감정 체크인 (기본)</span>'; // v88: 미지정 = 기본 감정 체크인
+        const isOverride = lessonId !== allLessonId;
+        const src = isOverride ? '<span class="ck-src-tag override">반별 지정</span>' : '<span class="ck-src-tag">전체 설정</span>';
+        const isTeaching = teaching.includes(ban);
+        const total = isTeaching ? CONFIG.BAN_SIZE[grade][ban] : null;
+        const done = CK_ROWS[grade] ? ckRowsOfBan_(grade, ban).length : null; // null = 아직 안 불러옴
+        const pct = (total && done !== null) ? Math.min(100, Math.round(done / total * 100)) : 0;
+        const prog = done === null ? '응답 불러오는 중…' : (total ? `<b>${done}</b> / ${total}명 응답` : `<b>${done}</b>명 응답`);
+        const low = CK_ROWS[grade] ? ckLowRows_(grade, ban).length : 0;
+        lowTotal += low;
+        const lowBtn = low
+          ? `<button type="button" class="ck-low-btn" title="누르면 명단이 열려요" onclick="ckLowOpen_('${grade}','${ban}')">⚠ 연속 저온도 ${low}명</button>` : '';
+        return `
+          <div class="ck-card${isTeaching ? '' : ' is-other'}">
+            <div class="ck-card-head"><span class="ck-card-ban">${ban}반${isTeaching ? '' : ' <small class="ck-other-tag">담당 외</small>'}</span>${src}</div>
+            ${chip}
+            <div class="ck-prog" aria-hidden="true"><i style="width:${pct}%"></i></div>
+            <div class="ck-card-meta">${prog}</div>
+            <div class="ck-card-actions">${lowBtn}<button type="button" class="btn btn-ghost btn-sm" onclick="ckEditFromCard_('${grade}','${ban}')">바꾸기</button></div>
+          </div>`;
+      }).join('');
+      return `<p class="ck-grade-title">${grade}학년</p><div class="ck-cards">${cards}</div>`;
+    }).join('');
+    box.innerHTML = html;
+    $('ckAlertBox').innerHTML = lowTotal
+      ? `<div class="ck-alert"><span><b>⚠ 최근 3회 연속 저온도 ${lowTotal}명</b> — 오늘 응답 기준, 선생님만 보는 값이에요.</span><button type="button" class="btn btn-ghost btn-sm" onclick="ckLowOpen_('','')">명단 보기</button></div>`
+      : '';
   }catch(e){
     box.innerHTML = '<p class="muted">요약을 불러오지 못했어요: ' + escapeHtml(e.message) + '</p>';
   }
+}
+
+/* v111 — 카드의 «바꾸기»: 아래 «오늘의 체크인 차시 설정» 폼을 그 학년·반(개별 반)·현재 차시로 채우고 폼으로 스크롤한다.
+ * 쓰기는 하지 않는다(눌러야 하는 건 기존 «적용» 버튼 — token 처리는 dashApplyCkSet 그대로). */
+function ckEditFromCard_(grade, ban){
+  /* 반 목록(ckSetBanOne)은 1~8반 고정이라 그 밖의 반이면 폼을 건드리지 않는다 — 건드리면 이전에 골라 둔 다른 반에 적용될 수 있다. */
+  if(!$('ckSetGrade').querySelector('option[value="' + grade + '"]') || !$('ckSetBanOne').querySelector('option[value="' + ban + '"]')){
+    showToast(grade + '학년 ' + ban + '반은 설정 목록에 없어요.');
+    return;
+  }
+  $('ckSetGrade').value = grade;
+  dashRefreshCkSetLessons();
+  document.querySelector('input[name="ckSetTargetType"][value="one"]').checked = true;
+  $('ckSetBanOne').value = ban;
+  const cur = CK_TODAY_LESSON[grade + '-' + ban];
+  const want = cur || (typeof CHECKIN_EMOTION !== 'undefined' ? CHECKIN_EMOTION.id : '');
+  const lessonFilled = !!want && [...$('ckSetLesson').options].some(o => o.value === want);
+  if(lessonFilled) $('ckSetLesson').value = want;
+  dashOnCkSetTargetChange_();
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('ckSetCard').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+  $('ckSetLesson').focus({ preventScroll: true });
+  showToast(lessonFilled
+    ? grade + '학년 ' + ban + '반 설정으로 맞췄어요. 차시를 고르고 «적용»을 눌러요.'
+    : grade + '학년 ' + ban + '반으로 맞췄어요. 현재 차시가 목록에 없어서 차시는 직접 골라야 해요.');
+}
+
+/* v111 — 연속 저온도 명단 팝업(v107 perfModalOpen_ 재사용, 읽기 전용이라 PREVIEW_MODE 가드 불필요). grade ''면 전체 학년, ban ''면 그 학년 전체 반. */
+function ckLowGroups_(grade, ban){
+  const g = {};
+  (grade ? [grade] : dashCheckinGrades_()).forEach(gr => ckLowRows_(gr, ban).forEach(r => {
+    const k = String(r.studentId).slice(0, 3);
+    (g[k] = g[k] || []).push(r);
+  }));
+  Object.keys(g).forEach(k => g[k].sort((a, b) => String(a.studentId).localeCompare(String(b.studentId))));
+  return g;
+}
+function ckLowOpen_(grade, ban){
+  const g = ckLowGroups_(grade, ban), keys = Object.keys(g).sort();
+  const total = keys.reduce((n, k) => n + g[k].length, 0);
+  const title = (grade && ban ? grade + '학년 ' + ban + '반 ' : '') + '연속 저온도 학생 ' + total + '명';
+  if(!total){ perfModalOpen_(title, '', '<p class="dash-hint">오늘 응답 기준으로 해당하는 학생이 없어요.</p>'); return; }
+  const body = '<p class="dash-hint">오늘 체크인에 응답한 학생 중, 가장 최근 기록부터 3회 연속 온도가 낮았던 학생이에요(선생님만 보는 값 — 학생 화면엔 나오지 않아요).</p>'
+    + '<div class="perf-none-actions"><button type="button" class="perf-askbtn" onclick="ckLowCopy_(\'' + grade + '\',\'' + ban + '\')">📋 명단 복사</button>'
+    + '<button type="button" class="perf-askbtn" onclick="ckLowRefresh_(\'' + grade + '\',\'' + ban + '\')">↻ 새로고침</button></div>'
+    + keys.map(k => '<details class="perf-grp perf-none-grp" open><summary>' + perfBanName_(k) + ' <span class="perf-none-cnt">' + g[k].length + '명</span></summary>'
+      + '<div class="perf-asklist perf-none-list">' + g[k].map(r => '<span class="perf-none-chip">' + escapeHtml(Number(String(r.studentId).slice(3)) + '번 ' + r.studentName + ' · 온도 ' + r.temperature) + '</span>').join('') + '</div></details>').join('');
+  perfModalOpen_(title, '웰컴 체크인', body);
+}
+async function ckLowCopy_(grade, ban){
+  const g = ckLowGroups_(grade, ban), keys = Object.keys(g).sort();
+  const lines = keys.map(k => perfBanName_(k) + ' (' + g[k].length + '명): ' + g[k].map(r => r.studentName).join(', '));
+  try{ await navigator.clipboard.writeText('체크인 — 최근 3회 연속 저온도 학생\n' + lines.join('\n')); showToast('명단을 복사했어요.'); }
+  catch(e){ showToast('복사에 실패했어요.'); }
+}
+async function ckLowRefresh_(grade, ban){
+  await Promise.all((grade ? [grade] : dashCheckinGrades_()).map(g => dashLoadCheckinAdmin(g)));
+  ckLowOpen_(grade, ban);
 }
 
 /* v40 — 학년별 2단 독립 배치. 담당 반 번호가 학년마다 겹치지 않아(2학년 1~4반/3학년 5~8반)
@@ -705,6 +800,14 @@ async function dashLoadCheckinAdmin(grade){
       + '?mode=checkinAdmin&token=' + encodeURIComponent(TOKEN) + '&grade=' + encodeURIComponent(grade));
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     let rows = data.rows || [];
+    /* v111: 반 카드(응답 수·연속 저온도)가 읽는 캐시 — 반 필터 전, 학생당 최신 1건으로 걸러 담는다. */
+    const latestAll = {};
+    rows.forEach(r => {
+      const prev = latestAll[r.studentId];
+      if(!prev || new Date(r.timestamp) >= new Date(prev.timestamp)) latestAll[r.studentId] = r;
+    });
+    CK_ROWS[grade] = Object.values(latestAll);
+    dashRenderCkSummaryTable_();
     const ban = $('ckViewBan_' + grade).value; // '' = 전체 반 보기
     if(ban) rows = rows.filter(r => { const p = parseStudentId(String(r.studentId)); return p && p.ban === Number(ban); });
 

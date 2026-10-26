@@ -1259,6 +1259,33 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
   display:inline-block; background:var(--amber-bg); border:1px solid var(--amber-border);
   color:var(--amber-text); border-radius:999px; padding:1px 9px; font-weight:700;
 }
+/* v111 — 체크인 «오늘 한눈에» 반 카드. 폭에 따라 자동으로 열 수가 바뀐다(폰 1~2열·태블릿 2~3열·PC 3~4열).
+ * 카드 안 카드가 되지 않게 바깥 .dash-card와 같은 흰 바탕 위에 옅은 선만 둔다. */
+.ck-grade-title{font-weight:700; font-size:.95rem; margin:14px 0 8px;}
+.ck-grade-title:first-child{margin-top:4px;}
+.ck-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
+.ck-card{display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--row-line); border-radius:var(--radius-sm); background:var(--paper);}
+.ck-card.is-other{border-style:dashed; border-color:var(--line);}
+.ck-card-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.ck-card-ban{font-weight:700; font-size:1.05rem;}
+.ck-other-tag{font-weight:600; font-size:.75rem; color:var(--ink-soft);}
+.ck-chip{align-self:flex-start; max-width:100%; padding:5px 12px; border:1px solid; border-radius:999px; font-size:.9rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere;}
+.ck-chip.is-lesson{background:var(--jade-bg); border-color:var(--jade-border); color:var(--jade-text-deep);}
+.ck-chip.is-default{background:#fff; border-color:var(--line); color:var(--ink-soft); font-weight:600;}
+.ck-prog{height:6px; border-radius:999px; background:var(--row-line); overflow:hidden;}
+.ck-prog > i{display:block; height:100%; background:var(--jade);}
+.ck-card-meta{font-size:.88rem; color:var(--ink-soft);}
+.ck-card-meta b{color:var(--ink); font-size:1rem;}
+.ck-card-actions{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:auto;}
+.ck-low-btn{min-height:36px; padding:0 10px; border:1px solid var(--seal); border-radius:8px; background:rgba(176,58,46,.08); color:var(--seal); font-weight:700; font-size:.85rem; cursor:pointer;}
+.ck-alert{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; background:rgba(176,58,46,.06); border-left:3px solid var(--seal); border-radius:var(--radius-xs); padding:10px 14px; margin-bottom:12px; font-size:.9rem;}
+/* 태블릿(세로·가로)은 손가락으로 누르니 카드·버튼을 키운다 */
+@media (min-width:700px) and (max-width:1200px){
+  .ck-cards{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
+  .ck-card-ban{font-size:1.15rem;}
+  .ck-chip{font-size:1rem;}
+  .ck-low-btn{min-height:var(--tap-min);}
+}
 
 
 /* v78 — 의심 기록 표 보기(시트처럼). 폭이 좁으면 .st-scroll이 가로 스크롤한다. */
@@ -1646,7 +1673,7 @@ html{scrollbar-gutter:stable;}
 #dashView .dash-tab .dq-badge{margin-left:5px; top:-1px; font-size:.7rem; padding:1px 8px;}
 
 /* 한 화면의 위아래 리듬 */
-#dashView .dash-panel > .dash-hint{
+#dashView .dash-panel > .dash-hint, #dashView .dash-panel > .fold-note > .dash-hint{
   font-size:.86rem; line-height:1.6; color:var(--ink-soft); margin:0 0 var(--d-gap); max-width:72ch;
 }
 #dashView .dash-hint b{color:var(--ink);}
@@ -1854,10 +1881,7 @@ html{scrollbar-gutter:stable;}
   #ckSubToday{display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:var(--d-gap); align-items:start;}
   #ckSubToday > .dash-card{margin:0;}
   #ckSubToday > :nth-child(n+3){grid-column:1 / -1;}
-  #ckSummaryTables{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;}
-  #ckSummaryTables .table-wrap table{min-width:0;}
-  #ckSummaryTables th, #ckSummaryTables td{padding:9px 10px;}
-  #ckSummaryTables th:first-child, #ckSummaryTables td:first-child, #ckSummaryTables td:last-child{white-space:nowrap;}
+  /* v111: 요약이 표에서 반 카드로 바뀌어 학년 2열 배치와 표 전용 규칙을 걷었다(카드는 .ck-cards가 알아서 열을 나눈다). */
 }
 
 /* v92 — 입력칸이 카드(흰색)와 거의 같은 색이라 안 보이던 것: 칸 배경을 한 톤 어둡게, 테두리를 진하게.
@@ -1897,7 +1921,7 @@ html{scrollbar-gutter:stable;}
 
 /* 본문 글자 한 단계 키움 */
 #dashView .dash-panel{font-size:.97rem;}
-#dashView .dash-panel > .dash-hint, #dashView .dash-card-desc{
+#dashView .dash-panel > .dash-hint, #dashView .dash-panel > .fold-note > .dash-hint, #dashView .dash-card-desc{
   font-size:.95rem; line-height:1.65; color:var(--ink-soft); margin:0 0 var(--d-gap); max-width:68ch;
 }
 #dashView .dash-section-title{font-size:1.12rem; margin:36px 0 8px;}
