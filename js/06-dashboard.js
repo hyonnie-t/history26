@@ -554,26 +554,25 @@ async function dashRenderCkSummaryTable_(){
     return;
   }
   const seq = ++CK_SUM_SEQ;
-  if(!box.querySelector('.ck-cards')) box.innerHTML = '<p class="muted">불러오는 중…</p>'; // 이미 카드가 떠 있으면 깜빡이지 않게 그대로 두고 갈아끼운다
-  try{
-    const per = await Promise.all(grades.map(async grade => {
-      const teaching = dashTeachingBans_(grade);
-      const bans = teaching; // v112: 내가 맡은 반만 (응답이 있다고 다른 선생님 반 카드를 만들지 않는다)
-      const allLessonId = await ckFetchTodayLessonId_(grade, '전체');
-      const lessonIds = await Promise.all(bans.map(ban => ckFetchTodayLessonId_(grade, String(ban))));
-      return { grade, teaching, bans, allLessonId, lessonIds };
-    }));
+  /* v115: 카드를 먼저 그려 두고(차시는 «확인 중…»), 반마다 차시 조회가 끝나는 대로 그 칩만 채운다.
+   * 예전엔 학년×(전체+반) 10여 개 요청이 전부 끝날 때까지 «불러오는 중…» 한 줄이었고, 전체→반 순서로 직렬이라 두 배 걸렸다. */
+  let settled = false; // 모든 차시 조회가 끝났는데도 값이 없으면 조회 실패
+  const paint = () => {
     if(seq !== CK_SUM_SEQ) return; // 더 새 렌더가 이미 시작됨
     let lowTotal = 0;
-    const html = per.map(({ grade, teaching, bans, allLessonId, lessonIds }) => {
-      const cards = bans.map((ban, i) => {
-        const lessonId = lessonIds[i];
+    box.innerHTML = grades.map(grade => {
+      const allLessonId = CK_TODAY_LESSON[grade + '-전체'];
+      const cards = dashTeachingBans_(grade).map(ban => { // v112: 내가 맡은 반만
+        const lessonId = CK_TODAY_LESSON[grade + '-' + ban]; // undefined = 아직 조회 중(또는 실패)
+        const known = lessonId !== undefined;
         const lesson = lessonId ? (CHECKIN_PLAN[grade].lessons || []).find(l => l.id === lessonId) : null;
-        const chip = lesson
-          ? `<span class="ck-chip is-lesson">${escapeHtml(lesson.topic)}</span>`
-          : '<span class="ck-chip is-default">감정 체크인 (기본)</span>'; // v88: 미지정 = 기본 감정 체크인
-        const isOverride = lessonId !== allLessonId;
-        const src = isOverride ? '<span class="ck-src-tag override">반별 지정</span>' : '<span class="ck-src-tag">전체 설정</span>';
+        const chip = !known
+          ? `<span class="ck-chip is-default">${settled ? '차시를 불러오지 못했어요' : '차시 확인 중…'}</span>`
+          : lesson
+            ? `<span class="ck-chip is-lesson">${escapeHtml(lesson.topic)}</span>`
+            : '<span class="ck-chip is-default">감정 체크인 (기본)</span>'; // v88: 미지정 = 기본 감정 체크인
+        const src = !known || allLessonId === undefined ? ''
+          : (lessonId !== allLessonId ? '<span class="ck-src-tag override">반별 지정</span>' : '<span class="ck-src-tag">전체 설정</span>');
         const total = CONFIG.BAN_SIZE[grade][ban];
         const done = CK_ROWS[grade] ? ckRowsOfBan_(grade, ban).length : null; // null = 아직 안 불러옴
         const pct = (total && done !== null) ? Math.min(100, Math.round(done / total * 100)) : 0;
@@ -593,10 +592,17 @@ async function dashRenderCkSummaryTable_(){
       }).join('');
       return `<p class="ck-grade-title">${grade}학년</p><div class="ck-cards">${cards}</div>`;
     }).join('');
-    box.innerHTML = html;
     $('ckAlertBox').innerHTML = lowTotal
       ? `<div class="ck-alert"><span><b>⚠ 최근 3회 연속 저온도 ${lowTotal}명</b> — 오늘 응답 기준, 선생님만 보는 값이에요.</span><button type="button" class="btn btn-ghost btn-sm" onclick="ckLowOpen_('','')">명단 보기</button></div>`
       : '';
+  };
+  try{
+    paint();
+    const jobs = [];
+    grades.forEach(grade => ['전체'].concat(dashTeachingBans_(grade).map(String)).forEach(b => jobs.push(ckFetchTodayLessonId_(grade, b).then(paint)))); // v115: 전체·반 조회를 한꺼번에(직렬 아님)
+    await Promise.all(jobs);
+    settled = true;
+    paint();
   }catch(e){
     box.innerHTML = '<p class="muted">요약을 불러오지 못했어요: ' + escapeHtml(e.message) + '</p>';
   }
