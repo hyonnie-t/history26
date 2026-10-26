@@ -1244,6 +1244,17 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .choice-bucket-title{font-size:.85rem; font-weight:700; margin-bottom:2px;}
 .choice-bucket-title small{color:var(--ink-soft); font-weight:400;}
 .choice-bucket-names{font-size:.78rem; color:var(--ink-soft);}
+/* v112 — 응답 상세의 명단은 접어 둔다(선택지별 학생 목록·학생별 응답 목록) */
+.choice-fold > summary, .ck-list-fold > summary{cursor:pointer; list-style:none;}
+.choice-fold > summary::-webkit-details-marker, .ck-list-fold > summary::-webkit-details-marker{display:none;}
+.choice-fold > summary::before{content:"▸ "; color:var(--ink-soft);}
+.choice-fold[open] > summary::before{content:"▾ ";}
+.choice-fold[open] > .choice-bucket-names{margin-top:4px;}
+.ck-list-fold > summary{font-size:.85rem; font-weight:700; padding:10px 0; color:var(--ink-soft);}
+.ck-list-fold > summary::before{content:"▸ ";}
+.ck-list-fold[open] > summary::before{content:"▾ ";}
+.ck-detail-alert{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.ck-detail-alert .stat-alert-title{margin-bottom:0;}
 .q-meta-right{margin-left:auto; font-weight:700; color:var(--indigo);}
 .q-meta-dot{color:var(--seal); font-size:.7rem;}
 
@@ -1265,10 +1276,8 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .ck-grade-title:first-child{margin-top:4px;}
 .ck-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
 .ck-card{display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--row-line); border-radius:var(--radius-sm); background:var(--paper);}
-.ck-card.is-other{border-style:dashed; border-color:var(--line);}
 .ck-card-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
 .ck-card-ban{font-weight:700; font-size:1.05rem;}
-.ck-other-tag{font-weight:600; font-size:.75rem; color:var(--ink-soft);}
 .ck-chip{align-self:flex-start; max-width:100%; padding:5px 12px; border:1px solid; border-radius:999px; font-size:.9rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere;}
 .ck-chip.is-lesson{background:var(--jade-bg); border-color:var(--jade-border); color:var(--jade-text-deep);}
 .ck-chip.is-default{background:#fff; border-color:var(--line); color:var(--ink-soft); font-weight:600;}
