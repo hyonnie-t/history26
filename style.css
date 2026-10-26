@@ -1253,6 +1253,14 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .ck-list-fold > summary{font-size:.85rem; font-weight:700; padding:10px 0; color:var(--ink-soft);}
 .ck-list-fold > summary::before{content:"▸ ";}
 .ck-list-fold[open] > summary::before{content:"▾ ";}
+/* v114 — 학생별 응답을 반별로 접는다 */
+.ck-ban-fold{border-top:1px solid var(--line, #e7e2d8); margin-top:2px;}
+.ck-ban-fold > summary{cursor:pointer; list-style:none; padding:10px 0; font-size:.9rem; font-weight:700; word-break:keep-all;}
+.ck-ban-fold > summary::-webkit-details-marker{display:none;}
+.ck-ban-fold > summary::before{content:"▸ "; color:var(--ink-soft);}
+.ck-ban-fold[open] > summary::before{content:"▾ ";}
+.ck-ban-fold > summary small{font-weight:500; color:var(--ink-soft);}
+.ck-ban-low{color:#b45309; font-weight:700;}
 .ck-detail-alert{display:flex; align-items:center; justify-content:space-between; gap:10px;}
 .ck-detail-alert .stat-alert-title{margin-bottom:0;}
 .q-meta-right{margin-left:auto; font-weight:700; color:var(--indigo);}

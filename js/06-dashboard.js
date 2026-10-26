@@ -922,7 +922,7 @@ async function dashLoadCheckinAdmin(grade){
       ${alertHtml}
       ${choiceHtml}`;
 
-    const listHtml = rows.map(r => {
+    const itemHtml = r => {
       let choiceText;
       if(r.checkinType === 'judgment'){
         const l = (CHECKIN_PLAN[grade].lessons || []).find(x => x.id === r.lessonId);
@@ -940,6 +940,18 @@ async function dashLoadCheckinAdmin(grade){
           </div>
           <div class="q-text">${escapeHtml(choiceText)}</div>
         </div>`;
+    };
+    /* v114: 학생별 응답을 반별로 묶고 반마다 접는다(번호순). 반이 하나면 바로 펼쳐 둔다. */
+    const byBan = {};
+    rows.forEach(r => { const p = parseStudentId(String(r.studentId)); const b = p ? p.ban : 0; (byBan[b] = byBan[b] || []).push(r); });
+    const banKeys = Object.keys(byBan).map(Number).sort((a, b) => a - b);
+    const listHtml = banKeys.map(b => {
+      const list = byBan[b].slice().sort((x, y) => String(x.studentId).localeCompare(String(y.studentId)));
+      const low = list.filter(r => r.lowStreakAlert).length;
+      return `<details class="ck-ban-fold"${banKeys.length === 1 ? ' open' : ''}>
+        <summary>${b}반 <small>(${list.length}명${low ? ` · <span class="ck-ban-low">⚠ 저온도 ${low}명</span>` : ''})</small></summary>
+        ${list.map(itemHtml).join('')}
+      </details>`;
     }).join('');
     /* v112: 학생별 응답은 기본 접어 둔다(펼쳤을 때만 줄줄이 보임). */
     $('ckList_' + grade).innerHTML = `<details class="ck-list-fold"><summary>학생별 응답 ${rows.length}명 보기</summary>${listHtml}</details>`;
