@@ -2505,10 +2505,22 @@ async function dashGenerateClassFeedback(ev){
 }
 
 /* 미검토 AI 코멘트 수 (전체 기준) */
+/* v116: 내 담당 반(BAN_SIZE>0) 기준으로 센다 — 전 학년·다른 선생님 반까지 합친 2천 건대 숫자는 할 일을 알려 주지 못했다.
+ * all = 담당 반 전체 미검토, recent = 그중 최근 7일에 쌓인 것. */
 function aiUnreviewedCount(){
-  return ROWS.filter(r =>
-    String(r['AI코멘트']||'').trim() && !String(r['AI코멘트확인']||'').trim()
-  ).length;
+  const mine = {};
+  [2, 3].forEach(g => { mine[g] = dashTeachingBans_(g); });
+  const weekAgo = Date.now() - 7 * 864e5;
+  let all = 0, recent = 0;
+  ROWS.forEach(r => {
+    if(!String(r['AI코멘트']||'').trim() || String(r['AI코멘트확인']||'').trim()) return;
+    const p = parseStudentId(String(r.studentId));
+    if(!p || !(mine[p.grade] || []).includes(p.ban)) return;
+    all++;
+    const t = new Date(r.timestamp).getTime();
+    if(t >= weekAgo) recent++;
+  });
+  return { all, recent };
 }
 
 /* v27 — 차시(l) 전체 activities id의 Set. 학생별 doneIds/achieve 계산에서
@@ -2526,8 +2538,9 @@ function renderDash(){
 
   /* 미검토 AI 코멘트 알림 */
   const unrev = aiUnreviewedCount();
-  $('aiNotice').style.display = unrev ? 'block' : 'none';
-  $('aiNoticeCount').textContent = unrev;
+  $('aiNotice').style.display = unrev.all ? 'block' : 'none';
+  $('aiNoticeCount').textContent = unrev.recent;
+  $('aiNoticeAll').textContent = unrev.all;
   dashFoldInit_($('aiNotice')); // v105
 
   dashRenderClassFeedback(); // v34
