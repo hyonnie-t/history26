@@ -2114,3 +2114,11 @@ body.perf-modal-open{overflow:hidden;}
 #dashView #panelAccounts .dash-card .table-wrap{box-shadow:none; margin:0;}
 #dashView #panelAccounts .dash-card > .dash-hint{font-size:.92rem; line-height:1.6; margin:0 0 12px;}
 #dashView #panelAccounts .dash-card > .dash-hint:last-child{margin-bottom:0;}
+
+/* v107 — 수행평가 «아직 안 누름» 명단 팝업 */
+.perf-askbtn-none{background:var(--amber-bg); border-color:var(--amber-border); color:var(--amber-text-deep); font-weight:700;}
+.perf-none-num{min-width:36px; min-height:32px; padding:0 8px; border:1px solid var(--amber-border); border-radius:8px; background:var(--amber-bg); color:var(--amber-text-deep); font-weight:700; cursor:pointer;}
+.perf-none-actions{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 4px;}
+.perf-none-cnt{font-weight:400; font-size:.85rem; color:var(--ink-soft);}
+.perf-none-list{padding:4px 12px 12px;}
+.perf-none-chip{display:inline-block; padding:6px 12px; border-radius:999px; border:1px solid var(--line); background:var(--paper,#faf7ee); font-size:.95rem; white-space:nowrap;}
