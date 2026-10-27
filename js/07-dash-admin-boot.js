@@ -852,7 +852,7 @@ async function dashReviewSuspect(ev, btn){
   btn.disabled = true;
   try{
     const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST', body: JSON.stringify({ action:'reviewSuspect', token: TOKEN, row, status })
+      method:'POST', body: JSON.stringify(Object.assign({ action:'reviewSuspect', token: TOKEN, row, status }, dashRowIdent_(row))) // v122
     });
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '실패');
@@ -879,22 +879,34 @@ async function dashDeleteActivityRow(ev, btn){
   if(!confirm(`"${label}" 제출 기록을 삭제할까요? 되돌릴 수 없고, 학생 포털에서도 즉시 사라져요.`)) return;
   btn.disabled = true; btn.textContent = '삭제 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method:'POST',
-      body: JSON.stringify({ action:'deleteActivityRow', token:TOKEN, row })
+      body: JSON.stringify({ action:'deleteActivityRow', token:TOKEN, row,
+        studentId: rec ? rec.studentId : '', gameName: rec ? rec.gameName : '' }) // v122 — 백엔드 v104가 행과 대조(행이 밀렸으면 거절)
     });
+    const data = await res.json(); // v122 — 전엔 응답을 안 읽어 거절돼도 «삭제했어요»가 떴다
+    if(data.result !== 'success') throw new Error(data.message || '삭제 실패');
+    // v122 — 시트에서 행이 빠지면 아래 행 번호가 1씩 당겨진다. 전엔 안 당겨서 같은 화면에서 두 번째 삭제가 옆 행을 가리켰다(v104는 거절).
+    const rowNum = Number(row);
     ROWS = ROWS.filter(r => String(r._row) !== String(row));
+    ROWS.forEach(r => { if(Number(r._row) > rowNum) r._row = Number(r._row) - 1; });
     showToast('기록을 삭제했어요.');
     renderDash();
   }catch(e){
     btn.disabled = false; btn.textContent = '삭제';
-    showToast('삭제하지 못했어요. 다시 시도해 주세요.');
+    showToast('삭제하지 못했어요. ' + (e && e.message ? e.message : '다시 시도해 주세요.'));
   }
 }
 
 /* ── AI 코멘트 관리 ── */
 function dashFindRowRec(rowNum){
   return ROWS.find(r => String(r._row) === String(rowNum));
+}
+/* v122 — 행 번호로 쓰는 action에 학번·게임명을 같이 보낸다. 백엔드 v104가 그 행과 대조해, 대시보드가 받은 _row가 그 사이
+ * 밀렸으면(다른 탭·학생 자가체크 취소로 위쪽 행이 지워짐) 남의 기록을 건드리지 않고 거절한다. 재배포 전 백엔드는 값을 무시한다. */
+function dashRowIdent_(rowNum){
+  const rec = dashFindRowRec(rowNum);
+  return { studentId: rec ? rec.studentId : '', gameName: rec ? rec.gameName : '' };
 }
 async function dashAiPost(payload){
   const res = await fetch(CONFIG.WEBAPP_URL, {
@@ -908,7 +920,7 @@ async function dashAiConfirm(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    await dashAiPost({ action:'aiReview', row });
+    await dashAiPost(Object.assign({ action:'aiReview', row }, dashRowIdent_(row))); // v122
     const rec = dashFindRowRec(row);
     if(rec) rec['AI코멘트확인'] = '확인';
     showToast('검토 완료로 표시했어요.');
@@ -936,7 +948,7 @@ function dashAiEditToggle(btn){
     const newText = textEl.querySelector('.ai-edit-area').value.trim();
     saveBtn.disabled = true;
     try{
-      await dashAiPost({ action:'aiEdit', row: box.dataset.row, comment: newText });
+      await dashAiPost(Object.assign({ action:'aiEdit', row: box.dataset.row, comment: newText }, dashRowIdent_(box.dataset.row))); // v122
       if(rec){ rec['AI코멘트'] = newText; rec['AI코멘트확인'] = '확인'; }
       showToast('AI 코멘트를 수정했어요. 학생 화면에 바로 반영됩니다.');
       renderDash();
@@ -954,7 +966,7 @@ async function dashAiHide(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    await dashAiPost({ action:'aiEdit', row, comment: '' });
+    await dashAiPost(Object.assign({ action:'aiEdit', row, comment: '' }, dashRowIdent_(row))); // v122
     const rec = dashFindRowRec(row);
     if(rec){ rec['AI코멘트'] = ''; rec['AI코멘트확인'] = '확인'; }
     showToast('AI 코멘트를 숨겼어요.');
