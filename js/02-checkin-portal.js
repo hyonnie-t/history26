@@ -697,9 +697,9 @@ function renderPortal(){
   }
 }
 
-/* v105 — 첫 화면 «지금 할 활동» 카드. 교육과정 순서에서 아직 안 끝낸(lessonDone 거짓) 첫 차시의
- * 첫 미완료 활동 중 이 반에 열려 있는 것(링크가 있는 것)을 골라 한 줄로 보여 준다. 링크는 카드의 "하러 가기"와 같은
- * 규칙(module은 withStudentParams, 그 밖엔 원래 주소). 첫 미완료 활동은 앞 활동이 모두 끝난 상태라 순차 잠금에 걸리지 않는다.
+/* v105 — 첫 화면 «지금 할 활동» 카드. 교육과정 순서에서 아직 안 끝낸(lessonDone 거짓) 차시 가운데 첫 미완료 활동에
+ * 링크가 있는 것을 후보로 모아, v119부터는 그중 **가장 최근(순서상 마지막)** 차시를 한 줄로 보여 주고 앞선 후보 수를 «밀린 차시 N개»로 덧붙인다.
+ * 링크는 카드의 "하러 가기"와 같은 규칙(module은 withStudentParams, 그 밖엔 원래 주소). 첫 미완료 활동은 앞 활동이 모두 끝난 상태라 순차 잠금에 걸리지 않는다.
  * 읽기만 하는 표시라 PREVIEW_MODE 분기는 필요 없다(링크의 preview=1은 withStudentParams가 붙인다). */
 function renderNextActivity_(lessons, doneIds, lessonDone){
   const card = $('nextCard');
@@ -723,7 +723,7 @@ function renderNextActivity_(lessons, doneIds, lessonDone){
   if(sub){
     const behind = open.length - 1;
     sub.hidden = behind <= 0;
-    sub.textContent = behind > 0 ? `밀린 활동 ${behind}개 더 있어요 · 아래 연표에서 찾아요` : '';
+    sub.textContent = behind > 0 ? `밀린 차시 ${behind}개 더 있어요 · 아래 연표에서 단원을 펼쳐 찾아요` : ''; // v119: 단위는 차시(활동 2개짜리도 1로 셈)
   }
   card.hidden = false;
 }
