@@ -879,17 +879,22 @@ async function dashDeleteActivityRow(ev, btn){
   if(!confirm(`"${label}" 제출 기록을 삭제할까요? 되돌릴 수 없고, 학생 포털에서도 즉시 사라져요.`)) return;
   btn.disabled = true; btn.textContent = '삭제 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method:'POST',
       body: JSON.stringify({ action:'deleteActivityRow', token:TOKEN, row,
         studentId: rec ? rec.studentId : '', gameName: rec ? rec.gameName : '' }) // v122 — 백엔드 v104가 행과 대조(행이 밀렸으면 거절)
     });
+    const data = await res.json(); // v122 — 전엔 응답을 안 읽어 거절돼도 «삭제했어요»가 떴다
+    if(data.result !== 'success') throw new Error(data.message || '삭제 실패');
+    // v122 — 시트에서 행이 빠지면 아래 행 번호가 1씩 당겨진다. 전엔 안 당겨서 같은 화면에서 두 번째 삭제가 옆 행을 가리켰다(v104는 거절).
+    const rowNum = Number(row);
     ROWS = ROWS.filter(r => String(r._row) !== String(row));
+    ROWS.forEach(r => { if(Number(r._row) > rowNum) r._row = Number(r._row) - 1; });
     showToast('기록을 삭제했어요.');
     renderDash();
   }catch(e){
     btn.disabled = false; btn.textContent = '삭제';
-    showToast('삭제하지 못했어요. 다시 시도해 주세요.');
+    showToast('삭제하지 못했어요. ' + (e && e.message ? e.message : '다시 시도해 주세요.'));
   }
 }
 

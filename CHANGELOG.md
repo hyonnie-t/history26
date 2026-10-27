@@ -611,7 +611,8 @@ v96b: "이상 있음"을 누른 학생에게는 "선생님께 와서 직접 확�
 확인: 가짜 백엔드(`fixtures.py` 확장)로 폰360·태블릿820·PC1280 캡처, 콘솔 오류 0, Playwright 5개 전부 통과(PR #54로 `test_preview_mode_render`도 이제 통과). 캐시 키는 `style.css?v=105`·`js/02·06·07 ?v=105`.
 
 ## v122 (2026-10-27) — 행 번호로 쓰는 대시보드 action에 학번·게임명/차시id 동봉
-- 백엔드 v104가 `deleteActivityRow`·`aiReview`·`aiEdit`·`reviewSuspect`(학번·게임명), `answerQuestion`(학번), `deleteCheckinLesson`(차시id)을 그 행과 대조해 밀린 행이면 거절한다. 대시보드가 `dashRowIdent_`(07)·`QUESTIONS`/`CHECKIN_LESSONS_ADMIN`에서 값을 찾아 같이 보낸다. 백엔드 재배포 전엔 값이 무시되므로 먼저 배포해도 무해. 캐시 키 `js/06-dashboard.js?v=122`·`js/07-dash-admin-boot.js?v=122`.
+- 백엔드 v104가 `deleteActivityRow`·`aiReview`·`aiEdit`·`reviewSuspect`(학번·게임명), `answerQuestion`(학번), `deleteCheckinLesson`(차시id)을 그 행과 대조해 밀린 행이면 거절한다. 대시보드가 `dashRowIdent_`(07)·`QUESTIONS`/`CHECKIN_LESSONS_ADMIN`에서 값을 찾아 같이 보낸다. 백엔드 재배포 전엔 값이 무시되므로 먼저 배포해도 무해.
+- 검토자 지적 반영: 삭제·답변·문항 삭제가 `fetch`만 하고 응답을 안 읽어 백엔드가 거절해도 «삭제했어요»가 떴다 → `result`를 확인하고 서버 메시지를 토스트로. 삭제 성공 뒤 아래 행의 `_row`를 1씩 당긴다(전엔 안 당겨서 같은 화면에서 두 번째 삭제가 옆 행을 가리켰다 — 옛 백엔드는 그 행을 지웠다). 태그 집계에서 백엔드 v104의 '(태그 없음)' 표식 제외. 캐시 키 `js/06-dashboard.js?v=122`·`js/07-dash-admin-boot.js?v=122`.
 
 ## v121 (2026-10-27) — v120 «⚠ 제출 0건» 툴팁 보완 + v120 기록 정정
 - 배포본을 실제 데이터로 보니 아직 수업 전인 차시(30차시 역할일기 등)와 제출이 없는 도구성 활동(기출오답노트)에도 ⚠가 뜬다. 판정은 그대로 두고 툴팁에 «아직 수업 전이면 정상»을 덧붙였다. 캐시 키 `js/06-dashboard.js?v=121`.

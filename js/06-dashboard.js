@@ -1286,14 +1286,16 @@ async function dashDeleteCheckinLesson(btn){
   if(!confirm(`"${l ? l.topic : row}" 문항을 삭제할까요? 되돌릴 수 없어요.`)) return;
   btn.disabled = true;
   try{
-    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'deleteCheckinLesson', token:TOKEN, row, id: l ? l.id : '' }) }); // v122 — 백엔드 v104가 차시id와 대조
+    const res = await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'deleteCheckinLesson', token:TOKEN, row, id: l ? l.id : '' }) }); // v122 — 백엔드 v104가 차시id와 대조
+    const data = await res.json(); // v122 — 거절 응답 확인
+    if(data.result !== 'success'){ const err = new Error(data.message || '실패'); err.fromServer = true; throw err; }
     showToast('문항을 삭제했어요.');
     await loadCheckinPlan();
     await dashLoadCheckinLessonsAdmin();
     dashRenderCheckinLessonsList();
   }catch(e){
     btn.disabled = false;
-    showToast('삭제하지 못했어요. 다시 시도해 주세요.');
+    showToast(e.fromServer ? e.message : '삭제하지 못했어요. 다시 시도해 주세요.');
   }
 }
 
@@ -2005,18 +2007,20 @@ async function dashAnswerQuestion(btn){
   const row = btn.dataset.row;
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'answerQuestion', token: TOKEN, row, answer: text,
         studentId: (QUESTIONS.find(x => String(x._row) === String(row)) || {}).studentId || '' }) // v122 — 백엔드 v104가 학번과 대조
     });
+    const data = await res.json(); // v122 — 거절 응답을 성공으로 보이지 않게
+    if(data.result !== 'success'){ const err = new Error(data.message || '실패'); err.fromServer = true; throw err; }
     const q = QUESTIONS.find(x => String(x._row) === String(row));
     if(q){ q.answer = text; q.status = '답변완료'; }
     showToast('답변을 보냈어요. 학생 포털의 질문함에 표시됩니다.');
     dashRenderQuestions();
   }catch(e){
     btn.disabled = false; btn.textContent = '답변 보내기';
-    showToast('보내지 못했어요. 다시 시도해 주세요.');
+    showToast(e.fromServer ? e.message : '보내지 못했어요. 다시 시도해 주세요.');
   }
 }
 
@@ -2685,7 +2689,7 @@ function renderDash(){
     : '<div style="width:100%;background:var(--line);"></div>';
 
   const tagCnt = {};
-  rows.forEach(r => { const t = String(r['분류태그']||'').trim(); if(t) tagCnt[t]=(tagCnt[t]||0)+1; });
+  rows.forEach(r => { const t = String(r['분류태그']||'').trim(); if(t && t !== '(태그 없음)') tagCnt[t]=(tagCnt[t]||0)+1; }); // v122 — 백엔드 v104의 "처리됨" 표식은 집계에서 뺀다
   const topTags = Object.entries(tagCnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
   $('tagList').innerHTML = topTags.length
     ? topTags.map(([t,n]) => `<span class="tag-chip">${escapeHtml(t)} <small>${n}</small></span>`).join('')
