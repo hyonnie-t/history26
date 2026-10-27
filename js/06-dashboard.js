@@ -1286,7 +1286,7 @@ async function dashDeleteCheckinLesson(btn){
   if(!confirm(`"${l ? l.topic : row}" 문항을 삭제할까요? 되돌릴 수 없어요.`)) return;
   btn.disabled = true;
   try{
-    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'deleteCheckinLesson', token:TOKEN, row }) });
+    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'deleteCheckinLesson', token:TOKEN, row, id: l ? l.id : '' }) }); // v122 — 백엔드 v104가 차시id와 대조
     showToast('문항을 삭제했어요.');
     await loadCheckinPlan();
     await dashLoadCheckinLessonsAdmin();
@@ -2007,7 +2007,8 @@ async function dashAnswerQuestion(btn){
   try{
     await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'answerQuestion', token: TOKEN, row, answer: text })
+      body: JSON.stringify({ action:'answerQuestion', token: TOKEN, row, answer: text,
+        studentId: (QUESTIONS.find(x => String(x._row) === String(row)) || {}).studentId || '' }) // v122 — 백엔드 v104가 학번과 대조
     });
     const q = QUESTIONS.find(x => String(x._row) === String(row));
     if(q){ q.answer = text; q.status = '답변완료'; }
