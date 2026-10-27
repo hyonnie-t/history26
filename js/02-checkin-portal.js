@@ -572,6 +572,12 @@ function renderPortal(){
    * 그려지므로(feedbackLabel_) 별도 처리가 필요 없다 — fbGeneral 계산 자체는
    * ackFeedbackItems_ 주석에서 설명하는 공유 참조 구조상 그대로 둔다. */
   renderFeedbackInbox(fbAll);
+  /* v119 — «그 밖의 기록» 머리글은 아래에 보일 카드(성적조회·피드백 모아보기)가 하나라도 있을 때만. 둘 다 숨겨지면 빈 제목만 남아 있었다. */
+  const otherHead = $('otherHead');
+  if(otherHead){
+    const visible = ['gradeCard','feedbackInboxCard'].some(id => { const el = $(id); return el && !el.hidden && el.style.display !== 'none'; });
+    otherHead.style.display = visible ? '' : 'none';
+  }
 
   /* 질문함 (학생 ↔ 교사) */
   renderQuestions();
@@ -698,18 +704,27 @@ function renderPortal(){
 function renderNextActivity_(lessons, doneIds, lessonDone){
   const card = $('nextCard');
   if(!card) return;
-  let pick = null;
-  for(let i = 0; i < lessons.length && !pick; i++){
-    const l = lessons[i];
-    if(lessonDone(l)) continue;
+  /* v119 — 교육과정 순서에서 «가장 최근» 미완료 차시를 고른다(이전엔 가장 오래된 것).
+   * 수업은 늘 최신 차시를 하므로 1학기 복습처럼 몇 주 지난 활동이 «지금 할 활동»에 걸려 있으면
+   * 학생이 오늘 수업 활동을 못 찾는다. 더 오래된 미완료 활동은 «밀린 활동 N개»로 따로 세어 보여 준다. */
+  const open = [];
+  lessons.forEach((l, i) => {
+    if(lessonDone(l)) return;
     const idx = l.activities.findIndex(a => !doneIds.has(a.id));
     const act = l.activities[idx];
-    if(act && lessonActivityUrl(act)) pick = { l, i, act, idx };
-  }
+    if(act && lessonActivityUrl(act)) open.push({ l, i, act, idx });
+  });
+  const pick = open.length ? open[open.length - 1] : null;
   if(!pick){ card.hidden = true; return; }
   const url = lessonActivityUrl(pick.act);
   $('nextTitle').textContent = `${pick.i + 1}차시 · ${activityDisplayTitle(pick.l, pick.act, pick.idx)}`;
   $('nextGo').href = pick.act.type === 'module' ? withStudentParams(url) : ensureUrlScheme_(url);
+  const sub = $('nextSub');
+  if(sub){
+    const behind = open.length - 1;
+    sub.hidden = behind <= 0;
+    sub.textContent = behind > 0 ? `밀린 활동 ${behind}개 더 있어요 · 아래 연표에서 찾아요` : '';
+  }
   card.hidden = false;
 }
 

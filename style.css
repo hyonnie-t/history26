@@ -2124,6 +2124,8 @@ body.perf-modal-open{overflow:hidden;}
 .next-text{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 200px;}
 .next-label{font-size:.76rem; font-weight:700; color:var(--indigo);}
 .next-title{font-size:1rem; font-weight:700; color:var(--ink); overflow-wrap:anywhere;}
+.next-sub{font-size:.8rem; color:var(--seal); font-weight:600;} /* v119 — 밀린 활동 안내 */
+.next-sub[hidden]{display:none;}
 
 /* v105 — 교사 대시보드: 학생 기록 탭 안내 접기, 질문함 답변 완료 한 줄 접기, 성적관리 설명 접기·반별 응답 요약 */
 .fold-note{margin:0 0 10px;}
