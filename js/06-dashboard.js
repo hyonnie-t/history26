@@ -1853,65 +1853,119 @@ function dashVisibleQuestions_(){
     return mine ? mine.includes(Number(q.ban)) : true;
   });
 }
-const DQ_DONE_OPEN = new Set(); // v105 — 펼쳐 둔 «답변 완료» 질문의 시트 행 번호
+/* v123 — 학생별 묶음. 질문함(질문+답변)과 개인 메시지(v62)를 학번으로 모아 한 타임라인으로 그린다.
+ * 시트·백엔드는 그대로 두 개(질문왕 배지는 질문함 개수만 센다) — 화면에서만 합친다.
+ * «대기» = 답 안 한 질문 수 + (마지막 메시지가 학생 것이면 1). 대기 있는 학생 먼저, 그 안에선 최근 활동 순.
+ * 펼침 상태는 학번별로 DQ_OPEN_STATE에 기억(재렌더에도 유지). 기억이 없으면 대기 있는 학생만 펼친다. */
+const DQ_OPEN_STATE = new Map(); // 학번 → 펼침 여부
+const DQ_EDIT_OPEN = new Set();  // «답변 수정» 칸을 펼친 질문의 시트 행 번호
+function dashQuestionGroups_(){
+  const g = {};
+  const group = (sid, src) => g[sid] = g[sid] || { sid, name: String(src.studentName || ''), grade: src.grade, ban: src.ban, items: [] };
+  dashVisibleQuestions_().forEach(q => group(String(q.studentId), q).items.push({ kind: 'q', t: Date.parse(q.timestamp) || 0, q }));
+  MESSAGES.forEach(m => {
+    const mine = dashMyBans_(m.grade);
+    if(mine && !mine.includes(Number(m.ban))) return; // 질문함과 같은 담당 반 규칙
+    group(String(m.studentId), m).items.push({ kind: 'm', t: Date.parse(m.timestamp) || 0, m });
+  });
+  return Object.values(g).map(s => {
+    s.items.sort((a, b) => a.t - b.t);
+    const msgs = s.items.filter(i => i.kind === 'm');
+    s.qWaiting = s.items.filter(i => i.kind === 'q' && i.q.status !== '답변완료').length;
+    s.msgWaiting = msgs.length > 0 && msgs[msgs.length - 1].m.from === '학생';
+    s.waiting = s.qWaiting + (s.msgWaiting ? 1 : 0);
+    // 최근 활동 시각 — 내 답변 시각까지 포함(답한 직후 그 학생이 아래로 밀려 사라지지 않게)
+    s.lastT = Math.max(0, ...s.items.map(i => i.kind === 'q' ? Math.max(i.t, Date.parse(i.q.answerTime) || 0) : i.t));
+    s.last = s.items[s.items.length - 1];
+    // 이름은 가장 최근 항목 것으로(같은 학번인데 이름이 바뀐 경우 최신 이름으로 메시지를 보낸다)
+    s.name = String((s.last.kind === 'q' ? s.last.q.studentName : s.last.m.studentName) || s.name);
+    return s;
+  }).sort((a, b) => ((b.waiting > 0) - (a.waiting > 0)) || (b.lastT - a.lastT));
+}
+function dashQuestionItemHtml_(q){
+  const isDone = q.status === '답변완료';
+  const form = `
+    <div class="dq-reply-form">
+      <textarea class="dq-reply-text" placeholder="${isDone ? '답변을 수정하려면 다시 입력…' : '이 질문에 답변…'}"></textarea>
+      <button data-row="${q._row}" onclick="dashAnswerQuestion(this)">${isDone ? '답변 수정' : '답변 보내기'}</button>
+    </div>`;
+  return `
+    <div class="dq-q${isDone ? '' : ' wait'}">
+      <div class="msg-bubble from-teacher">
+        <div class="msg-meta">❓ 질문 · ${formatDate(q.timestamp)} <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span></div>
+        <div class="msg-text">${escapeHtml(q.question)}</div>
+      </div>
+      ${isDone ? `
+      <div class="msg-bubble from-me">
+        <div class="msg-meta">내 답변${q.answerTime ? ' · ' + formatDate(q.answerTime) : ''}</div>
+        <div class="msg-text">${escapeHtml(q.answer)}</div>
+      </div>
+      <details class="dq-edit" data-row="${q._row}"${DQ_EDIT_OPEN.has(String(q._row)) ? ' open' : ''}><summary>답변 수정</summary>${form}</details>` : form}
+    </div>`;
+}
 function dashRenderQuestions(){
   const list = $('dqList');
-  const visible = dashVisibleQuestions_();
-  const waiting = visible.filter(q => q.status !== '답변완료');
-  const done = visible.filter(q => q.status === '답변완료');
-  const byNewest = (a, b) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0); // v90 — 그룹 안에선 최신 먼저
-  const sorted = [...waiting.sort(byNewest), ...done.sort(byNewest)]; // 대기중 먼저
+  const groups = dashQuestionGroups_();
+  const totalWaiting = groups.reduce((n, s) => n + s.waiting, 0);
   const badge = $('dqBadge');
-  const msgWaiting = dashRenderMessages_(); // v62 — 학생 답장이 마지막인 스레드 수
-  const totalWaiting = waiting.length + msgWaiting;
   if(totalWaiting){
     badge.textContent = totalWaiting + '건 대기';
     badge.style.display = 'inline-block';
   } else {
     badge.style.display = 'none';
   }
-  if(!sorted.length){
-    list.innerHTML = '<p class="empty-hint">아직 들어온 질문이 없어요.</p>';
+  if(!groups.length){
+    list.innerHTML = '<p class="empty-hint">아직 들어온 질문이나 메시지가 없어요.</p>';
     return;
   }
-  // v105 — 대기 중 질문은 위에 펼쳐 두고, 답변 완료는 한 줄(상태·학생·질문 앞부분)로 접는다. 펼친 항목은 DQ_DONE_OPEN에 기억해 재렌더(답변 수정 뒤)에도 유지.
-  const itemHtml = q => {
-    const isDone = q.status === '답변완료';
-    return `
-      <div class="dq-item">
-        <div class="dq-meta">${formatDate(q.timestamp)} · ${escapeHtml(q.studentName)} (${escapeHtml(String(q.studentId))}) · ${q.grade}학년 ${q.ban}반
-          <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span>
-        </div>
-        <div class="dq-text">${escapeHtml(q.question)}</div>
-        ${isDone ? `<div class="dq-answer"><b>내 답변</b><br>${escapeHtml(q.answer)}</div>` : ''}
-        <div class="dq-reply-form">
-          <textarea class="dq-reply-text" placeholder="${isDone ? '답변을 수정하려면 다시 입력…' : '답변을 입력…'}"></textarea>
-          <button data-row="${q._row}" onclick="dashAnswerQuestion(this)">${isDone ? '답변 수정' : '답변 보내기'}</button>
-        </div>
-      </div>`;
+  const waitingStudents = groups.filter(s => s.waiting).length;
+  const lastText = s => {
+    const i = s.last;
+    if(i.kind === 'q') return '❓ ' + i.q.question;
+    return (i.m.from === '교사' ? '💌 나: ' : '💌 ') + i.m.content;
   };
-  list.innerHTML = sorted.map(q => q.status !== '답변완료' ? itemHtml(q) : `
-    <details class="dq-done" data-row="${q._row}"${DQ_DONE_OPEN.has(String(q._row)) ? ' open' : ''}>
-      <summary>
-        <span class="q-status done">답변완료</span>
-        <span class="dq-done-text"><b>${escapeHtml(q.studentName)}</b> · ${escapeHtml(q.question)}</span>
-        <span class="dq-done-meta">${q.grade}학년 ${q.ban}반 · ${formatDate(q.timestamp)}</span>
-      </summary>
-      ${itemHtml(q)}
-    </details>`).join('');
-  list.querySelectorAll('details.dq-done').forEach(d => {
-    d.addEventListener('toggle', () => { d.open ? DQ_DONE_OPEN.add(d.dataset.row) : DQ_DONE_OPEN.delete(d.dataset.row); });
+  list.innerHTML = `
+    <p class="dq-summary-line">학생 ${groups.length}명${waitingStudents ? ` · <b>대기 ${waitingStudents}명</b>` : ' · 대기 없음'} <span class="muted">— 질문(❓)과 개인 메시지(💌)를 학생별로 모았어요</span></p>
+    ${groups.map(s => {
+      const open = DQ_OPEN_STATE.has(s.sid) ? DQ_OPEN_STATE.get(s.sid) : s.waiting > 0;
+      const timeline = s.items.map(i => i.kind === 'q' ? dashQuestionItemHtml_(i.q) : `
+        <div class="msg-bubble ${i.m.from === '교사' ? 'from-me' : 'from-teacher'}">
+          <div class="msg-meta">💌 ${i.m.from === '교사' ? '나' : escapeHtml(s.name)} · ${formatDate(i.m.timestamp)}${i.m.from === '교사' ? (i.m.read ? ' · 읽음' : ' · 안 읽음') : ''}</div>
+          <div class="msg-text">${escapeHtml(i.m.content)}</div>
+        </div>`).join('');
+      return `
+      <details class="dq-student${s.waiting ? ' waiting' : ''}" data-sid="${escapeHtml(s.sid)}"${open ? ' open' : ''}>
+        <summary>
+          <span class="dq-s-who"><b>${escapeHtml(s.name)}</b> <span class="muted">${s.grade}학년 ${s.ban}반 · ${escapeHtml(s.sid)}</span></span>
+          ${s.qWaiting ? `<span class="q-status wait">질문 대기 ${s.qWaiting}</span>` : ''}
+          ${s.msgWaiting ? '<span class="q-status wait">답장 도착</span>' : ''}
+          <span class="dq-s-last">${escapeHtml(dashShorten(lastText(s), 50))}</span>
+          <span class="dq-s-date">${s.lastT ? formatDate(s.lastT) : ''}</span>
+        </summary>
+        <div class="dq-timeline">${timeline}</div>
+        <div class="msg-wrap" data-sid="${escapeHtml(s.sid)}" data-name="${escapeHtml(s.name)}">
+          <div class="dq-reply-form">
+            <textarea class="msg-text-input" maxlength="1000" placeholder="💌 개인 메시지 보내기 (학생 포털에 알림으로 떠요)"></textarea>
+            <button class="btn btn-sm" onclick="dashSendMessage(this)">메시지 보내기</button>
+          </div>
+        </div>
+      </details>`;
+    }).join('')}`;
+  list.querySelectorAll('details.dq-student').forEach(d => {
+    d.addEventListener('toggle', () => { DQ_OPEN_STATE.set(d.dataset.sid, d.open); });
+  });
+  list.querySelectorAll('details.dq-edit').forEach(d => {
+    d.addEventListener('toggle', () => { d.open ? DQ_EDIT_OPEN.add(d.dataset.row) : DQ_EDIT_OPEN.delete(d.dataset.row); });
   });
 }
 
 /* ── 개인 메시지 스레드 (교사, v62) ──
  * 학생 한 명당 스레드 하나. 교사가 먼저 보내야 시작되고(질문함은 학생이 먼저), 학생이 답장하면
- * 같은 스레드에 쌓인다. 스레드 위젯(dashMsgThreadHtml_)은 두 곳에서 같이 쓴다 — ① 질문함 탭의
- * 스레드 목록(아래 dashRenderMessages_), ② 학생 상세 카드 안(dashDetailRowHtml). 새 스레드는
- * ②에서만 시작한다(질문함 탭엔 이미 존재하는 스레드만 보임).
+ * 같은 스레드에 쌓인다. 스레드 위젯(dashMsgThreadHtml_)은 학생 상세 카드 안(dashDetailRowHtml)에서 쓴다.
+ * v123부터 질문함 탭에선 따로 목록을 두지 않고 dashRenderQuestions()가 질문과 한 타임라인으로 그린다
+ * (거기서도 새 메시지를 시작할 수 있다).
  * "답장 대기"는 별도 읽음 상태 없이 "스레드의 마지막 메시지가 학생 것"으로 판정한다.
  * 담당 반 필터링은 질문함과 같은 규칙(dashMyBans_). */
-let dmOpenSid = null;
 function dashMsgThreadRows_(sid){
   return MESSAGES.filter(m => String(m.studentId) === String(sid))
     .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -1931,41 +1985,6 @@ function dashMsgThreadHtml_(sid, name){
         <button class="btn btn-sm" onclick="dashSendMessage(this)">${rows.length ? '보내기' : '메시지 시작'}</button>
       </div>
     </div>`;
-}
-function dashRenderMessages_(){
-  const box = $('dmList');
-  if(!box) return 0;
-  const byStudent = {};
-  MESSAGES.forEach(m => {
-    const mine = dashMyBans_(m.grade);
-    if(mine && !mine.includes(Number(m.ban))) return;
-    (byStudent[String(m.studentId)] = byStudent[String(m.studentId)] || []).push(m);
-  });
-  const threads = Object.values(byStudent).map(list => {
-    list.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-    const last = list[list.length - 1];
-    return { sid: String(last.studentId), name: String(last.studentName), grade: last.grade, ban: last.ban,
-             last, waiting: last.from === '학생' };
-  }).sort((a,b) => (b.waiting - a.waiting) || (new Date(b.last.timestamp) - new Date(a.last.timestamp)));
-  if(!threads.length){ box.innerHTML = ''; return 0; }
-  const waitingCount = threads.filter(t => t.waiting).length;
-  box.innerHTML = `
-    <div class="dm-box">
-      <h3 class="dm-title">💌 개인 메시지 <span class="muted">— 새 메시지는 학생 상세 카드에서 시작해요</span>${waitingCount ? `<span class="dq-badge">${waitingCount}명 답장 도착</span>` : ''}</h3>
-      ${threads.map(t => `
-        <details class="dm-thread${t.waiting ? ' waiting' : ''}" ${dmOpenSid === t.sid ? 'open' : ''} data-sid="${escapeHtml(t.sid)}">
-          <summary>
-            <b>${escapeHtml(t.name)}</b> <span class="muted">${t.grade}학년 ${t.ban}반 · ${escapeHtml(t.sid)}</span>
-            ${t.waiting ? '<span class="q-status wait">답장 도착</span>' : ''}
-            <span class="dm-last">${escapeHtml(dashShorten(String(t.last.content), 40))}</span>
-          </summary>
-          ${dashMsgThreadHtml_(t.sid, t.name)}
-        </details>`).join('')}
-    </div>`;
-  box.querySelectorAll('details.dm-thread').forEach(d => {
-    d.addEventListener('toggle', () => { if(d.open) dmOpenSid = d.dataset.sid; });
-  });
-  return waitingCount;
 }
 async function dashSendMessage(btn){
   const wrap = btn.closest('.msg-wrap');
@@ -1990,7 +2009,7 @@ async function dashSendMessage(btn){
     const p = parseStudentId(sid);
     MESSAGES.push({ _row: null, timestamp: new Date().toISOString(), studentId: sid, studentName: name,
       grade: p ? p.grade : '', ban: p ? p.ban : '', from: '교사', content: text, read: false, teacher: TEACHER_NAME || '' });
-    dmOpenSid = sid;
+    DQ_OPEN_STATE.set(String(sid), true); // v123 — 보낸 학생 묶음은 펼친 채로
     showToast('메시지를 보냈어요. 학생 포털에 알림이 떠요.');
     dashRenderQuestions();
     if(openDetailSid === sid) renderDash();
@@ -2001,10 +2020,11 @@ async function dashSendMessage(btn){
 }
 
 async function dashAnswerQuestion(btn){
-  const wrap = btn.closest('.dq-item');
+  const wrap = btn.closest('.dq-q'); // v123 — 학생별 묶음 안의 질문 한 건
   const text = wrap.querySelector('.dq-reply-text').value.trim();
   if(!text){ showToast('답변 내용을 입력해 주세요.'); return; }
   const row = btn.dataset.row;
+  const label = btn.textContent; // v123 — 실패하면 «답변 수정»도 원래 글자로
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
     const res = await fetch(CONFIG.WEBAPP_URL, {
@@ -2015,11 +2035,15 @@ async function dashAnswerQuestion(btn){
     const data = await res.json(); // v122 — 거절 응답을 성공으로 보이지 않게
     if(data.result !== 'success'){ const err = new Error(data.message || '실패'); err.fromServer = true; throw err; }
     const q = QUESTIONS.find(x => String(x._row) === String(row));
-    if(q){ q.answer = text; q.status = '답변완료'; }
+    if(q){
+      q.answer = text; q.status = '답변완료'; q.answerTime = new Date().toISOString();
+      DQ_OPEN_STATE.set(String(q.studentId), true); // v123 — 답한 학생 묶음은 펼친 채로
+      DQ_EDIT_OPEN.delete(String(row));
+    }
     showToast('답변을 보냈어요. 학생 포털의 질문함에 표시됩니다.');
     dashRenderQuestions();
   }catch(e){
-    btn.disabled = false; btn.textContent = '답변 보내기';
+    btn.disabled = false; btn.textContent = label;
     showToast(e.fromServer ? e.message : '보내지 못했어요. 다시 시도해 주세요.');
   }
 }

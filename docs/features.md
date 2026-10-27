@@ -225,8 +225,8 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 `STUDENT_DATA.messages`(`mode=student` 응답)로 `#qtabMessage` 탭·`renderMessages()`·도착 팝업
 (`checkNewMessages_()`)을 그리고, 스레드가 비어 있으면 탭 버튼 자체가 숨는다(미리보기 모드도 같음).
 **읽음 처리는 팝업이 아니라 탭을 여는 순간**(`switchQuickTab('message')` → `ackMessages_()`)이다.
-교사 쪽은 `MESSAGES`(`mode=messagesAdmin`)를 `dashRenderMessages_()`(질문함 탭 위 목록)과
-`dashMsgThreadHtml_()`(학생 상세 카드 안 위젯, 새 스레드는 여기서만 시작)가 그린다. "답장 대기"는 스레드의
+교사 쪽은 `MESSAGES`(`mode=messagesAdmin`)를 질문함 탭의 학생별 묶음(`dashRenderQuestions()`, v123 — 질문과 한 타임라인)과
+`dashMsgThreadHtml_()`(학생 상세 카드 안 위젯)가 그린다. 새 메시지는 두 곳 모두에서 시작할 수 있다(v123부터). "답장 대기"는 스레드의
 마지막 메시지가 학생 것인지로 판정하고 질문함 탭 배지에 합산한다. 학생 답장은 교사가 먼저 보낸 스레드에만
 서버가 허용한다. **⚠️ 백엔드 재배포 전엔 `messagesAdmin` 실패를 빈 목록으로 흡수하므로 대시보드는 정상이고
 메시지 보내기만 실패한다** — 배포 상태는 `history26_backend` `docs/deploy-status.md` 참고. AI 작성 의심 경고(v61)와는
@@ -270,6 +270,6 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 - **교사 커리큘럼 관리 «제출 N건»(v120)**: `clLessonSubmitInfo_(l)`이 활동 id(활동목록JSON 또는 단일 id)를 모아 `ROWS.gameName`과 대조한다. URL이 있는 진행중 항목이 0건이면 `.cl-warn` «⚠ 제출 0건» — 웹앱 `GAME_NAME`과 커리큘럼 id가 다른 사고를 바로 보이게(아직 수업 전인 차시도 0건으로 뜨므로 툴팁에 안내, v121). `?token=` 기본 GET은 교사 구분 없이 전체 행이라 담당 반 밖 활동도 정상 집계된다.
 - **행 번호 action의 신원 동봉(v122)**: 삭제·AI 검토·AI 수정·의심 검토·답변·체크인 문항 삭제는 `row` 외에 학번·게임명(`dashRowIdent_`) 또는 차시id를 보낸다. 백엔드 v104의 `rowMatches_`가 거절하면 토스트에 서버 메시지("그 사이 기록이 바뀌어…")가 뜨므로 새로고침 뒤 다시 한다.
 - **접힘 기억**: `dashFoldInit_(el)` — `<details data-fold="이름">`을 localStorage `dash_fold_이름`('1'=펼침)에 맞추고 토글 때 저장한다. 기본 접힘. 다시 그려지는 박스(`#suspectBox`)는 그릴 때마다 호출한다. 새 접기 UI는 이 헬퍼를 쓴다.
-- **교사 질문함**: 대기 → `.dq-item` 펼침, 답변 완료 → `<details class="dq-done">` 한 줄 요약. 열린 상태는 시트 행 번호로 `DQ_DONE_OPEN`에 기억.
+- **교사 질문함**: v123에서 학생별 묶음으로 바뀌었다 — `dashQuestionGroups_()`가 질문(`QUESTIONS`)과 개인 메시지(`MESSAGES`)를 학번으로 모아 `<details class="dq-student">` 한 장에 시간순으로 그린다(시트는 그대로 둘). 대기 = 답 안 한 질문 + 마지막 메시지가 학생 것. 펼침은 학번별 `DQ_OPEN_STATE`, «답변 수정» 접기는 행 번호별 `DQ_EDIT_OPEN`. (v105의 `.dq-item`·`.dq-done`·`DQ_DONE_OPEN`은 없어졌다.)
 - **탐구포인트 «최근 지급 5건»**: 백엔드가 지급을 `gameName='발표_<유형>'`(유형 없음은 `발표_기타`), 11열 수준(`성취수준`), 22열 점수(`탐구포인트(발표)`), `choiceSummary`=사유 행으로 쓴다(`grantPresentationPointPost_`). `mode=` 교사 기본 GET의 `ROWS`에서 그대로 읽으므로 새 요청이 없다. `switchDashTab('points')`가 매번 다시 그린다.
 - **성적관리**: `dashLoadPerfStatus_()`가 표 앞에 `.perf-bansum` 칩(응답함/학생 수)을 붙인다. 응답 = `r.response`가 비지 않음(재확인 대기 포함).
