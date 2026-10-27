@@ -1402,7 +1402,7 @@ function dashRenderLessons(){
 
 /* v27: 활동목록JSON이 있는(활동 2개 이상) 차시는 목록에서 "활동 2개" 배지 +
  * 순차진행이면 🔒 표시를 덧붙임. urlText 대신 활동 개수/타입을 요약해서 보여줌. */
-/* v120 — 커리큘럼 항목의 제출 건수. 교사용 행(activitiesRaw JSON 또는 단일 id)에서 활동 id를 모아 ROWS(gameName)와 대조한다.
+/* v120 — 커리큘럼 항목의 제출 건수. (v121: 실제 데이터로 보니 아직 수업 전인 차시도 ⚠가 떠서 툴팁에 «수업 전이면 정상»을 덧붙임) 교사용 행(activitiesRaw JSON 또는 단일 id)에서 활동 id를 모아 ROWS(gameName)와 대조한다.
  * URL이 있는 진행중 활동인데 0건이면 웹앱 GAME_NAME과 커리큘럼 id가 다른 사고(2026-10-27 crusades_effect: 주제16_교황권게임 ≠ 주제16_0304_흑사병교황권게임)를
  * 의심할 수 있게 경고 배지를 붙인다. ROWS는 대시보드가 받은 기록 전체라 읽기 전용. */
 function clLessonSubmitInfo_(l){
@@ -1420,7 +1420,7 @@ function clLessonItemHtml(l, isPastItem){
   const multi = (l.activitiesCount || 1) > 1;
   const sub = clLessonSubmitInfo_(l); // v120
   const subText = (sub.hasUrl && sub.n === 0 && !isPastItem)
-    ? ` · <span class="cl-warn" title="학생 제출이 한 건도 없어요. 웹앱의 GAME_NAME이 이 활동 id와 글자까지 같은지 확인하세요.">⚠ 제출 0건</span>`
+    ? ` · <span class="cl-warn" title="학생 제출이 한 건도 없어요. 아직 수업 전이면 정상이고, 수업을 했는데도 0건이면 웹앱의 GAME_NAME이 이 활동 id와 글자까지 같은지 확인하세요.">⚠ 제출 0건</span>`
     : ` · 제출 ${sub.n}건`;
   const ownerTag = (l.owner && l.owner !== '공통') ? ` · 👤 ${escapeHtml(l.owner)} 담당` : '';
   const metaText = multi
