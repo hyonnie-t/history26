@@ -2,7 +2,8 @@
  * 포털을 로컬 정적 서버로 띄우고 Apps Script 호출을 가짜 응답으로 바꿔(route) 학생 화면·교사 대시보드를 세 폭으로 캡처한다.
  * 시트에는 아무것도 쓰지 않는다(POST는 전부 가짜 성공). 커리큘럼은 실제 ?mode=curriculum을 한 번 읽어(읽기 전용) 그대로 쓴다.
  *
- * 사용: node tests/webapp-testing/mock_check.js <출력 폴더> [student|dash|questions|all]
+ * 사용: node tests/webapp-testing/mock_check.js <출력 폴더> [student|dash|questions|all|exam]
+ *   exam(v124, all에 안 들어감): 3학년 시험기간 감정 체크인 쿠키 + 수행평가 «기말고사 목표 점수». PERF_SCORE=20 처럼 점수를 바꿔 볼 수 있다.
  *   예) node tests/webapp-testing/mock_check.js "$SCRATCH/shots" all
  * 결과: <출력 폴더>/student_{phone,tablet,pc}.png, dash_curriculum_{pc,phone}.png, dash_questions_{phone,tablet,tabletL,pc}.png(v123) + 콘솔에 요약 JSON. PNG는 Read로 열어 눈으로 본다.
  *
@@ -21,6 +22,7 @@ function loadPlaywright() {
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const OUT = process.argv[2]; const WHAT = process.argv[3] || 'all';
+const PERF_SCORE = Number(process.env.PERF_SCORE || 27); // v124 exam 모드: 가짜 수행평가 점수(30점 만점)
 if (!OUT) { console.error('사용: node mock_check.js <출력 폴더> [student|dash|all]'); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
 const WEBAPP_URL = (fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8').match(/WEBAPP_URL:\s*"([^"]+)"/) || [])[1];
@@ -64,7 +66,8 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       if (u.includes('mode=curriculumAdmin')) return route.fulfill(J({ result: 'success', lessons, gradeInfo: {} }));
       if (u.includes('mode=curriculum')) return route.fulfill(J(CUR));
       if (u.includes('mode=checkinPlan')) return route.fulfill(J({ result: 'success', plan: {} }));
-      if (u.includes('mode=checkinToday')) return route.fulfill(J({ result: 'success', alreadyChecked: true, lessonId: '' }));
+      if (u.includes('mode=checkinToday')) return route.fulfill(J({ result: 'success', alreadyChecked: WHAT !== 'exam', lessonId: '' })); // v124: exam 모드는 감정 체크인을 띄운다
+      if (u.includes('mode=perfScore')) return route.fulfill(J({ result: 'success', items: [{ title: '역사 포트폴리오', score: PERF_SCORE, max: 30, used: 10, c3: 9, c2: 0, c1: 0, c0: 1, written: 12, note: '', response: '이상 없음', respondedAt: '', answeredScore: PERF_SCORE }] }));
       if (u.includes('mode=student')) return route.fulfill(J(STUDENT));
       if (u.includes('mode=questions')) return route.fulfill(J({ result: 'success', rows: QUESTIONS }));
       if (u.includes('mode=messagesAdmin')) return route.fulfill(J({ result: 'success', rows: MESSAGES }));
@@ -137,6 +140,30 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
         await page.screenshot({ path: path.join(OUT, 'dash_questions_pc_after.png'), fullPage: true });
       }
       summary['questions_' + vn] = { before, after, errs: errs.length ? errs : '없음' };
+      await ctx.close();
+    }
+  }
+  // v124 — 3학년 시험기간(?exam=1): 감정 체크인 → «시험 응원 포춘쿠키» 문구가 시험 문구 은행에서 나오는지, 수행평가 카드의 «기말고사 목표 점수»
+  if (WHAT === 'exam') {
+    for (const [vn, w, h] of [['phone', 375, 812], ['tablet', 768, 1024], ['tabletL', 1180, 820], ['pc', 1280, 900]]) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: h } }); const page = await ctx.newPage(); const errs = [];
+      page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 100)); });
+      await page.route(/script\.google\.com/, routeBackend);
+      await page.goto('http://localhost:8765/index.html?exam=1'); await page.waitForTimeout(600);
+      await page.fill('#inputId', '30501'); await page.fill('#inputName', '테스트'); await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
+      await page.waitForSelector('#checkinView .temp-btn', { timeout: 15000 });
+      await page.click('.temp-btn[data-temp="3"]'); await page.waitForTimeout(300);
+      await page.click('.emo-chip'); await page.waitForSelector('#fcCookie'); await page.click('#fcCookie', { force: true }); /* 쿠키가 계속 흔들려(애니메이션) stable 대기를 건너뜀 */ await page.waitForTimeout(700);
+      const cookie = await page.evaluate(() => {
+        const slip = document.getElementById('fcSlip').textContent, ex = CHECKIN_EMOTION.examFortunes;
+        return { eyebrow: document.querySelector('#ckRightBody .checkin-eyebrow').textContent, slip, fromExamBank: Object.values(ex).some(a => a.includes(slip)) };
+      });
+      await page.screenshot({ path: path.join(OUT, `exam_cookie_${vn}.png`), fullPage: true });
+      await page.click('#fcGo'); await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(800);
+      await page.click('#perfOpenBtn'); await page.waitForSelector('.perf-target', { timeout: 5000 });
+      const target = await page.evaluate(() => ({ head: document.querySelector('.perf-target-head').textContent, over: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+      await page.locator('#perfCard').screenshot({ path: path.join(OUT, `exam_target_${vn}.png`) });
+      summary['exam_' + vn] = { cookie, target, errs: errs.length ? errs : '없음' };
       await ctx.close();
     }
   }

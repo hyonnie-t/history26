@@ -140,10 +140,15 @@ function ckTodayEmotionChips_(){
   return ckShuffle_(picks, rnd).slice(0, emo.chipCount);
 }
 
+/* v124: 그 학년 시험기간(config.js EXAM_PERIOD, tree.js treeExamActive_)이면 쿠키에 시험 응원 문구가 든다. */
+function ckExamOn_(){
+  return typeof treeExamActive_ === 'function' && !!CHECKIN_EMOTION.examFortunes && treeExamActive_(SESSION.grade);
+}
 function ckFortuneText_(q){
   const emo = CHECKIN_EMOTION, rnd = ckRng_(ckSeed_('fortune|' + q));
-  const key = emo.fortunes[q] ? q : ['r','y','b','g'][Math.floor(rnd() * 4)]; // 기타(직접 쓰기)는 아무 분면에서
-  const arr = emo.fortunes[key];
+  const bank = ckExamOn_() ? emo.examFortunes : emo.fortunes;
+  const key = bank[q] ? q : ['r','y','b','g'][Math.floor(rnd() * 4)]; // 기타(직접 쓰기)는 아무 분면에서
+  const arr = bank[key];
   return arr[Math.floor(rnd() * arr.length)];
 }
 
@@ -201,7 +206,7 @@ function renderEmotionDefaultBody_(body){
 function renderFortuneStep_(body, q){
   const text = ckFortuneText_(q);
   body.innerHTML = `
-    <p class="checkin-eyebrow">오늘의 포춘쿠키</p>
+    <p class="checkin-eyebrow">${ckExamOn_() ? '시험 응원 포춘쿠키' : '오늘의 포춘쿠키'}</p>
     <p class="checkin-q" id="fcPrompt">쿠키를 눌러 오늘의 한마디를 꺼내 봐</p>
     <div class="fortune-stage">
       <button type="button" class="fortune-cookie" id="fcCookie" aria-label="포춘쿠키 열기">

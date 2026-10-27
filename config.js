@@ -50,6 +50,13 @@ window.PORTAL_CONFIG = {
     3: { from: "2026-10-22", to: "2026-10-30" }
   },
 
+  // v124 — 수행평가 점수 확인 카드 아래 «기말고사 몇 점이면 A?» 예상. 학년이 없으면 안 보인다.
+  // 3학년 2학기: 수행 30%(포트폴리오 30점) + 지필 70%(기말 100점), 등급은 10점 간격(A 90 이상 … E 60 미만) — 효니 확인 2026-10-27.
+  GRADE_TARGET: {
+    3: { perfWeight: 30, examWeight: 70, examMax: 100,
+         cuts: [{ g: "A", min: 90 }, { g: "B", min: 80 }, { g: "C", min: 70 }, { g: "D", min: 60 }] }
+  },
+
   // 페이지 로딩 시 loadCurriculum()이 mode=curriculum 응답으로 이 값을 채웁니다.
   // (시트가 비어 있거나 API 실패 시 빈 상태로 남아 로그인 시 오류로 이어짐)
   CURRICULUM: {},
