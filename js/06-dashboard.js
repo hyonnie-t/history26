@@ -1402,12 +1402,30 @@ function dashRenderLessons(){
 
 /* v27: 활동목록JSON이 있는(활동 2개 이상) 차시는 목록에서 "활동 2개" 배지 +
  * 순차진행이면 🔒 표시를 덧붙임. urlText 대신 활동 개수/타입을 요약해서 보여줌. */
+/* v120 — 커리큘럼 항목의 제출 건수. 교사용 행(activitiesRaw JSON 또는 단일 id)에서 활동 id를 모아 ROWS(gameName)와 대조한다.
+ * URL이 있는 진행중 활동인데 0건이면 웹앱 GAME_NAME과 커리큘럼 id가 다른 사고(2026-10-27 crusades_effect: 주제16_교황권게임 ≠ 주제16_0304_흑사병교황권게임)를
+ * 의심할 수 있게 경고 배지를 붙인다. ROWS는 대시보드가 받은 기록 전체라 읽기 전용. */
+function clLessonSubmitInfo_(l){
+  const ids = new Set(); let hasUrl = !!l.urlText;
+  try{
+    const arr = l.activitiesRaw ? JSON.parse(l.activitiesRaw) : null;
+    if(Array.isArray(arr) && arr.length){ arr.forEach(x => { if(x && x.id) ids.add(String(x.id)); if(x && x.url) hasUrl = true; }); }
+  }catch(e){ /* JSON이 깨졌으면 단일 id로 */ }
+  if(!ids.size) ids.add(String(l.id));
+  const n = ROWS.filter(r => ids.has(String(r.gameName))).length;
+  return { n, hasUrl };
+}
+
 function clLessonItemHtml(l, isPastItem){
   const multi = (l.activitiesCount || 1) > 1;
+  const sub = clLessonSubmitInfo_(l); // v120
+  const subText = (sub.hasUrl && sub.n === 0 && !isPastItem)
+    ? ` · <span class="cl-warn" title="학생 제출이 한 건도 없어요. 웹앱의 GAME_NAME이 이 활동 id와 글자까지 같은지 확인하세요.">⚠ 제출 0건</span>`
+    : ` · 제출 ${sub.n}건`;
   const ownerTag = (l.owner && l.owner !== '공통') ? ` · 👤 ${escapeHtml(l.owner)} 담당` : '';
   const metaText = multi
-    ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}${ownerTag}`
-    : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}${ownerTag}`;
+    ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}${ownerTag}${subText}`
+    : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}${ownerTag}${subText}`;
   return `
     <div class="cl-item" ${isPastItem ? '' : 'draggable="true"'} data-row="${l._row}" data-grade="${escapeHtml(l.grade)}">
       ${isPastItem ? '' : '<span class="cl-drag-handle" title="드래그해서 순서 바꾸기">⠿</span>'}

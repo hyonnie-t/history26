@@ -572,6 +572,12 @@ function renderPortal(){
    * 그려지므로(feedbackLabel_) 별도 처리가 필요 없다 — fbGeneral 계산 자체는
    * ackFeedbackItems_ 주석에서 설명하는 공유 참조 구조상 그대로 둔다. */
   renderFeedbackInbox(fbAll);
+  /* v119 — «그 밖의 기록» 머리글은 아래에 보일 카드(성적조회·피드백 모아보기)가 하나라도 있을 때만. 둘 다 숨겨지면 빈 제목만 남아 있었다. */
+  const otherHead = $('otherHead');
+  if(otherHead){
+    const visible = ['gradeCard','feedbackInboxCard'].some(id => { const el = $(id); return el && !el.hidden && el.style.display !== 'none'; });
+    otherHead.style.display = visible ? '' : 'none';
+  }
 
   /* 질문함 (학생 ↔ 교사) */
   renderQuestions();
@@ -691,25 +697,34 @@ function renderPortal(){
   }
 }
 
-/* v105 — 첫 화면 «지금 할 활동» 카드. 교육과정 순서에서 아직 안 끝낸(lessonDone 거짓) 첫 차시의
- * 첫 미완료 활동 중 이 반에 열려 있는 것(링크가 있는 것)을 골라 한 줄로 보여 준다. 링크는 카드의 "하러 가기"와 같은
- * 규칙(module은 withStudentParams, 그 밖엔 원래 주소). 첫 미완료 활동은 앞 활동이 모두 끝난 상태라 순차 잠금에 걸리지 않는다.
+/* v105 — 첫 화면 «지금 할 활동» 카드. 교육과정 순서에서 아직 안 끝낸(lessonDone 거짓) 차시 가운데 첫 미완료 활동에
+ * 링크가 있는 것을 후보로 모아, v119부터는 그중 **가장 최근(순서상 마지막)** 차시를 한 줄로 보여 주고 앞선 후보 수를 «밀린 차시 N개»로 덧붙인다.
+ * 링크는 카드의 "하러 가기"와 같은 규칙(module은 withStudentParams, 그 밖엔 원래 주소). 첫 미완료 활동은 앞 활동이 모두 끝난 상태라 순차 잠금에 걸리지 않는다.
  * 읽기만 하는 표시라 PREVIEW_MODE 분기는 필요 없다(링크의 preview=1은 withStudentParams가 붙인다). */
 function renderNextActivity_(lessons, doneIds, lessonDone){
   const card = $('nextCard');
   if(!card) return;
-  let pick = null;
-  for(let i = 0; i < lessons.length && !pick; i++){
-    const l = lessons[i];
-    if(lessonDone(l)) continue;
+  /* v119 — 교육과정 순서에서 «가장 최근» 미완료 차시를 고른다(이전엔 가장 오래된 것).
+   * 수업은 늘 최신 차시를 하므로 1학기 복습처럼 몇 주 지난 활동이 «지금 할 활동»에 걸려 있으면
+   * 학생이 오늘 수업 활동을 못 찾는다. 더 오래된 미완료 활동은 «밀린 활동 N개»로 따로 세어 보여 준다. */
+  const open = [];
+  lessons.forEach((l, i) => {
+    if(lessonDone(l)) return;
     const idx = l.activities.findIndex(a => !doneIds.has(a.id));
     const act = l.activities[idx];
-    if(act && lessonActivityUrl(act)) pick = { l, i, act, idx };
-  }
+    if(act && lessonActivityUrl(act)) open.push({ l, i, act, idx });
+  });
+  const pick = open.length ? open[open.length - 1] : null;
   if(!pick){ card.hidden = true; return; }
   const url = lessonActivityUrl(pick.act);
   $('nextTitle').textContent = `${pick.i + 1}차시 · ${activityDisplayTitle(pick.l, pick.act, pick.idx)}`;
   $('nextGo').href = pick.act.type === 'module' ? withStudentParams(url) : ensureUrlScheme_(url);
+  const sub = $('nextSub');
+  if(sub){
+    const behind = open.length - 1;
+    sub.hidden = behind <= 0;
+    sub.textContent = behind > 0 ? `밀린 차시 ${behind}개 더 있어요 · 아래 연표에서 단원을 펼쳐 찾아요` : ''; // v119: 단위는 차시(활동 2개짜리도 1로 셈)
+  }
   card.hidden = false;
 }
 

@@ -157,6 +157,11 @@ Windows PC(효니 학교 PC)에서는 `python3`가 스토어 스텁이라 위 �
 테스트는 `uv run --python 3.12 --no-project --with playwright python tests/webapp-testing/<테스트>.py`로 돌린다.
 이때 `PWTEST_CHROMIUM_PATH`는 비워 둔다(지정하면 spawn UNKNOWN).
 
+**파이썬 없이(Node만) 도는 가짜 백엔드 점검 — v120(2026-10-27) 추가**: `node tests/webapp-testing/mock_check.js <출력폴더> [student|dash|all]`.
+서버를 스크립트가 직접 띄우고(8765) Apps Script 호출을 route로 가짜 응답으로 바꿔 학생 화면(폰375·태블릿820·PC1280)과 교사 대시보드 커리큘럼 탭(PC·폰)을 캡처하고
+«지금 할 활동»·«밀린 차시»·«그 밖의 기록» 머리글·«제출 N건/⚠ 제출 0건»·가로 넘침·콘솔 오류를 JSON으로 찍는다. 커리큘럼만 실제 ?mode=curriculum을 읽고(읽기 전용) 시트에는 쓰지 않는다.
+playwright 모듈은 shot.js처럼 후보 경로를 찾고(효니 학교 PC는 tistory-mcp npx 캐시), 브라우저는 설치된 Chrome을 쓴다.
+
 (webapp-testing 스킬을 설치한 뒤에는 서버 기동을 `scripts/with_server.py`로
 대신해도 된다 — 위 수동 방식과 결과는 동일함.)
 
