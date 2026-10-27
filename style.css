@@ -2014,6 +2014,11 @@ html{scrollbar-gutter:stable;}
 .perf-answer{font-weight:700; margin:0;}
 .perf-ok{color:#1a7f4b;}
 .perf-ask{color:#a35a00;}
+/* v124 — 기말고사 목표 점수 */
+.perf-target{margin:12px 0 0; padding:12px 14px; border:1px solid var(--indigo); border-radius:10px; background:#fff;}
+.perf-target-eyebrow{margin:0 0 4px; font-size:.85rem; font-weight:700; color:var(--indigo);}
+.perf-target-head{margin:0 0 6px; font-size:1.05rem; color:var(--ink);}
+.perf-target-head b{font-size:1.45rem; color:var(--indigo);}
 
 /* v97 — 이상 있음 학생 근거 팝업(점수 산출 근거 → 점수별 토글 → 글별 원문+근거) */
 body.perf-modal-open{overflow:hidden;}

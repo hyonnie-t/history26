@@ -66,7 +66,42 @@ function renderPerfScore_(){
       + '<p class="perf-final-note">⚠ 이 점수는 <b>최종 점수가 아니에요.</b> 학기말에 나오는 점수가 최종 점수이고, 그때 점수가 달라질 수 있어요.</p>'
       + '<div class="perf-actions" id="perfActions' + i + '">' + answer + '</div>'
       + '</div>';
-  }).join('') + '<button class="btn-logout" style="margin-top:10px;" onclick="closePerfScore_()">닫기</button>';
+  }).join('') + perfTargetHtml_() + '<button class="btn-logout" style="margin-top:10px;" onclick="closePerfScore_()">닫기</button>';
+}
+/* v124 — 본인 수행평가 점수로 «기말고사에서 몇 점이면 A»를 계산해 보여 준다(배점·등급 기준은 config.js GRADE_TARGET).
+ * 총점 = 수행 점수/만점×perfWeight + 지필/examMax×examWeight. 필요한 지필 점수는 0.1점 단위로 올림(반올림하면 모자랄 수 있어서). */
+function perfTargetHtml_(){
+  const cfg = CONFIG.GRADE_TARGET && CONFIG.GRADE_TARGET[SESSION.grade];
+  if(!cfg || !PERF_ITEMS.length) return '';
+  const max = PERF_ITEMS.reduce((s, it) => s + (Number(it.max) || 0), 0);
+  if(!max) return '';
+  const got = PERF_ITEMS.reduce((s, it) => s + (Number(it.score) || 0), 0);
+  const perf = Math.round(got / max * cfg.perfWeight * 100) / 100;
+  const need = min => Math.max(0, Math.ceil((min - perf) * cfg.examMax / cfg.examWeight * 10 - 1e-6) / 10);
+  const fmt = n => String(Math.round(n * 10) / 10);
+  const needTxt = n => n >= cfg.examMax ? '<b>' + cfg.examMax + '점(만점)</b>' : '<b>' + fmt(n) + '점 이상</b>';
+  const rows = cfg.cuts.map(c => ({ g: c.g, min: c.min, need: need(c.min) })).filter(r => r.need <= cfg.examMax);
+  const a = cfg.cuts[0];
+  let head;
+  if(rows.length && rows[0].g === a.g){
+    head = rows[0].need > 0
+      ? '기말고사에서 ' + needTxt(rows[0].need) + '이면 ' + a.g + '예요'
+      : '수행평가만으로 이미 ' + a.g + ' 점수를 넘었어요';
+  }else if(rows.length){
+    head = '기말고사에서 ' + needTxt(rows[0].need) + '이면 ' + rows[0].g + '예요';
+  }else{
+    return '';
+  }
+  const others = rows.slice(1).map(r => r.g + ' ' + fmt(r.need) + '점').join(' · ');
+  return '<div class="perf-target">'
+    + '<p class="perf-target-eyebrow">🎯 기말고사 목표 점수 (예상)</p>'
+    + '<p class="perf-target-head">' + head + '</p>'
+    + (rows[0].g !== a.g ? '<p class="perf-sub">' + a.g + '는 이번 기말고사 점수만으로는 닿기 어려워요. 한 등급이라도 더 올려 보자!</p>' : '')
+    + (others ? '<p class="perf-sub">그 밖의 등급: ' + others + ' 이상</p>' : '')
+    + '<p class="perf-sub">계산: 수행평가 ' + fmt(got) + '/' + fmt(max) + '점 → ' + fmt(perf) + '점 반영(' + cfg.perfWeight + '%) + 기말고사 점수 × '
+    + (cfg.examWeight / cfg.examMax) + '(' + cfg.examWeight + '%). ' + a.g + '는 합계 ' + a.min + '점 이상이에요.</p>'
+    + '<p class="perf-note">수행평가 점수가 바뀌면 목표 점수도 달라져요. 소수점 처리에 따라 실제와 조금 다를 수 있어요.</p>'
+    + '</div>';
 }
 /* v101 — 학생이 «이상 없음/이상 있음»을 누른 뒤 점수가 바뀌었는지. answeredScore는 응답 때 저장된 점수(백엔드 v101부터 내려옴, 없으면 변동 없음으로 본다). */
 function perfChanged_(it){
