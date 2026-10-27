@@ -948,6 +948,7 @@ button{font-family:inherit; cursor:pointer;}
 .cl-drag-handle:active{cursor:grabbing;}
 .cl-item-body{flex:1 1 160px; min-width:0;}
 .cl-item .cl-meta{font-size:.78rem; color:var(--ink-soft);}
+.cl-item .cl-warn{color:var(--seal); font-weight:700;} /* v120 — 제출 0건 경고 */
 .cl-item .cl-title{font-size:.92rem; font-weight:600;}
 .cl-item-actions{display:flex; gap:6px; flex-wrap:wrap; align-items:center; flex-shrink:0;}
 .cl-move{padding:3px 9px; font-size:.85rem; line-height:1;}
