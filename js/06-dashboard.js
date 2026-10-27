@@ -1892,7 +1892,7 @@ function dashQuestionItemHtml_(q){
   return `
     <div class="dq-q${isDone ? '' : ' wait'}">
       <div class="msg-bubble from-teacher">
-        <div class="msg-meta">❓ 질문 · ${formatDate(q.timestamp)} <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span></div>
+        <div class="msg-meta"><span class="dq-kind q">질문</span> ${formatDate(q.timestamp)} <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span></div>
         <div class="msg-text">${escapeHtml(q.question)}</div>
       </div>
       ${isDone ? `
@@ -1919,18 +1919,19 @@ function dashRenderQuestions(){
     return;
   }
   const waitingStudents = groups.filter(s => s.waiting).length;
-  const lastText = s => {
+  // v124 — 이모지 대신 «질문»/«메시지» 글자 표식(.dq-kind)
+  const lastHtml = s => {
     const i = s.last;
-    if(i.kind === 'q') return '❓ ' + i.q.question;
-    return (i.m.from === '교사' ? '💌 나: ' : '💌 ') + i.m.content;
+    if(i.kind === 'q') return '<span class="dq-kind q">질문</span> ' + escapeHtml(dashShorten(i.q.question, 50));
+    return '<span class="dq-kind m">메시지</span> ' + escapeHtml(dashShorten((i.m.from === '교사' ? '나: ' : '') + i.m.content, 50));
   };
   list.innerHTML = `
-    <p class="dq-summary-line">학생 ${groups.length}명${waitingStudents ? ` · <b>대기 ${waitingStudents}명</b>` : ' · 대기 없음'} <span class="muted">— 질문(❓)과 개인 메시지(💌)를 학생별로 모았어요</span></p>
+    <p class="dq-summary-line">학생 ${groups.length}명${waitingStudents ? ` · <b>대기 ${waitingStudents}명</b>` : ' · 대기 없음'} <span class="muted">— 질문과 개인 메시지를 학생별로 모았어요</span></p>
     ${groups.map(s => {
       const open = DQ_OPEN_STATE.has(s.sid) ? DQ_OPEN_STATE.get(s.sid) : s.waiting > 0;
       const timeline = s.items.map(i => i.kind === 'q' ? dashQuestionItemHtml_(i.q) : `
         <div class="msg-bubble ${i.m.from === '교사' ? 'from-me' : 'from-teacher'}">
-          <div class="msg-meta">💌 ${i.m.from === '교사' ? '나' : escapeHtml(s.name)} · ${formatDate(i.m.timestamp)}${i.m.from === '교사' ? (i.m.read ? ' · 읽음' : ' · 안 읽음') : ''}</div>
+          <div class="msg-meta"><span class="dq-kind m">메시지</span> ${i.m.from === '교사' ? '나' : escapeHtml(s.name)} · ${formatDate(i.m.timestamp)}${i.m.from === '교사' ? (i.m.read ? ' · 읽음' : ' · 안 읽음') : ''}</div>
           <div class="msg-text">${escapeHtml(i.m.content)}</div>
         </div>`).join('');
       return `
@@ -1939,13 +1940,13 @@ function dashRenderQuestions(){
           <span class="dq-s-who"><b>${escapeHtml(s.name)}</b> <span class="muted">${s.grade}학년 ${s.ban}반 · ${escapeHtml(s.sid)}</span></span>
           ${s.qWaiting ? `<span class="q-status wait">질문 대기 ${s.qWaiting}</span>` : ''}
           ${s.msgWaiting ? '<span class="q-status wait">답장 도착</span>' : ''}
-          <span class="dq-s-last">${escapeHtml(dashShorten(lastText(s), 50))}</span>
+          <span class="dq-s-last">${lastHtml(s)}</span>
           <span class="dq-s-date">${s.lastT ? formatDate(s.lastT) : ''}</span>
         </summary>
         <div class="dq-timeline">${timeline}</div>
         <div class="msg-wrap" data-sid="${escapeHtml(s.sid)}" data-name="${escapeHtml(s.name)}">
           <div class="dq-reply-form">
-            <textarea class="msg-text-input" maxlength="1000" placeholder="💌 개인 메시지 보내기 (학생 포털에 알림으로 떠요)"></textarea>
+            <textarea class="msg-text-input" maxlength="1000" placeholder="개인 메시지 보내기 (학생 포털에 알림으로 떠요)"></textarea>
             <button class="btn btn-sm" onclick="dashSendMessage(this)">메시지 보내기</button>
           </div>
         </div>

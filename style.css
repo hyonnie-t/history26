@@ -2205,6 +2205,10 @@ body.perf-modal-open{overflow:hidden;}
 .dq-q{display:flex; flex-direction:column; gap:6px;}
 .dq-q.wait > .msg-bubble.from-teacher{border-color:var(--seal); box-shadow:inset 3px 0 0 var(--seal);}
 .dq-q .msg-meta .q-status{margin-left:4px;}
+/* v124 — 이모지 대신 종류 표식: 질문은 인주색, 메시지는 남색 글자 */
+.dq-kind{display:inline-block; font-size:.72rem; font-weight:700; line-height:1.5; padding:0 7px; border-radius:999px; margin-right:2px; vertical-align:1px;}
+.dq-kind.q{color:var(--seal); background:rgba(176,58,46,.08);}
+.dq-kind.m{color:var(--indigo); background:var(--indigo-bg);}
 .dq-q > .dq-reply-form, .dq-edit{align-self:stretch; margin-left:12px;}
 .dq-edit > summary{cursor:pointer; font-size:.82rem; color:var(--ink-soft); min-height:32px; display:inline-flex; align-items:center;}
 .dq-edit[open] > summary{margin-bottom:6px;}
