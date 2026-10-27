@@ -1882,6 +1882,11 @@ function dashQuestionGroups_(){
     return s;
   }).sort((a, b) => ((b.waiting > 0) - (a.waiting > 0)) || (b.lastT - a.lastT));
 }
+const DQ_ICON_Q = '<span class="dq-kind q"><lucian-help size="16" tone="line" label="질문"></lucian-help></span>';
+function dqIconMsg_(m){
+  const st = m.from === '교사' && m.read ? 'open' : 'closed';
+  return `<span class="dq-kind m"><lucian-envelope size="16" tone="line" state="${st}" label="메시지"></lucian-envelope></span>`;
+}
 function dashQuestionItemHtml_(q){
   const isDone = q.status === '답변완료';
   const form = `
@@ -1892,7 +1897,7 @@ function dashQuestionItemHtml_(q){
   return `
     <div class="dq-q${isDone ? '' : ' wait'}">
       <div class="msg-bubble from-teacher">
-        <div class="msg-meta"><span class="dq-kind q">질문</span> ${formatDate(q.timestamp)} <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span></div>
+        <div class="msg-meta">${DQ_ICON_Q} ${formatDate(q.timestamp)} <span class="q-status ${isDone ? 'done' : 'wait'}">${isDone ? '답변완료' : '대기중'}</span></div>
         <div class="msg-text">${escapeHtml(q.question)}</div>
       </div>
       ${isDone ? `
@@ -1919,11 +1924,12 @@ function dashRenderQuestions(){
     return;
   }
   const waitingStudents = groups.filter(s => s.waiting).length;
-  // v125 — 이모지 대신 «질문»/«메시지» 글자 표식(.dq-kind)
+  // v125 — 이모지 대신 종류 표식(.dq-kind). v126 — 글자 대신 Lucian Icons(vendor/lucian-icons, MIT) 선 아이콘
+  //   질문 = help(#72), 메시지 = envelope(#25). 봉투는 내가 보낸 메시지가 학생에게 읽혔으면 open, 아니면 closed(실제 read 값).
   const lastHtml = s => {
     const i = s.last;
-    if(i.kind === 'q') return '<span class="dq-kind q">질문</span> ' + escapeHtml(dashShorten(i.q.question, 50));
-    return '<span class="dq-kind m">메시지</span> ' + escapeHtml(dashShorten((i.m.from === '교사' ? '나: ' : '') + i.m.content, 50));
+    if(i.kind === 'q') return DQ_ICON_Q + ' ' + escapeHtml(dashShorten(i.q.question, 50));
+    return dqIconMsg_(i.m) + ' ' + escapeHtml(dashShorten((i.m.from === '교사' ? '나: ' : '') + i.m.content, 50));
   };
   list.innerHTML = `
     <p class="dq-summary-line">학생 ${groups.length}명${waitingStudents ? ` · <b>대기 ${waitingStudents}명</b>` : ' · 대기 없음'} <span class="muted">— 질문과 개인 메시지를 학생별로 모았어요</span></p>
@@ -1931,7 +1937,7 @@ function dashRenderQuestions(){
       const open = DQ_OPEN_STATE.has(s.sid) ? DQ_OPEN_STATE.get(s.sid) : s.waiting > 0;
       const timeline = s.items.map(i => i.kind === 'q' ? dashQuestionItemHtml_(i.q) : `
         <div class="msg-bubble ${i.m.from === '교사' ? 'from-me' : 'from-teacher'}">
-          <div class="msg-meta"><span class="dq-kind m">메시지</span> ${i.m.from === '교사' ? '나' : escapeHtml(s.name)} · ${formatDate(i.m.timestamp)}${i.m.from === '교사' ? (i.m.read ? ' · 읽음' : ' · 안 읽음') : ''}</div>
+          <div class="msg-meta">${dqIconMsg_(i.m)} ${i.m.from === '교사' ? '나' : escapeHtml(s.name)} · ${formatDate(i.m.timestamp)}${i.m.from === '교사' ? (i.m.read ? ' · 읽음' : ' · 안 읽음') : ''}</div>
           <div class="msg-text">${escapeHtml(i.m.content)}</div>
         </div>`).join('');
       return `
