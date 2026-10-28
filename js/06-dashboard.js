@@ -112,7 +112,7 @@ function switchDashTab(tab){
     document.querySelectorAll('#panelGrades details[data-fold]').forEach(dashFoldInit_); // v105
     dashLoadGradeStatus_(); dashLoadPerfStatus_();
   }
-  if(tab === 'points') ppRenderRecent_(); // v105 — 탭을 열 때마다 최근 지급 5건 갱신
+  if(tab === 'points'){ ppRenderRecent_(); pkInit_(); } // v105 — 탭을 열 때마다 최근 지급 5건 갱신 / v127 발표자 뽑기 반 목록
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
 }
@@ -2988,6 +2988,175 @@ function ppRenderRecent_(){
         <span class="pp-recent-time">${formatDate(g.timestamp)}</span>
       </div>`).join('');
 }
+
+/* ── 발표자 뽑기 (v127 신규) ──
+ * 반 번호(1~BAN_SIZE)에서 한 명을 뽑아 십의 자리·일의 자리 릴을 차례로 멈추는 연출로 보여 준다.
+ * 공정성: ① 난수는 crypto.getRandomValues + 거절 샘플링(나머지 편향 없음).
+ * ② «한 바퀴» 방식 — 이번 바퀴에 이미 뽑힌 번호는 후보에서 빠지고, 전원이 한 번씩 나오면 새 바퀴.
+ *    새 바퀴 첫 번째는 직전 바퀴 마지막 학생을 빼고 뽑아 같은 학생이 연달아 나오지 않게 한다.
+ * 뽑힌 기록·결석 표시는 교사 기기 localStorage(dash_picker_v1)에만 둔다 — 서버에 쓰지 않으므로 PREVIEW_MODE 분기 없음.
+ * 결석 표시는 날짜가 바뀌면 풀린다. 이름은 ROWS·학생 계정 목록(PA_DATA)에서 찾고, 없으면 번호만 보여 준다. */
+const PK_KEY = 'dash_picker_v1';
+let PK_CLASS = '';
+let PK_SPINNING = false;
+let PK_LAST = null; // 방금 뽑힌 { sid, name, num }
+let PK_AUDIO = null;
+function pkToday_(){ const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function pkLoadAll_(){ try{ return JSON.parse(localStorage.getItem(PK_KEY)) || {}; }catch(e){ return {}; } }
+function pkState_(key){
+  const all = pkLoadAll_();
+  const st = Object.assign({ picked: [], last: null, absent: [], absentDate: '' }, all[key] || {});
+  if(st.absentDate !== pkToday_()){ st.absent = []; st.absentDate = pkToday_(); }
+  return st;
+}
+function pkSaveState_(key, st){
+  const all = pkLoadAll_(); all[key] = st;
+  try{ localStorage.setItem(PK_KEY, JSON.stringify(all)); }catch(e){}
+}
+function pkRandInt_(n){ // 0..n-1 균등
+  const c = window.crypto;
+  if(!c || !c.getRandomValues) return Math.floor(Math.random() * n);
+  const lim = Math.floor(0x100000000 / n) * n, a = new Uint32Array(1);
+  do { c.getRandomValues(a); } while(a[0] >= lim);
+  return a[0] % n;
+}
+function pkSid_(grade, ban, num){ return String(grade) + String(ban).padStart(2, '0') + String(num).padStart(2, '0'); }
+function pkRoster_(key){
+  const [grade, ban] = key.split('-').map(Number);
+  const size = (CONFIG.BAN_SIZE && CONFIG.BAN_SIZE[grade] && CONFIG.BAN_SIZE[grade][ban]) || 0;
+  const names = {};
+  dashBuildStudentIndex_().forEach(s => { if(s.p && s.p.grade === grade && s.p.ban === ban && s.name) names[s.p.num] = s.name; });
+  ((PA_DATA && PA_DATA.accounts) || []).forEach(a => {
+    const p = parseStudentId(String(a.studentId || ''));
+    if(p && p.grade === grade && p.ban === ban && a.name && !names[p.num]) names[p.num] = String(a.name);
+  });
+  const nums = [];
+  for(let i = 1; i <= size; i++) nums.push(i);
+  Object.keys(names).map(Number).forEach(n => { if(n > size && n < 99) nums.push(n); }); // 전입생 등 BAN_SIZE보다 큰 번호(99번 미리보기 학생 제외)
+  return nums.map(num => ({ num, sid: pkSid_(grade, ban, num), name: names[num] || '' }));
+}
+function pkInit_(){
+  const sel = $('pkClass');
+  if(!sel) return;
+  const opts = [];
+  Object.keys(CONFIG.BAN_SIZE || {}).sort().forEach(g => dashTeachingBans_(g).forEach(b => opts.push({ key: g + '-' + b, label: g + '학년 ' + b + '반' })));
+  if(!PK_CLASS || !opts.some(o => o.key === PK_CLASS)) PK_CLASS = (opts[0] || {}).key || '';
+  sel.innerHTML = opts.map(o => `<option value="${o.key}"${o.key === PK_CLASS ? ' selected' : ''}>${o.label}</option>`).join('');
+  pkRender_();
+}
+function pkSelectClass_(key){ PK_CLASS = key; pkRender_(); }
+function pkPool_(roster, st){
+  const out = roster.filter(s => st.absent.indexOf(s.num) < 0);
+  return { present: out, left: out.filter(s => st.picked.indexOf(s.num) < 0) };
+}
+function pkRender_(){
+  const grid = $('pkGrid');
+  if(!grid) return;
+  if(!PK_CLASS){ grid.innerHTML = ''; $('pkStatus').textContent = '담당 반 정보(config.js의 BAN_SIZE)가 없어요.'; return; }
+  const roster = pkRoster_(PK_CLASS), st = pkState_(PK_CLASS), pool = pkPool_(roster, st);
+  $('pkStatus').textContent = `이번 바퀴: ${pool.present.length}명 중 ${pool.present.length - pool.left.length}명 발표 · 남은 후보 ${pool.left.length}명`
+    + (st.absent.length ? ` · 결석 ${st.absent.length}명` : '');
+  grid.innerHTML = roster.map(s => {
+    const cls = st.absent.indexOf(s.num) >= 0 ? ' is-absent' : st.picked.indexOf(s.num) >= 0 ? ' is-picked' : '';
+    return `<button type="button" class="pk-chip${cls}" data-num="${s.num}" title="${cls === ' is-picked' ? '눌러서 다시 후보에 넣기' : '눌러서 결석 표시/해제'}">
+      <b>${s.num}</b><span>${escapeHtml(s.name || '-')}</span></button>`;
+  }).join('');
+  grid.querySelectorAll('.pk-chip').forEach(el => el.addEventListener('click', () => pkToggleChip_(Number(el.dataset.num))));
+}
+function pkToggleChip_(num){
+  if(PK_SPINNING) return;
+  const st = pkState_(PK_CLASS);
+  const pi = st.picked.indexOf(num), ai = st.absent.indexOf(num);
+  if(pi >= 0){
+    if(!confirm(num + '번을 이번 바퀴 후보에 다시 넣을까요?')) return;
+    st.picked.splice(pi, 1);
+  } else if(ai >= 0) st.absent.splice(ai, 1);
+  else st.absent.push(num);
+  pkSaveState_(PK_CLASS, st); pkRender_();
+}
+function pkResetRound_(){
+  if(PK_SPINNING || !PK_CLASS) return;
+  if(!confirm('이번 바퀴 기록을 지우고 모두 다시 후보에 넣을까요?')) return;
+  const st = pkState_(PK_CLASS); st.picked = []; pkSaveState_(PK_CLASS, st); pkRender_();
+}
+function pkBeep_(freq, dur){
+  if(!$('pkSound') || !$('pkSound').checked) return;
+  try{
+    PK_AUDIO = PK_AUDIO || new (window.AudioContext || window.webkitAudioContext)();
+    const o = PK_AUDIO.createOscillator(), g = PK_AUDIO.createGain(), t = PK_AUDIO.currentTime;
+    o.type = 'triangle'; o.frequency.value = freq;
+    g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g); g.connect(PK_AUDIO.destination); o.start(t); o.stop(t + dur);
+  }catch(e){}
+}
+/* 릴 하나를 duration(ms) 동안 돌리다가 target에서 멈춘다. 끝으로 갈수록 느려진다. */
+function pkSpinReel_(el, target, duration){
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    let d = pkRandInt_(10);
+    el.classList.remove('is-stop'); el.classList.add('is-spin');
+    (function step(){
+      const left = duration - (performance.now() - t0);
+      if(left <= 0){
+        el.textContent = target; el.classList.remove('is-spin'); el.classList.add('is-stop');
+        pkBeep_(880, .18); resolve(); return;
+      }
+      d = (d + 1) % 10; el.textContent = d; pkBeep_(320 + d * 25, .03);
+      setTimeout(step, left > 1000 ? 55 : 55 + (1000 - left) * .28);
+    })();
+  });
+}
+async function pkDraw_(){
+  if(PK_SPINNING || !PK_CLASS) return;
+  const roster = pkRoster_(PK_CLASS), st = pkState_(PK_CLASS);
+  let pool = pkPool_(roster, st);
+  if(!pool.present.length){ showToast('뽑을 학생이 없어요(전원 결석 표시).'); return; }
+  if(!pool.left.length){ // 한 바퀴 끝 → 새 바퀴. 직전 학생은 첫 번째에서 뺀다.
+    st.picked = []; pool = pkPool_(roster, st);
+    showToast('모두 한 번씩 나왔어요. 새 바퀴를 시작해요.');
+  }
+  let cand = pool.left;
+  if(cand.length > 1 && st.last != null) cand = cand.filter(s => s.num !== st.last);
+  const pick = cand[pkRandInt_(cand.length)];
+  st.picked.push(pick.num); st.last = pick.num;
+  pkSaveState_(PK_CLASS, st);
+  PK_LAST = pick; PK_SPINNING = true;
+  $('pkDrawBtn').disabled = true;
+  const [grade, ban] = PK_CLASS.split('-');
+  $('pkStageClass').textContent = `${grade}학년 ${ban}반 발표자는…`;
+  $('pkName').textContent = ''; $('pkName').classList.remove('is-show');
+  $('pkHint').textContent = '';
+  $('pkActions').hidden = true;
+  $('pkStage').hidden = false;
+  const fast = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const two = String(pick.num).padStart(2, '0');
+  $('pkReel0').textContent = '?'; $('pkReel1').textContent = '?';
+  try{
+    await pkSpinReel_($('pkReel0'), two[0], fast ? 400 : 1800);
+    const sameTens = pool.present.filter(s => String(s.num).padStart(2, '0')[0] === two[0]).length;
+    $('pkHint').textContent = `${two[0] === '0' ? '한 자리' : two[0] + '0번대'} 번호 ${sameTens}명 중 한 명!`;
+    await pkSpinReel_($('pkReel1'), two[1], fast ? 500 : 2600);
+    $('pkName').textContent = pick.name || (pick.num + '번');
+    $('pkName').classList.add('is-show');
+    pkBeep_(660, .12); setTimeout(() => pkBeep_(990, .3), 130);
+    $('pkActions').hidden = false;
+  }finally{
+    PK_SPINNING = false; $('pkDrawBtn').disabled = false;
+    pkRender_();
+  }
+}
+function pkCloseStage_(){ if(!PK_SPINNING) $('pkStage').hidden = true; }
+function pkGrantPicked_(){
+  if(!PK_LAST) return;
+  pkCloseStage_();
+  if(PK_LAST.name) ppPickStudent_(PK_LAST.sid, PK_LAST.name);
+  else { $('ppSearch').value = PK_LAST.sid; $('ppSearch').dispatchEvent(new Event('input')); }
+  const target = $('ppSearchWrap');
+  if(target && target.scrollIntoView) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+document.addEventListener('keydown', ev => {
+  if(ev.key === 'Escape' && $('pkStage') && !$('pkStage').hidden) pkCloseStage_();
+});
 
 /* ── 역사법정 결과 re_judge 자동 등록 (2026-09-04 신규) ──
  * 백엔드 courtCasePush action이 검사/변호인/배심원 제출을 모아 re_judge의
