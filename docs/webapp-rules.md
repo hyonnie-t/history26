@@ -17,6 +17,7 @@
 1. `CONFIG.SHEET_WEBAPP_URL` 하드코딩 — 옮겨 적은 URL은 grep/diff로 원본과 대조.
 2. `CONFIG.GAME_NAME`은 config.js(커리큘럼)의 `id`와 정확히 일치.
 3. `?sid=학번&name=이름` 자동 채움(학번 5자리 = 학년1+반2+번호2, 예: 30506) + `?preview=1` 미리보기(자동채움 + 시트 미반영).
+   미리보기에서는 필수 활동을 안 해도 «다음»·제출로 넘어간다(2026-10-29 효니 «매번 다 채우기 힘들다»). `const skip = () => S.preview;`를 두고 다음 버튼 잠금·단계 안 숨김/잠금·제출 전 글자 수 확인(confirm 포함)에 `&& !skip()`을 붙인다. 미리보기 띠에 «활동을 다 안 해도 넘어갈 수 있어»를 덧붙인다. 학생 화면은 그대로 잠근다. 예: IR-simulator·nation-building `app.js`.
 4. 서술형 입력엔 "💡 막막하면 힌트 보기" 토글 — 답이 아니라 맥락 단서만(비교 대상 제시, 관점 전환 질문 등).
 5. **빌드 단계 금지**: 번들러(webpack/vite)·프레임워크(React)·TypeScript 없이 `<script>`로 부르는 plain HTML/CSS/JS.
    파일을 나누는 것과 빌드를 도입하는 건 다른 문제 — 금지는 후자. 기본 구성은 `index.html`+`style.css`+`data.js`(콘텐츠)+`app.js`(로직)
