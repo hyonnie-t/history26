@@ -123,6 +123,36 @@
       })();
     });
   }
+  /* v128 — 고양이 테마. 그림 세 장(up·down·cheer)을 갈아 끼우는 플립북: 뽑는 동안 앞발 번쩍↔쾅을 반복하고,
+   * 마지막 자리가 멈추면 팻말 든 그림으로 바꾸고 팻말에 번호를 «샥» 띄운다. 결과(번호)는 연출 전에 이미 정해져 있다. */
+  const CAT = { up: 'images/cat/cat-up.jpg', down: 'images/cat/cat-down.jpg', cheer: 'images/cat/cat-cheer.jpg' };
+  let CAT_TIMER = null;
+  function catOn_(){ return document.body.classList.contains('pk-theme-cat'); }
+  function applyTheme_(cat){
+    document.body.classList.toggle('pk-theme-cat', cat);
+    $('pkCatTheme').checked = cat;
+  }
+  function setTheme_(cat){
+    applyTheme_(cat);
+    const all = loadAll_(); all.theme = cat ? 'cat' : ''; saveAll_(all);
+  }
+  function catFrame_(name){ $('pkCatImg').src = CAT[name]; $('pkCat').classList.toggle('is-slam', name === 'down'); }
+  function catStart_(){
+    if(!catOn_()) return;
+    $('pkCat').classList.remove('is-done'); $('pkCatSign').textContent = '';
+    catFrame_('up');
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let down = false;
+    CAT_TIMER = setInterval(() => { down = !down; catFrame_(down ? 'down' : 'up'); if(down) beep_(140, .06); }, 170);
+  }
+  function catStop_(num){
+    clearInterval(CAT_TIMER); CAT_TIMER = null;
+    if(!catOn_()) return;
+    catFrame_('cheer');
+    $('pkCatSign').textContent = num;
+    $('pkCat').classList.add('is-done'); // 팻말 번호·«샥!» 튀어나오기(CSS 애니메이션)
+  }
+
   async function draw_(){
     if(PK_SPINNING || !PK_CLASS) return;
     const roster = roster_(PK_CLASS), st = state_(PK_CLASS);
@@ -149,18 +179,21 @@
     const two = String(pick).padStart(2, '0');
     $('pkReel0').textContent = '?'; $('pkReel1').textContent = '?';
     $('pkReel0').classList.remove('is-stop'); $('pkReel1').classList.remove('is-stop');
+    catStart_();
     try{
       await spinReel_($('pkReel0'), two[0], fast ? 400 : 1800);
       // 실제로 뽑힐 수 있었던 후보 중 같은 십의 자리 수
       const sameTens = cand.filter(n => String(n).padStart(2, '0')[0] === two[0]).length;
       $('pkHint').textContent = `${two[0] === '0' ? '한 자리' : two[0] + '0번대'} 번호 ${sameTens}명 중 한 명!`;
       await spinReel_($('pkReel1'), two[1], fast ? 500 : 2600);
+      catStop_(pick);
       $('pkResult').textContent = pick + '번 발표!';
       $('pkResult').classList.add('is-show');
       beep_(660, .12); setTimeout(() => beep_(990, .3), 130);
       $('pkActions').hidden = false;
       $('pkAgainBtn').focus();
     }finally{
+      if(CAT_TIMER){ clearInterval(CAT_TIMER); CAT_TIMER = null; }
       PK_SPINNING = false; $('pkDrawBtn').disabled = false;
       render_();
     }
@@ -194,6 +227,8 @@
     $('pkResetBtn').addEventListener('click', resetRound_);
     $('pkCopy').addEventListener('click', copyToday_);
     $('pkFullBtn').addEventListener('click', toggleFullscreen_);
+    applyTheme_(loadAll_().theme === 'cat' || new URLSearchParams(location.search).get('theme') === 'cat'); // v128
+    $('pkCatTheme').addEventListener('change', e => setTheme_(e.target.checked));
     $('pkGrid').addEventListener('click', e => {
       const b = e.target.closest('.pk-chip'); if(b) toggleChip_(Number(b.dataset.num));
     });

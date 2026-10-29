@@ -2275,3 +2275,28 @@ body.perf-modal-open{overflow:hidden;}
 @keyframes pk-pop{0%{transform:scale(.6);} 70%{transform:scale(1.12);} 100%{transform:scale(1);}}
 @media (prefers-reduced-motion:reduce){ .pk-reel.is-stop, .pk-result.is-show{animation:none;} .pk-toast{transition:none;} }
 @media (max-width:480px){ .pk-draw{margin-left:0; flex:1;} .pk-card{padding:var(--space-md);} }
+
+/* v128 — 발표자 뽑기 고양이 테마(body.pk-theme-cat). 그림 바탕색(#FBF6E6)에 무대 바탕을 맞춰 그림 테두리가 안 보이게.
+   팻말 위치(%)는 cat-cheer.jpg 안의 흰 팻말 자리에 맞춘 값 — 그림을 바꾸면 같이 고친다. */
+.pk-foot-left{display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px 14px;}
+.pk-cat{display:none; position:relative; width:min(62vw, 300px); aspect-ratio:1; margin:0 auto var(--space-sm);}
+.pk-theme-cat .pk-cat{display:block;}
+.pk-theme-cat .pk-stage-inner{background:#FBF6E6;}
+.pk-theme-cat .pk-reel{width:min(18vw, 96px); height:min(24vw, 128px); font-size:min(17vw, 88px);}
+.pk-theme-cat .pk-unit{font-size:var(--fs-lg);}
+.pk-cat img{width:100%; height:100%; display:block; transform:translateY(-4px); transition:transform .08s ease-out;
+  -webkit-mask-image:radial-gradient(closest-side, #000 86%, transparent 100%); mask-image:radial-gradient(closest-side, #000 86%, transparent 100%);} /* JPEG 바탕 네모 테두리가 비치지 않게 가장자리를 흐리게 */
+.pk-cat.is-slam img{transform:translateY(5px) scale(1.02, .97);}
+.pk-cat-sign{position:absolute; left:36.5%; top:51%; width:31%; height:21.5%; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:min(10.5vw, 60px); line-height:1; color:var(--seal); letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums; transform:rotate(-3deg) scale(0); opacity:0;}
+.pk-cat.is-done .pk-cat-sign{animation:pk-cat-sign .45s cubic-bezier(.2,1.6,.4,1) forwards;}
+.pk-cat-fx{position:absolute; right:4%; top:30%; font-weight:800; font-size:min(8vw, 34px); color:var(--amber-text); opacity:0; transform:rotate(12deg);}
+.pk-cat.is-done .pk-cat-fx{animation:pk-cat-fx .8s ease-out forwards;}
+@keyframes pk-cat-sign{0%{opacity:0; transform:rotate(-3deg) scale(0);} 100%{opacity:1; transform:rotate(-3deg) scale(1);}}
+@keyframes pk-cat-fx{0%{opacity:0; transform:translate(-20px, 20px) rotate(12deg) scale(.6);} 40%{opacity:1;} 100%{opacity:0; transform:translate(10px, -26px) rotate(12deg) scale(1.15);}}
+@media (prefers-reduced-motion:reduce){
+  .pk-cat img{transition:none;}
+  .pk-cat.is-done .pk-cat-sign{animation:none; opacity:1; transform:rotate(-3deg);}
+  .pk-cat.is-done .pk-cat-fx{animation:none;}
+}
