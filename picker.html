@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발표자 뽑기</title>
+<link rel="icon" href="images/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="style.css?v=127">
+</head>
+<body class="pk-body">
+<!-- v127 — 발표자 뽑기 별도 페이지. 교사 토큰 없이 교실 PC에서 바로 연다(즐겨찾기 예: picker.html?ban=2-1).
+     번호만 다루고 서버에 쓰지 않는다. 로직은 js/picker.js. -->
+<main class="pk-page">
+  <header class="pk-head">
+    <h1 class="pk-title">🎲 발표자 뽑기</h1>
+    <button type="button" class="btn btn-sm btn-ghost" id="pkFullBtn">⛶ 전체 화면</button>
+  </header>
+
+  <section class="pk-card">
+    <div class="pk-controls">
+      <label for="pkClass" class="pk-label">반</label>
+      <select id="pkClass" class="pk-select"></select>
+      <button type="button" class="btn pk-draw" id="pkDrawBtn">뽑기</button>
+    </div>
+    <p class="pk-status" id="pkStatus"></p>
+    <div class="pk-grid" id="pkGrid"></div>
+    <p class="pk-desc">한 바퀴를 다 돌 때까지 이미 나온 번호는 다시 안 나와요. 결석한 학생은 번호를 눌러 빼 두세요(내일이면 풀려요). 스페이스·→·발표 리모컨으로도 뽑을 수 있어요.</p>
+    <div class="pk-foot">
+      <label class="pk-sound"><input type="checkbox" id="pkSound" checked> 소리</label>
+      <button type="button" class="btn btn-sm btn-ghost" id="pkResetBtn">새 바퀴</button>
+    </div>
+  </section>
+
+  <section class="pk-card pk-today-card">
+    <h2 class="pk-sub">오늘 발표</h2>
+    <p class="pk-today" id="pkToday"></p>
+    <button type="button" class="btn btn-sm btn-ghost" id="pkCopy" hidden>📋 복사</button>
+  </section>
+
+  <p class="pk-back"><a href="./">← 역사 탐구 기록으로</a></p>
+</main>
+
+<div class="pk-stage" id="pkStage" hidden>
+  <div class="pk-stage-inner" role="dialog" aria-modal="true" aria-label="발표자 뽑기 결과" aria-live="polite">
+    <p class="pk-stage-class" id="pkStageClass"></p>
+    <div class="pk-reels">
+      <span class="pk-reel" id="pkReel0">0</span><span class="pk-reel" id="pkReel1">0</span><span class="pk-unit">번</span>
+    </div>
+    <p class="pk-hint" id="pkHint"></p>
+    <p class="pk-result" id="pkResult"></p>
+    <div class="pk-actions" id="pkActions" hidden>
+      <button type="button" class="btn" id="pkAgainBtn">한 명 더</button>
+      <button type="button" class="btn btn-ghost" id="pkCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+<div class="pk-toast" id="pkToast" role="status"></div>
+
+<script src="config.js?v=124"></script>
+<script src="js/picker.js?v=127"></script>
+</body>
+</html>
