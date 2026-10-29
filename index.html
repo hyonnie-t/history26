@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=126">
+<link rel="stylesheet" href="style.css?v=127">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -70,6 +70,8 @@
       <p class="gate-error" id="gateError"></p>
     </div>
     <button class="teacher-link" id="btnPreviewMode">🧪 학생 화면 테스트</button>
+    <!-- v127 — 발표자 뽑기: 토큰 없이 여는 별도 페이지(번호만, 서버 쓰기 없음) -->
+    <a class="teacher-link" href="picker.html">🎲 발표자 뽑기</a>
     <div id="previewGate">
       <label for="previewGrade" class="field-label-sm">학년</label>
       <select id="previewGrade"></select>
@@ -863,6 +865,8 @@
     <section class="dash-card">
       <h2 class="dash-card-title">학생에게 탐구포인트 지급</h2>
       <p class="dash-card-desc">발표처럼 웹앱 밖에서 있었던 활동에 포인트를 즉시 지급해요. 학번 또는 이름으로 학생을 검색해서 바로 지급할 수 있어요.</p>
+      <!-- v127 — 발표자 뽑기는 토큰 없이 교실 PC에서 여는 별도 페이지(picker.html). 거기서 복사한 «오늘 발표» 번호를 보고 여기서 지급한다. -->
+      <p class="dash-card-desc"><a href="picker.html" target="_blank" rel="noopener">🎲 발표자 뽑기 열기</a> — 교실 PC에선 로그인 없이 바로 열어요.</p>
       <div class="student-search pp-search" id="ppSearchWrap">
         <input type="text" id="ppSearch" placeholder="학번 또는 이름 검색" autocomplete="off">
         <div class="student-search-results" id="ppSearchResults" style="display:none;"></div>

@@ -2225,3 +2225,53 @@ body.perf-modal-open{overflow:hidden;}
   .dq-q > .dq-reply-form, .dq-edit{margin-left:0;}
   .dq-student .dq-s-last{flex-basis:100%;}
 }
+
+/* v127 — 발표자 뽑기 별도 페이지(picker.html). 교실 TV에 띄우는 화면이라 글자·버튼을 크게. 번호 칩 + 두 자리 슬롯 무대(전체 화면 오버레이) */
+.pk-body{min-height:100vh;}
+.pk-body [hidden]{display:none !important;} /* .pk-actions·.btn의 display가 hidden 속성을 덮지 않게 */
+.teacher-entry a.teacher-link{display:inline-block; white-space:nowrap;} /* 로그인 화면 «🎲 발표자 뽑기» 링크가 폰 폭에서 글자 중간에 줄바꿈되지 않게 */
+.pk-page{max-width:960px; margin:0 auto; padding:var(--space-lg) 16px var(--space-xl);}
+.pk-head{display:flex; align-items:center; justify-content:space-between; gap:var(--space-sm); margin-bottom:var(--space-md);}
+.pk-title{font-family:var(--font-display); font-size:clamp(1.5rem, 4vw, 2.2rem); color:var(--indigo-deep); margin:0;}
+.pk-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-lg); margin-bottom:var(--space-md);}
+.pk-controls{display:flex; flex-wrap:wrap; align-items:center; gap:10px;}
+.pk-label{font-weight:700; color:var(--ink-soft);}
+.pk-select{min-height:var(--tap-min); font:inherit; font-size:1.1rem; padding:6px 12px; border:1.5px solid var(--line); border-radius:var(--radius-sm); background:var(--card); color:var(--ink);}
+.pk-draw{min-width:140px; font-size:1.2rem; margin-left:auto;}
+.pk-status{font-size:var(--fs-base); color:var(--ink-soft); margin:var(--space-md) 0 var(--space-sm);}
+.pk-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(64px, 1fr)); gap:8px;}
+.pk-chip{min-height:52px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card); color:var(--ink);
+  cursor:pointer; font:inherit; font-size:1.15rem; font-weight:700; font-variant-numeric:tabular-nums;}
+.pk-chip:hover{border-color:var(--ink-soft);}
+.pk-chip.is-picked{background:var(--jade-bg); border-color:var(--jade-border); color:var(--jade-text-deep);}
+.pk-chip.is-picked::after{content:' ✓';}
+.pk-chip.is-absent{opacity:.4; text-decoration:line-through; border-style:dashed;}
+.pk-desc{font-size:var(--fs-sm); color:var(--ink-soft); margin:var(--space-md) 0 0; line-height:1.6;}
+.pk-foot{display:flex; align-items:center; justify-content:space-between; gap:var(--space-sm); margin-top:var(--space-md);}
+.pk-sound{font-size:var(--fs-sm); color:var(--ink-soft); display:inline-flex; align-items:center; gap:6px;}
+.pk-today-card{display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-sm) var(--space-md);}
+.pk-sub{font-size:var(--fs-base); margin:0; color:var(--ink);}
+.pk-today{margin:0; flex:1; min-width:0; color:var(--ink-soft); font-variant-numeric:tabular-nums;}
+.pk-back{text-align:center; font-size:var(--fs-sm);}
+.pk-back a{color:var(--ink-soft);}
+.pk-stage{position:fixed; inset:0; z-index:9000; background:rgba(20,22,28,.82); display:flex; align-items:center; justify-content:center; padding:16px;}
+.pk-stage[hidden]{display:none;}
+.pk-stage-inner{background:var(--paper); border-radius:var(--radius-lg); padding:var(--space-xl) var(--space-lg); width:min(640px, 100%); text-align:center;}
+.pk-stage-class{font-family:var(--font-display); font-size:var(--fs-lg); color:var(--ink-soft); margin:0 0 var(--space-md);}
+.pk-reels{display:flex; justify-content:center; align-items:flex-end; gap:10px;}
+.pk-reel{width:min(30vw, 170px); height:min(40vw, 230px); display:flex; align-items:center; justify-content:center;
+  background:var(--ink); color:var(--cover-cream); border-radius:var(--radius); font-size:min(28vw, 160px); font-weight:800;
+  font-variant-numeric:tabular-nums;}
+.pk-reel.is-spin{color:rgba(243,231,208,.75);}
+.pk-reel.is-stop{background:var(--seal); color:#fff; animation:pk-pop .35s ease-out;}
+.pk-unit{font-family:var(--font-display); font-size:var(--fs-xl); color:var(--ink);}
+.pk-hint{min-height:1.4em; margin:var(--space-md) 0 0; color:var(--amber-text); font-weight:700; font-size:var(--fs-lg);}
+.pk-result{min-height:1.3em; margin:var(--space-sm) 0 var(--space-md); font-family:var(--font-display); font-size:clamp(2rem, 8vw, 3.4rem); color:var(--indigo-deep); opacity:0;}
+.pk-result.is-show{opacity:1; animation:pk-pop .5s ease-out;}
+.pk-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:center;}
+.pk-toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:9100; background:var(--ink); color:#fff;
+  padding:10px 18px; border-radius:var(--radius-sm); font-size:var(--fs-sm); opacity:0; pointer-events:none; transition:opacity .2s; max-width:calc(100% - 32px);}
+.pk-toast.is-show{opacity:1;}
+@keyframes pk-pop{0%{transform:scale(.6);} 70%{transform:scale(1.12);} 100%{transform:scale(1);}}
+@media (prefers-reduced-motion:reduce){ .pk-reel.is-stop, .pk-result.is-show{animation:none;} .pk-toast{transition:none;} }
+@media (max-width:480px){ .pk-draw{margin-left:0; flex:1;} .pk-card{padding:var(--space-md);} }
