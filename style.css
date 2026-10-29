@@ -2276,7 +2276,7 @@ body.perf-modal-open{overflow:hidden;}
 @media (prefers-reduced-motion:reduce){ .pk-reel.is-stop, .pk-result.is-show{animation:none;} .pk-toast{transition:none;} }
 @media (max-width:480px){ .pk-draw{margin-left:0; flex:1;} .pk-card{padding:var(--space-md);} }
 
-/* v128 — 발표자 뽑기 고양이 테마(body.pk-theme-cat). 그림 바탕색(#FBF6E6)에 무대 바탕을 맞춰 그림 테두리가 안 보이게.
+/* v129 — 발표자 뽑기 고양이 테마(body.pk-theme-cat). 그림 바탕색(#FBF6E6)에 무대 바탕을 맞춰 그림 테두리가 안 보이게.
    팻말 위치(%)는 cat-cheer.jpg 안의 흰 팻말 자리에 맞춘 값 — 그림을 바꾸면 같이 고친다. */
 .pk-foot-left{display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px 14px;}
 .pk-cat{display:none; position:relative; width:min(62vw, 300px); aspect-ratio:1; margin:0 auto var(--space-sm);}

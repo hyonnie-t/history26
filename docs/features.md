@@ -20,7 +20,7 @@
 번호를 **먼저 확정·저장한 뒤** 릴 연출을 돌린다(연출은 결과에 영향 없음). 저장은 localStorage `h26_picker_v1` = `{ lastClass, classes: { '2-1': {picked, last, absent, day, todayNums} } }`
 — 그 기기 하나에만 남는다(다른 PC에선 바퀴가 따로 돈다). 서버에 쓰지 않으므로 `PREVIEW_MODE`와 무관. 칩을 누르면 결석 토글, 뽑힌 칩을 누르면 확인 뒤 후보로 되돌림.
 `absent`·`todayNums`는 `day`가 오늘이 아니면 비운다. 반 선택 우선순위: 주소 `?ban=` → `lastClass` → 첫 반. 입구는 로그인 화면 `.teacher-entry`의 링크와 대시보드 탐구포인트 탭 지급 카드의 링크.
-고양이 테마(v128): `body.pk-theme-cat`일 때 무대에 `#pkCat`(그림 `images/cat/cat-{up,down,cheer}.jpg` 플립북)이 보인다. `catStart_()`가 릴이 도는 동안 up↔down을 갈아 끼우고 `catStop_(번호)`가 cheer로 바꿔 `#pkCatSign`에 번호를 띄운다. 팻말 위치 %는 cheer 그림에 맞춘 값이라 그림을 바꾸면 style.css도 고친다. 저장 `theme:"cat"`, 주소 `?theme=cat`.
+고양이 테마(v129): `body.pk-theme-cat`일 때 무대에 `#pkCat`(그림 `images/cat/cat-{up,down,cheer}.jpg` 플립북)이 보인다. `catStart_()`가 릴이 도는 동안 up↔down을 갈아 끼우고 `catStop_(번호)`가 cheer로 바꿔 `#pkCatSign`에 번호를 띄운다. 팻말 위치 %는 cheer 그림에 맞춘 값이라 그림을 바꾸면 style.css도 고친다. 저장 `theme:"cat"`, 주소 `?theme=cat`.
 
 ## 학급 공통 피드백 & 피드백 알림
 교사 대시보드 "학생 기록" 탭에서 학년+반+활동(하나)을 모두 골랐을
@@ -133,7 +133,8 @@ source_emotion=텍스트)을 정한다.
 
 
 ## 기본 감정 체크인 (v88)
-오늘 차시가 비었거나 "감정체크인"이면 `maybeStartCheckin()`이 `CHECKIN_CTX.lesson.type="emotion_default"`로 만들고 `renderEmotionDefaultBody_()`가 오른쪽 페이지를 그린다(온도 → 감정칩 6개/기타 입력 → `renderFortuneStep_()` 포춘쿠키 → `finishCheckinFlow`). 데이터는 `checkin_data.js`의 `CHECKIN_EMOTION`(고정 문구, AI 없음). 칩·쿠키 문구·판단형 A/B 순서는 `ckSeed_()`(학생+날짜) 시드 난수로 정해져 새로고침해도 같다. 저장은 기존 `checkin` action 그대로(`lessonId:"감정체크인"`, `source_emotion`, `word`=감정). `alreadyChecked`는 학생+날짜 기준이라 백엔드 변경 없음. 학생 화면에 교사용 표현(검수·확인 전 등)을 넣지 말 것.
+오늘 차시가 비었거나 "감정체크인"이면 `maybeStartCheckin()`이 `CHECKIN_CTX.lesson.type="emotion_default"`로 만들고 `renderEmotionDefaultBody_()`가 오른쪽 페이지를 그린다(온도 → 감정칩 6개 + 맨 끝 중립 칩 1개/기타 입력 → `renderFortuneStep_()` 포춘쿠키 → `finishCheckinFlow`). 데이터는 `checkin_data.js`의 `CHECKIN_EMOTION`(고정 문구, AI 없음). 칩·쿠키 문구·판단형 A/B 순서는 `ckSeed_()`(학생+날짜) 시드 난수로 정해져 새로고침해도 같다. 저장은 기존 `checkin` action 그대로(`lessonId:"감정체크인"`, `source_emotion`, `word`=감정). `alreadyChecked`는 학생+날짜 기준이라 백엔드 변경 없음. 학생 화면에 교사용 표현(검수·확인 전 등)을 넣지 말 것.
+v128: 칩은 유쾌 3 + 불쾌 3에 중립(n) 1개를 맨 끝에 붙이고, `h:1`(무거운 단어)은 `heavyMax`(1)개까지만 뜬다. 단어를 늘릴 땐 `pool`에 넣고 무거운 단어에만 `h:1`을 붙인다. 점검은 `node tests/webapp-testing/mock_check.js <폴더> chips`.
 v124: 그 학년 시험기간(`config.js EXAM_PERIOD`, `treeExamActive_()` 재사용)이면 `ckExamOn_()`이 참이 되어 쿠키 문구를 `CHECKIN_EMOTION.examFortunes`(시험 응원)에서 뽑고 제목을 «시험 응원 포춘쿠키»로 바꾼다.
 
 ## 수행평가 카드 «기말고사 목표 점수» (v124)

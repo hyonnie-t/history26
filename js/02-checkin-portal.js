@@ -128,16 +128,28 @@ function ckSeed_(tag){
 }
 
 /* v88: 오늘의 감정칩 — 유쾌 3 + 불쾌 3. 네 분면(r·y·b·g)에서 하나씩 뽑고, 유쾌 쪽(y·g)과 불쾌 쪽(r·b)에서
- * 한 분면씩 더 골라 하나씩 보탠다. 단어 풀은 checkin_data.js의 CHECKIN_EMOTION.pool. */
+ * 한 분면씩 더 골라 하나씩 보탠다. 단어 풀은 checkin_data.js의 CHECKIN_EMOTION.pool.
+ * v128: 무거운 단어(h:1)는 heavyMax개까지만 뽑고(넘으면 그 분면의 다음 단어), 중립(n) 칩 하나를 맨 끝에 더한다. */
 function ckTodayEmotionChips_(){
   const emo = CHECKIN_EMOTION, rnd = ckRng_(ckSeed_('emotion'));
   const by = {};
   emo.pool.forEach(m => (by[m.q] = by[m.q] || []).push(m));
   const sh = {};
   ['r','y','b','g'].forEach(q => { sh[q] = ckShuffle_(by[q] || [], rnd); });
-  const picks = ['r','y','b','g'].map(q => sh[q][0]).filter(Boolean);
-  ['yg','rb'].forEach(side => { const q = side[Math.floor(rnd() * 2)]; if(sh[q][1]) picks.push(sh[q][1]); });
-  return ckShuffle_(picks, rnd).slice(0, emo.chipCount);
+  let heavy = 0;
+  const take = q => {
+    const arr = sh[q] || [];
+    const i = arr.findIndex(m => !(m.h && heavy >= (emo.heavyMax == null ? 6 : emo.heavyMax)));
+    if(i < 0) return null;
+    const m = arr.splice(i, 1)[0];
+    if(m.h) heavy++;
+    return m;
+  };
+  const picks = ['r','y','b','g'].map(take).filter(Boolean);
+  ['yg','rb'].forEach(side => { const q = side[Math.floor(rnd() * 2)]; const m = take(q); if(m) picks.push(m); });
+  const chips = ckShuffle_(picks, rnd).slice(0, emo.chipCount);
+  const neutral = ckShuffle_(by.n || [], rnd)[0];
+  return neutral ? chips.concat(neutral) : chips;
 }
 
 /* v124: 그 학년 시험기간(config.js EXAM_PERIOD, tree.js treeExamActive_)이면 쿠키에 시험 응원 문구가 든다. */
@@ -152,7 +164,7 @@ function ckFortuneText_(q){
   return arr[Math.floor(rnd() * arr.length)];
 }
 
-/* v88: 기본 감정 체크인 — 오른쪽 페이지에 감정칩 6개(+직접 쓰기). 고르면 바로 저장하고 포춘쿠키 단계로. */
+/* v88: 기본 감정 체크인 — 오른쪽 페이지에 감정칩 6개 + 중립 1개(+직접 쓰기). 고르면 바로 저장하고 포춘쿠키 단계로. */
 function renderEmotionDefaultBody_(body){
   const emo = CHECKIN_EMOTION, chips = ckTodayEmotionChips_();
   const customOn = CHECKIN_CONFIG.customInput && CHECKIN_CONFIG.customInput.enabled;

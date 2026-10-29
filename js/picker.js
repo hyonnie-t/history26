@@ -123,7 +123,7 @@
       })();
     });
   }
-  /* v128 — 고양이 테마. 그림 세 장(up·down·cheer)을 갈아 끼우는 플립북: 뽑는 동안 앞발 번쩍↔쾅을 반복하고,
+  /* v129 — 고양이 테마. 그림 세 장(up·down·cheer)을 갈아 끼우는 플립북: 뽑는 동안 앞발 번쩍↔쾅을 반복하고,
    * 마지막 자리가 멈추면 팻말 든 그림으로 바꾸고 팻말에 번호를 «샥» 띄운다. 결과(번호)는 연출 전에 이미 정해져 있다. */
   const CAT = { up: 'images/cat/cat-up.jpg', down: 'images/cat/cat-down.jpg', cheer: 'images/cat/cat-cheer.jpg' };
   let CAT_TIMER = null;
@@ -227,7 +227,7 @@
     $('pkResetBtn').addEventListener('click', resetRound_);
     $('pkCopy').addEventListener('click', copyToday_);
     $('pkFullBtn').addEventListener('click', toggleFullscreen_);
-    applyTheme_(loadAll_().theme === 'cat' || new URLSearchParams(location.search).get('theme') === 'cat'); // v128
+    applyTheme_(loadAll_().theme === 'cat' || new URLSearchParams(location.search).get('theme') === 'cat'); // v129
     $('pkCatTheme').addEventListener('change', e => setTheme_(e.target.checked));
     $('pkGrid').addEventListener('click', e => {
       const b = e.target.closest('.pk-chip'); if(b) toggleChip_(Number(b.dataset.num));

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=128">
+<link rel="stylesheet" href="style.css?v=129">
 <link rel="preload" as="image" href="images/cat/cat-down.jpg">
 <link rel="preload" as="image" href="images/cat/cat-cheer.jpg">
 </head>
@@ -33,7 +33,7 @@
     <div class="pk-foot">
       <span class="pk-foot-left">
         <label class="pk-sound"><input type="checkbox" id="pkSound" checked> 소리</label>
-        <!-- v128 — 고양이 테마: 뽑는 동안 삼색냥이 앞발을 쾅쾅, 멈추면 팻말에 번호가 샥 -->
+        <!-- v129 — 고양이 테마: 뽑는 동안 삼색냥이 앞발을 쾅쾅, 멈추면 팻말에 번호가 샥 -->
         <label class="pk-sound"><input type="checkbox" id="pkCatTheme"> 🐱 고양이</label>
       </span>
       <button type="button" class="btn btn-sm btn-ghost" id="pkResetBtn">새 바퀴</button>
@@ -52,7 +52,7 @@
 <div class="pk-stage" id="pkStage" hidden>
   <div class="pk-stage-inner" role="dialog" aria-modal="true" aria-label="발표자 뽑기 결과" aria-live="polite">
     <p class="pk-stage-class" id="pkStageClass"></p>
-    <!-- v128 — 고양이 테마일 때만 보인다. 그림은 힉스필드로 만든 삼색냥(wish_list 마스코트와 같은 캐릭터) 세 동작. -->
+    <!-- v129 — 고양이 테마일 때만 보인다. 그림은 힉스필드로 만든 삼색냥(wish_list 마스코트와 같은 캐릭터) 세 동작. -->
     <div class="pk-cat" id="pkCat" aria-hidden="true">
       <img id="pkCatImg" src="images/cat/cat-up.jpg" alt="" width="400" height="400">
       <span class="pk-cat-sign" id="pkCatSign"></span>
@@ -72,6 +72,6 @@
 <div class="pk-toast" id="pkToast" role="status"></div>
 
 <script src="config.js?v=124"></script>
-<script src="js/picker.js?v=128"></script>
+<script src="js/picker.js?v=129"></script>
 </body>
 </html>
