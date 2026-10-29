@@ -8,7 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=127">
+<link rel="stylesheet" href="style.css?v=129">
+<link rel="preload" as="image" href="images/cat/cat-down.jpg">
+<link rel="preload" as="image" href="images/cat/cat-cheer.jpg">
 </head>
 <body class="pk-body">
 <!-- v127 — 발표자 뽑기 별도 페이지. 교사 토큰 없이 교실 PC에서 바로 연다(즐겨찾기 예: picker.html?ban=2-1).
@@ -29,7 +31,11 @@
     <div class="pk-grid" id="pkGrid"></div>
     <p class="pk-desc">한 바퀴를 다 돌 때까지 이미 나온 번호는 다시 안 나와요. 결석한 학생은 번호를 눌러 빼 두세요(내일이면 풀려요). 스페이스·→·발표 리모컨으로도 뽑을 수 있어요.</p>
     <div class="pk-foot">
-      <label class="pk-sound"><input type="checkbox" id="pkSound" checked> 소리</label>
+      <span class="pk-foot-left">
+        <label class="pk-sound"><input type="checkbox" id="pkSound" checked> 소리</label>
+        <!-- v129 — 고양이 테마: 뽑는 동안 삼색냥이 앞발을 쾅쾅, 멈추면 팻말에 번호가 샥 -->
+        <label class="pk-sound"><input type="checkbox" id="pkCatTheme"> 🐱 고양이</label>
+      </span>
       <button type="button" class="btn btn-sm btn-ghost" id="pkResetBtn">새 바퀴</button>
     </div>
   </section>
@@ -46,6 +52,12 @@
 <div class="pk-stage" id="pkStage" hidden>
   <div class="pk-stage-inner" role="dialog" aria-modal="true" aria-label="발표자 뽑기 결과" aria-live="polite">
     <p class="pk-stage-class" id="pkStageClass"></p>
+    <!-- v129 — 고양이 테마일 때만 보인다. 그림은 힉스필드로 만든 삼색냥(wish_list 마스코트와 같은 캐릭터) 세 동작. -->
+    <div class="pk-cat" id="pkCat" aria-hidden="true">
+      <img id="pkCatImg" src="images/cat/cat-up.jpg" alt="" width="400" height="400">
+      <span class="pk-cat-sign" id="pkCatSign"></span>
+      <span class="pk-cat-fx" id="pkCatFx">샥!</span>
+    </div>
     <div class="pk-reels">
       <span class="pk-reel" id="pkReel0">0</span><span class="pk-reel" id="pkReel1">0</span><span class="pk-unit">번</span>
     </div>
@@ -60,6 +72,6 @@
 <div class="pk-toast" id="pkToast" role="status"></div>
 
 <script src="config.js?v=124"></script>
-<script src="js/picker.js?v=127"></script>
+<script src="js/picker.js?v=129"></script>
 </body>
 </html>
