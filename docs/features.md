@@ -125,7 +125,8 @@ source_emotion=텍스트)을 정한다.
 
 
 ## 기본 감정 체크인 (v88)
-오늘 차시가 비었거나 "감정체크인"이면 `maybeStartCheckin()`이 `CHECKIN_CTX.lesson.type="emotion_default"`로 만들고 `renderEmotionDefaultBody_()`가 오른쪽 페이지를 그린다(온도 → 감정칩 6개/기타 입력 → `renderFortuneStep_()` 포춘쿠키 → `finishCheckinFlow`). 데이터는 `checkin_data.js`의 `CHECKIN_EMOTION`(고정 문구, AI 없음). 칩·쿠키 문구·판단형 A/B 순서는 `ckSeed_()`(학생+날짜) 시드 난수로 정해져 새로고침해도 같다. 저장은 기존 `checkin` action 그대로(`lessonId:"감정체크인"`, `source_emotion`, `word`=감정). `alreadyChecked`는 학생+날짜 기준이라 백엔드 변경 없음. 학생 화면에 교사용 표현(검수·확인 전 등)을 넣지 말 것.
+오늘 차시가 비었거나 "감정체크인"이면 `maybeStartCheckin()`이 `CHECKIN_CTX.lesson.type="emotion_default"`로 만들고 `renderEmotionDefaultBody_()`가 오른쪽 페이지를 그린다(온도 → 감정칩 6개 + 맨 끝 중립 칩 1개/기타 입력 → `renderFortuneStep_()` 포춘쿠키 → `finishCheckinFlow`). 데이터는 `checkin_data.js`의 `CHECKIN_EMOTION`(고정 문구, AI 없음). 칩·쿠키 문구·판단형 A/B 순서는 `ckSeed_()`(학생+날짜) 시드 난수로 정해져 새로고침해도 같다. 저장은 기존 `checkin` action 그대로(`lessonId:"감정체크인"`, `source_emotion`, `word`=감정). `alreadyChecked`는 학생+날짜 기준이라 백엔드 변경 없음. 학생 화면에 교사용 표현(검수·확인 전 등)을 넣지 말 것.
+v128: 칩은 유쾌 3 + 불쾌 3에 중립(n) 1개를 맨 끝에 붙이고, `h:1`(무거운 단어)은 `heavyMax`(1)개까지만 뜬다. 단어를 늘릴 땐 `pool`에 넣고 무거운 단어에만 `h:1`을 붙인다. 점검은 `node tests/webapp-testing/mock_check.js <폴더> chips`.
 v124: 그 학년 시험기간(`config.js EXAM_PERIOD`, `treeExamActive_()` 재사용)이면 `ckExamOn_()`이 참이 되어 쿠키 문구를 `CHECKIN_EMOTION.examFortunes`(시험 응원)에서 뽑고 제목을 «시험 응원 포춘쿠키»로 바꾼다.
 
 ## 수행평가 카드 «기말고사 목표 점수» (v124)
