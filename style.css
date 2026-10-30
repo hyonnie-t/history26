@@ -2279,6 +2279,15 @@ body.perf-modal-open{overflow:hidden;}
 /* v129 — 발표자 뽑기 고양이 테마(body.pk-theme-cat). 그림 바탕색(#FBF6E6)에 무대 바탕을 맞춰 그림 테두리가 안 보이게.
    팻말 위치(%)는 cat-cheer.jpg 안의 흰 팻말 자리에 맞춘 값 — 그림을 바꾸면 같이 고친다. */
 .pk-foot-left{display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px 14px;}
+/* v130 — 번호 명단 고치기 */
+.pk-foot{flex-wrap:wrap;}
+.pk-foot-right{display:inline-flex; flex-wrap:wrap; gap:6px; margin-left:auto;}
+.pk-nums{margin-top:var(--space-md); padding:var(--space-md); border:1.5px dashed var(--line); border-radius:var(--radius-sm); background:var(--paper);}
+.pk-nums[hidden]{display:none;}
+.pk-nums-input{display:block; width:100%; box-sizing:border-box; min-height:var(--tap-min); margin-top:6px; font:inherit; font-size:1.1rem;
+  padding:6px 12px; border:1.5px solid var(--line); border-radius:var(--radius-sm); background:var(--card); color:var(--ink);}
+.pk-nums-note{font-size:var(--fs-sm); color:var(--ink-soft); margin:8px 0; line-height:1.6;}
+.pk-nums-actions{display:flex; flex-wrap:wrap; gap:6px;}
 .pk-cat{display:none; position:relative; width:min(62vw, 300px); aspect-ratio:1; margin:0 auto var(--space-sm);}
 .pk-theme-cat .pk-cat{display:block;}
 .pk-theme-cat .pk-stage-inner{background:#FBF6E6;}

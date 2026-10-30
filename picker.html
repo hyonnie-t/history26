@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=129">
+<link rel="stylesheet" href="style.css?v=130">
 <link rel="preload" as="image" href="images/cat/cat-down.jpg">
 <link rel="preload" as="image" href="images/cat/cat-cheer.jpg">
 </head>
@@ -36,7 +36,21 @@
         <!-- v129 — 고양이 테마: 뽑는 동안 삼색냥이 앞발을 쾅쾅, 멈추면 팻말에 번호가 샥 -->
         <label class="pk-sound"><input type="checkbox" id="pkCatTheme"> 🐱 고양이</label>
       </span>
-      <button type="button" class="btn btn-sm btn-ghost" id="pkResetBtn">새 바퀴</button>
+      <span class="pk-foot-right">
+        <button type="button" class="btn btn-sm btn-ghost" id="pkNumsBtn">✏️ 번호 명단</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="pkResetBtn">새 바퀴</button>
+      </span>
+    </div>
+    <!-- v130 — 실제 학급 번호 고치기(전출로 빈 번호 등). 이 컴퓨터에만 저장. -->
+    <div class="pk-nums" id="pkNumsBox" hidden>
+      <label for="pkNumsInput" class="pk-label">이 반 실제 번호</label>
+      <input type="text" id="pkNumsInput" class="pk-nums-input" inputmode="numeric" autocomplete="off" placeholder="1-12, 14, 16-28">
+      <p class="pk-nums-note"><span id="pkNumsNote"></span> 빈 번호는 빼고, 쉼표·하이픈(-)으로 적어요. 이 컴퓨터에만 저장돼요.</p>
+      <div class="pk-nums-actions">
+        <button type="button" class="btn btn-sm" id="pkNumsSave">저장</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="pkNumsReset">기본 명단으로</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="pkNumsCancel">취소</button>
+      </div>
     </div>
   </section>
 
@@ -71,7 +85,7 @@
 </div>
 <div class="pk-toast" id="pkToast" role="status"></div>
 
-<script src="config.js?v=124"></script>
-<script src="js/picker.js?v=129"></script>
+<script src="config.js?v=130"></script>
+<script src="js/picker.js?v=130"></script>
 </body>
 </html>

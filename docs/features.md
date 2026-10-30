@@ -16,7 +16,7 @@
 
 ## 발표자 뽑기 (v127)
 별도 페이지 `picker.html` + `js/picker.js`(포털 `js/01~07`과 독립, `config.js`의 `BAN_SIZE`만 읽음). 교사 토큰 없이 연다 — 이름을 쓰지 않고 번호만 다루기 때문.
-후보는 `BAN_SIZE[학년][반]`의 1~N번(0인 반은 목록에서 뺌). 뽑기 순서: 결석 제외 → 이번 바퀴에 안 나온 번호 → (2명 이상이면) 직전 학생 제외 → `randInt_()`.
+후보는 «실제 학급 번호»(v130, `rosterInfo_()`): 그 기기 «✏️ 번호 명단» 값 `nums['2-1']` → `config.js BAN_NUMS['2-1']`(예 `'1-12, 14-28'`, 번호만) → `BAN_SIZE[학년][반]`의 1~N번 순. 반 목록은 `BAN_SIZE`가 0보다 큰 반. 명단을 바꾸면 빠진 번호는 `picked`·`absent`에서 지운다. 뽑기 순서: 결석 제외 → 이번 바퀴에 안 나온 번호 → (2명 이상이면) 직전 학생 제외 → `randInt_()`.
 번호를 **먼저 확정·저장한 뒤** 릴 연출을 돌린다(연출은 결과에 영향 없음). 저장은 localStorage `h26_picker_v1` = `{ lastClass, classes: { '2-1': {picked, last, absent, day, todayNums} } }`
 — 그 기기 하나에만 남는다(다른 PC에선 바퀴가 따로 돈다). 서버에 쓰지 않으므로 `PREVIEW_MODE`와 무관. 칩을 누르면 결석 토글, 뽑힌 칩을 누르면 확인 뒤 후보로 되돌림.
 `absent`·`todayNums`는 `day`가 오늘이 아니면 비운다. 반 선택 우선순위: 주소 `?ban=` → `lastClass` → 첫 반. 입구는 로그인 화면 `.teacher-entry`의 링크와 대시보드 탐구포인트 탭 지급 카드의 링크.

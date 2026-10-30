@@ -1,12 +1,14 @@
 /* ── 발표자 뽑기 (v127, picker.html 전용) ──
  * 교사 토큰 없이 교실 PC에서 바로 여는 별도 페이지. 포털 js/01~07과 따로 돌고 config.js의 BAN_SIZE만 읽는다.
  * 이름은 다루지 않는다(번호만) — 이 레포는 public이고, 이름을 받으려면 교사 토큰이 필요하기 때문.
- * 반 번호(1~BAN_SIZE)에서 한 명을 뽑아 십의 자리·일의 자리 릴을 차례로 멈추는 연출로 보여 준다.
+ * 반 번호에서 한 명을 뽑아 십의 자리·일의 자리 릴을 차례로 멈추는 연출로 보여 준다.
  * 공정성: ① 난수는 crypto.getRandomValues + 거절 샘플링(나머지 편향 없음).
  * ② «한 바퀴» 방식 — 이번 바퀴에 이미 뽑힌 번호는 후보에서 빠지고, 전원이 한 번씩 나오면 새 바퀴.
  *    새 바퀴 첫 번째는 직전 바퀴 마지막 학생을 빼고 뽑아 같은 학생이 연달아 나오지 않게 한다.
  * 기록은 이 기기 localStorage(h26_picker_v1)에만 — 반마다 교실 PC가 따로라 반 기록이 그 교실 PC에 쌓인다.
- * 결석 표시와 «오늘 발표» 목록은 날짜가 바뀌면 비워진다. 서버에 쓰지 않는다. */
+ * 결석 표시와 «오늘 발표» 목록은 날짜가 바뀌면 비워진다. 서버에 쓰지 않는다.
+ * v130 — 후보는 «실제 학급 번호»다(전출로 빈 번호·인원수보다 큰 번호가 있어 1~BAN_SIZE로는 틀린다).
+ *   우선순위: 이 기기에서 «번호 명단»으로 고친 값(h26_picker_v1.nums) > config.js BAN_NUMS > 1~BAN_SIZE. */
 (function(){
   const CONFIG = window.PORTAL_CONFIG || {};
   const PK_KEY = 'h26_picker_v1';
@@ -46,12 +48,41 @@
     });
     return out;
   }
-  function roster_(key){
+  /* v130 — "1-12, 14, 16~28" 같은 글을 번호 배열로. 형식이 틀리면 null. */
+  function parseNums_(text){
+    const out = new Set();
+    const parts = String(text || '').split(/[,\s]+/).filter(Boolean);
+    for(const p of parts){
+      const m = p.match(/^(\d{1,2})(?:[-~](\d{1,2}))?$/);
+      if(!m) return null;
+      const a = Number(m[1]), b = m[2] ? Number(m[2]) : a;
+      if(a < 1 || b < a) return null;
+      for(let i = a; i <= b; i++) out.add(i);
+    }
+    return Array.from(out).sort((x, y) => x - y);
+  }
+  function fmtNums_(nums){ // [1,2,3,5] → "1-3, 5"
+    const out = [];
+    for(let i = 0; i < nums.length; i++){
+      let j = i;
+      while(j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
+      out.push(j > i + 1 ? nums[i] + '-' + nums[j] : j === i + 1 ? nums[i] + ', ' + nums[j] : String(nums[i]));
+      i = j;
+    }
+    return out.join(', ');
+  }
+  /* v130 — 실제 학급 번호. src: 'local'(이 기기에서 고침) / 'config'(BAN_NUMS) / 'size'(1~인원수) */
+  function rosterInfo_(key){
+    const local = (loadAll_().nums || {})[key];
+    if(Array.isArray(local) && local.length) return { nums: local.slice(), src: 'local' };
+    const cfg = parseNums_((CONFIG.BAN_NUMS || {})[key]);
+    if(cfg && cfg.length) return { nums: cfg, src: 'config' };
     const c = classes_().find(o => o.key === key);
     const nums = [];
     for(let i = 1; i <= (c ? c.size : 0); i++) nums.push(i);
-    return nums;
+    return { nums, src: 'size' };
   }
+  function roster_(key){ return rosterInfo_(key).nums; }
   function pool_(roster, st){
     const present = roster.filter(n => st.absent.indexOf(n) < 0);
     return { present, left: present.filter(n => st.picked.indexOf(n) < 0) };
@@ -62,7 +93,7 @@
   }
 
   function selectClass_(key){
-    PK_CLASS = key;
+    PK_CLASS = key; $('pkNumsBox').hidden = true;
     const all = loadAll_(); all.lastClass = key; saveAll_(all); // 교실 PC는 다음에 열 때 이 반으로 바로 시작
     render_();
   }
@@ -70,7 +101,7 @@
     const grid = $('pkGrid');
     if(!PK_CLASS){ grid.innerHTML = ''; $('pkStatus').textContent = '담당 반 정보(config.js의 BAN_SIZE)가 없어요.'; return; }
     const roster = roster_(PK_CLASS), st = state_(PK_CLASS), pool = pool_(roster, st);
-    $('pkStatus').textContent = `이번 바퀴: ${pool.present.length}명 중 ${pool.present.length - pool.left.length}명 발표 · 남은 후보 ${pool.left.length}명`
+    $('pkStatus').textContent = `${roster.length}명(${fmtNums_(roster)}번) · 이번 바퀴: ${pool.present.length}명 중 ${pool.present.length - pool.left.length}명 발표 · 남은 후보 ${pool.left.length}명`
       + (st.absent.length ? ` · 결석 ${st.absent.length}명` : '');
     grid.innerHTML = roster.map(n => {
       const cls = st.absent.indexOf(n) >= 0 ? ' is-absent' : st.picked.indexOf(n) >= 0 ? ' is-picked' : '';
@@ -96,6 +127,32 @@
     if(!confirm('이번 바퀴 기록을 지우고 모두 다시 후보에 넣을까요?')) return;
     const st = state_(PK_CLASS); st.picked = []; saveState_(PK_CLASS, st); render_();
   }
+  /* v130 — 번호 명단 고치기(이 기기 localStorage에만 저장). 명단에서 빠진 번호는 바퀴·결석 기록에서도 지운다. */
+  function numsOpen_(){
+    if(PK_SPINNING || !PK_CLASS) return;
+    const info = rosterInfo_(PK_CLASS);
+    $('pkNumsInput').value = fmtNums_(info.nums);
+    $('pkNumsNote').textContent = info.src === 'local' ? '이 컴퓨터에서 고친 명단을 쓰고 있어요.'
+      : info.src === 'config' ? '공통 명단(config.js)을 쓰고 있어요.' : '아직 명단이 없어 1번부터 인원수까지로 뽑고 있어요.';
+    $('pkNumsBox').hidden = false; $('pkNumsInput').focus();
+  }
+  function numsClose_(){ $('pkNumsBox').hidden = true; $('pkNumsBtn').focus(); }
+  function numsApply_(nums){
+    const all = loadAll_(); all.nums = all.nums || {};
+    if(nums) all.nums[PK_CLASS] = nums; else delete all.nums[PK_CLASS];
+    saveAll_(all);
+    const roster = roster_(PK_CLASS), st = state_(PK_CLASS), inR = n => roster.indexOf(n) >= 0;
+    st.picked = st.picked.filter(inR); st.absent = st.absent.filter(inR);
+    if(st.last != null && !inR(st.last)) st.last = null;
+    saveState_(PK_CLASS, st);
+    $('pkNumsBox').hidden = true; render_();
+  }
+  function numsSave_(){
+    const nums = parseNums_($('pkNumsInput').value);
+    if(!nums || !nums.length){ say_('번호를 "1-12, 14, 16-28"처럼 적어 주세요.'); $('pkNumsInput').focus(); return; }
+    numsApply_(nums); say_(nums.length + '명으로 저장했어요.');
+  }
+  function numsReset_(){ numsApply_(null); say_('기본 명단으로 돌렸어요.'); }
   function beep_(freq, dur){
     if(!$('pkSound').checked) return;
     try{
@@ -154,7 +211,7 @@
   }
 
   async function draw_(){
-    if(PK_SPINNING || !PK_CLASS) return;
+    if(PK_SPINNING || !PK_CLASS || !$('pkNumsBox').hidden) return;
     const roster = roster_(PK_CLASS), st = state_(PK_CLASS);
     let pool = pool_(roster, st);
     if(!pool.present.length){ say_('뽑을 학생이 없어요(전원 결석 표시).'); return; }
@@ -227,6 +284,11 @@
     $('pkResetBtn').addEventListener('click', resetRound_);
     $('pkCopy').addEventListener('click', copyToday_);
     $('pkFullBtn').addEventListener('click', toggleFullscreen_);
+    $('pkNumsBtn').addEventListener('click', numsOpen_); // v130
+    $('pkNumsSave').addEventListener('click', numsSave_);
+    $('pkNumsReset').addEventListener('click', numsReset_);
+    $('pkNumsCancel').addEventListener('click', numsClose_);
+    $('pkNumsInput').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); numsSave_(); } else if(e.key === 'Escape') numsClose_(); });
     applyTheme_(loadAll_().theme === 'cat' || new URLSearchParams(location.search).get('theme') === 'cat'); // v129
     $('pkCatTheme').addEventListener('change', e => setTheme_(e.target.checked));
     $('pkGrid').addEventListener('click', e => {
