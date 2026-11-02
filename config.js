@@ -54,7 +54,7 @@ window.PORTAL_CONFIG = {
   // 3학년 2학기: 수행 30%(포트폴리오 30점) + 지필 70%(기말 100점), 등급은 10점 간격(A 90 이상 … E 60 미만) — 효니 확인 2026-10-27.
   GRADE_TARGET: {
     3: { perfWeight: 30, examWeight: 70, examMax: 100,
-         cuts: [{ g: "A", min: 90 }, { g: "B", min: 80 }, { g: "C", min: 70 }, { g: "D", min: 60 }] }
+         cuts: [{ g: "A", min: 90 }, { g: "B", min: 80 }, { g: "C", min: 70 }, { g: "D", min: 60 }], lowest: "E" } // v136: lowest = 60점 아래 성취도(학기말 성적 표시용)
   },
 
   // 페이지 로딩 시 loadCurriculum()이 mode=curriculum 응답으로 이 값을 채웁니다.

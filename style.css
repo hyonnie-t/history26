@@ -2020,6 +2020,36 @@ html{scrollbar-gutter:stable;}
 .perf-target-head{margin:0 0 6px; font-size:1.05rem; color:var(--ink);}
 .perf-target-head b{font-size:1.45rem; color:var(--indigo);}
 
+/* v136 — 학기말 성적(수행 + 지필 환산 → 합계·성취도, 단원별 점수, 개별 피드백). 움직임: 성취도 도장(stampIn), 단원 막대 채우기 */
+.sem-card{margin:0 0 6px; padding:14px 16px; border:2px solid var(--indigo); border-radius:12px; background:var(--indigo-bg);}
+.sem-eyebrow{margin:0 0 8px; font-size:.9rem; font-weight:700; color:var(--indigo);}
+.sem-top{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+.sem-total{display:flex; align-items:baseline; flex-wrap:wrap; gap:6px; color:var(--ink);}
+.sem-total-label{width:100%; font-size:.85rem; color:var(--ink-soft);}
+.sem-total b{font-size:2.4rem; line-height:1; color:var(--indigo);}
+.sem-total-max{font-size:.95rem; color:var(--ink-soft);}
+.sem-grade{flex:none; width:68px; height:68px; display:flex; align-items:center; justify-content:center; border-radius:50%;
+  font-size:2.2rem; font-weight:800; color:var(--seal); border:3px solid var(--seal); background:#fff; transform:rotate(-6deg); animation:stampIn .45s ease-out;}
+.sem-rows{margin:12px 0 4px;}
+.sem-row{display:grid; grid-template-columns:5.2em auto 1fr; align-items:baseline; gap:4px 10px; padding:8px 2px; border-top:1px solid var(--line); font-size:.95rem; color:var(--ink);}
+.sem-row span{white-space:nowrap;}
+.sem-row small{text-align:right; font-size:.86rem; color:var(--ink-soft);}
+.sem-sec{margin:14px 0 6px; font-size:.92rem; font-weight:700; color:var(--ink);}
+.sem-areas{list-style:none; margin:0; padding:0; display:grid; gap:6px;}
+.sem-areas li{display:grid; grid-template-columns:minmax(0,9.5em) 1fr 3.4em; align-items:center; gap:8px; font-size:.88rem; color:var(--ink);}
+.sem-bar{height:10px; border-radius:999px; background:#fff; border:1px solid var(--line); overflow:hidden;}
+.sem-bar i{display:block; height:100%; width:var(--w); background:var(--indigo); border-radius:999px; animation:semBar .7s ease-out;}
+@keyframes semBar{from{width:0;}}
+.sem-area-num{text-align:right; color:var(--ink-soft);}
+.sem-fb{margin-top:6px;}
+.sem-fb-line{margin:0 0 8px; padding:9px 11px; border-radius:8px; background:#fff; border:1px solid var(--line); font-size:.93rem; line-height:1.6; color:var(--ink);}
+@media (max-width:420px){ .sem-areas li{grid-template-columns:1fr 3.4em;} .sem-areas .sem-bar{grid-column:1 / -1; grid-row:2;} .sem-row{grid-template-columns:5.2em 1fr;} .sem-row small{grid-column:2; text-align:left;} }
+/* 대시보드 학기말 성적 표 */
+.sem-admin-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
+.sem-admin td.l{text-align:left;}
+.sem-admin details summary{cursor:pointer; color:var(--indigo);}
+.sem-admin details p{margin:4px 0; font-size:.85rem; text-align:left; white-space:normal;}
+
 /* v97 — 이상 있음 학생 근거 팝업(점수 산출 근거 → 점수별 토글 → 글별 원문+근거) */
 body.perf-modal-open{overflow:hidden;}
 .perf-modal{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(30,26,20,.55);}

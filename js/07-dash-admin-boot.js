@@ -165,6 +165,59 @@ async function dashLoadGradeStatus_(){
 function perfAdminChanged_(r){
   return !!r.response && r.answeredScore !== '' && r.answeredScore != null && Number(r.answeredScore) !== Number(r.score);
 }
+/* ── 학기말 성적 (교사, v136) — 지필 점수(exams)와 수행평가 점수(PERF_ADMIN_ROWS)를 합쳐 반별 표·성취도 분포·피드백을 보여 주고
+ * 학생 공개(setExamScoreShow)를 켜고 끈다. 합계·성취도 계산은 학생 화면과 같은 GRADE_TARGET·perfSemesterGrade_(04)를 쓴다. ── */
+let SEM_ADMIN = { exams: [], show: 'OFF' };
+function semAdminRows_(){
+  const perfBy = {};
+  PERF_ADMIN_ROWS.forEach(r => { const p = perfBy[r.studentId] = perfBy[r.studentId] || { got: 0, max: 0 }; p.got += Number(r.score) || 0; p.max += Number(r.max) || 0; });
+  return SEM_ADMIN.exams.map(e => {
+    const cfg = CONFIG.GRADE_TARGET && CONFIG.GRADE_TARGET[Number(String(e.studentId).slice(0, 1))];
+    const p = perfBy[e.studentId];
+    if(!cfg || !p || !p.max) return Object.assign({}, e, { perfGot: p ? p.got : null, total: null, grade: '' });
+    const total = Math.round((Math.round(p.got / p.max * cfg.perfWeight * 100) / 100 + Math.round(e.score / e.max * cfg.examWeight * 100) / 100) * 100) / 100;
+    return Object.assign({}, e, { perfGot: p.got, total, grade: perfSemesterGrade_(cfg, total) });
+  }).sort((a, b) => a.studentId.localeCompare(b.studentId));
+}
+function dashRenderSemAdmin_(){
+  const box = $('semAdminBox');
+  if(!box) return;
+  const list = semAdminRows_();
+  if(!list.length){ box.innerHTML = '<p class="dash-hint">올라온 지필평가 점수가 없어요.</p>'; return; }
+  const on = SEM_ADMIN.show === 'ON';
+  const bans = [...new Set(list.map(r => r.studentId.slice(0, 3)))].sort();
+  const sel = $('semBanSel') && bans.includes($('semBanSel').value) ? $('semBanSel').value : bans[0];
+  const banName = k => Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반';
+  const dist = rs => ['A', 'B', 'C', 'D', 'E'].map(g => '<span class="perf-bansum-chip">' + g + ' ' + rs.filter(r => r.grade === g).length + '명</span>').join('');
+  const rows = list.filter(r => r.studentId.slice(0, 3) === sel);
+  const fmt = n => n == null ? '–' : String(Math.round(n * 10) / 10);
+  box.innerHTML = '<p class="dash-hint">학생 화면 공개: <b>' + (on ? '🟢 공개 중' : '⚪ 비공개') + '</b> · ' + escapeHtml(list[0].title) + ' ' + list.length + '명</p>'
+    + '<div class="filters"><button type="button" class="btn btn-sm' + (on ? ' btn-ghost' : '') + '" onclick="dashSetSemShow_(this,\'' + (on ? 'OFF' : 'ON') + '\')">'
+    + (on ? '학생 화면에서 숨기기' : '학생 화면에 공개하기') + '</button>'
+    + '<select id="semBanSel" onchange="dashRenderSemAdmin_()">' + bans.map(k => '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + banName(k) + '</option>').join('') + '</select></div>'
+    + '<p class="dash-section-title">성취도 분포 — 전체</p><div class="sem-admin-chips">' + dist(list) + '</div>'
+    + '<p class="dash-section-title">' + banName(sel) + '</p><div class="sem-admin-chips">' + dist(rows) + '</div>'
+    + '<div class="perf-stat-wrap"><table class="grade-table sem-admin"><tr><th>번호</th><th class="l">이름</th><th>수행</th><th>지필</th><th>합계</th><th>성취도</th><th class="l">피드백</th></tr>'
+    + rows.map(r => '<tr><td>' + Number(r.studentId.slice(3)) + '</td><td class="l">' + escapeHtml(r.name) + '</td><td>' + fmt(r.perfGot) + '</td><td>' + fmt(r.score)
+      + '</td><td>' + (r.total == null ? '–' : String(r.total)) + '</td><td><b>' + escapeHtml(r.grade || '–') + '</b></td><td class="l"><details><summary>보기</summary>'
+      + String(r.feedback || '').split('\n').map(l => '<p>' + escapeHtml(l) + '</p>').join('') + '</details></td></tr>').join('')
+    + '</table></div>';
+}
+async function dashSetSemShow_(btn, status){
+  if(status === 'ON' && !confirm('3학년 학생들이 포털에서 학기말 성적·성취도·피드백을 보게 돼요. 공개할까요?')) return;
+  btn.disabled = true;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify({ action: 'setExamScoreShow', token: TOKEN, status }) });
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '저장 실패');
+    SEM_ADMIN.show = data.status;
+    dashRenderSemAdmin_();
+    showToast(data.status === 'ON' ? '학생 화면에 공개했어요.' : '학생 화면에서 숨겼어요.');
+  }catch(e){
+    btn.disabled = false;
+    showToast('바꾸지 못했어요: ' + e.message);
+  }
+}
 /* ── 수행평가 점수 확인 현황 (교사, v96) — 반별 응답 수와 "이상 있음" 학생 목록 ── */
 async function dashLoadPerfStatus_(){
   const box = $('perfAdminBox');
@@ -175,6 +228,8 @@ async function dashLoadPerfStatus_(){
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     const rows = data.rows || [];
     PERF_ADMIN_ROWS = rows;
+    SEM_ADMIN = { exams: data.exams || [], show: data.examShow || 'OFF' }; // v136
+    dashRenderSemAdmin_();
     if(!rows.length){ box.textContent = '올라온 수행평가 점수가 없어요.'; return; }
     const byBan = {};
     rows.forEach(r => { (byBan[r.studentId.slice(0, 3)] = byBan[r.studentId.slice(0, 3)] || []).push(r); });
@@ -213,6 +268,7 @@ async function dashLoadPerfStatus_(){
     dashRenderPerfStudents_();
   }catch(e){
     box.textContent = '❌ 현황을 불러오지 못했어: ' + e.message;
+    if($('semAdminBox') && /불러오는 중/.test($('semAdminBox').textContent)) $('semAdminBox').textContent = '❌ 학기말 성적을 불러오지 못했어: ' + e.message; // v136
   }
 }
 /* v97 — 이상 있음 학생 한 명의 점수 산출 근거 팝업 (교사 전용, mode=perfEvidenceAdmin). 학생 화면에는 이 데이터가 내려가지 않는다.
