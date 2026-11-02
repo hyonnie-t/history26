@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=136">
+<link rel="stylesheet" href="style.css?v=137">
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
 </head>
@@ -916,22 +916,25 @@
        계정(학번·이름·비밀번호) 관리는 여기 UI를 따로 안 만들고 효니가 "계정" 시트를 직접
        열어 편집하기로 확정됨 — 이 탭은 성적 데이터 자체(엑셀 업로드)와 열람 기간만 다룬다. -->
   <div class="dash-panel" id="panelGrades" style="display:none;">
-    <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). 2026-10-25 효니: 맨 위. -->
-    <section class="dash-card">
-      <h2 class="dash-card-title">수행평가 점수 확인 현황</h2>
-      <details class="fold-note" data-fold="perfDesc"><summary>설명 보기</summary>
-      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 누른 뒤에 점수가 바뀌면 학생 화면에 변동 안내가 뜨고 한 번 더 누르게 해요(그동안은 «재확인 대기»). 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p></details> <!-- v105: 긴 설명 접기, 접힘 상태는 localStorage -->
-      <div class="perf-toolbar"><button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_()">↻ 새로고침</button></div> <!-- v101: .filters 알약 바 대신 -->
-      <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
-    </section>
-
-    <!-- v136 — 학기말 성적(수행 + 지필 환산)·성취도·개별 피드백. 지필 점수는 백엔드 uploadExamScores로 올리고 여기서 학생 공개를 켠다. -->
+    <!-- v136 — 학기말 성적(수행 + 지필 환산)·성취도·개별 피드백. 지필 점수는 백엔드 uploadExamScores로 올리고 여기서 학생 공개를 켠다.
+         v137(2026-11-02 효니): 기말 뒤라 학기말 성적을 맨 위로, 수행평가 확인 현황은 아래 접기로. -->
     <section class="dash-card">
       <h2 class="dash-card-title">학기말 성적 (수행평가 + 지필평가)</h2>
       <details class="fold-note" data-fold="semDesc"><summary>설명 보기</summary>
       <p class="dash-card-desc">학생이 포털 «수행평가 점수 확인하기»를 열면 맨 위에 학기말 합계·성취도·단원별 기말고사 점수·공부 길잡이가 나와요(공개를 켰을 때만). 합계는 수행평가 점수(조정 포함) ÷ 만점 × 30 + 기말고사 × 0.7로 화면에서 계산하고, 성취도는 반올림 전 합계로 정해요. 피드백 문장은 «지필평가점수» 시트에서 직접 고칠 수 있어요.</p></details>
       <div id="semAdminBox" class="dash-hint">불러오는 중…</div>
     </section>
+
+    <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). v137: 접기(내용·로드는 그대로 — 학기말 합계가 PERF_ADMIN_ROWS를 쓴다). -->
+    <details class="cl-collapse" id="perfAdminFold">
+      <summary>수행평가 점수 확인 현황 <span class="cl-sum-note">이상 있음·재확인 대기·학생별 점수 조정</span> <span class="cl-arrow">▶</span></summary>
+      <div class="cl-collapse-body">
+      <details class="fold-note" data-fold="perfDesc"><summary>설명 보기</summary>
+      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 누른 뒤에 점수가 바뀌면 학생 화면에 변동 안내가 뜨고 한 번 더 누르게 해요(그동안은 «재확인 대기»). 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p></details> <!-- v105: 긴 설명 접기, 접힘 상태는 localStorage -->
+      <div class="perf-toolbar"><button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_()">↻ 새로고침</button></div> <!-- v101: .filters 알약 바 대신 -->
+      <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
+      </div>
+    </details>
 
     <details class="cl-collapse" id="gradeLegacyBox">
       <summary>나의 성적 확인하기(엑셀 성적조회) 관리 <span class="cl-sum-note">지금은 학생 화면에서 숨김</span> <span class="cl-arrow">▶</span></summary>
