@@ -101,7 +101,7 @@ async function enterDash(token){
 
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
-  ['records','questions','announce','curriculum','checkin','points','grades','accounts'].forEach(t => {
+  ['today','records','questions','announce','curriculum','checkin','points','grades','accounts'].forEach(t => { // v134 — today(📅 오늘) 추가
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -114,6 +114,7 @@ function switchDashTab(tab){
   }
   if(tab === 'points') ppRenderRecent_(); // v105 — 탭을 열 때마다 최근 지급 5건 갱신
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
+  if(tab === 'today' && typeof dashTodayOpen_ === 'function') dashTodayOpen_(); // v134 — js/08-dash-today.js
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
 }
 

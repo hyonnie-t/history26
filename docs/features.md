@@ -4,6 +4,12 @@
 `grep -n "^## " docs/features.md`로 제목을 보고 필요한 섹션만 `sed -n`으로 읽을 것. 모든 기능에 걸리는 함정은
 `AGENTS.md` "절대 규칙"과 `.claude/rules/*`에 남겨뒀다. 버전별 경위는 `CHANGELOG.md`.
 
+## 📅 오늘 탭 — 시간표 앱 연결 (v134)
+교사 대시보드 첫 탭. 로직은 `js/08-dash-today.js` 하나(탭을 처음 열 때 `dashTodayOpen_()`가 시간표 앱 모듈을 불러옴). 학생 화면에서는 부르지 않는다.
+- 시간표 앱(`TD_TT_BASE` = hyonnie-t.github.io/timetable/)의 `firebase.js`·`engine/progress-engine.js`·`engine/task-engine.js`를 동적 import. 같은 origin이라 시간표 앱 로그인이 그대로 이어지고, 아니면 «구글로 로그인» 카드(`#tdLogin`). 시간표 앱이 이 파일 경로·함수 이름을 바꾸면 이 탭이 깨진다.
+- 오늘 수업(`#tdLessons`): `scheduleOn`→교시마다 `calendarEvent`(수업 없음)·`specialAt`(특별)·`stepAt`(차시) + 시간표 앱 `curriculum[반_과목][차시]` 주제. 반별 진도(`#tdProgress`): `allKeys`마다 `nextLesson`(남은 수업 없는 반은 뺌).
+- 할 일(`#tdTasks`): `classify`의 마감 지남·오늘·지켜볼 일 + 오늘 끝낸 일(↺), 이번 주 나머지는 개수만. ✓/↺는 `planComplete`/`planUndoComplete`(매일 하는 일은 `planDailyDone`/`planDailyUndo`) patch에 시간표 앱과 같은 `log/` 한 줄을 붙여 `assertPlannerPatch` 뒤 `update`. `PREVIEW_MODE`면 쓰지 않는다. 추가·편집·시간표·진도 고치기는 시간표 앱에서(«✅ 할 일 탭 열기» = `?tab=tasks`).
+
 ## 발표 탐구포인트
 발표처럼 웹앱 밖에서 일어나는 활동에 포인트를 즉시 지급하는 통로. 교사가 학생 상세
 카드(`.pp-box`) 또는 "탐구포인트" 탭(`dashPointBoxHtml_()`)에서 사고유형

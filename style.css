@@ -2309,3 +2309,32 @@ body.perf-modal-open{overflow:hidden;}
   .pk-cat.is-done .pk-cat-sign{animation:none; opacity:1; transform:rotate(-3deg);}
   .pk-cat.is-done .pk-cat-fx{animation:none;}
 }
+
+/* ── v134 📅 오늘 탭(js/08-dash-today.js) — 시간표 앱의 오늘 수업·반별 진도·할 일 ── */
+#dashView .td-head{margin-bottom:var(--space-md);}
+#dashView .td-date{font-family:var(--font-display); font-size:var(--fs-lg); color:var(--indigo-deep); margin-right:auto;}
+#dashView .td-status.td-err{color:var(--seal);}
+#dashView .td-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:var(--space-md); align-items:start;}
+#dashView .td-list{list-style:none; margin:0; padding:0;}
+#dashView .td-row{display:flex; align-items:center; gap:var(--space-sm); padding:var(--space-sm) 0; border-bottom:1px solid var(--line);}
+#dashView .td-row:last-child{border-bottom:0;}
+#dashView .td-row.past{opacity:.6;}
+#dashView .td-row.now{background:rgba(46,74,122,.07); border-radius:8px; padding-left:var(--space-sm); padding-right:var(--space-sm);}
+#dashView .td-when{display:flex; flex-direction:column; min-width:72px; font-size:var(--fs-sm);}
+#dashView .td-when small, #dashView .td-muted{color:var(--ink-soft); font-size:var(--fs-xs);}
+#dashView .td-what{display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; font-size:var(--fs-sm); overflow-wrap:anywhere;}
+#dashView .td-cls{font-weight:700; color:var(--indigo); font-size:var(--fs-sm); min-width:72px;}
+#dashView .td-chip{display:inline-block; padding:2px 8px; border-radius:999px; background:var(--paper); border:1px solid var(--line); font-size:var(--fs-xs); color:var(--ink-soft);}
+#dashView .td-chip.td-now{background:var(--indigo); border-color:var(--indigo); color:#fff;}
+#dashView .td-sub{font-size:var(--fs-sm); margin:var(--space-md) 0 2px; color:var(--ink);}
+#dashView .td-sub:first-child{margin-top:0;}
+#dashView .td-sub small{color:var(--ink-soft); font-weight:400;}
+#dashView .td-sub.td-late{color:var(--seal);}
+#dashView .td-check{min-width:var(--tap-min); min-height:var(--tap-min); font-size:1.05rem;}
+#dashView .td-task.done .td-title{text-decoration:line-through; color:var(--ink-soft);}
+/* 움직임: Scroll-triggered — 카드가 보일 때 한 장씩 떠오름 */
+#dashView .td-rise{opacity:0; transform:translateY(10px); transition:opacity .3s ease, transform .3s ease;}
+#dashView .td-rise.show{opacity:1; transform:none;}
+@media (prefers-reduced-motion:reduce){
+  #dashView .td-rise{opacity:1; transform:none; transition:none;}
+}
