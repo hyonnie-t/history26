@@ -2338,3 +2338,16 @@ body.perf-modal-open{overflow:hidden;}
 @media (prefers-reduced-motion:reduce){
   #dashView .td-rise{opacity:1; transform:none; transition:none;}
 }
+
+/* v135 — «📅 오늘» 탭 ↔ 시간표 앱 오가기: 빠른 추가 줄·반 버튼·원본 링크·✏️·글자 버튼 */
+#dashView .td-quick{margin:calc(-1 * var(--space-sm)) 0 var(--space-md); gap:var(--space-sm);}
+#dashView .td-quick-input{flex:1; min-width:200px; padding:8px 12px; font:inherit; font-size:var(--fs-sm); border:1px solid var(--line); border-radius:999px; background:var(--paper);}
+#dashView .td-quick-input:focus{outline:2px solid var(--indigo); outline-offset:1px;}
+#dashView .td-cls-btn{font:inherit; font-weight:700; color:var(--indigo); background:none; border:0; padding:0; text-align:left; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+#dashView .td-cls-btn:hover{text-decoration-style:solid;}
+#dashView .td-link{color:var(--indigo); text-decoration:none; font-weight:600;}
+#dashView .td-link:hover{text-decoration:underline;}
+#dashView .td-edit{min-width:var(--tap-min); min-height:var(--tap-min); opacity:.55;}
+#dashView .td-edit:hover{opacity:1;}
+#dashView .td-textbtn{font:inherit; font-size:inherit; font-weight:600; color:var(--indigo); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+#dashView .td-textbtn:hover{text-decoration-style:solid;}
