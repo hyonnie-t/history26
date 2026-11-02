@@ -2044,12 +2044,52 @@ html{scrollbar-gutter:stable;}
 .sem-fb{margin-top:6px;}
 .sem-fb-line{margin:0 0 8px; padding:9px 11px; border-radius:8px; background:#fff; border:1px solid var(--line); font-size:.93rem; line-height:1.6; color:var(--ink);}
 @media (max-width:420px){ .sem-areas li{grid-template-columns:1fr 3.4em;} .sem-areas .sem-bar{grid-column:1 / -1; grid-row:2;} .sem-row{grid-template-columns:5.2em 1fr;} .sem-row small{grid-column:2; text-align:left;} }
-/* 대시보드 학기말 성적 표 */
-.sem-admin-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
-.sem-admin td.l{text-align:left;}
-.sem-admin th, .sem-admin details summary{white-space:nowrap;} /* v137 — 좁은 창에서 «지필» 머리글·«▶ 보기»가 두 줄로 꺾이던 것 */
-.sem-admin details summary{cursor:pointer; color:var(--indigo);}
-.sem-admin details p{margin:4px 0; font-size:.85rem; text-align:left; white-space:normal;}
+/* 대시보드 학기말 성적 (v138 — 공개 상태 띠·숫자 3칸·반별 성취도 막대·반 탭·학생 표, 카드 안 카드 없이 여백과 선으로만 나눔) */
+.sem-gA{--g:#3E7C59; --gb:#E4EEE8;} .sem-gB{--g:#2E4A7A; --gb:#E6ECF6;} .sem-gC{--g:#9A7420; --gb:#FBF1DA;}
+.sem-gD{--g:#B85C1E; --gb:#FBE9DC;} .sem-gE{--g:#B03A2E; --gb:#F8E1DE;} .sem-gx{--g:var(--ink-soft); --gb:var(--thead-bg);}
+.sem-status{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-sm); background:var(--thead-bg);}
+.sem-status.is-on{background:var(--jade-bg);}
+.sem-status-dot{flex:none; width:12px; height:12px; border-radius:50%; background:var(--muted-2);}
+.sem-status.is-on .sem-status-dot{background:var(--jade); box-shadow:0 0 0 4px rgba(62,124,89,.18);}
+.sem-status-text{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; color:var(--ink);}
+.sem-status-text small{font-size:.82rem; color:var(--ink-soft);}
+.sem-status .btn{flex:none; min-height:40px;}
+.sem-kpis{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:16px 0 4px; border-top:1px solid var(--row-line); border-bottom:1px solid var(--row-line);}
+.sem-kpis > div{padding:12px 4px; text-align:center;}
+.sem-kpis > div + div{border-left:1px solid var(--row-line);}
+.sem-kpis small{display:block; font-size:.8rem; color:var(--ink-soft);}
+.sem-kpis b{font-family:var(--font-display); font-size:1.6rem; color:var(--indigo); line-height:1.3;}
+.sem-kpis em{font-style:normal; font-size:.85rem; color:var(--ink-soft); margin-left:2px;}
+#semAdminBox .sem-sec{display:flex; align-items:center; gap:10px; margin:18px 0 8px;}
+.sem-legend{display:inline-flex; align-items:center; gap:4px; font-size:.78rem; font-weight:500; color:var(--ink-soft);}
+.sem-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; background:var(--g); margin-left:6px;}
+.sem-dist-head{margin-left:auto; width:3.2em; text-align:right; font-size:.78rem; font-weight:500; color:var(--ink-soft);}
+.sem-dist{display:grid; gap:2px;}
+.sem-dist-row{display:grid; grid-template-columns:3.4em 1fr 3.2em; align-items:center; gap:10px; width:100%; padding:6px 8px; border:0; border-radius:var(--radius-xs); background:none; font:inherit; color:var(--ink); text-align:left;}
+button.sem-dist-row{cursor:pointer;}
+button.sem-dist-row:hover{background:var(--panel-alt);}
+.sem-dist-row.is-on{background:var(--indigo-bg); box-shadow:inset 3px 0 0 var(--indigo);}
+.sem-dist-label{font-size:.9rem; font-weight:600;}
+.sem-dist-bar{display:flex; height:22px; border-radius:6px; overflow:hidden; background:var(--thead-bg);}
+.sem-dist-bar i{display:flex; align-items:center; justify-content:center; width:var(--w); background:var(--g); color:#fff; font-style:normal; font-size:.72rem; font-weight:700; white-space:nowrap; overflow:hidden; animation:semGrow .6s ease-out both;}
+@keyframes semGrow{from{width:0;}}
+.sem-dist-avg{text-align:right; font-variant-numeric:tabular-nums; font-weight:600; color:var(--ink);}
+.sem-tabs{display:flex; flex-wrap:wrap; gap:4px; margin:20px 0 0; border-bottom:2px solid var(--row-line);}
+.sem-tab{min-height:40px; padding:6px 16px; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; background:none; font:inherit; font-weight:600; color:var(--ink-soft); cursor:pointer;}
+.sem-tab.is-on{color:var(--indigo); border-bottom-color:var(--indigo);}
+.sem-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums;}
+.sem-table th{padding:10px 8px; font-size:.8rem; font-weight:600; color:var(--ink-soft); text-align:center; white-space:nowrap; border-bottom:1px solid var(--line);}
+.sem-table td{padding:9px 8px; text-align:center; white-space:nowrap; border-bottom:1px solid var(--row-line); color:var(--ink);}
+.sem-table .l{text-align:left;}
+.sem-table tbody tr:hover{background:var(--panel-alt);}
+.sem-total-cell{font-weight:700;}
+.sem-badge{display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:26px; padding:0 8px; border-radius:999px; background:var(--gb); color:var(--g); font-weight:800; font-size:.9rem;}
+.sem-fb-btn{min-height:32px; padding:4px 12px; border:1px solid var(--line); border-radius:999px; background:var(--card); font:inherit; font-size:.82rem; color:var(--indigo); cursor:pointer;}
+.sem-fb-btn:hover{border-color:var(--indigo); background:var(--indigo-bg);}
+.sem-fb-sum{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:var(--radius-sm); background:var(--indigo-bg); font-size:1rem;}
+.sem-fb-sum b{font-family:var(--font-display); font-size:1.5rem; color:var(--indigo); margin-left:6px;}
+@media (max-width:480px){ .sem-kpis b{font-size:1.3rem;} .sem-table th, .sem-table td{padding:8px 4px;} .sem-dist-row{grid-template-columns:3em 1fr 2.8em; gap:6px; padding:6px 4px;} }
+@media (prefers-reduced-motion:reduce){ .sem-dist-bar i{animation:none;} }
 
 /* v97 — 이상 있음 학생 근거 팝업(점수 산출 근거 → 점수별 토글 → 글별 원문+근거) */
 body.perf-modal-open{overflow:hidden;}

@@ -179,29 +179,56 @@ function semAdminRows_(){
     return Object.assign({}, e, { perfGot: p.got, total, grade: perfSemesterGrade_(cfg, total) });
   }).sort((a, b) => a.studentId.localeCompare(b.studentId));
 }
+// v138 — 효니 «디자인 이따위로»: 알약 줄·select·표 안 펼치기를 걷고, 공개 상태 띠 → 숫자 3칸 → 반별 성취도 막대(누르면 그 반) → 반 탭 → 학생 표(성취도 색 배지, 피드백은 팝업).
+let SEM_BAN = '';
+const SEM_GRADES = ['A', 'B', 'C', 'D', 'E'];
+function semBanName_(k){ return (SEM_MULTI ? Number(k.slice(0, 1)) + '-' : '') + Number(k.slice(1)) + '반'; }
+let SEM_MULTI = false;
+function semAvg_(rs, key){ const v = rs.map(r => r[key]).filter(n => n != null && !isNaN(n)); return v.length ? Math.round(v.reduce((s, n) => s + Number(n), 0) / v.length * 10) / 10 : null; }
+function semDistBar_(label, rs, k, active){
+  const n = rs.length || 1;
+  const segs = SEM_GRADES.map(g => { const c = rs.filter(r => r.grade === g).length; return c ? '<i class="sem-g' + g + '" style="--w:' + (c / n * 100) + '%" title="' + g + ' ' + c + '명">' + (c / n >= 0.08 ? g + ' ' + c : '') + '</i>' : ''; }).join('');
+  const tag = k ? 'button type="button" onclick="semPickBan_(\'' + k + '\')"' : 'div';
+  return '<' + tag + ' class="sem-dist-row' + (active ? ' is-on' : '') + '"><span class="sem-dist-label">' + label + '</span><span class="sem-dist-bar">' + segs + '</span><span class="sem-dist-avg">' + (semAvg_(rs, 'total') == null ? '–' : semAvg_(rs, 'total')) + '</span></' + (k ? 'button' : 'div') + '>';
+}
+function semPickBan_(k){ SEM_BAN = k; dashRenderSemAdmin_(); }
+function semFeedbackOpen_(sid){
+  const r = semAdminRows_().find(x => x.studentId === sid);
+  if(!r) return;
+  const areas = (r.areas || []).map(a => '<li><span>' + escapeHtml(a.name) + '</span><span class="sem-bar"><i style="--w:' + (a.max ? a.got / a.max * 100 : 0) + '%"></i></span><span class="sem-area-num">' + a.got + '/' + a.max + '</span></li>').join('');
+  perfModalOpen_(sid + ' ' + r.name, '학기말 성적 · 학생 화면과 같은 내용',
+    '<div class="sem-fb-sum"><span>합계 <b>' + (r.total == null ? '–' : r.total) + '</b></span><span class="sem-badge sem-g' + escapeHtml(r.grade || 'x') + '">' + escapeHtml(r.grade || '–') + '</span></div>'
+    + (areas ? '<p class="sem-sec">단원별 기말고사 점수</p><ul class="sem-areas">' + areas + '</ul>' : '')
+    + '<p class="sem-sec">공부 길잡이</p>' + (String(r.feedback || '').trim() ? '<div class="sem-fb">' + String(r.feedback).split('\n').filter(l => l.trim()).map(l => {
+      const m = l.match(/^(\S+\s[^:]{1,8}):\s*(.*)$/); // 학생 화면(perfSemesterHtml_)과 같게 머리말 굵게
+      return '<p class="sem-fb-line">' + (m ? '<b>' + escapeHtml(m[1]) + '</b> ' + escapeHtml(m[2]) : escapeHtml(l)) + '</p>';
+    }).join('') + '</div>' : '<p class="dash-hint">피드백 문장이 없어요.</p>'));
+}
 function dashRenderSemAdmin_(){
   const box = $('semAdminBox');
   if(!box) return;
   const list = semAdminRows_();
+  box.classList.remove('dash-hint');
   if(!list.length){ box.innerHTML = '<p class="dash-hint">올라온 지필평가 점수가 없어요.</p>'; return; }
   const on = SEM_ADMIN.show === 'ON';
   const bans = [...new Set(list.map(r => r.studentId.slice(0, 3)))].sort();
-  const sel = $('semBanSel') && bans.includes($('semBanSel').value) ? $('semBanSel').value : bans[0];
-  const banName = k => Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반';
-  const dist = rs => ['A', 'B', 'C', 'D', 'E'].map(g => '<span class="perf-bansum-chip">' + g + ' ' + rs.filter(r => r.grade === g).length + '명</span>').join('');
-  const rows = list.filter(r => r.studentId.slice(0, 3) === sel);
+  if(!bans.includes(SEM_BAN)) SEM_BAN = bans[0];
+  const byBan = k => list.filter(r => r.studentId.slice(0, 3) === k);
+  const rows = byBan(SEM_BAN);
   const fmt = n => n == null ? '–' : String(Math.round(n * 10) / 10);
-  box.innerHTML = '<p class="dash-hint">학생 화면 공개: <b>' + (on ? '🟢 공개 중' : '⚪ 비공개') + '</b> · ' + escapeHtml(list[0].title) + ' ' + list.length + '명</p>'
-    + '<div class="filters"><button type="button" class="btn btn-sm' + (on ? ' btn-ghost' : '') + '" onclick="dashSetSemShow_(this,\'' + (on ? 'OFF' : 'ON') + '\')">'
-    + (on ? '학생 화면에서 숨기기' : '학생 화면에 공개하기') + '</button>'
-    + '<select id="semBanSel" onchange="dashRenderSemAdmin_()">' + bans.map(k => '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + banName(k) + '</option>').join('') + '</select></div>'
-    + '<p class="dash-section-title">성취도 분포 — 전체</p><div class="sem-admin-chips">' + dist(list) + '</div>'
-    + '<p class="dash-section-title">' + banName(sel) + '</p><div class="sem-admin-chips">' + dist(rows) + '</div>'
-    + '<div class="perf-stat-wrap"><table class="grade-table sem-admin"><tr><th>번호</th><th class="l">이름</th><th>수행</th><th>지필</th><th>합계</th><th>성취도</th><th class="l">피드백</th></tr>'
+  const grades = [...new Set(bans.map(k => Number(k.slice(0, 1))))];
+  SEM_MULTI = grades.length > 1;
+  box.innerHTML = '<div class="sem-status' + (on ? ' is-on' : '') + '"><span class="sem-status-dot"></span><span class="sem-status-text"><b>' + (on ? '학생 화면에 공개 중' : '학생 화면에는 아직 비공개') + '</b><small>' + escapeHtml(list[0].title) + ' · ' + grades.join('·') + '학년 ' + list.length + '명</small></span>'
+    + '<button type="button" class="btn btn-sm' + (on ? ' btn-ghost' : '') + '" onclick="dashSetSemShow_(this,\'' + (on ? 'OFF' : 'ON') + '\')">' + (on ? '숨기기' : '공개하기') + '</button></div>'
+    + '<div class="sem-kpis"><div><small>평균 합계</small><b>' + fmt(semAvg_(list, 'total')) + '</b></div><div><small>평균 기말고사</small><b>' + fmt(semAvg_(list, 'score')) + '</b></div><div><small>A·B 성취도</small><b>' + list.filter(r => r.grade === 'A' || r.grade === 'B').length + '<em>명</em></b></div></div>'
+    + '<p class="sem-sec">반별 성취도 <span class="sem-legend">' + SEM_GRADES.map(g => '<i class="sem-g' + g + '"></i>' + g).join(' ') + '</span><span class="sem-dist-head">평균</span></p>'
+    + '<div class="sem-dist">' + semDistBar_('전체', list, '', false) + bans.map(k => semDistBar_(semBanName_(k), byBan(k), k, k === SEM_BAN)).join('') + '</div>'
+    + '<div class="sem-tabs" role="tablist">' + bans.map(k => '<button type="button" role="tab" aria-selected="' + (k === SEM_BAN) + '" class="sem-tab' + (k === SEM_BAN ? ' is-on' : '') + '" onclick="semPickBan_(\'' + k + '\')">' + semBanName_(k) + '</button>').join('') + '</div>'
+    + '<div class="perf-stat-wrap"><table class="sem-table"><thead><tr><th>번호</th><th class="l">이름</th><th>수행</th><th>기말</th><th>합계</th><th>성취도</th><th></th></tr></thead><tbody>'
     + rows.map(r => '<tr><td>' + Number(r.studentId.slice(3)) + '</td><td class="l">' + escapeHtml(r.name) + '</td><td>' + fmt(r.perfGot) + '</td><td>' + fmt(r.score)
-      + '</td><td>' + (r.total == null ? '–' : String(r.total)) + '</td><td><b>' + escapeHtml(r.grade || '–') + '</b></td><td class="l"><details><summary>보기</summary>'
-      + String(r.feedback || '').split('\n').map(l => '<p>' + escapeHtml(l) + '</p>').join('') + '</details></td></tr>').join('')
-    + '</table></div>';
+      + '</td><td class="sem-total-cell">' + (r.total == null ? '–' : String(r.total)) + '</td><td><span class="sem-badge sem-g' + escapeHtml(r.grade || 'x') + '">' + escapeHtml(r.grade || '–') + '</span></td>'
+      + '<td><button type="button" class="sem-fb-btn" onclick="semFeedbackOpen_(\'' + escapeHtml(r.studentId) + '\')">피드백</button></td></tr>').join('')
+    + '</tbody></table></div>';
 }
 async function dashSetSemShow_(btn, status){
   if(status === 'ON' && !confirm('3학년 학생들이 포털에서 학기말 성적·성취도·피드백을 보게 돼요. 공개할까요?')) return;
