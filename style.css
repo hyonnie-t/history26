@@ -2047,6 +2047,7 @@ html{scrollbar-gutter:stable;}
 /* 대시보드 학기말 성적 표 */
 .sem-admin-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
 .sem-admin td.l{text-align:left;}
+.sem-admin th, .sem-admin details summary{white-space:nowrap;} /* v137 — 좁은 창에서 «지필» 머리글·«▶ 보기»가 두 줄로 꺾이던 것 */
 .sem-admin details summary{cursor:pointer; color:var(--indigo);}
 .sem-admin details p{margin:4px 0; font-size:.85rem; text-align:left; white-space:normal;}
 
