@@ -966,10 +966,15 @@
   <div class="dash-panel" id="panelToday" style="display:none;">
     <div class="dash-inline td-head">
       <b class="td-date" id="tdDate"></b>
-      <button type="button" class="btn btn-sm btn-ghost" onclick="tdOpenTimetable_(false)">🗓 시간표 앱</button>
-      <button type="button" class="btn btn-sm btn-ghost" onclick="tdOpenTimetable_(true)">✅ 할 일 탭 열기</button>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="tdOpenTimetable_('today')">🗓 시간표 앱</button>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="tdOpenTimetable_('tasks')">✅ 할 일 탭 열기</button>
       <button type="button" class="btn btn-sm btn-ghost" onclick="dashTodayOpen_()">↻ 새로고침</button>
     </div>
+    <!-- v135 — 여기서 적은 글을 시간표 앱 빠른 입력칸에 미리 넣어 준다(저장은 그쪽 Enter). 할 일 쓰기는 시간표 앱만 한다는 v134 원칙 유지 -->
+    <form class="dash-inline td-quick" onsubmit="return tdQuickAdd_(event)" autocomplete="off">
+      <input type="text" id="tdQuickInput" class="td-quick-input" maxlength="200" placeholder="➕ 할 일 적고 Enter → 시간표 앱 입력칸에 미리 들어가요 (예: 내일 15시 회의 1시간)" aria-label="할 일 빠른 추가">
+      <button type="submit" class="btn btn-sm">시간표 앱에 담기 ↗</button>
+    </form>
     <p class="dash-hint td-status" id="tdStatus" style="display:none;"></p>
     <section class="dash-card" id="tdLogin" style="display:none;">
       <h2 class="dash-card-title">시간표 앱 계정으로 로그인</h2>
@@ -978,11 +983,11 @@
     </section>
     <div class="td-grid" id="tdGrid" style="display:none;">
       <section class="dash-card td-rise">
-        <h2 class="dash-card-title">오늘 수업</h2>
+        <h2 class="dash-card-title">오늘 수업 <small class="td-muted">반을 누르면 그 반 학생 기록</small></h2>
         <div id="tdLessons"></div>
       </section>
       <section class="dash-card td-rise">
-        <h2 class="dash-card-title">반별 진도 <small class="td-muted">다음 수업</small></h2>
+        <h2 class="dash-card-title">반별 진도 <small class="td-muted">다음 수업</small> <button type="button" class="td-textbtn" onclick="tdOpenTimetable_('progress')" title="차시·주제 고치기는 시간표 앱 진도표에서">진도표 ↗</button></h2>
         <div id="tdProgress"></div>
       </section>
       <section class="dash-card td-rise">
@@ -1080,11 +1085,11 @@
 <script src="js/03-grade-lookup.js?v=104"></script>
 <script src="js/04-perf-score.js?v=136"></script>
 <script src="js/05-badges-events.js?v=104"></script>
-<script src="js/06-dashboard.js?v=134"></script>
+<script src="js/06-dashboard.js?v=135"></script>
 <!-- v126 — 교사 질문함 아이콘(Lucian Icons v2.0.13, MIT, 로컬 사본 — 학교망 외부 로드 미확인이라 CDN 안 씀) -->
 <script type="module" src="vendor/lucian-icons/help.js"></script>
 <script type="module" src="vendor/lucian-icons/envelope.js"></script>
 <script src="js/07-dash-admin-boot.js?v=136"></script>
-<script src="js/08-dash-today.js?v=134"></script>
+<script src="js/08-dash-today.js?v=135"></script>
 </body>
 </html>

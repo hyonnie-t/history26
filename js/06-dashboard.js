@@ -91,6 +91,7 @@ async function enterDash(token){
     dashRenderGradeInfoForm();
     dashRenderGongminBonus_();
     dashLoadPwAdmin_(); // v83 — 초기화 요청 수 배지(기다리지 않음)
+    if(typeof tdAfterEnter_ === 'function') tdAfterEnter_(); // v135 — ?dash=탭으로 들어왔으면 그 탭으로 (js/08-dash-today.js)
   }catch(e){
     $('gateError').textContent = '들어가지 못했어요: ' + e.message;
     $('gateError').style.display = 'block';
@@ -116,6 +117,7 @@ function switchDashTab(tab){
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
   if(tab === 'today' && typeof dashTodayOpen_ === 'function') dashTodayOpen_(); // v134 — js/08-dash-today.js
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
+  if(typeof tdSyncUrl_ === 'function') tdSyncUrl_(tab); // v135 — 주소를 ?dash=탭으로 (새로고침·시간표 앱 링크가 같은 탭으로)
 }
 
 const SEL_APP_URL = 'https://script.google.com/macros/s/AKfycbzQnKFwxatWB8od042GSGVuID9fn2aPy73S5v4v-Eh9EtFjOd7ha6ZUz9DXsdRq2M2H/exec';

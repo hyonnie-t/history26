@@ -4,8 +4,9 @@
 `grep -n "^## " docs/features.md`로 제목을 보고 필요한 섹션만 `sed -n`으로 읽을 것. 모든 기능에 걸리는 함정은
 `AGENTS.md` "절대 규칙"과 `.claude/rules/*`에 남겨뒀다. 버전별 경위는 `CHANGELOG.md`.
 
-## 📅 오늘 탭 — 시간표 앱 연결 (v134)
+## 📅 오늘 탭 — 시간표 앱 연결 (v134, 양방향 v135)
 교사 대시보드 첫 탭. 로직은 `js/08-dash-today.js` 하나(탭을 처음 열 때 `dashTodayOpen_()`가 시간표 앱 모듈을 불러옴). 학생 화면에서는 부르지 않는다.
+- (v135) 오가기: 시간표 앱으로는 `tdOpenTimetable_(tab, params)`(`?tab=탭`, 할 일 ✏️는 `task=ID`, «➕ 할 일» 줄은 `add=글` — 저장은 시간표 앱 Enter). 시간표 앱에서는 `?dash=탭[&cls=반]`으로 들어온다(`tdDeepLink_`: «로그인 유지» 토큰이 있으면 바로 enterDash, 낡은 토큰이면 게이트를 열어 오류를 보임; `tdAfterEnter_`가 탭으로). 오늘 수업의 반 버튼 → `tdGoRecords_`(기록 탭 selGrade/selBan, 기록 없는 반이면 전체 반 + 토스트). 탭을 바꾸면 주소 `?dash=탭`(`tdSyncUrl_`), «나가기»가 지움. 주소 규칙 짝은 시간표 레포 CLAUDE.md «시작 주소 규칙».
 - 시간표 앱(`TD_TT_BASE` = hyonnie-t.github.io/timetable/)의 `firebase.js`·`engine/progress-engine.js`·`engine/task-engine.js`를 동적 import. 같은 origin이라 시간표 앱 로그인이 그대로 이어지고, 아니면 «구글로 로그인» 카드(`#tdLogin`). 시간표 앱이 이 파일 경로·함수 이름을 바꾸면 이 탭이 깨진다.
 - 오늘 수업(`#tdLessons`): `scheduleOn`→교시마다 `calendarEvent`(수업 없음)·`specialAt`(특별)·`stepAt`(차시) + 시간표 앱 `curriculum[반_과목][차시]` 주제. 반별 진도(`#tdProgress`): `allKeys`마다 `nextLesson`(남은 수업 없는 반은 뺌).
 - 할 일(`#tdTasks`): `classify`의 마감 지남·오늘·지켜볼 일 + 오늘 끝낸 일(↺), 이번 주 나머지는 개수만. ✓/↺는 `planComplete`/`planUndoComplete`(매일 하는 일은 `planDailyDone`/`planDailyUndo`) patch에 시간표 앱과 같은 `log/` 한 줄을 붙여 `assertPlannerPatch` 뒤 `update`. `PREVIEW_MODE`면 쓰지 않는다. 추가·편집·시간표·진도 고치기는 시간표 앱에서(«✅ 할 일 탭 열기» = `?tab=tasks`).

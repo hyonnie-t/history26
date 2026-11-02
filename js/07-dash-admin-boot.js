@@ -1245,6 +1245,7 @@ $('btnDashOut').addEventListener('click', () => {
   $('dashView').style.display = 'none';
   $('loginView').style.display = 'flex';
   $('teacherGate').style.display = 'none';
+  if(typeof tdClearUrl_ === 'function') tdClearUrl_(); // v135 — ?dash=탭을 지워 새로고침이 학생 표지로 돌아오게
 });
 
 /* ── 초기 부팅: 커리큘럼(시트)을 먼저 불러온 뒤에야 로그인·미리보기·대시보드 필터가
@@ -1261,6 +1262,9 @@ $('btnDashOut').addEventListener('click', () => {
 
   btn.disabled = false; btn.textContent = '책 펼치기';
   previewInitGradeOptions();
+
+  /* v135 — 시간표 앱에서 ?dash=탭으로 옴: 저장된 토큰이 있으면 바로 대시보드로 가고 학생 자동 로그인은 건너뛴다 (js/08-dash-today.js) */
+  if(typeof tdDeepLink_ === 'function' && tdDeepLink_()) return;
 
   /* 자동 로그인 (이전 접속 기억) */
   const saved = store.get('portal_session');

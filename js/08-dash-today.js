@@ -10,6 +10,15 @@
  * 시간표 앱의 파일 경로·함수 이름(firebase.js·engine/progress-engine.js·engine/task-engine.js)을 바꾸면 이 탭이 깨진다. */
 const TD_TT_BASE = 'https://hyonnie-t.github.io/timetable/';
 const TD_DOW = ['일','월','화','수','목','금','토'];
+/* v135 — 두 앱이 서로 오가는 주소 규칙 (시간표 앱 CLAUDE.md «시작 주소 규칙»과 짝):
+ *   이쪽 → 시간표 앱: ?tab=탭 · ?tab=tasks&task=ID(그 할 일 고치기 창) · ?tab=tasks&add=글(빠른 입력에 미리 적기)
+ *   시간표 앱 → 이쪽: ?dash=탭[&cls=반] — 저장된 토큰(«로그인 유지»)이 있으면 바로 그 탭으로, 없으면 교사 게이트를 열어 두고 들어간 뒤 그 탭으로.
+ *   대시보드 탭을 바꾸면 주소도 ?dash=탭으로 맞춰 둔다(새로고침·즐겨찾기가 같은 탭으로). «나가기»가 지운다. */
+let TD_DEEP = (() => {
+  const q = new URLSearchParams(location.search);
+  const tab = q.get('dash');
+  return tab ? { tab, cls: q.get('cls') || '' } : null;
+})();
 const TD = { mods: null, loading: false, user: undefined, data: null, missing: false, ledgers: {}, planner: null, unsub: null, busy: new Set(), slotBefore: {} };
 
 function tdPad_(n){ return String(n).padStart(2, '0'); }
@@ -130,7 +139,7 @@ function tdRenderLessons_(){
     else what = '<span class="td-muted">차시 계산 안 됨(시간표 앱 학기 설정 확인)</span>';
     return `<li class="td-row ${state}">
       <span class="td-when"><b>${p}교시</b><small>${t.start ? escapeHtml(t.start) + '~' + escapeHtml(t.end || '') : ''}</small></span>
-      <span class="td-what"><span class="td-cls">${escapeHtml(cell.class)} ${escapeHtml(cell.subject)}</span>${what}</span>
+      <span class="td-what"><button type="button" class="td-cls td-cls-btn" data-cls="${escapeHtml(cell.class)}" onclick="tdGoRecords_(this.dataset.cls)" title="이 반의 학생 기록 탭으로">${escapeHtml(cell.class)} ${escapeHtml(cell.subject)}</button>${what}</span>
       ${state === 'now' ? '<span class="td-chip td-now">지금</span>' : ''}
     </li>`;
   }).join('');
@@ -167,10 +176,75 @@ function tdTaskItem_(t, done){
   const btn = done
     ? `<button type="button" class="btn btn-sm btn-ghost td-check" onclick="tdToggleTask_('${t.id}', true)" aria-label="되돌리기"${busy}>↺</button>`
     : `<button type="button" class="btn btn-sm btn-ghost td-check" onclick="tdToggleTask_('${t.id}', false)" aria-label="끝냈어요"${busy}>✓</button>`;
+  // v135 — 할 일에 붙은 원본 링크(시간표 앱 «링크» 칸)는 여기서도 바로 열고, ✏️는 시간표 앱의 그 할 일 고치기 창으로
+  const link = t.link && /^https?:\/\//i.test(t.link)
+    ? ` <a class="td-link" href="${escapeHtml(t.link)}" target="_blank" rel="noopener" title="${escapeHtml(t.link)}">원본 ↗</a>` : '';
+  const note = t.note ? ` title="${escapeHtml(String(t.note).slice(0, 300))}"` : '';
   return `<li class="td-row td-task${done ? ' done' : ''}">${btn}
-    <span class="td-what"><span class="td-title">${escapeHtml(t.title)}</span>
-    <small class="td-muted"><span class="td-chip">${escapeHtml(t.area || '기타')}</span> ${meta.join(' · ')}</small></span></li>`;
+    <span class="td-what"><span class="td-title"${note}>${escapeHtml(t.title)}</span>
+    <small class="td-muted"><span class="td-chip">${escapeHtml(t.area || '기타')}</span> ${meta.join(' · ')}${link}</small></span>
+    <button type="button" class="btn btn-sm btn-ghost td-edit" onclick="tdOpenTimetable_('tasks', { task: '${t.id}' })" aria-label="시간표 앱에서 고치기" title="시간표 앱에서 이 할 일 고치기(메모·마감·링크)">✏️</button></li>`;
 }
+
+/* v135 — «+ 할 일»: 여기서 적은 글을 시간표 앱 빠른 입력칸에 미리 넣어 준다(«내일 15시 회의 1시간» 같은 풀이도 거기서 보인다).
+ * 저장은 그쪽에서 Enter — 할 일 추가·편집은 시간표 앱만 하기로 한 v134 원칙 그대로. */
+function tdQuickAdd_(ev){
+  ev.preventDefault();
+  const input = $('tdQuickInput');
+  const text = (input.value || '').trim();
+  if(!text) return false;
+  tdOpenTimetable_('tasks', { add: text.slice(0, 200) });
+  input.value = '';
+  return false;
+}
+
+/* v135 — 오늘 수업의 반을 누르면 «학생 기록» 탭을 그 반으로 연다. 반 이름은 시간표 앱 표기('2-1'·'201'·'2학년 1반')를 모두 받는다. */
+function tdParseClass_(cls){
+  const m = /^\s*(\d)\s*(?:학년)?\s*[-_\s]*(\d{1,2})\s*반?\s*$/.exec(String(cls || ''));
+  return m ? { grade: m[1], ban: String(Number(m[2])) } : null;
+}
+function tdGoRecords_(cls){
+  const p = tdParseClass_(cls);
+  const selG = $('selGrade'), selB = $('selBan');
+  if(p && selG && [...selG.options].some(o => o.value === p.grade)){
+    selG.value = p.grade; selG.dispatchEvent(new Event('change'));   // 반 목록이 학년에 따라 다시 만들어진다
+    if([...selB.options].some(o => o.value === p.ban)){ selB.value = p.ban; selB.dispatchEvent(new Event('change')); }
+    else{   // 기록 없는 반이면 전체 반 — 말없이 바뀌지 않게 알린다
+      if(selB.value !== ''){ selB.value = ''; selB.dispatchEvent(new Event('change')); }
+      if(typeof showToast === 'function') showToast(`${cls} 기록이 아직 없어 ${p.grade}학년 전체 반을 보여요`);
+    }
+  }
+  switchDashTab('records');
+}
+
+/* v135 — 시간표 앱에서 ?dash=탭[&cls=반]으로 들어옴. initPortal 끝에서 부른다. 저장된 토큰이 있으면 바로 들어가고(true), 없으면 게이트만 열어 둔다(false). */
+function tdDeepLink_(){
+  if(!TD_DEEP) return false;
+  const saved = store.get('dash_token_saved');
+  const openGate = () => { $('teacherGate').style.display = 'block'; $('tokenInput').focus(); };
+  if(saved){
+    $('tokenInput').value = saved; $('tokenRemember').checked = true;
+    // 저장 토큰이 낡았으면 enterDash 가 조용히 실패한다(오류 글은 게이트 안) — 그때는 게이트를 열어 오류와 입력칸이 보이게 (검토 2026-11-02)
+    enterDash(saved).then(() => { if($('dashView').style.display !== 'block') openGate(); });
+    return true;
+  }
+  openGate();
+  return false;
+}
+/* enterDash 성공 끝에서 부른다 — 요청한 탭(반)으로 */
+function tdAfterEnter_(){
+  if(!TD_DEEP) return;
+  const { tab, cls } = TD_DEEP; TD_DEEP = null;
+  const known = [...document.querySelectorAll('.dash-tab')].map(b => b.dataset.tab);
+  if(tab === 'records' && cls) tdGoRecords_(cls);
+  else if(known.includes(tab)) switchDashTab(tab);
+}
+/* 대시보드 탭이 바뀔 때 주소를 맞춘다(switchDashTab 끝에서). 대시보드가 안 보일 때(초기 탭 세팅)는 건드리지 않는다. */
+function tdSyncUrl_(tab){
+  if($('dashView')?.style.display !== 'block') return;
+  try{ history.replaceState(null, '', location.pathname + '?dash=' + encodeURIComponent(tab)); }catch(e){}
+}
+function tdClearUrl_(){ try{ history.replaceState(null, '', location.pathname); }catch(e){} }
 
 function tdRenderTasks_(){
   const el = $('tdTasks');
@@ -187,7 +261,7 @@ function tdRenderTasks_(){
   if(!c.overdue.length && !c.today.length) html = '<p class="dash-hint">오늘 할 일이 없어요.</p>' + html;
   if(doneToday.length) html += `<h3 class="td-sub">오늘 끝낸 일 <small>${doneToday.length}</small></h3><ul class="td-list">${doneToday.map(t => tdTaskItem_(t, true)).join('')}</ul>`;
   const later = c.week.length;
-  if(later) html += `<p class="dash-hint">이번 주에 ${later}개가 더 있어요 — 할 일 탭에서 보기.</p>`;
+  if(later) html += `<p class="dash-hint">이번 주에 ${later}개가 더 있어요 — <button type="button" class="td-textbtn" onclick="tdOpenTimetable_('tasks')">할 일 탭에서 보기 ↗</button></p>`; // v135 — 글자였던 것을 눌리게
   el.innerHTML = html;
 }
 
@@ -226,8 +300,14 @@ async function tdToggleTask_(id, undo){
   }finally{ TD.busy.delete(id); tdRenderTasks_(); }
 }
 
-function tdOpenTimetable_(tasks){
-  window.open(TD_TT_BASE + (tasks ? '?tab=tasks' : ''), 'timetableApp');
+/* v135 — tab: 'today'|'weekly'|'progress'|'subject'|'tasks'|'settings'|''(앱 기본), params: { task: ID } | { add: 글 } (시간표 앱 «시작 주소 규칙») */
+function tdOpenTimetable_(tab, params){
+  if(tab === true) tab = 'tasks'; else if(!tab || tab === false) tab = '';   // v134 호출(true/false) 호환
+  const q = new URLSearchParams();
+  if(tab) q.set('tab', tab);
+  Object.entries(params || {}).forEach(([k, v]) => { if(v != null && v !== '') q.set(k, v); });
+  const s = q.toString();
+  window.open(TD_TT_BASE + (s ? '?' + s : ''), 'timetableApp');
 }
 
 // 움직임: 카드가 보이는 순간 한 장씩 떠오름(Scroll-triggered). prefers-reduced-motion이면 CSS가 끈다.
