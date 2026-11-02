@@ -146,6 +146,12 @@ v124: 그 학년 시험기간(`config.js EXAM_PERIOD`, `treeExamActive_()` 재�
 ## 수행평가 카드 «기말고사 목표 점수» (v124)
 `openPerfScore()` 결과 아래 `perfTargetHtml_()`(04). `config.js GRADE_TARGET[학년]`(perfWeight·examWeight·examMax·cuts)이 있는 학년만 보인다. 수행 반영 = Σscore/Σmax×perfWeight, 필요한 기말 점수 = (등급 하한 − 수행 반영)×examMax/examWeight를 0.1점 올림. 학기마다 비율·만점이 바뀌면 이 설정만 고친다.
 
+## 학기말 성적·개별 피드백 (v136)
+`openPerfScore()`가 받은 `exams`가 있으면 `perfSemesterHtml_()`(04)가 카드 맨 위에 학기말 합계·성취도·단원별 기말 점수 막대·«선생님이 보내는 공부 길잡이»를 그린다.
+합계 = 수행 Σscore/Σmax×perfWeight + 지필 score/max×examWeight(각각 소수 둘째 자리 반올림 뒤 합), 성취도는 `GRADE_TARGET.cuts`(모자라면 `lowest`)를 반올림 전 합계로.
+대시보드 성적관리 탭 «학기말 성적»(`dashRenderSemAdmin_`, 07)이 같은 계산으로 반별 표를 보여 주고 `setExamScoreShow`로 학생 공개를 켜고 끈다(공개 전엔 학생에게 `exams`가 빈 배열).
+피드백은 `«💪 잘한 점: …»`처럼 «이모지 머리말: 본문» 줄들 — 머리말만 굵게. 데이터 만들기·올리기는 백엔드 docs/features.md.
+
 ## 체크인 대시보드 «오늘 한눈에» (v110·v111)
 교사 «체크인 → 오늘·현황» 맨 위. 반마다 카드 한 장(`dashRenderCkSummaryTable_()`): 오늘 차시 칩(수업=초록 `.is-lesson`, 기본 감정=회색 `.is-default` — 클래스를 `lesson`/`default`로 쓰면 타임라인 `.lesson::before` 동그라미가 붙는다), 출처(전체 설정/반별 지정), 응답 n/총원 + 막대, 연속 저온도 버튼, «바꾸기».
 - **응답 수·저온도는 `CK_ROWS`**(학년→오늘 응답, 학생당 최신 1건)에서 읽는다. `dashLoadCheckinAdmin()`이 `checkinAdmin` 결과를 반 필터 전에 담고 요약을 다시 그린다(`CK_SUM_SEQ`로 늦게 끝난 옛 렌더 버림). v112부터 `BAN_SIZE`에 총원이 있는 담당 반만 카드·알림·팝업·응답 상세에 나온다 (응답이 있어도 다른 선생님 반은 뺀다). 반 카드의 차시는 v118부터 백엔드 v102 `mode=checkinSettingsAdmin` 한 번으로 읽고(`ckLoadSettings_`), 재배포 전이면 3초 뒤 옛 방식(`checkinToday` 반별)으로 폴백한다. 오늘 응답은 `checkinAdmin`을 학년 없이 한 번 받아 나눈다(`ckAdminFetch_`).
