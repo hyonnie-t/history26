@@ -4,6 +4,16 @@
  * 점수 행이 없으면(아직 안 올림·글 없는 번호) 안내만 보여 준다.
  * ════════════════════════════════════════════════════════ */
 let PERF_ITEMS = [];
+/* v139 — 카드 안내 문구. 학기말 성적(성취도·공부 길잡이)은 GRADE_TARGET이 있는 학년만 계산하므로 그 학년에만 약속한다.
+ * 점수를 불러와 지필 성적이 내려왔으면(공개됨) «나오면»이 아니라 «볼 수 있어요»로 바꾼다. */
+function perfDescUpdate_(published){
+  const el = $('perfDesc');
+  if(!el) return;
+  const base = '지금까지 쓴 글로 매긴 점수예요.';
+  const hasSem = !!(CONFIG.GRADE_TARGET && SESSION && CONFIG.GRADE_TARGET[SESSION.grade]);
+  el.textContent = !hasSem ? base
+    : base + (published ? ' 학기말 성적과 성취도, 공부 길잡이도 여기서 볼 수 있어요.' : ' 학기말 성적이 나오면 성취도와 공부 길잡이도 여기서 볼 수 있어요.');
+}
 let PERF_EXAMS = []; // v136 — 지필평가 점수·단원별 점수·개별 피드백(교사가 올리고 공개했을 때만 내려온다)
 async function openPerfScore(){
   const body = $('perfBody'), btn = $('perfOpenBtn');
@@ -21,6 +31,7 @@ async function openPerfScore(){
     if(data.result !== 'success') throw new Error(data.message || '조회에 실패했어요.');
     PERF_ITEMS = data.items || [];
     PERF_EXAMS = data.exams || [];
+    perfDescUpdate_(PERF_EXAMS.length > 0); // v139
     renderPerfScore_();
     $('perfIntro').style.display = 'none';
   }catch(e){

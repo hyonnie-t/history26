@@ -161,7 +161,7 @@
           <span class="ref-ico ref-ico-seal" aria-hidden="true">📝</span>
           <div class="ref-text">
             <p class="pf-label">수행평가 점수 확인하기</p>
-            <p class="pf-desc">지금까지 쓴 글로 매긴 점수예요. 학기말 성적이 나오면 성취도와 공부 길잡이도 여기서 볼 수 있어요.</p> <!-- v136 -->
+            <p class="pf-desc" id="perfDesc">지금까지 쓴 글로 매긴 점수예요.</p> <!-- v139: 학년·공개 상태에 따라 perfDescUpdate_()가 문구를 채운다 -->
           </div>
           <div id="perfIntro">
             <button class="btn-go" id="perfOpenBtn" onclick="openPerfScore()">점수 보기 →</button>
@@ -1084,9 +1084,9 @@
 <script src="checkin_data.js?v=128"></script>
 <script src="tree.js"></script>
 <script src="js/01-core-login.js?v=104"></script>
-<script src="js/02-checkin-portal.js?v=128"></script>
+<script src="js/02-checkin-portal.js?v=139"></script>
 <script src="js/03-grade-lookup.js?v=104"></script>
-<script src="js/04-perf-score.js?v=136"></script>
+<script src="js/04-perf-score.js?v=139"></script>
 <script src="js/05-badges-events.js?v=104"></script>
 <script src="js/06-dashboard.js?v=135"></script>
 <!-- v126 — 교사 질문함 아이콘(Lucian Icons v2.0.13, MIT, 로컬 사본 — 학교망 외부 로드 미확인이라 CDN 안 씀) -->
