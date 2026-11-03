@@ -2422,3 +2422,23 @@ body.perf-modal-open{overflow:hidden;}
 #dashView .td-edit:hover{opacity:1;}
 #dashView .td-textbtn{font:inherit; font-size:inherit; font-weight:600; color:var(--indigo); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
 #dashView .td-textbtn:hover{text-decoration-style:solid;}
+
+/* v142 — 대시보드 «🏺 문화사 팀» 탭(js/09-dash-culture.js). 팀색은 culture-dig 앱과 같은 값. */
+#dashView .ct-top{display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center; margin:0 0 var(--space-md);}
+#dashView .ct-nums{display:block; width:100%; box-sizing:border-box; margin-top:var(--space-xs); min-height:var(--tap-min); padding:0 var(--space-sm); border:1px solid var(--line); border-radius:var(--radius-sm); font-size:var(--fs-base);}
+#dashView [data-team="붓"]{--tc:#7a5a9c;} #dashView [data-team="곡괭이"]{--tc:#8a5a35;} #dashView [data-team="돋보기"]{--tc:#2f7a6a;} #dashView [data-team="나침반"]{--tc:#b8402e;}
+#dashView .ct-board{display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm); margin:var(--space-sm) 0;}
+@media (min-width:1000px){ #dashView .ct-board{grid-template-columns:repeat(4,1fr);} }
+#dashView .ct-col{border:3px solid var(--tc); border-radius:var(--radius-sm); background:var(--card); overflow:hidden;}
+#dashView .ct-head{background:var(--tc); color:#fff; font-size:var(--fs-xl); font-weight:700; padding:var(--space-xs) var(--space-sm);}
+#dashView .ct-head small{font-size:var(--fs-sm); font-weight:400;}
+#dashView .ct-nos{display:flex; flex-wrap:wrap; gap:6px; padding:var(--space-sm);}
+#dashView .ct-nos span{font-size:var(--fs-xl); font-weight:700; min-width:2.4em; text-align:center; background:var(--paper); border-radius:var(--radius-xs);}
+#dashView .ct-ab-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:4px 0;}
+#dashView .ct-ab-team{min-width:5.5em; font-weight:700;}
+#dashView .ct-ab{min-width:var(--tap-min);}
+#dashView .ct-ab.none{border-style:dashed;}
+#dashView .ct-ab.off{background:var(--line); color:var(--ink-soft); text-decoration:line-through;}
+#dashView .ct-table{width:100%; border-collapse:collapse; margin:var(--space-sm) 0; font-size:var(--fs-base);}
+#dashView .ct-table th, #dashView .ct-table td{border-bottom:1px solid var(--line); padding:6px; text-align:center;}
+#dashView .ct-table th{background:var(--paper);}
