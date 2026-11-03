@@ -369,6 +369,7 @@ function filterLessonsForBan(cur, ban){
 
 /* ── 포털 렌더 ── */
 function renderPortal(){
+  if(typeof perfDescUpdate_ === 'function') perfDescUpdate_(); // v139 — 수행평가 카드 안내 문구(학년별)
   const cur = CONFIG.CURRICULUM[SESSION.grade];
   const lessons = filterLessonsForBan(cur, SESSION.ban); // v28: 담당 트랙 필터링된 차시 목록
   $('loginView').style.display = 'none';
