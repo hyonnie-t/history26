@@ -23,6 +23,7 @@ paths:
   | `js/05-badges-events.js` | 칭호첩, 로그인 화면 이벤트 바인딩, 비밀번호 변경·초기화 요청, 자동 재조회, 대시보드→실제 학생 화면 보기 |
   | `js/06-dashboard.js` | 교사 대시보드(탭·공지·커리큘럼·웰컴 체크인·문항·이미지 업로드·질문함·메시지·AI 의심·학급 피드백·발표 포인트·re_judge·성적 업로드) |
   | `js/08-dash-today.js` | (v134) 대시보드 «📅 오늘» 탭 — 시간표 앱 모듈 동적 import(탭을 열 때만). (v135) `?dash=` 딥링크·주소 동기화·시간표 앱으로 가는 링크(`tdOpenTimetable_`·`tdQuickAdd_`·`tdGoRecords_`) |
+  | `js/09-dash-culture.js` | (v142) 대시보드 «🏺 문화사 팀» 탭 — 3학년 문화사(culture-dig) 팀 뽑기·결산. 로드 시점 코드 없음(선언만). 탭을 열 때 culture-dig `logic.js`를 script로 불러 `Logic.drawTeams/teamResults/parseNumbers`를 쓴다. 백엔드 `cultureTeamsSave`·`mode=cultureTeams` |
   | `js/07-dash-admin-boot.js` | 학생 계정(v83), 성적 열람 상태, 수행평가 현황, 고민리스트 보너스, AI 검토·중복 삭제·AI 코멘트 관리, 학생 화면 미리보기, 초기 부팅 |
 - **파일 경계 규칙**: 함수 선언 호이스팅은 파일을 넘지 않는다. 앞 파일의 로드 시점 코드(최상위 문·IIFE·`forEach` 같은 동기 콜백, 그때 불리는 함수 본문까지)가 뒤 파일 선언을
   부르면 ReferenceError. 코드를 다른 파일로 옮기거나 새 파일을 끼울 땐 이 조건을 다시 확인한다(v104 분리 때 AST로 0건 확인).

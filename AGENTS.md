@@ -32,7 +32,7 @@ UI 텍스트·주석·커밋 메시지는 한국어.
     FormData·URLSearchParams 본문이나 `studentId` 없는 GET은 세션이 안 붙어 로그인 필수(LOGIN_REQUIRED)를 켜면 막힌다. 상세 `docs/features.md` "학생 로그인 비밀번호".
 
 ## 작업 습관
-- **포털 JS는 `js/` 7개 파일 + v134 `js/08-dash-today.js`(대시보드 «📅 오늘» 탭, 시간표 앱 연결)**(v104에서 `index.html` 인라인 `<script>`를 그대로 꺼냄, 합쳐 6천 줄·390KB). 가장 큰 `js/06-dashboard.js`(2.7천 줄)는 통째로 Read 금지 —
+- **포털 JS는 `js/` 7개 파일 + v134 `js/08-dash-today.js`(대시보드 «📅 오늘» 탭, 시간표 앱 연결) + v142 `js/09-dash-culture.js`(«🏺 문화사 팀» 탭)**(v104에서 `index.html` 인라인 `<script>`를 그대로 꺼냄, 합쳐 6천 줄·390KB). 가장 큰 `js/06-dashboard.js`(2.7천 줄)는 통째로 Read 금지 —
   `grep -n "^function 이름\|/\* ──" js/*.js`로 파일·위치를 찾고 범위만 Read. 파일 순서 = 실행 순서(`index.html` 맨 아래 `<script src>` 순). 파일별 내용 표는 `.claude/rules/index-html.md`.
   `js/*.js`를 고치면 `index.html`의 그 `<script src="...?v=NN">` 번호를 올린다(`style.css?v=`와 같은 캐시 키).
   문서에 줄번호를 적지 말고 함수·id 이름만 쓴다(편집마다 밀림).

@@ -6,6 +6,8 @@
  *    → 순위 포인트 40/30/20/10(동점 같은 포인트) + 전원 제출 +5·전원 탈출 +5. 결석 번호는 차시별로 시트에 같이 저장.
  *  - 계산 함수는 culture-dig `logic.js`(drawTeams·teamResults·parseNumbers)를 탭을 열 때 불러 쓴다(테스트가 거기 있어서 단일 출처).
  *    TEAMS·SCORING은 culture-dig data.js와 같은 값을 여기 둔다(data.js는 전역 상수가 많아 대시보드에 못 싣는다) — 한쪽을 바꾸면 둘 다.
+ *  - 저장은 반 단위 통째(백엔드 v142b: 이미 저장된 반은 overwrite:true). 확정·결석 토글 직전에 시트의 최신 명단을 다시 읽어
+ *    다른 PC에서 바꾼 것을 덮지 않게 하고, 저장 중에는 버튼을 잠근다(연타로 앞 클릭이 사라지지 않게).
  * ══════════════════════════════════════════════════════ */
 const CT_LOGIC_URL = 'https://hyonnie-t.github.io/culture-dig/logic.js?v=20261103e';
 const CT_GAME = { quiz: '문화사_팀테스트', dig: '문화사_유물발굴', escape: '문화사_박물관방탈출' };
@@ -13,7 +15,8 @@ const CT_TEAMS = [
   { id: '붓', emoji: '🖌️' }, { id: '곡괭이', emoji: '⛏️' }, { id: '돋보기', emoji: '🔍' }, { id: '나침반', emoji: '🧭' }
 ];
 const CT_SCORING = { RANK_POINTS: [40, 30, 20, 10], BONUS_ALL_SUBMIT: 5, BONUS_ALL_ESCAPE: 5 };
-const CT = { ban: '', saved: null, draft: null, logic: null, err: '', busy: false };
+const CT = { ban: '', saved: null, draft: null, logic: null, err: '', busy: false, nums: {} };
+const CT_MAX_NUM = 50; // 백엔드 CULTURE_TEAM_MAX_NUM과 같게
 
 function ctEsc_(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function ctBans_(){ return Object.keys(CONFIG.BAN_NUMS || {}).filter(k => k.startsWith('3-')).map(k => k.slice(2)); }
@@ -65,7 +68,9 @@ function ctSavedBan_(){
 function ctLoadLogic_(){
   if(window.Logic && window.Logic.drawTeams) return Promise.resolve(window.Logic);
   return new Promise((res, rej) => {
+    document.querySelectorAll('script[data-ct-logic]').forEach(x => x.remove()); // 실패한 옛 태그가 쌓이지 않게
     const s = document.createElement('script');
+    s.dataset.ctLogic = '1';
     s.src = CT_LOGIC_URL;
     s.onload = () => (window.Logic && window.Logic.drawTeams) ? res(window.Logic) : rej(new Error('계산 파일이 이상해요'));
     s.onerror = () => rej(new Error('culture-dig 계산 파일을 못 불러왔어요(인터넷 확인)'));
@@ -75,7 +80,8 @@ function ctLoadLogic_(){
 async function ctLoadSaved_(){
   const r = await fetchJsonRetry_(CONFIG.WEBAPP_URL + '?mode=cultureTeams&token=' + encodeURIComponent(TOKEN));
   if(r.result !== 'success') throw new Error(r.message || '팀 명단을 못 불러왔어요');
-  CT.saved = r.teams || {};
+  if(!r.teams || typeof r.teams !== 'object') throw new Error('백엔드에 문화사 팀 기능이 아직 없어요'); // 재배포 전 옛 백엔드는 이 mode를 모르고 기록 목록을 돌려준다
+  CT.saved = r.teams;
 }
 
 /* switchDashTab('culture')에서 부른다 */
@@ -91,17 +97,20 @@ async function dashCultureOpen_(){
 }
 async function ctRefresh_(){
   CT.busy = true; ctRender_();
-  try { await dashLoadData(); await ctLoadSaved_(); CT.err = ''; } catch(e){ CT.err = e.message; }
+  try {
+    if(!CT.logic) CT.logic = await ctLoadLogic_(); // 처음에 못 불러왔으면 다시 시도
+    await dashLoadData(); await ctLoadSaved_(); CT.err = '';
+  } catch(e){ CT.err = e.message; }
   CT.busy = false; ctRender_();
 }
 
-async function ctSave_(teams, absent, msg){
+async function ctSave_(teams, absent, msg, overwrite){
   if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return false; }
   CT.busy = true; ctRender_();
   try {
-    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify({ action: 'cultureTeamsSave', token: TOKEN, grade: '3', ban: Number(CT.ban), teams, absent }) });
+    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify({ action: 'cultureTeamsSave', token: TOKEN, grade: '3', ban: Number(CT.ban), teams, absent, overwrite: !!overwrite }) });
     const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || '저장 실패');
+    if(j.result !== 'success'){ if(j.already) await ctLoadSaved_(); throw new Error(j.message || '저장 실패'); }
     await ctLoadSaved_();
     if(msg) showToast(msg);
     return true;
@@ -111,24 +120,32 @@ async function ctSave_(teams, absent, msg){
 
 function ctDraw_(){
   if(!CT.logic) return;
-  const nos = CT.logic.parseNumbers($('ctNums').value);
+  const all = CT.logic.parseNumbers($('ctNums').value);
+  const nos = all.filter(n => n <= CT_MAX_NUM);
+  if(nos.length < all.length) showToast(CT_MAX_NUM + '번 넘는 번호는 뺐어요.');
   if(!nos.length){ showToast('번호를 넣어 주세요(예: 1-13, 21-34).'); return; }
   CT.draft = CT.logic.drawTeams(nos, ctPrefs_(), CT_TEAMS, CT.ban + ':' + Date.now());
   CT.draft.nums = $('ctNums').value;
   ctRender_();
 }
 async function ctConfirm_(){
-  if(!CT.draft) return;
+  if(!CT.draft || CT.busy) return;
+  try { await ctLoadSaved_(); } catch(e){ showToast(e.message); return; } // 다른 PC에서 그새 확정했는지 다시 본다
   const had = Object.keys(ctSavedBan_().teams).length;
   if(had && !confirm('3학년 ' + CT.ban + '반은 이미 확정한 팀이 있어요. 새로 뽑은 팀으로 바꿀까요? (결석 표시는 지워져요)')) return;
-  if(await ctSave_(CT.draft.assign, { dig: [], escape: [] }, CT.ban + '반 팀을 확정했어요. 칠판에 띄워 주세요.')) CT.draft = null;
+  if(await ctSave_(CT.draft.assign, { dig: [], escape: [] }, CT.ban + '반 팀을 확정했어요. 칠판에 띄워 주세요.', had > 0)) CT.draft = null;
 }
 async function ctToggleAbsent_(kind, no){
+  if(CT.busy) return;
+  CT.busy = true; ctRender_();
+  try { await ctLoadSaved_(); } catch(e){ CT.busy = false; ctRender_(); showToast(e.message); return; } // 다른 PC가 바꾼 결석을 덮지 않게
+  CT.busy = false;
   const cur = ctSavedBan_();
+  if(!cur.teams[no]) { ctRender_(); return; }
   const list = cur.absent[kind];
   const i = list.indexOf(no);
   if(i >= 0) list.splice(i, 1); else list.push(no);
-  await ctSave_(cur.teams, cur.absent);
+  await ctSave_(cur.teams, cur.absent, '', true);
 }
 
 function ctBoardHtml_(assign, stats){
@@ -143,7 +160,7 @@ function ctResultHtml_(kind, saved){
   const stray = Object.keys(rows).filter(no => !saved.teams[no]);
   const chips = CT_TEAMS.map(t => `<div class="ct-ab-row"><span class="ct-ab-team">${t.emoji} ${ctEsc_(t.id)}</span>` +
     Object.keys(saved.teams).map(Number).sort((a, b) => a - b).filter(no => saved.teams[no] === t.id)
-      .map(no => `<button type="button" class="btn btn-sm ct-ab${saved.absent[kind].includes(no) ? ' off' : ''}${rows[no] ? '' : ' none'}" onclick="ctToggleAbsent_('${kind}', ${no})" title="${rows[no] ? '제출 ' + rows[no].score + '점' : '미제출'}">${no}</button>`).join('') + '</div>').join('');
+      .map(no => `<button type="button" class="btn btn-sm ct-ab${saved.absent[kind].includes(no) ? ' off' : ''}${rows[no] ? '' : ' none'}"${CT.busy ? ' disabled' : ''} onclick="ctToggleAbsent_('${kind}', ${no})" title="${rows[no] ? '제출 ' + rows[no].score + '점' : '미제출'}">${no}</button>`).join('') + '</div>').join('');
   const sorted = CT_TEAMS.slice().sort((a, b) => res[a.id].rank - res[b.id].rank);
   const table = `<table class="ct-table"><thead><tr><th>순위</th><th>팀</th><th>출석</th><th>제출</th>${kind === 'escape' ? '<th>탈출</th>' : ''}<th>평균</th><th>순위 포인트</th><th>보너스</th><th>합계</th></tr></thead><tbody>` +
     sorted.map(t => { const r = res[t.id]; return `<tr><td>${r.rank}위</td><td>${t.emoji} ${ctEsc_(t.id)}</td><td>${r.present}</td><td>${r.submitted}</td>${kind === 'escape' ? `<td>${r.escaped}</td>` : ''}<td><b>${r.avg}</b></td><td>${r.points}</td><td>${r.bonus ? '+' + r.bonus : 0}</td><td><b>${r.total}</b></td></tr>`; }).join('') + '</tbody></table>';
@@ -175,10 +192,10 @@ function ctRender_(){
   const saved = ctSavedBan_();
   const hasSaved = Object.keys(saved.teams).length > 0;
   const prefs = ctPrefs_();
-  const numsText = CT.draft ? CT.draft.nums : ((CONFIG.BAN_NUMS || {})['3-' + CT.ban] || '');
+  const numsText = CT.draft ? CT.draft.nums : (CT.nums[CT.ban] != null ? CT.nums[CT.ban] : ((CONFIG.BAN_NUMS || {})['3-' + CT.ban] || ''));
   let draw = `<section class="dash-card"><h2 class="dash-card-title">① 팀 뽑기 — 3학년 ${CT.ban}반</h2>
     <p class="dash-card-desc">성향 테스트를 낸 학생 <b>${Object.keys(prefs).length}명</b>. «뽑기»는 팀 인원 차이를 1명 이하로 맞추고 그 안에서 1지망을 가장 많이 살려요(테스트 안 낸 학생은 빈자리에 랜덤). 마음에 들면 «확정» → 칠판에 띄우면 학생이 앱에서 자기 팀을 눌러요.</p>
-    <label class="dash-hint">번호 (config.js BAN_NUMS — 전출·전입이 있으면 여기서 고쳐 뽑기)<input id="ctNums" class="ct-nums" value="${ctEsc_(numsText)}"></label>
+    <label class="dash-hint">번호 (config.js BAN_NUMS — 전출·전입이 있으면 여기서 고쳐 뽑기)<input id="ctNums" class="ct-nums" value="${ctEsc_(numsText)}" oninput="CT.nums[CT.ban]=this.value"></label>
     <div class="ct-top"><button type="button" class="btn btn-sm" onclick="ctDraw_()"${CT.busy ? ' disabled' : ''}>🎲 ${CT.draft ? '다시 뽑기' : '뽑기'}</button>${CT.draft ? `<button type="button" class="btn btn-sm" onclick="ctConfirm_()"${CT.busy ? ' disabled' : ''}>✅ 이 팀으로 확정</button><button type="button" class="btn btn-sm btn-ghost" onclick="CT.draft=null;ctRender_()">취소</button>` : ''}</div>`;
   if(CT.draft) draw += `<p class="dash-hint"><b>뽑은 결과(아직 저장 안 됨)</b></p>` + ctBoardHtml_(CT.draft.assign, CT.draft.withPref ? `테스트 낸 ${CT.draft.withPref}명 중 1지망 ${CT.draft.first}명 · 2지망 ${CT.draft.second}명` : '성향 테스트 결과 없이 랜덤');
   else if(hasSaved) draw += `<p class="dash-hint"><b>확정한 팀</b> (칠판용)</p>` + ctBoardHtml_(saved.teams);

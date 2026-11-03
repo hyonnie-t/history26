@@ -299,3 +299,9 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 - **교사 질문함**: v123에서 학생별 묶음으로 바뀌었다 — `dashQuestionGroups_()`가 질문(`QUESTIONS`)과 개인 메시지(`MESSAGES`)를 학번으로 모아 `<details class="dq-student">` 한 장에 시간순으로 그린다(시트는 그대로 둘). 대기 = 답 안 한 질문 + 마지막 메시지가 학생 것. 펼침은 학번별 `DQ_OPEN_STATE`, «답변 수정» 접기는 행 번호별 `DQ_EDIT_OPEN`. (v105의 `.dq-item`·`.dq-done`·`DQ_DONE_OPEN`은 없어졌다.)
 - **탐구포인트 «최근 지급 5건»**: 백엔드가 지급을 `gameName='발표_<유형>'`(유형 없음은 `발표_기타`), 11열 수준(`성취수준`), 22열 점수(`탐구포인트(발표)`), `choiceSummary`=사유 행으로 쓴다(`grantPresentationPointPost_`). `mode=` 교사 기본 GET의 `ROWS`에서 그대로 읽으므로 새 요청이 없다. `switchDashTab('points')`가 매번 다시 그린다.
 - **성적관리**: `dashLoadPerfStatus_()`가 표 앞에 `.perf-bansum` 칩(응답함/학생 수)을 붙인다. 응답 = `r.response`가 비지 않음(재확인 대기 포함).
+
+## 문화사 팀 탭 (v142)
+- 대시보드 «🏺 문화사 팀»(`js/09-dash-culture.js`) — 3학년 문화사 웹앱 `culture-dig`(유물 발굴·박물관 방탈출)의 팀 뽑기·결산. 수능 던전 기숙사와 별개 팀(붓·곡괭이·돋보기·나침반 발굴단).
+- ① 팀 뽑기: 반 번호는 `config.js` `BAN_NUMS`(화면에서 고칠 수 있음, 50번까지), 지망은 `ROWS`의 `문화사_팀테스트` 기록 `choicesJson.ranking`. culture-dig `logic.js`의 `drawTeams`(인원 차이 ≤1, 1지망 수 최우선). «확정»하면 백엔드 `cultureTeamsSave`(시트 `문화사팀`, 이미 저장된 반은 확인 창 뒤 `overwrite:true`).
+- ② 결산: `ROWS`의 `문화사_유물발굴`·`문화사_박물관방탈출` 학생별 마지막 제출 `choicesJson.score.score`(방탈출은 `escaped`도) → `teamResults`(평균 분모 = 출석자 전원, 미제출 0점) → 순위 포인트 40/30/20/10 + 전원 제출·전원 탈출 +5. 결석 번호 칩을 누르면 시트에 저장(누르기 직전에 최신 명단을 다시 읽음, 저장 중엔 잠김).
+- 백엔드 재배포 전(옛 백엔드)에는 «백엔드에 문화사 팀 기능이 아직 없어요»가 뜬다. 계산 파일(`logic.js`)을 못 불러오면 «새로고침»이 다시 시도한다.
