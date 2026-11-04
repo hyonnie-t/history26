@@ -26,6 +26,9 @@ let openDetailSid = null;
 // 확인용). grantPresentationPoint 응답이 새로 만든 행 정보를 안 돌려주므로
 // 서버 재조회 없이 클라이언트에서만 관리.
 let PP_RECENT = [];
+let PP_FILTER_SID = ''; // v144 — 빠른 지급 탭에서 고른 학생. 있으면 최근 지급 대신 그 학생의 지급 내역 전부를 보여 준다
+let PP_SHOWN = [];      // v144 — 지금 그려진 지급 목록(수정 버튼이 번호로 가리킨다)
+let PP_EDIT_ROW = 0;    // v144 — 수정 폼을 펼친 행 번호
 
 /* v105 — <details data-fold="이름"> 접힘 상태를 localStorage(dash_fold_이름)에 기억. 기본은 접힘.
  * 내용이 renderDash 등으로 다시 그려져도 같은 키로 복원되고, 리스너는 요소마다 한 번만 단다. */
@@ -2895,8 +2898,10 @@ async function dashGrantPresentationPoint(btn){
     const grantedPoints = data.points || 6;
     showToast(`${name} 학생에게 ${thinkingType ? thinkingType + ' ' : ''}탐구포인트 +${grantedPoints}점을 지급했어요.`);
     // v33 — "방금 지급함" 목록에 추가(세션 메모리만, 새로고침하면 비워짐).
-    PP_RECENT.unshift({ sid, name, thinkingType, level: data.level || level, points: grantedPoints, timestamp: new Date().toISOString() });
+    // v144 — row·gameName·reason: 방금 지급한 건도 바로 고칠 수 있게. row는 백엔드 v144부터 내려온다(없으면 수정 버튼을 안 띄움).
+    PP_RECENT.unshift({ sid, name, thinkingType, gameName: '발표_' + (thinkingType || '기타'), reason, row: Number(data.row) || 0, level: data.level || level, points: grantedPoints, timestamp: new Date().toISOString() });
     if(PP_RECENT.length > 20) PP_RECENT.length = 20;
+    if(inQuickTab) PP_FILTER_SID = '';
     ppRenderRecent_();
     if(inQuickTab){
       $('ppSelected').innerHTML = ''; // 다음 학생 검색으로 바로 이어가게 비움
@@ -2951,6 +2956,9 @@ function ppPickStudent_(sid, name){
       <button type="button" class="btn-tiny" onclick="ppClearSelected_()">다른 학생 검색</button>
     </div>
     ${dashPointBoxHtml_({ sid, name }, true)}`;
+  PP_FILTER_SID = String(sid); // v144 — 고른 학생의 지난 지급을 바로 고칠 수 있게
+  PP_EDIT_ROW = 0;
+  ppRenderRecent_();
   document.querySelectorAll('#ppSelected .pp-type-btn').forEach(btn => {
     btn.addEventListener('click', ev => { ev.stopPropagation(); dashPointTypeSelect(btn); });
   });
@@ -2963,6 +2971,9 @@ function ppPickStudent_(sid, name){
 }
 function ppClearSelected_(){
   $('ppSelected').innerHTML = '';
+  PP_FILTER_SID = ''; // v144
+  PP_EDIT_ROW = 0;
+  ppRenderRecent_();
 }
 /* v105 — 최근 지급 5건. 이미 불러온 ROWS 중 발표 지급 행(gameName이 '발표_'로 시작 — 백엔드 PRESENTATION_PREFIX)을 최신순으로 5건 보여 준다.
  * 이번 화면에서 방금 지급했지만 ROWS에는 아직 없는 건(PP_RECENT)도 합친다. 같은 학생·2분 이내 행이 ROWS에 있으면 같은 건으로 보고 한 번만 센다.
@@ -2970,27 +2981,90 @@ function ppClearSelected_(){
 function ppRecentGrants_(){
   const fromRows = ROWS.filter(r => String(r.gameName || '').indexOf('발표_') === 0).map(r => ({
     sid: String(r.studentId), name: String(r.studentName || ''),
+    row: Number(r._row) || 0, gameName: String(r.gameName), // v144 — 수정 action이 행 번호와 함께 보내 대조한다
     thinkingType: String(r.gameName).replace('발표_', '').replace('기타', ''),
     level: String(r['성취수준'] || '').trim(), points: Number(r['탐구포인트(발표)']) || 0,
     reason: String(r.choiceSummary || '').trim(), timestamp: r.timestamp
   }));
-  const fresh = PP_RECENT.filter(g => !fromRows.some(r => r.sid === String(g.sid)
-    && Math.abs((Date.parse(r.timestamp) || 0) - (Date.parse(g.timestamp) || 0)) < 120000));
-  return [...fromRows, ...fresh]
-    .sort((x, y) => (Date.parse(y.timestamp) || 0) - (Date.parse(x.timestamp) || 0)).slice(0, 5);
+  // v144 — 행 번호를 알면 그걸로 같은 건을 가린다(같은 학생에게 2분 안에 또 지급해도 안 합쳐지게).
+  const fresh = PP_RECENT.filter(g => !fromRows.some(r => g.row ? r.row === g.row : (r.sid === String(g.sid)
+    && Math.abs((Date.parse(r.timestamp) || 0) - (Date.parse(g.timestamp) || 0)) < 120000)));
+  const sorted = [...fromRows, ...fresh]
+    .sort((x, y) => (Date.parse(y.timestamp) || 0) - (Date.parse(x.timestamp) || 0));
+  return PP_FILTER_SID ? sorted.filter(g => String(g.sid) === PP_FILTER_SID) : sorted.slice(0, 5);
 }
 function ppRenderRecent_(){
   const el = $('ppRecent');
   if(!el) return;
   const list = ppRecentGrants_();
-  if(!list.length){ el.innerHTML = ''; return; }
-  el.innerHTML = `<p class="pp-recent-title">✅ 최근 지급 ${list.length}건</p>`
-    + list.map(g => `
+  PP_SHOWN = list;
+  if(!list.length){
+    el.innerHTML = PP_FILTER_SID ? '<p class="pp-recent-title">이 학생은 아직 지급 내역이 없어요.</p>' : '';
+    return;
+  }
+  el.innerHTML = `<p class="pp-recent-title">✅ ${PP_FILTER_SID ? escapeHtml(list[0].name) + ' 지급 내역' : '최근 지급'} ${list.length}건</p>`
+    + list.map((g, i) => `
       <div class="pp-recent-item">
         <span class="pp-recent-name">${escapeHtml(g.name)} <small>(${escapeHtml(g.sid)})</small></span>
         <span class="pp-recent-type">${g.thinkingType ? escapeHtml(g.thinkingType) : '유형 없음'} · ${escapeHtml(g.level || '중')}(+${g.points || 6}점)${g.reason ? ' · ' + escapeHtml(dashShorten(g.reason, 24)) : ''}</span>
         <span class="pp-recent-time">${formatDate(g.timestamp)}</span>
+        ${g.row ? `<button type="button" class="btn btn-sm btn-ghost pp-edit-open" onclick="ppEditOpen_(${i})">${PP_EDIT_ROW === g.row ? '닫기' : '수정'}</button>` : ''}
+        ${g.row && PP_EDIT_ROW === g.row ? ppEditFormHtml_(g, i) : ''}
       </div>`).join('');
+}
+/* v144 — 지급한 탐구포인트의 유형·수준(점수) 수정. 잘못 고른 걸 지우고 다시 주지 않아도 되게(효니 요청).
+ * 사유는 안 고친다 — 고민리스트 보너스가 사유로 중복 지급을 판별한다(AGENTS.md 절대 규칙 8).
+ * 학생 포인트·칭호는 서버가 행에서 매번 계산하므로 다음 조회 때 같이 바뀐다. '상'이 아니면 학습 칭호 집계에서 빠지는 것도 지급과 같다. */
+function ppEditFormHtml_(g, i){
+  const curLevel = g.level || '중';
+  const cur = PP_LEVELS.find(l => l.key === curLevel) || PP_LEVELS[1];
+  return `<div class="pp-edit-form">
+    <div class="pp-types">
+      ${PP_THINKING_TYPES.map(t => `<button type="button" class="pp-type-btn${t === g.thinkingType ? ' is-selected' : ''}" data-type="${t}" onclick="ppEditPick_(this)">${t}</button>`).join('')}
+      <button type="button" class="pp-type-btn pp-type-none${g.thinkingType ? '' : ' is-selected'}" data-type="" onclick="ppEditPick_(this)">유형 없음</button>
+    </div>
+    <div class="pp-levels">
+      ${PP_LEVELS.map(l => `<button type="button" class="pp-level-btn${l.key === cur.key ? ' is-selected' : ''}" data-level="${l.key}" data-points="${l.points}" onclick="ppEditPick_(this)">${l.key} (+${l.points})</button>`).join('')}
+    </div>
+    <button type="button" class="btn btn-sm pp-edit-save" onclick="ppEditSave_(this, ${i})">고치기 (+${cur.points}점)</button>
+  </div>`;
+}
+function ppEditOpen_(i){
+  const g = PP_SHOWN[i];
+  PP_EDIT_ROW = PP_EDIT_ROW === g.row ? 0 : g.row;
+  ppRenderRecent_();
+}
+function ppEditPick_(btn){
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('is-selected'));
+  btn.classList.add('is-selected');
+  if(btn.dataset.points) btn.closest('.pp-edit-form').querySelector('.pp-edit-save').textContent = `고치기 (+${btn.dataset.points}점)`;
+}
+async function ppEditSave_(btn, i){
+  if(PREVIEW_MODE){ showToast('미리보기에서는 고칠 수 없어요.'); return; }
+  const g = PP_SHOWN[i];
+  const form = btn.closest('.pp-edit-form');
+  const thinkingType = form.querySelector('.pp-type-btn.is-selected').dataset.type;
+  const level = form.querySelector('.pp-level-btn.is-selected').dataset.level;
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '고치는 중…';
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'updatePresentationPoint', token:TOKEN, row:g.row, studentId:g.sid, prevGameName:g.gameName, thinkingType, level })
+    });
+    const data = await res.json();
+    if(data.result !== 'success') throw new Error(data.message || '수정 실패');
+    const rec = ROWS.find(r => Number(r._row) === g.row);
+    if(rec){ rec.gameName = data.gameName; rec['성취수준'] = data.level; rec['탐구포인트(발표)'] = data.points; }
+    const fresh = PP_RECENT.find(p => p.row === g.row);
+    if(fresh){ fresh.gameName = data.gameName; fresh.thinkingType = thinkingType; fresh.level = data.level; fresh.points = data.points; }
+    PP_EDIT_ROW = 0;
+    ppRenderRecent_();
+    showToast(`${g.name} 학생 탐구포인트를 ${thinkingType || '유형 없음'} · ${data.level}(+${data.points}점)으로 고쳤어요.`);
+  }catch(e){
+    showToast('고치지 못했어요: ' + e.message);
+    btn.disabled = false; btn.textContent = label;
+  }
 }
 
 /* ── 역사법정 결과 re_judge 자동 등록 (2026-09-04 신규) ──

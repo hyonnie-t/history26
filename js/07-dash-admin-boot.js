@@ -973,6 +973,7 @@ async function dashDeleteActivityRow(ev, btn){
     const rowNum = Number(row);
     ROWS = ROWS.filter(r => String(r._row) !== String(row));
     ROWS.forEach(r => { if(Number(r._row) > rowNum) r._row = Number(r._row) - 1; });
+    PP_RECENT.forEach(g => { if(g.row > rowNum) g.row--; else if(g.row === rowNum) g.row = 0; }); // v144 — 방금 지급한 건의 행 번호도 같이
     showToast('기록을 삭제했어요.');
     renderDash();
   }catch(e){

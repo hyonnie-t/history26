@@ -297,7 +297,7 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 - **행 번호 action의 신원 동봉(v122)**: 삭제·AI 검토·AI 수정·의심 검토·답변·체크인 문항 삭제는 `row` 외에 학번·게임명(`dashRowIdent_`) 또는 차시id를 보낸다. 백엔드 v104의 `rowMatches_`가 거절하면 토스트에 서버 메시지("그 사이 기록이 바뀌어…")가 뜨므로 새로고침 뒤 다시 한다.
 - **접힘 기억**: `dashFoldInit_(el)` — `<details data-fold="이름">`을 localStorage `dash_fold_이름`('1'=펼침)에 맞추고 토글 때 저장한다. 기본 접힘. 다시 그려지는 박스(`#suspectBox`)는 그릴 때마다 호출한다. 새 접기 UI는 이 헬퍼를 쓴다.
 - **교사 질문함**: v123에서 학생별 묶음으로 바뀌었다 — `dashQuestionGroups_()`가 질문(`QUESTIONS`)과 개인 메시지(`MESSAGES`)를 학번으로 모아 `<details class="dq-student">` 한 장에 시간순으로 그린다(시트는 그대로 둘). 대기 = 답 안 한 질문 + 마지막 메시지가 학생 것. 펼침은 학번별 `DQ_OPEN_STATE`, «답변 수정» 접기는 행 번호별 `DQ_EDIT_OPEN`. (v105의 `.dq-item`·`.dq-done`·`DQ_DONE_OPEN`은 없어졌다.)
-- **탐구포인트 «최근 지급 5건»**: 백엔드가 지급을 `gameName='발표_<유형>'`(유형 없음은 `발표_기타`), 11열 수준(`성취수준`), 22열 점수(`탐구포인트(발표)`), `choiceSummary`=사유 행으로 쓴다(`grantPresentationPointPost_`). `mode=` 교사 기본 GET의 `ROWS`에서 그대로 읽으므로 새 요청이 없다. `switchDashTab('points')`가 매번 다시 그린다.
+- **탐구포인트 «최근 지급 5건»**: 백엔드가 지급을 `gameName='발표_<유형>'`(유형 없음은 `발표_기타`), 11열 수준(`성취수준`), 22열 점수(`탐구포인트(발표)`), `choiceSummary`=사유 행으로 쓴다(`grantPresentationPointPost_`). `mode=` 교사 기본 GET의 `ROWS`에서 그대로 읽으므로 새 요청이 없다. `switchDashTab('points')`가 매번 다시 그린다. (v144) 줄마다 «수정»으로 유형·수준(점수)을 고친다(`updatePresentationPoint`, 사유는 안 고침). 학생을 검색해 고르면 최근 5건 대신 그 학생의 지급 내역 전부가 보인다.
 - **성적관리**: `dashLoadPerfStatus_()`가 표 앞에 `.perf-bansum` 칩(응답함/학생 수)을 붙인다. 응답 = `r.response`가 비지 않음(재확인 대기 포함).
 
 ## 문화사 팀 탭 (v142)
