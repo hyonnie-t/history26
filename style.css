@@ -2476,3 +2476,17 @@ body.perf-modal-open{overflow:hidden;}
 #dashView .gr-board.big .gr-nos span{font-size:2.6rem; min-width:1.6em;}
 @keyframes grIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
 @media (prefers-reduced-motion:reduce){ #dashView .gr-col{animation:none;} }
+
+/* v146 — 모둠·팀 탭 위쪽 고르기(수업 모둠 / 문화사 발굴단) */
+#dashView .gr-seg{display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm); margin:0 0 var(--space-xs);}
+#dashView .gr-seg-btn{display:flex; flex-direction:column; gap:2px; align-items:flex-start; text-align:left; min-height:var(--tap-min); padding:var(--space-sm) var(--space-md); border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card); color:var(--ink); font-family:inherit; cursor:pointer; transition:background-color .15s, border-color .15s, color .15s;}
+#dashView .gr-seg-btn b{font-size:var(--fs-base);}
+#dashView .gr-seg-btn small{font-size:var(--fs-sm); color:var(--ink-soft);}
+#dashView .gr-seg-btn:hover{border-color:var(--indigo);}
+#dashView .gr-seg-btn.active{background:var(--indigo); border-color:var(--indigo); color:#fff;}
+#dashView .gr-seg-btn.active small{color:#fff; opacity:.85;}
+#dashView .gr-tools{margin:0 0 var(--space-md); font-size:var(--fs-sm); color:var(--ink-soft);}
+#dashView .gr-source{margin:var(--space-sm) 0; padding:var(--space-sm) var(--space-md); border-radius:var(--radius-sm); background:var(--paper); font-size:var(--fs-base);}
+#dashView .gr-source.ok{font-weight:700;}
+#dashView :is(.gr-paste-box,.gr-detail) > summary::before{content:'▶'; margin-right:6px; font-size:.75em;}
+#dashView :is(.gr-paste-box,.gr-detail)[open] > summary::before{content:'▼';}
