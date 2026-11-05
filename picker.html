@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=152">
+<link rel="stylesheet" href="style.css?v=155">
 <link rel="preload" as="image" href="images/cat/cat-down.jpg">
 <link rel="preload" as="image" href="images/cat/cat-cheer.jpg">
 </head>
@@ -76,7 +76,7 @@
       <span class="pk-cat-fx" id="pkCatFx">샥!</span>
     </div>
     <div class="pk-reels">
-      <span class="pk-reel" id="pkReel0">0</span><span class="pk-reel" id="pkReel1">0</span><span class="pk-unit">번</span>
+      <span class="pk-reel" id="pkReel0">0</span><span class="pk-reel" id="pkReel1">0</span><span class="pk-unit" id="pkUnit">번</span>
     </div>
     <p class="pk-hint" id="pkHint"></p>
     <p class="pk-result" id="pkResult"></p>
@@ -92,17 +92,21 @@
     <div class="pk-groups-head">
       <h2 class="gp-title" id="pkGroupsTitle"></h2>
       <span class="pk-groups-tools">
+        <!-- v155 — 모둠 뽑기. 번호 뽑기와 같은 무대·같은 난수, 기록은 이 컴퓨터에만 -->
+        <button type="button" class="btn btn-sm" id="pkGroupDrawBtn">🎲 모둠 뽑기</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="pkGroupsReset">새 바퀴</button>
         <button type="button" class="btn btn-sm btn-ghost" id="pkGroupsReload">새로고침</button>
-        <button type="button" class="btn btn-sm" id="pkGroupsClose">닫기</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="pkGroupsClose">닫기</button>
       </span>
     </div>
+    <p class="pk-status pk-groups-status" id="pkGroupsStatus" hidden></p>
     <div id="pkGroupsBox" aria-live="polite"></div>
   </div>
 </div>
 <div class="pk-toast" id="pkToast" role="status"></div>
 
 <script src="config.js?v=133"></script>
-<script src="js/group-board.js?v=152"></script>
-<script src="js/picker.js?v=152"></script>
+<script src="js/group-board.js?v=155"></script>
+<script src="js/picker.js?v=155"></script>
 </body>
 </html>

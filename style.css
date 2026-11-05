@@ -2367,7 +2367,13 @@ body.perf-modal-open{overflow:hidden;}
 .pk-groups-inner{background:var(--paper); border-radius:var(--radius-lg); padding:var(--space-lg); width:min(1200px, 100%); max-height:100%; overflow-y:auto;}
 .pk-groups-head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-sm); margin-bottom:var(--space-sm);}
 .pk-groups-head .gp-title{margin:0;}
-.pk-groups-tools{display:flex; gap:8px;}
+.pk-groups-tools{display:flex; flex-wrap:wrap; gap:8px;}
+/* v155 — 모둠 뽑기. 뽑는 무대(#pkStage)가 모둠 창 위에 뜨게 하고, 이번 바퀴에 나온 모둠은 머리를 초록으로 */
+#pkGroups.pk-stage{z-index:8900;}
+.pk-groups-status{margin:0 0 var(--space-sm);}
+.gp-col.is-picked{border-color:var(--jade-border);}
+.gp-col.is-picked .gp-head{background:var(--jade-text-deep);}
+.gp-col.is-picked .gp-head::after{content:' ✓';}
 @media (max-width:480px){ .pk-groups-inner{padding:var(--space-md);} }
 
 /* v129 — 발표자 뽑기 고양이 테마(body.pk-theme-cat). 그림 바탕색(#FBF6E6)에 무대 바탕을 맞춰 그림 테두리가 안 보이게.
