@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뽑기 점검</title>
+<link rel="icon" href="images/favicon.ico">
+<!-- v153 — 발표자 뽑기 점검 페이지. «반마다 같은 순서가 나온다»는 제보를 교실 PC에서 직접 재려고 만들었다.
+     진짜 picker.js를 그대로 돌리되 저장소를 가짜로 넘겨서 실제 바퀴 기록은 읽기만 하고 바꾸지 않는다. 번호만 다루고 서버에 쓰지 않는다. -->
+<style>
+:root{--paper:#F6F3EB;--card:#FFFDF8;--ink:#23262C;--soft:#5A5F6A;--line:#DDD6C7;--ok:#2F6B4F;--ok-bg:#E4F0E8;--bad:#A23B2A;--bad-bg:#F8E5E0;--wait:#EDE8DC}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif;line-height:1.55}
+main{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--soft);margin:0 0 18px}
+.verdict{padding:18px;border-radius:12px;font-size:1.15rem;font-weight:700;background:var(--wait);margin-bottom:16px;overflow-wrap:anywhere}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}
+.verdict.bad{background:var(--bad-bg);color:var(--bad)}
+.verdict small{display:block;font-size:.95rem;font-weight:400;margin-top:6px;color:var(--ink)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+select,button{font:inherit;min-height:44px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button:disabled{opacity:.5;cursor:default}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+h2{font-size:1rem;margin:0 0 8px}
+dl{margin:0;display:grid;grid-template-columns:minmax(90px,max-content) 1fr;gap:4px 12px}
+dt{color:var(--soft)}
+dd{margin:0;overflow-wrap:anywhere;min-width:0}
+ul{margin:0;padding-left:18px}
+a{color:inherit}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+  <h1>발표자 뽑기 점검</h1>
+  <p class="sub">이 컴퓨터에서 뽑기가 제대로 섞이는지 재요. 실제 바퀴 기록은 바뀌지 않아요.</p>
+  <div class="verdict" id="verdict" role="status">재는 중이에요…</div>
+  <div class="bar">
+    <label for="ban">반</label>
+    <select id="ban"></select>
+    <button type="button" class="primary" id="again">다시 재기</button>
+    <button type="button" id="copy">결과 복사</button>
+    <a href="picker.html">뽑기로 돌아가기</a>
+  </div>
+  <section><h2>새 바퀴를 누르고 3명씩 뽑은 결과 (처음 8번)</h2><ul id="rounds"></ul></section>
+  <section><h2>이 컴퓨터에 남은 실제 기록</h2><ul id="records"></ul></section>
+  <section><h2>이 컴퓨터 정보</h2><dl id="env"></dl></section>
+  <div id="stageHost" class="hide" aria-hidden="true"></div>
+</main>
+<script src="config.js?v=133"></script>
+<script>
+(function(){
+  const ROUNDS = 50, PICKS = 3;
+  const $ = id => document.getElementById(id);
+  let report = '';
+
+  function isNative(fn){ try{ return /\[native code\]/.test(Function.prototype.toString.call(fn)); }catch(e){ return false; } }
+  function fingerprint(text){ let h = 0; const t = text.replace(/\r/g, ''); for(let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return (h >>> 0).toString(16); }
+  function realRecords(){ try{ return JSON.parse(localStorage.getItem('h26_picker_v1')) || {}; }catch(e){ return {}; } }
+
+  /* 진짜 picker.html·picker.js를 받아 숨긴 칸에서 돌린다. localStorage·confirm·performance만 가짜로 넘겨 실제 기록을 지키고 연출을 건너뛴다. */
+  async function bootPicker(){
+    const htmlRes = await fetch('picker.html');
+    const page = new DOMParser().parseFromString(await htmlRes.text(), 'text/html');
+    const src = page.querySelector('script[src*="js/picker.js"]').getAttribute('src');
+    const code = await (await fetch(src)).text();
+    page.querySelectorAll('script,link,img').forEach(el => el.remove());
+    $('stageHost').innerHTML = page.body.innerHTML;
+    const mem = {};
+    const fakeStorage = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+    let clock = 0;
+    const fakePerf = { now: () => (clock += 100000) };
+    new Function('localStorage', 'confirm', 'performance', code)(fakeStorage, () => true, fakePerf);
+    $('pkSound').checked = false;
+    return { src, code };
+  }
+
+  const channel = new MessageChannel(); let wake = null;
+  channel.port1.onmessage = () => { const w = wake; wake = null; if(w) w(); };
+  const yieldNow = () => new Promise(r => { wake = r; channel.port2.postMessage(0); });
+
+  async function drawOne(){
+    const btn = $('pkDrawBtn');
+    $('pkStage').hidden = true;
+    btn.click();
+    for(let n = 0; btn.disabled && n < 500; n++) await yieldNow();
+    return parseInt($('pkResult').textContent, 10);
+  }
+  async function measure(key){
+    const sel = $('pkClass');
+    sel.value = key; sel.dispatchEvent(new Event('change'));
+    const seqs = [];
+    for(let r = 0; r < ROUNDS; r++){
+      $('pkStage').hidden = true;
+      $('pkResetBtn').click();
+      const s = [];
+      for(let i = 0; i < PICKS; i++) s.push(await drawOne());
+      seqs.push(s.join(' → '));
+    }
+    return seqs;
+  }
+
+  function fillEnv(info){
+    const rows = [
+      ['브라우저', navigator.userAgent],
+      ['암호 난수', window.crypto && crypto.getRandomValues ? (isNative(crypto.getRandomValues) ? '브라우저 원본' : '다른 코드로 바뀜') : '없음'],
+      ['Math.random', isNative(Math.random) ? '브라우저 원본' : '다른 코드로 바뀜'],
+      ['난수 표본', window.crypto && crypto.getRandomValues ? Array.from(crypto.getRandomValues(new Uint32Array(3))).join(', ') : '-'],
+      ['뽑기 코드', info.src + ' / 지문 ' + fingerprint(info.code)],
+      ['시각', new Date().toLocaleString('ko-KR')]
+    ];
+    $('env').textContent = '';
+    rows.forEach(([k, v]) => {
+      const dt = document.createElement('dt'); dt.textContent = k;
+      const dd = document.createElement('dd'); dd.textContent = v;
+      $('env').append(dt, dd);
+    });
+    return rows.map(([k, v]) => k + ': ' + v).join('\n');
+  }
+  function fillRecords(){
+    const classes = realRecords().classes || {};
+    const lines = Object.keys(classes).sort().map(k => {
+      const c = classes[k];
+      return k + '반 — 오늘 발표(' + (c.day || '날짜 없음') + '): ' + ((c.todayNums || []).join(' → ') || '없음') + ' / 이번 바퀴: ' + ((c.picked || []).join(', ') || '없음');
+    });
+    $('records').textContent = '';
+    (lines.length ? lines : ['이 컴퓨터에 남은 기록이 없어요.']).forEach(t => { const li = document.createElement('li'); li.textContent = t; $('records').appendChild(li); });
+    return lines.join('\n') || '없음';
+  }
+  function fillRounds(seqs){
+    $('rounds').textContent = '';
+    seqs.slice(0, 8).forEach(t => { const li = document.createElement('li'); li.textContent = t; $('rounds').appendChild(li); });
+  }
+  function showVerdict(key, seqs, envOk){
+    const count = {};
+    seqs.forEach(s => { count[s] = (count[s] || 0) + 1; });
+    const kinds = Object.keys(count).length, top = Math.max.apply(null, Object.values(count));
+    const bad = top >= 3 || !envOk;
+    const el = $('verdict');
+    el.className = 'verdict ' + (bad ? 'bad' : 'ok');
+    el.textContent = bad ? '이 컴퓨터에서 이상이 보여요.' : '이 컴퓨터에서는 잘 섞여요.';
+    const small = document.createElement('small');
+    small.textContent = key + '반을 ' + seqs.length + '번 쟀더니 순서가 ' + kinds + '가지 나왔고, 같은 순서는 가장 많이 ' + top + '번 나왔어요.';
+    el.appendChild(small);
+    return el.innerText;
+  }
+
+  let info = null, running = false;
+  async function run(){
+    if(running) return;
+    running = true; $('again').disabled = true;
+    $('verdict').className = 'verdict'; $('verdict').textContent = '재는 중이에요…';
+    try{
+      if(!info) info = await bootPicker();
+      const key = $('ban').value;
+      const seqs = await measure(key);
+      const envOk = isNative(Math.random) && !!(window.crypto && crypto.getRandomValues && isNative(crypto.getRandomValues));
+      const verdict = showVerdict(key, seqs, envOk);
+      fillRounds(seqs);
+      const env = fillEnv(info), rec = fillRecords();
+      report = [verdict, '', '[3명씩 뽑은 결과]', seqs.slice(0, 8).join('\n'), '', '[실제 기록]', rec, '', '[컴퓨터 정보]', env].join('\n');
+    }catch(e){
+      $('verdict').className = 'verdict bad';
+      $('verdict').textContent = '점검을 끝내지 못했어요: ' + e.message;
+      report = $('verdict').textContent + '\n' + navigator.userAgent;
+    }
+    running = false; $('again').disabled = false;
+  }
+
+  function init(){
+    const sizes = (window.PORTAL_CONFIG || {}).BAN_SIZE || {}, opts = [];
+    Object.keys(sizes).sort().forEach(g => Object.keys(sizes[g]).map(Number).filter(b => sizes[g][b] > 0).sort((a, b) => a - b).forEach(b => opts.push(g + '-' + b)));
+    const q = new URLSearchParams(location.search).get('ban'), saved = realRecords().lastClass;
+    const start = [q, saved, opts[0]].find(k => k && opts.indexOf(k) >= 0) || '';
+    opts.forEach(k => { const o = document.createElement('option'); o.value = k; const p = k.split('-'); o.textContent = p[0] + '학년 ' + p[1] + '반'; o.selected = k === start; $('ban').appendChild(o); });
+    $('ban').addEventListener('change', run);
+    $('again').addEventListener('click', run);
+    $('copy').addEventListener('click', () => {
+      const done = () => { $('copy').textContent = '복사했어요'; setTimeout(() => { $('copy').textContent = '결과 복사'; }, 1800); };
+      if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(report).then(done, () => prompt('복사해서 쓰세요', report));
+      else prompt('복사해서 쓰세요', report);
+    });
+    run();
+  }
+  init();
+})();
+</script>
+</body>
+</html>

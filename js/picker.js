@@ -8,7 +8,8 @@
  * 기록은 이 기기 localStorage(h26_picker_v1)에만 — 반마다 교실 PC가 따로라 반 기록이 그 교실 PC에 쌓인다.
  * 결석 표시와 «오늘 발표» 목록은 날짜가 바뀌면 비워진다. 서버에 쓰지 않는다.
  * v130 — 후보는 «실제 학급 번호»다(전출로 빈 번호·인원수보다 큰 번호가 있어 1~BAN_SIZE로는 틀린다).
- *   우선순위: 이 기기에서 «번호 명단»으로 고친 값(h26_picker_v1.nums) > config.js BAN_NUMS > 1~BAN_SIZE. */
+ *   우선순위: 이 기기에서 «번호 명단»으로 고친 값(h26_picker_v1.nums) > config.js BAN_NUMS > 1~BAN_SIZE.
+ * v152 — «👥 모둠 보기»: 고른 반의 확정 모둠을 창으로 띄운다. 그리기·불러오기는 js/group-board.js(groups.html과 공용). */
 (function(){
   const CONFIG = window.PORTAL_CONFIG || {};
   const PK_KEY = 'h26_picker_v1';
@@ -16,6 +17,9 @@
   let PK_CLASS = '';
   let PK_SPINNING = false;
   let PK_AUDIO = null;
+  let PK_GROUPS = null;      // v152 — 서버에서 받은 확정 모둠. 아직 못 받았으면 null
+  let PK_GROUPS_JSON = '';   // 같은 내용이면 다시 그리지 않으려고(등장 움직임이 반복되지 않게)
+  let PK_GROUPS_BUSY = false;
 
   function today_(){ const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function loadAll_(){ try{ return JSON.parse(localStorage.getItem(PK_KEY)) || {}; }catch(e){ return {}; } }
@@ -211,7 +215,7 @@
   }
 
   async function draw_(){
-    if(PK_SPINNING || !PK_CLASS || !$('pkNumsBox').hidden) return;
+    if(PK_SPINNING || !PK_CLASS || !$('pkNumsBox').hidden || !$('pkGroups').hidden) return;
     const roster = roster_(PK_CLASS), st = state_(PK_CLASS);
     let pool = pool_(roster, st);
     if(!pool.present.length){ say_('뽑을 학생이 없어요(전원 결석 표시).'); return; }
@@ -264,6 +268,47 @@
     if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => prompt('복사해서 쓰세요', text));
     else prompt('복사해서 쓰세요', text);
   }
+  /* v152 — 확정 모둠 창 */
+  function groupsMsg_(text){
+    const box = $('pkGroupsBox'); box.textContent = '';
+    const p = document.createElement('p'); p.className = 'gp-msg'; p.textContent = text; box.appendChild(p);
+  }
+  function groupsDraw_(){
+    const [grade, ban] = PK_CLASS.split('-');
+    $('pkGroupsTitle').textContent = `${grade}학년 ${ban}반 모둠`;
+    if(!PK_GROUPS){ groupsMsg_('불러오는 중…'); return; }
+    const list = Object.prototype.hasOwnProperty.call(PK_GROUPS, PK_CLASS) ? PK_GROUPS[PK_CLASS] : null;
+    if(!list || !list.length){ groupsMsg_('이 반은 아직 확정한 모둠이 없어요.'); return; }
+    const box = $('pkGroupsBox'); box.textContent = ''; box.appendChild(GroupBoard.board(list));
+  }
+  /* 페이지를 열 때 미리 받아 두고(창이 바로 뜨게), 창을 열 때 한 번 더 받아 최신으로 맞춘다. 실패해도 보이던 모둠은 지우지 않는다. */
+  async function groupsFetch_(){
+    if(PK_GROUPS_BUSY) return;
+    PK_GROUPS_BUSY = true; $('pkGroupsReload').disabled = true;
+    let fail = '';
+    try{
+      const got = await GroupBoard.fetchGroups();
+      if(got){
+        const json = JSON.stringify(got);
+        const changed = json !== PK_GROUPS_JSON;
+        PK_GROUPS = got; PK_GROUPS_JSON = json;
+        if(changed && !$('pkGroups').hidden) groupsDraw_();
+      } else fail = '아직 준비 중이에요. 조금 뒤에 다시 열어 주세요.';
+    }catch(e){ fail = '모둠을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'; }
+    PK_GROUPS_BUSY = false; $('pkGroupsReload').disabled = false;
+    if(fail && !$('pkGroups').hidden){ if(PK_GROUPS) say_(fail); else groupsMsg_(fail); }
+  }
+  function groupsOpen_(){
+    if(PK_SPINNING || !PK_CLASS) return;
+    $('pkGroups').hidden = false; $('pkMain').inert = true; // 뒤쪽 번호 칩·버튼이 Tab으로 눌리지 않게
+    groupsDraw_();
+    $('pkGroupsClose').focus();
+    groupsFetch_();
+  }
+  function groupsClose_(){
+    $('pkGroups').hidden = true; $('pkMain').inert = false;
+    $('pkGroupsBtn').focus();
+  }
   function toggleFullscreen_(){
     const d = document;
     if(d.fullscreenElement){ d.exitFullscreen && d.exitFullscreen(); return; }
@@ -284,6 +329,10 @@
     $('pkResetBtn').addEventListener('click', resetRound_);
     $('pkCopy').addEventListener('click', copyToday_);
     $('pkFullBtn').addEventListener('click', toggleFullscreen_);
+    $('pkGroupsBtn').addEventListener('click', groupsOpen_); // v152
+    $('pkGroupsClose').addEventListener('click', groupsClose_);
+    $('pkGroupsReload').addEventListener('click', groupsFetch_);
+    $('pkGroups').addEventListener('click', e => { if(e.target === $('pkGroups')) groupsClose_(); });
     $('pkNumsBtn').addEventListener('click', numsOpen_); // v130
     $('pkNumsSave').addEventListener('click', numsSave_);
     $('pkNumsReset').addEventListener('click', numsReset_);
@@ -297,12 +346,14 @@
     // 발표 리모컨(→·PageDown)·스페이스로도 뽑는다. 스페이스는 버튼·입력칸에 포커스가 있으면 그 요소의 기본 동작에 맡긴다.
     document.addEventListener('keydown', ev => {
       if(ev.key === 'Escape' && !$('pkStage').hidden){ closeStage_(); return; }
+      if(ev.key === 'Escape' && !$('pkGroups').hidden){ groupsClose_(); return; }
       if(ev.repeat || ev.altKey || ev.ctrlKey || ev.metaKey) return; // 꾹 누름·브라우저 단축키(Alt+→ 등)는 뽑기로 가로채지 않는다
       const tag = (ev.target && ev.target.tagName) || '';
       if((ev.key === 'PageDown' || ev.key === 'ArrowRight') && tag !== 'SELECT' && tag !== 'INPUT'){ ev.preventDefault(); draw_(); return; }
       if(ev.key === ' ' && !/^(BUTTON|SELECT|INPUT|TEXTAREA|LABEL)$/.test(tag)){ ev.preventDefault(); draw_(); }
     });
     render_();
+    groupsFetch_(); // v152
   }
   init_();
 })();

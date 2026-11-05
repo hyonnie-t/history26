@@ -8,14 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=130">
+<link rel="stylesheet" href="style.css?v=152">
 <link rel="preload" as="image" href="images/cat/cat-down.jpg">
 <link rel="preload" as="image" href="images/cat/cat-cheer.jpg">
 </head>
 <body class="pk-body">
 <!-- v127 — 발표자 뽑기 별도 페이지. 교사 토큰 없이 교실 PC에서 바로 연다(즐겨찾기 예: picker.html?ban=2-1).
      번호만 다루고 서버에 쓰지 않는다. 로직은 js/picker.js. -->
-<main class="pk-page">
+<main class="pk-page" id="pkMain">
   <header class="pk-head">
     <h1 class="pk-title">🎲 발표자 뽑기</h1>
     <button type="button" class="btn btn-sm btn-ghost" id="pkFullBtn">⛶ 전체 화면</button>
@@ -25,6 +25,8 @@
     <div class="pk-controls">
       <label for="pkClass" class="pk-label">반</label>
       <select id="pkClass" class="pk-select"></select>
+      <!-- v152 — 고른 반의 확정 모둠을 이 페이지에서 바로 띄운다 -->
+      <button type="button" class="btn btn-ghost" id="pkGroupsBtn">👥 모둠 보기</button>
       <button type="button" class="btn pk-draw" id="pkDrawBtn">뽑기</button>
     </div>
     <p class="pk-status" id="pkStatus"></p>
@@ -83,9 +85,23 @@
     </div>
   </div>
 </div>
+<!-- v152 — 확정 모둠 창. 반·모둠·번호만(백엔드 mode=groupsPublic), 쓰기 없음. -->
+<div class="pk-stage" id="pkGroups" hidden>
+  <div class="pk-groups-inner" role="dialog" aria-modal="true" aria-labelledby="pkGroupsTitle">
+    <div class="pk-groups-head">
+      <h2 class="gp-title" id="pkGroupsTitle"></h2>
+      <span class="pk-groups-tools">
+        <button type="button" class="btn btn-sm btn-ghost" id="pkGroupsReload">새로고침</button>
+        <button type="button" class="btn btn-sm" id="pkGroupsClose">닫기</button>
+      </span>
+    </div>
+    <div id="pkGroupsBox" aria-live="polite"></div>
+  </div>
+</div>
 <div class="pk-toast" id="pkToast" role="status"></div>
 
 <script src="config.js?v=133"></script>
-<script src="js/picker.js?v=130"></script>
+<script src="js/group-board.js?v=152"></script>
+<script src="js/picker.js?v=152"></script>
 </body>
 </html>
