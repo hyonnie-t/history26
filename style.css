@@ -2490,3 +2490,15 @@ body.perf-modal-open{overflow:hidden;}
 #dashView .gr-source.ok{font-weight:700;}
 #dashView :is(.gr-paste-box,.gr-detail) > summary::before{content:'▶'; margin-right:6px; font-size:.75em;}
 #dashView :is(.gr-paste-box,.gr-detail)[open] > summary::before{content:'▼';}
+
+/* v147 — 모둠 자리 바꾸기. 칸마다 번호+이름 한 줄, 눌러서 고른다 */
+#dashView .gr-board.gr-edit{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));}
+#dashView .gr-head-btn{display:block; width:100%; min-height:var(--tap-min); border:0; text-align:left; font-family:inherit; font-size:var(--fs-base); cursor:pointer;}
+#dashView .gr-head-btn small{display:block;}
+#dashView .gr-head-btn:disabled{cursor:default;}
+#dashView .gr-people{display:flex; flex-direction:column; gap:4px; padding:var(--space-xs);}
+#dashView .gr-person{min-height:var(--tap-min); padding:0 var(--space-sm); text-align:left; border:1px solid var(--line); border-left:4px solid var(--indigo); border-radius:var(--radius-xs); background:var(--card); color:var(--ink); font-family:inherit; font-size:var(--fs-base); cursor:pointer; transition:background-color .15s, color .15s;}
+#dashView .gr-person.f{border-left-color:var(--seal);}
+#dashView .gr-person b{display:inline-block; min-width:1.7em;}
+#dashView .gr-person.on{background:var(--ink); color:#fff; border-color:var(--ink);}
+#dashView .gr-person:disabled{cursor:default;}

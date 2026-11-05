@@ -2,13 +2,14 @@
  * v145 — 대시보드 «👥 모둠 배정» 탭 (2026-11-05 효니 요청, 수능 던전 기숙사 배정과 같은 흐름)
  *  - 미리보기(백엔드 groupAssign이 계산) → 평균 차이 확인 → 확정하면 시트 `모둠배정`에 번호만 저장 → 칠판에 크게 띄우기.
  *  - 성적: 시트에 그 반 점수가 있으면 학기말 합계(수행 30 + 지필 70), 없으면 붙여 넣은 표. 붙여 넣은 점수는 이 화면 메모리에만 있고
- *    미리보기·확정 요청에 실어 보낼 뿐 어디에도 저장하지 않는다. 이름은 읽지도 보내지도 않는다.
+ *    미리보기·확정 요청에 실어 보낼 뿐 어디에도 저장하지 않는다. 이름은 교사 화면에 보여 줄 뿐 보내지 않는다.
  *  - 상·중·하 띠와 모둠 평균은 접힌 칸 안에만 둔다(칠판에 띄우지 말 것). «크게 보기»에는 번호만 나온다.
  *  - 붙여 넣은 표: 머리글로 번호 칸·점수 칸을 짐작해 보여 주고, 애매하면 교사가 고른다(석차·응시자 수를 점수로 읽지 않게). 미리보기 뒤에는 접고, 확정하면 지운다.
  *  - 확정은 미리보기 때 보낸 요청(GR.draft.req)을 그대로 다시 보낸다. 계산이 결정적이라 본 판이 그대로 저장되고, 그사이 입력을 고치면 미리보기를 버린다.
+ *  - v147: 미리보기·수정 화면에서 번호와 이름을 같이 보고, 학생 둘을 차례로 눌러 자리를 바꾼다(모둠 제목을 누르면 그 모둠으로 옮긴다). 이름은 교사 화면에만, 시트에 저장하지 않는다.
  *  - 계산 함수는 백엔드 84_groups.gs 하나뿐이다. 화면은 받은 결과를 그리기만 한다.
  * ══════════════════════════════════════════════════════ */
-const GR = { sub: 'class', scoreN: null, key: '', saved: null, draft: null, err: '', busy: false, nums: {}, paste: {}, cols: {}, fold: {}, titles: {}, title: {}, size: 4, seed: 1, full: false, rev: 0 };
+const GR = { sub: 'class', scoreN: null, nameBy: {}, picked: null, detailOpen: false, key: '', saved: null, draft: null, err: '', busy: false, nums: {}, paste: {}, cols: {}, fold: {}, titles: {}, title: {}, size: 4, seed: 1, full: false, rev: 0 };
 const GR_MAX_NUM = 50; // 백엔드 GROUP_MAX_NUM과 같게
 
 /* v146 — «모둠·팀» 탭 위쪽 고르기. 고른 쪽은 이 기기에 기억한다. */
@@ -48,6 +49,7 @@ async function grLoadScoreCounts_(){
     const g = String(x.studentId || '').charAt(0), t = String(x.title || '').trim();
     if(g && t){ titles[g] = titles[g] || []; if(!titles[g].includes(t)) titles[g].push(t); }
   });
+  (r.rows || []).concat(r.exams || []).forEach(x => { if(x.name) GR.nameBy[String(x.studentId)] = String(x.name); });
   GR.scoreN = {}; Object.keys(by).forEach(k => { GR.scoreN[k] = by[k].size; });
   Object.keys(by).forEach(k => { const t = titles[k.charAt(0)]; if(t && t.length > 1 && !GR.titles[k]) GR.titles[k] = t; }); // 지필 평가가 여럿이면 처음부터 고르게
 }
@@ -61,6 +63,16 @@ function grKeys_(){
     bans.forEach(b => out.push(g + '-' + b));
   });
   return out;
+}
+const GR_FEMALE_FROM = 21; // 백엔드 GROUP_FEMALE_FROM과 같게. 번호 체계: 남 1번~, 여 21번~
+/* 이름: 붙여 넣은 표 → 성적관리 성적 → 활동 기록 순. 못 찾으면 번호만 보인다. 화면 메모리에만 있다. */
+function grNameOf_(key, no){
+  const sid = grPrefix_(key) + String(no).padStart(2, '0');
+  const pasted = GR.pasteNames && GR.pasteNames[key] && GR.pasteNames[key][no];
+  if(pasted) return pasted;
+  if(GR.nameBy[sid]) return GR.nameBy[sid];
+  const row = (typeof ROWS !== 'undefined' && ROWS || []).find(r => String(r.studentId) === sid && r.studentName);
+  return row ? String(row.studentName) : '';
 }
 function grPrefix_(key){ const [g, b] = String(key).split('-'); return g + String(b).padStart(2, '0'); }
 
@@ -109,13 +121,14 @@ function grColumns_(rows, key){
   const scoreCol = totals.length === 1 ? totals[0] : (scoreable.length === 1 ? scoreable[0] : null);
   return { hasHeader, body, cols, idGuess: idCol ? idCol.i : null, scoreGuess: scoreCol ? scoreCol.i : null };
 }
-/* 표 + 고른 칸 → {scores, cols, id, score, skipped, dup, same, ready}. 이름 칸은 읽지 않는다. */
+/* 표 + 고른 칸 → {names, scores, cols, id, score, skipped, dup, same, ready}. 이름은 화면에만 쓰고 보내지 않는다. */
 function grParsePaste_(text, key){
   const rows = grTable_(text);
   const info = grColumns_(rows, key);
   const pick = GR.cols[key] || {};
   const id = pick.id != null ? pick.id : info.idGuess, score = pick.score != null ? pick.score : info.scoreGuess;
-  const out = { scores: {}, cols: info.cols, id, score, skipped: 0, dup: [], same: false, ready: false, empty: !rows.length, uneven: 0 };
+  const nameCol = (() => { const h = info.hasHeader ? rows[0] : []; let i = h.findIndex(c => /이름|성명/.test(c)); if(i >= 0) return i; const r = info.body[0] || []; return r.findIndex(c => c && c.length >= 2 && !GR_NUMERIC.test(c)); })();
+  const out = { names: {}, scores: {}, cols: info.cols, id, score, skipped: 0, dup: [], same: false, ready: false, empty: !rows.length, uneven: 0 };
   if(id == null || score == null || id === score) return out;
   // 탭 없이 공백으로만 나뉜 표는 빈칸이 있으면 칸이 밀려 석차 같은 값을 점수로 읽는다 — 칸 수가 다른 줄이 있으면 멈춘다
   if(!rows.tabbed){
@@ -134,6 +147,7 @@ function grParsePaste_(text, key){
     if(!(no >= 1 && no <= GR_MAX_NUM)){ out.skipped++; return; }
     if(no in out.scores && !out.dup.includes(no)) out.dup.push(no);
     out.scores[no] = Number(b);
+    if(nameCol >= 0 && r[nameCol] && !GR_NUMERIC.test(r[nameCol])) out.names[no] = r[nameCol];
   });
   const v = Object.values(out.scores);
   out.same = v.length > 1 && v.every(x => x === v[0]);
@@ -156,6 +170,7 @@ function grPasteNoteHtml_(){
   return `<label class="dash-hint">번호 칸 ${sel('id', p.id)}</label> <label class="dash-hint">점수 칸 ${sel('score', p.score)}</label><p class="dash-hint">${msg}</p>`;
 }
 function grPickCol_(which, val){
+  if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 계속할까요?')){ grRender_(); return; }
   const c = GR.cols[GR.key] = GR.cols[GR.key] || {};
   c[which] = val === '' ? null : Number(val);
   grInputChanged_(); grPasteNote_();
@@ -167,8 +182,13 @@ function grRosterText_(key){
   return (CONFIG.BAN_NUMS || {})[key] || '';
 }
 /* 입력이 바뀌면 미리보기는 더 이상 그 입력의 결과가 아니다 — 옛 판과 확정 버튼을 치운다. 글자 칸 포커스가 날아가지 않게 그 부분만 다시 그린다. */
+/* 직접 바꾼 자리가 있으면 입력을 고치기 전에 묻는다. 안 바꾸면 화면을 원래 값으로 되돌린다. */
+function grGuard_(apply){
+  if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 계속할까요?')){ grRender_(); return; }
+  apply();
+}
 function grInputChanged_(){
-  GR.rev++; GR.draft = null; GR.seed = 1;
+  GR.rev++; GR.draft = null; GR.seed = 1; GR.picked = null;
   const a = $('grActions'); if(a) a.innerHTML = grActionsHtml_();
 }
 
@@ -201,7 +221,7 @@ async function grOpenClass_(){
   catch(e){ GR.err = e.message; }
   grRender_();
 }
-function grPick_(key){ if(GR.busy) return; GR.key = key; GR.draft = null; GR.seed = 1; GR.rev++; grRender_(); }
+function grPick_(key){ if(GR.busy) return; if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 다른 반으로 갈까요?')) return; GR.picked = null; GR.key = key; GR.draft = null; GR.seed = 1; GR.rev++; grRender_(); }
 
 /* 미리보기 요청 본문. 붙여 넣은 표가 있는데 다 못 읽었으면 시트로 넘어가지 않게 멈춘다. */
 function grBody_(){
@@ -212,7 +232,11 @@ function grBody_(){
     const p = grParsePaste_(GR.paste[GR.key], GR.key);
     if(!p.ready) throw new Error('붙여 넣은 표를 아직 못 읽었어요. 번호 칸·점수 칸을 확인해 주세요.');
     body.scores = p.scores;
-  } else if(GR.title[GR.key]) body.examTitle = GR.title[GR.key];
+    GR.pasteNames = GR.pasteNames || {}; GR.pasteNames[GR.key] = p.names;
+  } else {
+    if(GR.pasteNames) delete GR.pasteNames[GR.key]; // 표를 지웠으면 그 표의 이름도 쓰지 않는다
+    if(GR.title[GR.key]) body.examTitle = GR.title[GR.key];
+  }
   return body;
 }
 async function grPost_(body){
@@ -226,6 +250,7 @@ function grErrText_(j){
 }
 async function grPreview_(nextSeed){
   if(GR.busy) return;
+  if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 계속할까요?')) return;
   const rev = GR.rev, key = GR.key;
   if(nextSeed) GR.seed += 1;
   let body;
@@ -239,7 +264,8 @@ async function grPreview_(nextSeed){
     } else if(!Array.isArray(j.groups)) showToast('백엔드 v145 «새 버전» 재배포 전이에요');
     else if(rev !== GR.rev || key !== GR.key) showToast('입력이 바뀌어서 다시 미리보기를 눌러 주세요.');
     else {
-      GR.draft = Object.assign(j, { key, req: body, skipped: body.scores ? grParsePaste_(GR.paste[key], key).skipped : 0 });
+      GR.picked = null; GR.detailOpen = false;
+      GR.draft = Object.assign(j, { key, req: body, edited: false, skipped: body.scores ? grParsePaste_(GR.paste[key], key).skipped : 0 });
       GR.fold[key] = true; // 표에 이름·성적이 있으니 결과를 본 뒤에는 접어 둔다
     }
   } catch(e){ GR.draft = null; showToast('계산하지 못했어요: ' + e.message); }
@@ -249,39 +275,147 @@ async function grConfirm_(){
   if(!GR.draft || GR.busy) return;
   if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return; }
   const d = GR.draft, key = d.key;
+  const big = d.groups.filter(g => g.nums.length > 4);
+  if(big.length && !confirm(big.map(g => g.no).join(', ') + '모둠이 4명을 넘어요. 국민 국가 3차시 보스 레이드는 한 기기에 4명까지예요. 그대로 확정할까요?')) return;
   GR.busy = true; grRender_();
   try {
     await grLoadSaved_(); // 다른 PC에서 그새 확정했는지 다시 본다
     const had = grSavedBan_().length > 0;
     if(had && !confirm(key + '반은 이미 확정한 모둠이 있어요. 지금 모둠으로 바꿀까요?')){ GR.busy = false; grRender_(); return; }
-    const j = await grPost_(Object.assign({}, d.req, { confirm: true, overwrite: had })); // 미리보기와 같은 요청 → 본 판 그대로
+    // 화면의 배치를 그대로 보낸다(v147). 옛 백엔드는 layout을 모르므로 canLayout이 있을 때만
+    const send = Object.assign({}, d.req, { confirm: true, overwrite: had }, d.canLayout ? { layout: grLayout_(d), roster: Object.keys(grLayout_(d)).map(Number) } : {});
+    const j = await grPost_(send);
     if(j.result !== 'success') throw new Error(grErrText_(j));
     await grLoadSaved_();
+    // 저장된 판이 본 판과 같은지 확인한다(되돌린 옛 백엔드는 layout을 무시하고 다시 뽑는다)
+    const same = JSON.stringify(grSavedBan_().map(g => g.nums)) === JSON.stringify(d.groups.map(g => g.nums));
+    if(!same) throw new Error('저장된 모둠이 화면과 달라요. «확정한 모둠»을 확인해 주세요');
     GR.draft = null;
     delete GR.paste[key]; delete GR.cols[key]; delete GR.fold[key]; // 이름·성적 표는 쓸모가 끝나면 화면에서 지운다
+    GR.picked = null;
     showToast(key + '반 모둠을 확정했어요. «크게 보기»로 칠판에 띄워 주세요.');
   } catch(e){ showToast('저장 못 했어요: ' + e.message); }
   GR.busy = false; grRender_();
 }
 
+/* ── 자리 바꾸기(v147) ── */
+function grLayout_(d){ const o = {}; d.groups.forEach(g => g.nums.forEach(n => { o[n] = g.no; })); return o; }
+function grGenderText_(nums){ const f = nums.filter(n => n >= GR_FEMALE_FROM).length; return '남' + (nums.length - f) + ' 여' + f; }
+function grEditBoardHtml_(d){
+  const lock = !d.canLayout;
+  const hint = lock ? '<p class="dash-hint">백엔드 v147 «새 버전» 재배포 뒤에 자리를 바꿀 수 있어요.</p>'
+    : `<p class="dash-hint" id="grPickHint">${GR.picked != null ? '<b>' + GR.picked + '번을 골랐어요.</b> 바꿀 학생이나 옮길 모둠 제목을 눌러 주세요. 다시 누르면 취소돼요.' : '학생 둘을 차례로 누르면 자리가 바뀌어요. 학생을 누른 뒤 모둠 제목을 누르면 그 모둠으로 옮겨요. 왼쪽 띠는 파랑이 남학생, 빨강이 여학생이에요(21번부터 여학생으로 봐요).'}</p>`;
+  return hint + '<div class="gr-board gr-edit">' + d.groups.map((g, i) => {
+    const over = g.nums.length > GR.size;
+    return `<div class="gr-col" style="--i:${i}"><button type="button" class="gr-head gr-head-btn" aria-label="${g.no}모둠으로 옮기기" onclick="grPickGroup_(${g.no})"${lock ? ' disabled' : ''}>${g.no}모둠 <small>${g.nums.length}명 · ${grGenderText_(g.nums)}${over ? ' · 많아요' : ''}</small></button><div class="gr-people">${g.nums.map(n => {
+      const name = grNameOf_(d.key, n);
+      return `<button type="button" class="gr-person${GR.picked === n ? ' on' : ''}${n >= GR_FEMALE_FROM ? ' f' : ''}" aria-pressed="${GR.picked === n}" onclick="grPickPerson_(${n})"${lock ? ' disabled' : ''}><b>${n}</b> ${ctEsc_(name)}</button>`;
+    }).join('')}</div></div>`;
+  }).join('') + '</div>';
+}
+function grRedrawDraft_(){ const a = $('grActions'); if(a) a.innerHTML = grActionsHtml_(); }
+function grPickPerson_(no){
+  const d = GR.draft; if(!d || GR.busy) return;
+  if(GR.picked == null){ GR.picked = no; grRedrawDraft_(); return; }
+  if(GR.picked === no){ GR.picked = null; grRedrawDraft_(); return; }
+  const ga = d.groups.find(g => g.nums.includes(GR.picked)), gb = d.groups.find(g => g.nums.includes(no));
+  const a = GR.picked; GR.picked = null;
+  if(ga && gb && ga !== gb){
+    ga.nums[ga.nums.indexOf(a)] = no; gb.nums[gb.nums.indexOf(no)] = a;
+    ga.nums.sort((x, y) => x - y); gb.nums.sort((x, y) => x - y);
+    grAfterEdit_(d);
+  } else grRedrawDraft_(); // 같은 모둠끼리는 바꿀 게 없다
+}
+function grPickGroup_(no){
+  const d = GR.draft; if(!d || GR.busy || GR.picked == null) return;
+  const to = d.groups.find(g => g.no === no), from = d.groups.find(g => g.nums.includes(GR.picked));
+  const a = GR.picked; GR.picked = null;
+  if(to && from && to !== from){
+    from.nums.splice(from.nums.indexOf(a), 1); to.nums.push(a); to.nums.sort((x, y) => x - y);
+    if(!from.nums.length){ d.groups = d.groups.filter(g => g !== from); d.groups.forEach((g, i) => { g.no = i + 1; }); } // 빈 모둠은 없앤다
+    grAfterEdit_(d);
+  } else grRedrawDraft_();
+}
+/* 고친 뒤 평균 차이를 서버에서 다시 받는다. 잠깐 늦어도 자리는 이미 바뀌어 있고, 그사이 또 고치면 옛 응답을 버린다. */
+function grAfterEdit_(d){
+  d.edited = true; d.editRev = (d.editRev || 0) + 1; d.calc = 'wait';
+  grRedrawDraft_();
+  clearTimeout(GR.editTimer);
+  GR.editTimer = setTimeout(async () => {
+    const rev = d.editRev;
+    try {
+      const j = await grPost_(Object.assign({}, d.req, { layout: grLayout_(d) }));
+      if(GR.draft !== d || rev !== d.editRev) return;
+      if(j.result !== 'success'){ d.calc = 'fail'; grRedrawDraft_(); return; }
+      d.calc = ''; d.spread = j.spread; d.tiers = j.tiers;
+      j.groups.forEach(g => { const m = d.groups.find(x => x.no === g.no); if(m) m.avg = g.avg; });
+      grRedrawDraft_();
+    } catch(e){ if(GR.draft === d && rev === d.editRev){ d.calc = 'fail'; grRedrawDraft_(); } } // 평균만 못 고칠 뿐, 저장은 된다
+  }, 500);
+}
+/* 확정한 모둠을 다시 고치기. 점수가 없는 반도 고칠 수 있다(평균은 안 나온다). 먼저 백엔드가 수동 배치를 아는지 본다. */
+async function grEditSaved_(){
+  if(GR.busy) return;
+  if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 계속할까요?')) return;
+  const key = GR.key, [grade, ban] = key.split('-');
+  let groups = grSavedBan_().map(g => ({ no: g.no, nums: g.nums.slice(), avg: null }));
+  // 번호 칸에 맞춘다: 전출은 빼고 전입은 가장 적은 모둠에
+  const roster = grParseNums_(grRosterText_(key)), added = [], removed = [];
+  if(roster.length){
+    groups.forEach(g => { g.nums = g.nums.filter(n => { const keep = roster.includes(n); if(!keep) removed.push(n); return keep; }); });
+    groups = groups.filter(g => g.nums.length);
+    roster.forEach(n => {
+      if(groups.some(g => g.nums.includes(n)) || !groups.length) return;
+      const small = groups.slice().sort((a, b) => a.nums.length - b.nums.length)[0];
+      small.nums.push(n); small.nums.sort((x, y) => x - y); added.push(n);
+    });
+    groups.forEach((g, i) => { g.no = i + 1; });
+  }
+  const layout = {}; groups.forEach(g => g.nums.forEach(n => { layout[n] = g.no; }));
+  const req = { action: 'groupAssign', token: TOKEN, grade, ban: Number(ban), size: GR.size, seed: 1, roster: Object.keys(layout).map(Number) };
+  if(GR.title[key]) req.examTitle = GR.title[key];
+  const pasted = String(GR.paste[key] || '').trim() ? grParsePaste_(GR.paste[key], key) : null;
+  if(pasted && pasted.ready){ req.scores = pasted.scores; GR.pasteNames = GR.pasteNames || {}; GR.pasteNames[key] = pasted.names; }
+  GR.busy = true; grRender_();
+  try {
+    const j = await grPost_(Object.assign({}, req, { layout }));
+    if(j.result !== 'success') throw new Error(j.noScores ? '백엔드 v147 «새 버전» 재배포 전이에요' : grErrText_(j));
+    if(!j.canLayout) throw new Error('백엔드 v147 «새 버전» 재배포 전이에요');
+    GR.picked = null; GR.rev++; GR.detailOpen = false;
+    GR.draft = Object.assign(j, { key, req, fromSaved: true, edited: added.length + removed.length > 0, added, removed, skipped: 0 });
+  } catch(e){ showToast(e.message); }
+  GR.busy = false; grRender_();
+}
+/* 이름이 보이는 판을 닫는다(칠판에 띄우기 전). 직접 바꾼 자리가 있으면 묻는다. */
+function grCloseDraft_(){
+  if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 닫을까요?')) return;
+  GR.draft = null; GR.picked = null; GR.rev++; grRender_();
+}
 function grBoardHtml_(groups, big){
   return `<div class="gr-board${big ? ' big' : ''}">` + groups.map((g, i) => `<div class="gr-col" style="--i:${i}"><div class="gr-head">${g.no}모둠 <small>${g.nums.length}명</small></div><div class="gr-nos">${g.nums.map(n => `<span>${n}</span>`).join('')}</div></div>`).join('') + '</div>';
 }
 function grDraftHtml_(d){
   const notes = [];
-  if(d.source === 'paste') notes.push('붙여 넣은 점수로 계산했어요(저장 안 함).');
+  if(d.fromSaved){
+    notes.push('확정한 모둠을 고치는 중이에요. «이 모둠으로 확정»을 눌러야 저장돼요.');
+    if(d.added && d.added.length) notes.push('<b>번호 칸에 맞춰 넣은 번호: ' + d.added.join(', ') + '</b> (인원이 가장 적은 모둠에 넣었어요)');
+    if(d.removed && d.removed.length) notes.push('<b>번호 칸에 없어서 뺀 번호: ' + d.removed.join(', ') + '</b>');
+    if(d.spread == null) notes.push('이 반은 저장된 점수가 없어 평균은 안 나와요. 평균을 보려면 위에 성적표를 붙여 넣고 «고치기»를 다시 눌러 주세요.');
+  }
+  if(d.fromSaved){ /* 위에서 안내 */ }
+  else if(d.source === 'paste') notes.push('붙여 넣은 점수로 계산했어요(저장 안 함).');
   else notes.push('시트 성적으로 계산했어요 — 지필: ' + ctEsc_(d.examTitle || '없음') + ' · 수행: ' + ctEsc_(d.perfTitle || '없음'));
-  if(d.missing.length) notes.push('점수가 없어 반 평균으로 넣은 번호: ' + d.missing.join(', '));
-  if(d.stray.length) notes.push('번호 명단에 없어 뺀 번호: ' + d.stray.join(', '));
-  if(d.source === 'paste' && (d.missing.length || d.stray.length)) notes.push('<b>번호가 안 맞아요. 다른 반 표나 다른 번호 칸이 아닌지 확인해 주세요.</b>');
+  if(!d.fromSaved && d.missing.length) notes.push('점수가 없어 반 평균으로 넣은 번호: ' + d.missing.join(', '));
+  if(!d.fromSaved && d.stray.length) notes.push('번호 명단에 없어 뺀 번호: ' + d.stray.join(', '));
+  if(!d.fromSaved && d.source === 'paste' && (d.missing.length || d.stray.length)) notes.push('<b>번호가 안 맞아요. 다른 반 표나 다른 번호 칸이 아닌지 확인해 주세요.</b>');
   if(d.skipped) notes.push('못 읽은 줄 ' + d.skipped + '개(다른 반 학번 등)');
-  const tierOf = n => d.tiers[n] || '';
-  const detail = d.groups.map(g => `<tr><td>${g.no}모둠</td><td>${g.nums.map(n => `${n}<small class="gr-tier">${tierOf(n)}</small>`).join(' ')}</td><td>${g.avg}</td></tr>`).join('');
+  const tierOf = n => (d.tiers || {})[n] || '';
+  const detail = d.groups.map(g => `<tr><td>${g.no}모둠</td><td>${g.nums.map(n => `${n}<small class="gr-tier">${tierOf(n)}</small>`).join(' ')}</td><td>${g.avg == null ? '–' : g.avg}</td></tr>`).join('');
   return `<p class="dash-hint"><b>미리보기(아직 저장 안 됨)</b> ${d.count}명 → ${d.groups.length}모둠</p>
     ${notes.map(x => `<p class="dash-hint">${x}</p>`).join('')}
-    ${grBoardHtml_(d.groups)}
-    <details class="gr-detail"><summary>모둠 평균·상중하 보기 — 평균 차이 ${d.spread}점 (칠판에 띄우지 마세요)</summary>
-      <table class="ct-table"><thead><tr><th>모둠</th><th>번호(반 안 순위 세 등분)</th><th>평균</th></tr></thead><tbody>${detail}</tbody></table></details>`;
+    ${grEditBoardHtml_(d)}
+    ${d.spread == null ? '' : `<details class="gr-detail"${GR.detailOpen ? ' open' : ''} ontoggle="GR.detailOpen=this.open"><summary>모둠 평균·상중하 보기 — ${d.calc === 'wait' ? '평균 다시 계산하는 중…' : d.calc === 'fail' ? '<b>평균을 다시 계산하지 못했어요. 아래 숫자는 바꾸기 전 값이에요</b>' : '평균 차이 ' + d.spread + '점'} (칠판에 띄우지 마세요)</summary>
+      <table class="ct-table"><thead><tr><th>모둠</th><th>번호(반 안 순위 세 등분)</th><th>평균</th></tr></thead><tbody>${detail}</tbody></table></details>`}`;
 }
 
 /* v146 — 어떤 성적으로 짜는지 맨 위에 한 줄. 성적관리에 있으면 붙여 넣을 필요가 없다는 걸 먼저 알려 준다. */
@@ -311,17 +445,17 @@ function grRender_(){
   let html = head + `<section class="dash-card"><h2 class="dash-card-title">① 모둠 짓기 — ${GR.key}반</h2>
     <p class="dash-card-desc">점수순으로 띠를 지어 모둠마다 상·중·하가 고르게 들어가요(수능 던전 기숙사와 같은 방식). 칠판에 연결된 PC라면 칠판 화면을 끄고 작업해 주세요.</p>
     ${grSourceHtml_(sheetN)}
-    <label class="dash-hint">번호 (전출·전입이 있으면 여기서 고쳐요)<input class="ct-nums" value="${ctEsc_(grRosterText_(GR.key))}" placeholder="예: 1-13, 21-33" oninput="GR.nums[GR.key]=this.value;grInputChanged_()"></label>
+    <label class="dash-hint">번호 (전출·전입이 있으면 여기서 고쳐요)<input class="ct-nums" value="${ctEsc_(grRosterText_(GR.key))}" placeholder="예: 1-13, 21-33" oninput="grGuard_(()=>{GR.nums[GR.key]=this.value;grInputChanged_()})"></label>
     <details class="gr-paste-box"${pasteOpen ? ' open' : ''}><summary>${sheetN ? '다른 성적표로 짜기' : '성적표 붙여 넣기'}${pasteText ? ' (붙여 넣은 표 있음)' : ''} — 저장하지 않아요. 확정하면 지워져요</summary>
-      <textarea class="gr-paste" rows="4" aria-label="성적표 붙여 넣기" placeholder="엑셀·나이스 표를 머리글까지 그대로 복사해요. 번호와 합계 칸만 읽고 이름은 쓰지 않아요. 붙여 넣은 글자는 점으로 가려져요." oninput="GR.paste[GR.key]=this.value;delete GR.cols[GR.key];grInputChanged_();grPasteNote_()">${ctEsc_(pasteText)}</textarea></details>
+      <textarea class="gr-paste" rows="4" aria-label="성적표 붙여 넣기" placeholder="엑셀·나이스 표를 머리글까지 그대로 복사해요. 번호와 합계 칸으로 계산하고, 이름은 이 화면에만 보여요. 붙여 넣은 글자는 점으로 가려져요." oninput="grGuard_(()=>{GR.paste[GR.key]=this.value;delete GR.cols[GR.key];grInputChanged_();grPasteNote_()})">${ctEsc_(pasteText)}</textarea></details>
     <div id="grPasteNote">${grPasteNoteHtml_()}</div>
-    ${titles && titles.length > 1 ? `<label class="dash-hint">지필 평가 <select class="gr-size" onchange="GR.title[GR.key]=this.value;grInputChanged_()"><option value="">고르기</option>${titles.map(t => `<option value="${ctEsc_(t)}"${t === GR.title[GR.key] ? ' selected' : ''}>${ctEsc_(t)}</option>`).join('')}</select></label>` : ''}
+    ${titles && titles.length > 1 ? `<label class="dash-hint">지필 평가 <select class="gr-size" onchange="grGuard_(()=>{GR.title[GR.key]=this.value;grInputChanged_()})"><option value="">고르기</option>${titles.map(t => `<option value="${ctEsc_(t)}"${t === GR.title[GR.key] ? ' selected' : ''}>${ctEsc_(t)}</option>`).join('')}</select></label>` : ''}
     <label class="dash-hint">한 모둠 최대 인원
-      <select class="gr-size" onchange="if(GR.busy){grRender_();return;}GR.size=Number(this.value);GR.draft=null;GR.rev++;grRender_()">${[3, 4, 5].map(n => `<option value="${n}"${n === GR.size ? ' selected' : ''}>${n}명</option>`).join('')}</select>
+      <select class="gr-size" onchange="if(GR.busy){grRender_();return;}grGuard_(()=>{GR.size=Number(this.value);GR.draft=null;GR.picked=null;GR.rev++;grRender_()})">${[3, 4, 5].map(n => `<option value="${n}"${n === GR.size ? ' selected' : ''}>${n}명</option>`).join('')}</select>
       ${GR.size !== 4 ? ' <b>국민 국가 3차시 보스 레이드는 모둠 4명·최종전 대표 8명까지예요.</b>' : ''}</label>
     <div id="grActions">${grActionsHtml_()}</div></section>`;
   html += `<section class="dash-card"><h2 class="dash-card-title">② 확정한 모둠 — ${GR.key}반</h2>` + (saved.length
-    ? `<div class="ct-top"><button type="button" class="btn btn-sm" onclick="GR.full=true;grRender_()">⛶ 칠판에 크게 보기</button></div>` + grBoardHtml_(saved)
+    ? `<div class="ct-top"><button type="button" class="btn btn-sm" onclick="GR.full=true;grRender_()"${GR.draft ? ' disabled title="이름이 보이는 판을 닫은 뒤에 띄울 수 있어요"' : ''}>⛶ 칠판에 크게 보기</button>${GR.draft ? `<button type="button" class="btn btn-sm btn-ghost" onclick="grCloseDraft_()">판 닫기</button>` : ''}<button type="button" class="btn btn-sm btn-ghost" onclick="grEditSaved_()"${GR.busy ? ' disabled' : ''}>✏️ 고치기</button></div>` + grBoardHtml_(saved)
     : '<p class="dash-hint">아직 확정한 모둠이 없어요.</p>') + '</section>';
   if(GR.full && saved.length) html += `<div class="gr-full" onclick="GR.full=false;grRender_()"><h2>${GR.key}반 모둠</h2>${grBoardHtml_(saved, true)}<p>화면을 누르면 닫혀요</p></div>`;
   box.innerHTML = html;
