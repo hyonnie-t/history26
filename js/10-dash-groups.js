@@ -24,7 +24,7 @@ function grSetSub_(sub){
 function grSegHtml_(){
   const btn = (sub, title, note) => `<button type="button" class="gr-seg-btn${GR.sub === sub ? ' active' : ''}" aria-pressed="${GR.sub === sub}" onclick="grSetSub_('${sub}')"><b>${title}</b><small>${note}</small></button>`;
   return `<div class="gr-seg">${btn('class', '👥 수업 모둠', '성적이 고르게 섞여요')}${btn('culture', '🏺 문화사 발굴단', '3학년, 성향 테스트 지망 반영')}</div>
-    <p class="gr-tools">다른 뽑기: <a href="picker.html" target="_blank" rel="noopener">🎲 발표자 뽑기</a> · <a href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener">🐉 수능 던전 기숙사</a></p>`;
+    <p class="gr-tools">로그인 없이: <a href="groups.html" target="_blank" rel="noopener">👀 확정한 모둠 보기</a>(효니쌤 반) · 다른 뽑기: <a href="picker.html" target="_blank" rel="noopener">🎲 발표자 뽑기</a> · <a href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener">🐉 수능 던전 기숙사</a></p>`;
 }
 function grShowSub_(){
   const seg = $('grSeg'), gb = $('grBox'), cb = $('ctBox');
@@ -149,11 +149,13 @@ function grNeisTable_(text, key){
   // 줄의 첫 칸이 «반/번호»이고 반 숫자가 전부 같을 때만 일람표로 본다(3/14 같은 날짜 칸이 있는 일반 표를 잘못 읽지 않게)
   const idAt = r => { const i = r.findIndex(c => c); return i >= 0 && GR_NEIS_ID.test(r[i]) ? i : -1; };
   const body = rows.filter(r => idAt(r) >= 0);
-  if(!body.length || new Set(body.map(r => r[idAt(r)].split('/')[0])).size !== 1) return null;
-  const headerOf = name => { for(const r of rows){ const i = r.findIndex(c => c.replace(/\s/g, '') === name); if(i >= 0) return i; } return -1; };
+  if(body.length < 3 || new Set(body.map(r => r[idAt(r)].split('/')[0])).size !== 1) return null; // v150 — 쪽 번호(1/2) 한 줄을 일람표로 보지 않는다
+  // v150 — 이름이 같은 칸이 둘이면 소계일 수 있어 짐작하지 않는다. 일반 표처럼 교사가 고르게 둔다
+  const head = rows.slice(0, rows.indexOf(body[0]));
+  const headerOf = name => { const hit = new Set(); head.forEach(r => r.forEach((c, i) => { if(c.replace(/\s/g, '') === name) hit.add(i); })); return hit.size === 1 ? [...hit][0] : (hit.size ? -2 : -1); };
   let col = headerOf('합계');
-  if(col < 0) col = headerOf('원점수');
-  if(col < 0) return null; // 합계 칸을 못 찾으면 일반 표처럼 교사가 고르게 둔다
+  if(col === -1) col = headerOf('원점수');
+  if(col < 0) return null;
   const ban = Number(String(key).split('-')[1]);
   const out = ['번호\t이름\t합계'], zero = [];
   let otherBan = 0;
@@ -215,7 +217,7 @@ function grPasteNoteHtml_(){
   else if(p.dup.length) msg = '<b>같은 번호가 여러 줄이에요(' + p.dup.join(', ') + '번).</b> 이 반 표만 붙여 넣어 주세요.';
   else if(!v.length) msg = '<b>읽은 점수가 없어요.</b> 번호 칸·점수 칸을 확인해 주세요.';
   else msg = `${p.neis ? '나이스 성적일람표 합계로 ' : ''}${v.length}명 읽음 · 점수 ${Math.min(...v)}~${Math.max(...v)}${p.skipped ? ' · 못 읽은 줄 ' + p.skipped + '개' : ''}${p.same ? ' · <b>점수가 전부 같아요. 점수 칸이 맞는지 확인해 주세요.</b>' : ''}`;
-  if(p.neis && p.neis.zero.length) msg += `<br>합계가 0점이라 뺀 번호: ${p.neis.zero.join(', ')} — 전입생이면 번호 칸에 넣어 주세요(반 평균으로 들어가요). 전출생이면 빼 두면 돼요.`;
+  if(p.neis && p.neis.zero.length) msg += `<br>합계가 0점이거나 비어 있어 뺀 번호: ${p.neis.zero.join(', ')} — 전입생이면 번호 칸에 넣어 주세요(반 평균으로 들어가요). 전출생이면 빼 두면 돼요.`;
   if(p.neis && p.neis.otherBan) msg += `<br><b>이 반이 아닌 줄 ${p.neis.otherBan}개는 뺐어요.</b> ${ctEsc_(GR.key)}반 표가 맞는지 확인해 주세요.`;
   return `<label class="dash-hint">번호 칸 ${sel('id', p.id)}</label> <label class="dash-hint">점수 칸 ${sel('score', p.score)}</label><p class="dash-hint">${msg}</p>`;
 }
@@ -281,6 +283,7 @@ function grBody_(){
     const p = grParsePaste_(GR.paste[GR.key], GR.key);
     if(!body.roster.length && !(p.neis && p.ready)) throw new Error('번호 칸을 먼저 적어 주세요(예: 1-13, 21-33).');
     if(!p.ready) throw new Error('붙여 넣은 표를 아직 못 읽었어요. 번호 칸·점수 칸을 확인해 주세요.');
+    GR.rosterFromTable = !body.roster.length;
     if(!body.roster.length) body.roster = Object.keys(p.scores).map(Number); // v149 — 번호 칸이 빈 반(2학년 4~8반)은 일람표 번호로. 0점으로 뺀 번호는 화면에 알린다
     body.scores = p.scores;
     GR.pasteNames = GR.pasteNames || {}; GR.pasteNames[GR.key] = p.names;
@@ -316,7 +319,8 @@ async function grPreview_(nextSeed){
     else if(rev !== GR.rev || key !== GR.key) showToast('입력이 바뀌어서 다시 미리보기를 눌러 주세요.');
     else {
       GR.picked = null; GR.detailOpen = false;
-      GR.draft = Object.assign(j, { key, req: body, edited: false, skipped: body.scores ? grParsePaste_(GR.paste[key], key).skipped : 0 });
+      const pasted = body.scores ? grParsePaste_(GR.paste[key], key) : null;
+      GR.draft = Object.assign(j, { key, req: body, edited: false, skipped: pasted ? pasted.skipped : 0, neisZero: pasted && pasted.neis ? pasted.neis.zero.filter(n => !body.roster.includes(n)) : [], fromTable: !!(pasted && GR.rosterFromTable) });
       GR.fold[key] = true; // 표에 이름·성적이 있으니 결과를 본 뒤에는 접어 둔다
     }
   } catch(e){ GR.draft = null; showToast('계산하지 못했어요: ' + e.message); }
@@ -459,6 +463,8 @@ function grDraftHtml_(d){
   if(!d.fromSaved && d.missing.length) notes.push('점수가 없어 반 평균으로 넣은 번호: ' + d.missing.join(', '));
   if(!d.fromSaved && d.stray.length) notes.push('번호 명단에 없어 뺀 번호: ' + d.stray.join(', '));
   if(!d.fromSaved && d.source === 'paste' && (d.missing.length || d.stray.length)) notes.push('<b>번호가 안 맞아요. 다른 반 표나 다른 번호 칸이 아닌지 확인해 주세요.</b>');
+  if(d.neisZero && d.neisZero.length) notes.push('<b>이 번호는 모둠에 없어요: ' + d.neisZero.join(', ') + '</b> (합계가 0점이거나 비어 있어요). 전입생·결시생이면 위 번호 칸에 반 전체 번호를 적고(예: 1-13, 21-33) 다시 미리보기를 눌러 주세요.');
+  if(d.fromTable) notes.push('<b>번호 칸이 비어 있어 표에 있는 번호로 짰어요.</b> 표에 없는 학생이 있으면 번호 칸에 적어 주세요.');
   if(d.skipped) notes.push('못 읽은 줄 ' + d.skipped + '개(다른 반 학번 등)');
   const tierOf = n => (d.tiers || {})[n] || '';
   const detail = d.groups.map(g => `<tr><td>${g.no}모둠</td><td>${g.nums.map(n => `${n}<small class="gr-tier">${tierOf(n)}</small>`).join(' ')}</td><td>${g.avg == null ? '–' : g.avg}</td></tr>`).join('');
