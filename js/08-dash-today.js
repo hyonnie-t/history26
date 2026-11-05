@@ -237,7 +237,7 @@ function tdAfterEnter_(){
   const { tab, cls } = TD_DEEP; TD_DEEP = null;
   const known = [...document.querySelectorAll('.dash-tab')].map(b => b.dataset.tab);
   if(tab === 'records' && cls) tdGoRecords_(cls);
-  else if(known.includes(tab)) switchDashTab(tab);
+  else if(known.includes(tab) || tab === 'culture') switchDashTab(tab); // v146 — 옛 ?dash=culture 주소도 «모둠·팀» 탭의 문화사로
 }
 /* 대시보드 탭이 바뀔 때 주소를 맞춘다(switchDashTab 끝에서). 대시보드가 안 보일 때(초기 탭 세팅)는 건드리지 않는다. */
 function tdSyncUrl_(tab){

@@ -105,7 +105,8 @@ async function enterDash(token){
 
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
-  ['today','records','questions','announce','curriculum','checkin','points','grades','culture','groups','accounts'].forEach(t => { // v134 — today(📅 오늘) 추가, v142 — culture(문화사 팀), v145 — groups(모둠 배정)
+  if(tab === 'culture'){ grSetSub_('culture'); tab = 'groups'; } // v146 — 문화사 팀은 «모둠·팀» 탭 안으로 합침, 옛 이름도 받는다
+  ['today','records','questions','announce','curriculum','checkin','points','grades','groups','accounts'].forEach(t => { // v134 — today(📅 오늘) 추가, v145 — groups(모둠·팀, v146부터 문화사 팀 포함)
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -118,8 +119,7 @@ function switchDashTab(tab){
   }
   if(tab === 'points') ppRenderRecent_(); // v105 — 탭을 열 때마다 최근 지급 5건 갱신
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
-  if(tab === 'culture' && typeof dashCultureOpen_ === 'function') dashCultureOpen_(); // v142 — js/09-dash-culture.js
-  if(tab === 'groups' && typeof dashGroupsOpen_ === 'function') dashGroupsOpen_(); // v145 — js/10-dash-groups.js
+  if(tab === 'groups' && typeof dashGroupsOpen_ === 'function') dashGroupsOpen_(); // v145 — js/10-dash-groups.js가 수업 모둠·문화사 팀(09)을 고른다
   if(tab === 'today' && typeof dashTodayOpen_ === 'function') dashTodayOpen_(); // v134 — js/08-dash-today.js
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
   if(typeof tdSyncUrl_ === 'function') tdSyncUrl_(tab); // v135 — 주소를 ?dash=탭으로 (새로고침·시간표 앱 링크가 같은 탭으로)

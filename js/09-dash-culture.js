@@ -84,7 +84,7 @@ async function ctLoadSaved_(){
   CT.saved = r.teams;
 }
 
-/* switchDashTab('culture')에서 부른다 */
+/* v146 — «모둠·팀» 탭에서 문화사 발굴단을 고르면 grSetSub_(10)가 부른다 */
 async function dashCultureOpen_(){
   if(!CT.ban) CT.ban = ctBans_()[0] || '5';
   ctRender_();

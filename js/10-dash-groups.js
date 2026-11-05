@@ -8,8 +8,49 @@
  *  - 확정은 미리보기 때 보낸 요청(GR.draft.req)을 그대로 다시 보낸다. 계산이 결정적이라 본 판이 그대로 저장되고, 그사이 입력을 고치면 미리보기를 버린다.
  *  - 계산 함수는 백엔드 84_groups.gs 하나뿐이다. 화면은 받은 결과를 그리기만 한다.
  * ══════════════════════════════════════════════════════ */
-const GR = { key: '', saved: null, draft: null, err: '', busy: false, nums: {}, paste: {}, cols: {}, fold: {}, titles: {}, title: {}, size: 4, seed: 1, full: false, rev: 0 };
+const GR = { sub: 'class', scoreN: null, key: '', saved: null, draft: null, err: '', busy: false, nums: {}, paste: {}, cols: {}, fold: {}, titles: {}, title: {}, size: 4, seed: 1, full: false, rev: 0 };
 const GR_MAX_NUM = 50; // 백엔드 GROUP_MAX_NUM과 같게
+
+/* v146 — «모둠·팀» 탭 위쪽 고르기. 고른 쪽은 이 기기에 기억한다. */
+const GR_SUB_KEY = 'h26_groups_sub';
+function grLoadSub_(){ try { const v = localStorage.getItem(GR_SUB_KEY); if(v === 'culture' || v === 'class') GR.sub = v; } catch(e){ /* 저장소를 못 쓰면 기본값 */ } }
+function grSetSub_(sub){
+  GR.sub = sub;
+  try { localStorage.setItem(GR_SUB_KEY, sub); } catch(e){ /* 기억만 못 할 뿐 */ }
+  GR.subPicked = true;
+  if($('panelGroups') && $('panelGroups').style.display === 'block') grShowSub_();
+}
+function grSegHtml_(){
+  const btn = (sub, title, note) => `<button type="button" class="gr-seg-btn${GR.sub === sub ? ' active' : ''}" aria-pressed="${GR.sub === sub}" onclick="grSetSub_('${sub}')"><b>${title}</b><small>${note}</small></button>`;
+  return `<div class="gr-seg">${btn('class', '👥 수업 모둠', '성적이 고르게 섞여요')}${btn('culture', '🏺 문화사 발굴단', '3학년, 성향 테스트 지망 반영')}</div>
+    <p class="gr-tools">다른 뽑기: <a href="picker.html" target="_blank" rel="noopener">🎲 발표자 뽑기</a> · <a href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener">🐉 수능 던전 기숙사</a></p>`;
+}
+function grShowSub_(){
+  const seg = $('grSeg'), gb = $('grBox'), cb = $('ctBox');
+  if(seg) seg.innerHTML = grSegHtml_();
+  const isCulture = GR.sub === 'culture';
+  if(gb) gb.style.display = isCulture ? 'none' : 'block';
+  if(cb) cb.style.display = isCulture ? 'block' : 'none';
+  if(isCulture){ if(typeof dashCultureOpen_ === 'function') dashCultureOpen_(); }
+  else grOpenClass_();
+}
+/* 성적관리 탭에 올라간 성적이 반마다 몇 명인지(수행·지필 중 하나라도 있으면 센다). 인원만 남기고 점수는 버린다. */
+async function grLoadScoreCounts_(){
+  const r = await fetchJsonRetry_(CONFIG.WEBAPP_URL + '?mode=perfScoreAdmin&token=' + encodeURIComponent(TOKEN));
+  if(r.result !== 'success') throw new Error(r.message || '');
+  const by = {}, titles = {};
+  (r.rows || []).concat(r.exams || []).forEach(x => {
+    const sid = String(x.studentId || ''); if(!/^\d{5}$/.test(sid)) return;
+    const key = Number(sid[0]) + '-' + Number(sid.slice(1, 3));
+    (by[key] = by[key] || new Set()).add(sid);
+  });
+  (r.exams || []).forEach(x => {
+    const g = String(x.studentId || '').charAt(0), t = String(x.title || '').trim();
+    if(g && t){ titles[g] = titles[g] || []; if(!titles[g].includes(t)) titles[g].push(t); }
+  });
+  GR.scoreN = {}; Object.keys(by).forEach(k => { GR.scoreN[k] = by[k].size; });
+  Object.keys(by).forEach(k => { const t = titles[k.charAt(0)]; if(t && t.length > 1 && !GR.titles[k]) GR.titles[k] = t; }); // 지필 평가가 여럿이면 처음부터 고르게
+}
 
 /* 내 반 목록(['2-1', …]). 담당 구분이 있으면 내 담당 반, 없으면 config BAN_SIZE에서 인원이 있는 반. */
 function grKeys_(){
@@ -148,9 +189,14 @@ function grSavedBan_(){
 }
 
 /* switchDashTab('groups')에서 부른다 */
-async function dashGroupsOpen_(){
+function dashGroupsOpen_(){
+  if(!GR.subPicked){ grLoadSub_(); GR.subPicked = true; }
+  grShowSub_();
+}
+async function grOpenClass_(){
   if(!GR.key) GR.key = grKeys_()[0] || '';
   grRender_();
+  if(GR.scoreN === null) grLoadScoreCounts_().catch(() => { GR.scoreN = undefined; }).then(() => { if(GR.sub === 'class') grRender_(); }); // 못 세어도 시트 계산은 된다. 안내만 줄어든다
   try { if(GR.saved === null) await grLoadSaved_(); GR.err = ''; }
   catch(e){ GR.err = e.message; }
   grRender_();
@@ -238,6 +284,13 @@ function grDraftHtml_(d){
       <table class="ct-table"><thead><tr><th>모둠</th><th>번호(반 안 순위 세 등분)</th><th>평균</th></tr></thead><tbody>${detail}</tbody></table></details>`;
 }
 
+/* v146 — 어떤 성적으로 짜는지 맨 위에 한 줄. 성적관리에 있으면 붙여 넣을 필요가 없다는 걸 먼저 알려 준다. */
+function grSourceHtml_(sheetN){
+  if(String(GR.paste[GR.key] || '').trim()) return '<p class="gr-source">붙여 넣은 성적표로 짜요.</p>';
+  if(sheetN) return `<p class="gr-source ok">✓ 성적관리 탭의 학기말 성적(수행 30 + 지필 70)으로 짜요 · ${sheetN}명. 바로 «미리보기»를 눌러 주세요.</p>`;
+  if(sheetN === 0) return '<p class="gr-source">이 반은 성적관리 탭에 성적이 없어요. 아래에 성적표를 붙여 넣어 주세요.</p>';
+  return '';
+}
 function grActionsHtml_(){
   const busy = GR.busy ? ' disabled' : '';
   const draft = GR.draft && GR.draft.key === GR.key ? GR.draft : null;
@@ -247,16 +300,19 @@ function grRender_(){
   const box = $('grBox');
   if(!box) return;
   const keys = grKeys_();
-  const head = `<div class="ct-top">${keys.map(k => `<button type="button" class="btn btn-sm${k === GR.key ? '' : ' btn-ghost'}" onclick="grPick_('${k}')"${GR.busy ? ' disabled' : ''}>${k}</button>`).join('')}${GR.busy ? ' <span class="dash-hint">계산하는 중…</span>' : ''}</div>`;
+  const head = `<div class="ct-top">${keys.map(k => `<button type="button" class="btn btn-sm${k === GR.key ? '' : ' btn-ghost'}" onclick="grPick_('${k}')"${GR.busy ? ' disabled' : ''}>${k}${GR.scoreN && GR.scoreN[k] ? ' ✓' : ''}</button>`).join('')}${GR.busy ? ' <span class="dash-hint">계산하는 중…</span>' : ''}</div>`;
   if(GR.err){ box.innerHTML = head + `<p class="dash-hint" style="color:var(--seal)">${ctEsc_(GR.err)} — 백엔드 v145 «새 버전» 재배포 전이면 이 탭을 못 써요.</p>`; return; }
   if(GR.saved === null || !GR.key){ box.innerHTML = head + `<p class="dash-hint">${GR.key ? '불러오는 중…' : '담당 반을 찾지 못했어요.'}</p>`; return; }
   const pasteText = GR.paste[GR.key] || '';
   const titles = GR.titles[GR.key];
   const saved = grSavedBan_();
+  const sheetN = GR.scoreN ? (GR.scoreN[GR.key] || 0) : null; // null이면 아직 모름
+  const pasteOpen = pasteText ? !GR.fold[GR.key] : (sheetN === 0 && !GR.fold[GR.key]);
   let html = head + `<section class="dash-card"><h2 class="dash-card-title">① 모둠 짓기 — ${GR.key}반</h2>
-    <p class="dash-card-desc">점수순으로 띠를 지어 모둠마다 상·중·하가 고르게 들어가게 짜요(수능 던전 기숙사와 같은 방식). 시트에 이 반 점수가 있으면 학기말 합계(수행 30 + 지필 70)로, 없으면 아래에 붙여 넣은 점수로 계산해요. 칠판에 연결된 PC라면 칠판 화면을 끄고 작업해 주세요.</p>
+    <p class="dash-card-desc">점수순으로 띠를 지어 모둠마다 상·중·하가 고르게 들어가요(수능 던전 기숙사와 같은 방식). 칠판에 연결된 PC라면 칠판 화면을 끄고 작업해 주세요.</p>
+    ${grSourceHtml_(sheetN)}
     <label class="dash-hint">번호 (전출·전입이 있으면 여기서 고쳐요)<input class="ct-nums" value="${ctEsc_(grRosterText_(GR.key))}" placeholder="예: 1-13, 21-33" oninput="GR.nums[GR.key]=this.value;grInputChanged_()"></label>
-    <details class="gr-paste-box"${GR.fold[GR.key] ? '' : ' open'}><summary>성적표 붙여 넣기${pasteText ? ' (붙여 넣은 표 있음)' : ''} — 시트 점수보다 먼저 쓰고 저장하지 않아요. 확정하면 지워져요</summary>
+    <details class="gr-paste-box"${pasteOpen ? ' open' : ''}><summary>${sheetN ? '다른 성적표로 짜기' : '성적표 붙여 넣기'}${pasteText ? ' (붙여 넣은 표 있음)' : ''} — 저장하지 않아요. 확정하면 지워져요</summary>
       <textarea class="gr-paste" rows="4" aria-label="성적표 붙여 넣기" placeholder="엑셀·나이스 표를 머리글까지 그대로 복사해요. 번호와 합계 칸만 읽고 이름은 쓰지 않아요. 붙여 넣은 글자는 점으로 가려져요." oninput="GR.paste[GR.key]=this.value;delete GR.cols[GR.key];grInputChanged_();grPasteNote_()">${ctEsc_(pasteText)}</textarea></details>
     <div id="grPasteNote">${grPasteNoteHtml_()}</div>
     ${titles && titles.length > 1 ? `<label class="dash-hint">지필 평가 <select class="gr-size" onchange="GR.title[GR.key]=this.value;grInputChanged_()"><option value="">고르기</option>${titles.map(t => `<option value="${ctEsc_(t)}"${t === GR.title[GR.key] ? ' selected' : ''}>${ctEsc_(t)}</option>`).join('')}</select></label>` : ''}
