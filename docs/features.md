@@ -285,6 +285,13 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 10월엔 단풍 팔레트+낙엽(`treeSeason_()`, `?season=autumn|default`로 강제). 색은 `TREE_PALETTE`, 단계별 모양은 `TREE_STAGES`, 단계별
 잘라낸 `viewBox`는 `TREE_TOP`. 무작위는 시드 고정이라 화면마다 안 바뀐다.
 
+## 반별 공개 (v145)
+커리큘럼 목록 항목의 반 칩(`clLessonBanRowHtml_`)을 누르면 `setLessonBanPublic`으로 그 반만 켜고 끈다. 서버가 돌려준 `public`·`publicBans`로 다시 그린다. 포털은 `mode=curriculum` 차시의 `bans`로 거른다(`filterLessonsForBan`, 담당 필터와 AND, 대시보드 미제출 집계도 이 함수를 써서 안 연 반은 안 센다). 재배포 전 옛 백엔드는 칩을 누르면 오류를 알린다.
+칩은 학년 정보의 담당 반 기준이라 비어 있으면 상태 글자만 보인다. 포털 카드만 가리는 것이고 앱 주소를 직접 열면 막지 않는다.
+
+## 모둠 배정 탭 (v145)
+«👥 모둠 배정»(`js/10-dash-groups.js`). 미리보기·확정은 백엔드 `groupAssign`(`history26_backend/84_groups.gs`, 수능 던전 houseAssign과 같은 흐름). 붙여 넣은 성적표는 화면 메모리에만 두고 요청에 실어 보내며 저장하지 않는다. 글자는 점으로 가린다. 머리글로 번호 칸을 짐작하고, 점수 칸은 이름이 딱 합계류인 칸이 하나이거나 후보가 하나일 때만 짐작하며 나머지는 교사가 고른다(석차·응시자 수 제외). 칸이 밀린 공백 표는 멈춘다. 붙여 넣기는 번호 명단이 꼭 있어야 한다. 미리보기 뒤 접고 확정하면 지운다. 확정은 미리보기 요청을 그대로 보내 본 판이 저장된다. 번호 기본값은 발표자 뽑기와 같은 순서다. 상·중·하와 평균은 접힌 칸에만, «칠판에 크게 보기»에는 모둠과 번호만 나온다.
+
 ## 커리큘럼 관리 폼 (v64)
 3구역 카드(`.cl-section`) + `.cl-field` 라벨·필수/선택 태그. 입력창 id는 그대로이고 `clToggleMulti()`만
 래퍼(`#clTypeField`/`#clUrlField`)를 토글한다.

@@ -105,7 +105,7 @@ async function enterDash(token){
 
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
-  ['today','records','questions','announce','curriculum','checkin','points','grades','culture','accounts'].forEach(t => { // v134 — today(📅 오늘) 추가, v142 — culture(문화사 팀)
+  ['today','records','questions','announce','curriculum','checkin','points','grades','culture','groups','accounts'].forEach(t => { // v134 — today(📅 오늘) 추가, v142 — culture(문화사 팀), v145 — groups(모둠 배정)
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -119,6 +119,7 @@ function switchDashTab(tab){
   if(tab === 'points') ppRenderRecent_(); // v105 — 탭을 열 때마다 최근 지급 5건 갱신
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
   if(tab === 'culture' && typeof dashCultureOpen_ === 'function') dashCultureOpen_(); // v142 — js/09-dash-culture.js
+  if(tab === 'groups' && typeof dashGroupsOpen_ === 'function') dashGroupsOpen_(); // v145 — js/10-dash-groups.js
   if(tab === 'today' && typeof dashTodayOpen_ === 'function') dashTodayOpen_(); // v134 — js/08-dash-today.js
   if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
   if(typeof tdSyncUrl_ === 'function') tdSyncUrl_(tab); // v135 — 주소를 ?dash=탭으로 (새로고침·시간표 앱 링크가 같은 탭으로)
@@ -1425,6 +1426,27 @@ function clLessonSubmitInfo_(l){
   return { n, hasUrl };
 }
 
+/* v145 — 활동이 보일 수 있는 반 목록. 담당을 정한 차시는 그 선생님 반만(백엔드 setLessonBanPublicPost_와 같은 규칙). */
+function clLessonBans_(l){
+  const cur = (CONFIG.CURRICULUM || {})[l.grade];
+  if(!cur) return [];
+  const hyo = cur.hyoBans || [], mihyun = cur.mihyunBans || [];
+  return l.owner === '효니' ? hyo : l.owner === '미현쌤' ? mihyun : hyo.concat(mihyun);
+}
+function clLessonBanOpen_(l, ban){
+  return !!l.public && (!(l.publicBans || []).length || l.publicBans.includes(ban));
+}
+/* v145 — 한 반씩 공개하는 칩 줄 + 지금 상태 한 줄 */
+function clLessonBanRowHtml_(l){
+  const bans = clLessonBans_(l);
+  const partial = l.public && (l.publicBans || []).length;
+  const state = !l.public ? '🔒 비공개' : partial ? '👁 ' + l.publicBans.join('·') + '반만 공개' : '👁 모든 반 공개';
+  if(!bans.length) return `<div class="cl-bans"><span class="cl-ban-state">${state}</span></div>`;
+  return `<div class="cl-bans"><span class="cl-ban-state">${state}</span>` + bans.map(b => {
+    const on = clLessonBanOpen_(l, b);
+    return `<button type="button" class="cl-ban${on ? ' on' : ''}" draggable="false" aria-pressed="${on}" data-row="${l._row}" data-ban="${b}" title="${b}반 ${on ? '비공개로' : '공개로'}" onclick="dashToggleLessonBan(this)">${b}반</button>`;
+  }).join('') + '</div>';
+}
 function clLessonItemHtml(l, isPastItem){
   const multi = (l.activitiesCount || 1) > 1;
   const sub = clLessonSubmitInfo_(l); // v120
@@ -1441,13 +1463,15 @@ function clLessonItemHtml(l, isPastItem){
       <div class="cl-item-body">
         <div class="cl-meta">${metaText}</div>
         <div class="cl-title">${escapeHtml(l.title)}</div>
+        ${clLessonBanRowHtml_(l)}
       </div>
       <div class="cl-item-actions">
         ${isPastItem ? '' : `
           <button class="btn-tiny cl-move" data-row="${l._row}" data-dir="up" title="위로 이동">▲</button>
           <button class="btn-tiny cl-move" data-row="${l._row}" data-dir="down" title="아래로 이동">▼</button>`}
         <button class="an-toggle" data-row="${l._row}" onclick="dashEditLesson(this)">수정</button>
-        <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPublic(this)">${l.public ? '비공개로 전환' : '공개로 전환'}</button>
+        <button class="an-toggle" data-row="${l._row}" data-public="${l.public && !(l.publicBans || []).length ? 'false' : 'true'}" onclick="dashToggleLessonPublic(this)">${l.public && !(l.publicBans || []).length ? '전체 비공개' : '전체 공개'}</button>
+        ${l.public && (l.publicBans || []).length ? `<button class="an-toggle" data-row="${l._row}" data-public="false" onclick="dashToggleLessonPublic(this)">전체 비공개</button>` : ''}
         <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPast(this)">${isPastItem ? '진행중으로 되돌리기' : '지난 활동으로 표시'}</button>
         <button class="an-toggle cl-del" data-row="${l._row}" data-id="${escapeHtml(l.id)}" onclick="dashDeleteLesson(this)">삭제</button>
       </div>
@@ -1832,20 +1856,49 @@ async function dashUpdateLesson(btn, row){
 
 async function dashToggleLessonPublic(btn){
   const row = btn.dataset.row;
+  const want = btn.dataset.public === 'true'; // v145 — 뒤집지 않고 원하는 상태를 보낸다(낡은 화면에서 눌러도 반대로 열리지 않게)
   btn.disabled = true;
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'toggleLessonPublic', token:TOKEN, row })
+      body: JSON.stringify({ action:'toggleLessonPublic', token:TOKEN, row, public:want })
     });
+    const j = await res.json().catch(() => ({}));
     const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
-    if(l){ l.public = !l.public; }
+    // 재배포 전 옛 백엔드는 뒤집기만 하고 public을 안 돌려준다 — 그때는 예전처럼 뒤집힌 값으로 그린다
+    if(l){ l.public = typeof j.public === 'boolean' ? j.public : !l.public; l.publicBans = []; } // v145 — 이 버튼은 언제나 모든 반 기준
     dashRenderLessons();
     dashSyncCurriculum_();
   }catch(e){
     showToast('처리하지 못했어요. 다시 시도해 주세요.');
   }finally{
     btn.disabled = false;
+  }
+}
+
+/* v145 — 반 칩: 그 반만 공개·비공개. 서버가 시트 값을 다시 읽어 반 하나만 바꾸고 결과를 돌려준다(다른 선생님이 켠 반을 덮지 않게). */
+async function dashToggleLessonBan(btn){
+  if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return; }
+  const row = btn.dataset.row, ban = Number(btn.dataset.ban);
+  const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
+  if(!l) return;
+  const on = !clLessonBanOpen_(l, ban);
+  btn.disabled = true;
+  try{
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'setLessonBanPublic', token:TOKEN, row, id:l.id, ban, on })
+    });
+    const j = await res.json();
+    // 옛 백엔드는 모르는 action을 기본 제출 경로로 보내 gameName 오류를 돌려준다
+    if(j.result !== 'success' || typeof j.public !== 'boolean') throw new Error(/gameName/.test(j.message || '') || !j.message ? '백엔드 v145 «새 버전» 재배포 전이에요' : j.message);
+    l.public = j.public; l.publicBans = j.publicBans || [];
+    dashRenderLessons();
+    dashSyncCurriculum_();
+    showToast(ban + '반에 ' + (on ? '공개했어요.' : '안 보이게 했어요.'));
+  }catch(e){
+    btn.disabled = false;
+    showToast('처리하지 못했어요: ' + e.message);
   }
 }
 

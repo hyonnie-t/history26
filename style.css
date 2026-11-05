@@ -2446,3 +2446,33 @@ body.perf-modal-open{overflow:hidden;}
 #dashView .ct-table{width:100%; border-collapse:collapse; margin:var(--space-sm) 0; font-size:var(--fs-base);}
 #dashView .ct-table th, #dashView .ct-table td{border-bottom:1px solid var(--line); padding:6px; text-align:center;}
 #dashView .ct-table th{background:var(--paper);}
+
+/* v145 — 커리큘럼 반 칩(한 반씩 공개) */
+.cl-bans{display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:6px;}
+.cl-ban-state{font-size:.78rem; color:var(--ink-soft); margin-right:4px;}
+.cl-ban{min-height:32px; min-width:44px; padding:0 8px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card); color:var(--ink-soft); font-size:.82rem; cursor:pointer; transition:background-color .15s, color .15s;}
+.cl-ban.on{background:var(--seal); border-color:var(--seal); color:#fff; font-weight:700;}
+.cl-ban:disabled{opacity:.5; cursor:wait;}
+
+/* v145 — 모둠 배정 탭 */
+#dashView .gr-paste-box{margin-top:var(--space-sm);}
+#dashView .gr-paste-box summary{cursor:pointer; min-height:var(--tap-min); display:flex; align-items:center; font-size:var(--fs-sm); color:var(--ink-soft);}
+#dashView .gr-paste{display:block; width:100%; box-sizing:border-box; margin-top:var(--space-xs); padding:var(--space-sm); border:1px solid var(--line); border-radius:var(--radius-sm); font-size:var(--fs-base); font-family:inherit; resize:vertical; -webkit-text-security:disc;}
+#dashView .gr-size{min-height:var(--tap-min); margin-left:var(--space-xs); font-size:var(--fs-base);}
+#dashView .gr-board{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:var(--space-sm); margin:var(--space-sm) 0;}
+#dashView .gr-col{border:2px solid var(--ink-soft); border-radius:var(--radius-sm); background:var(--card); overflow:hidden; animation:grIn .3s ease both; animation-delay:calc(var(--i) * .05s);}
+#dashView .gr-head{background:var(--ink-soft); color:#fff; font-weight:700; padding:var(--space-xs) var(--space-sm);}
+#dashView .gr-head small{font-weight:400;}
+#dashView .gr-nos{display:flex; flex-wrap:wrap; gap:6px; padding:var(--space-sm);}
+#dashView .gr-nos span{font-size:var(--fs-xl); font-weight:700; min-width:2em; text-align:center; background:var(--paper); border-radius:var(--radius-xs);}
+#dashView .gr-detail{margin-top:var(--space-sm);}
+#dashView .gr-detail summary{cursor:pointer; min-height:var(--tap-min); display:flex; align-items:center; font-size:var(--fs-sm); color:var(--ink-soft);}
+#dashView .gr-tier{margin:0 4px 0 1px; color:var(--ink-soft);}
+#dashView .gr-full{position:fixed; inset:0; z-index:1000; overflow:auto; background:var(--paper); padding:24px; box-sizing:border-box; cursor:pointer;}
+#dashView .gr-full h2{margin:0 0 12px; font-size:2rem;}
+#dashView .gr-full p{margin:12px 0 0; color:var(--ink-soft);}
+#dashView .gr-board.big{grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
+#dashView .gr-board.big .gr-head{font-size:1.5rem;}
+#dashView .gr-board.big .gr-nos span{font-size:2.6rem; min-width:1.6em;}
+@keyframes grIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion:reduce){ #dashView .gr-col{animation:none;} }
