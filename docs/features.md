@@ -30,6 +30,8 @@
 `absent`·`todayNums`는 `day`가 오늘이 아니면 비운다. 반 선택 우선순위: 주소 `?ban=` → `lastClass` → 첫 반. 입구는 로그인 화면 `.teacher-entry`의 링크와 대시보드 탐구포인트 탭 지급 카드의 링크.
 고양이 테마(v129): `body.pk-theme-cat`일 때 무대에 `#pkCat`(그림 `images/cat/cat-{up,down,cheer}.jpg` 플립북)이 보인다. `catStart_()`가 릴이 도는 동안 up↔down을 갈아 끼우고 `catStop_(번호)`가 cheer로 바꿔 `#pkCatSign`에 번호를 띄운다. 팻말 위치 %는 cheer 그림에 맞춘 값이라 그림을 바꾸면 style.css도 고친다. 저장 `theme:"cat"`, 주소 `?theme=cat`.
 
+점검 페이지(v153): `picker-check.html`은 진짜 `picker.js`를 가짜 저장소로 돌려 그 PC에서 순서가 섞이는지 잰다. 실제 기록(`h26_picker_v1`)은 읽기만 한다. `picker.js`의 `pkDrawBtn`·`pkResetBtn`·`pkClass`·`pkResult`를 쓰므로 이 id를 바꾸면 같이 고친다.
+
 ## 학급 공통 피드백 & 피드백 알림
 교사 대시보드 "학생 기록" 탭에서 학년+반+활동(하나)을 모두 골랐을
 때만 `#classFbBox`가 나타나(`dashRenderClassFeedback()`) 그 범위 학생 글을
