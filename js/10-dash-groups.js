@@ -121,14 +121,62 @@ function grColumns_(rows, key){
   const scoreCol = totals.length === 1 ? totals[0] : (scoreable.length === 1 ? scoreable[0] : null);
   return { hasHeader, body, cols, idGuess: idCol ? idCol.i : null, scoreGuess: scoreCol ? scoreCol.i : null };
 }
+/* v149 — 나이스 «성적일람표»를 그대로 붙여 넣어도 읽는다. 번호가 «반/번호» 꼴이고 머리글이 병합돼 있어 일반 표 읽기로는 번호 칸을 못 찾는다.
+ * 엑셀 복사는 줄바꿈이 든 칸(병합 머리글)을 따옴표로 묶으므로 따옴표를 풀어 칸 위치를 지킨다. */
+const GR_NEIS_ID = /^(\d{1,2})\/(\d{1,2})$/;
+function grTsvRows_(text){
+  const rows = []; let row = [], cell = '', quoted = false;
+  const s = String(text || '').replace(/\r\n?/g, '\n');
+  for(let i = 0; i < s.length; i++){
+    const ch = s[i];
+    if(quoted){
+      if(ch === '"' && s[i + 1] === '"'){ cell += '"'; i++; }
+      else if(ch === '"') quoted = false;
+      else cell += ch;
+    } else if(ch === '"' && cell === '') quoted = true;
+    else if(ch === '\t'){ row.push(cell.trim()); cell = ''; }
+    else if(ch === '\n'){ row.push(cell.trim()); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  row.push(cell.trim()); rows.push(row);
+  return rows;
+}
+/* 일람표면 {text:'번호\t이름\t합계…', zero:[번호], otherBan:줄 수}, 아니면 null.
+ * 합계 0점은 뺀다 — 1학기 뒤 전입생과 전출생이 0점으로 나오는데, 그대로 두면 0점으로 계산된다. 빠진 번호가 번호 칸에 있으면 백엔드가 반 평균으로 넣는다. */
+function grNeisTable_(text, key){
+  if(!/(^|[\t"\n])\s*\d{1,2}\/\d{1,2}\s*(\t|$)/m.test(String(text || ''))) return null;
+  const rows = grTsvRows_(text);
+  // 줄의 첫 칸이 «반/번호»이고 반 숫자가 전부 같을 때만 일람표로 본다(3/14 같은 날짜 칸이 있는 일반 표를 잘못 읽지 않게)
+  const idAt = r => { const i = r.findIndex(c => c); return i >= 0 && GR_NEIS_ID.test(r[i]) ? i : -1; };
+  const body = rows.filter(r => idAt(r) >= 0);
+  if(!body.length || new Set(body.map(r => r[idAt(r)].split('/')[0])).size !== 1) return null;
+  const headerOf = name => { for(const r of rows){ const i = r.findIndex(c => c.replace(/\s/g, '') === name); if(i >= 0) return i; } return -1; };
+  let col = headerOf('합계');
+  if(col < 0) col = headerOf('원점수');
+  if(col < 0) return null; // 합계 칸을 못 찾으면 일반 표처럼 교사가 고르게 둔다
+  const ban = Number(String(key).split('-')[1]);
+  const out = ['번호\t이름\t합계'], zero = [];
+  let otherBan = 0;
+  body.forEach(r => {
+    const at = idAt(r), m = r[at].match(GR_NEIS_ID);
+    if(Number(m[1]) !== ban){ otherBan++; return; }
+    const no = Number(m[2]);
+    const name = r.slice(at + 1, col).find(c => c && !GR_NUMERIC.test(c)) || '';
+    const v = r[col];
+    if(!GR_NUMERIC.test(v || '') || Number(v) <= 0){ zero.push(no); return; }
+    out.push(no + '\t' + name + '\t' + v);
+  });
+  return { text: out.join('\n'), zero, otherBan };
+}
 /* 표 + 고른 칸 → {names, scores, cols, id, score, skipped, dup, same, ready}. 이름은 화면에만 쓰고 보내지 않는다. */
 function grParsePaste_(text, key){
-  const rows = grTable_(text);
+  const neis = grNeisTable_(text, key);
+  const rows = grTable_(neis ? neis.text : text);
   const info = grColumns_(rows, key);
   const pick = GR.cols[key] || {};
   const id = pick.id != null ? pick.id : info.idGuess, score = pick.score != null ? pick.score : info.scoreGuess;
   const nameCol = (() => { const h = info.hasHeader ? rows[0] : []; let i = h.findIndex(c => /이름|성명/.test(c)); if(i >= 0) return i; const r = info.body[0] || []; return r.findIndex(c => c && c.length >= 2 && !GR_NUMERIC.test(c)); })();
-  const out = { names: {}, scores: {}, cols: info.cols, id, score, skipped: 0, dup: [], same: false, ready: false, empty: !rows.length, uneven: 0 };
+  const out = { names: {}, scores: {}, cols: info.cols, id, score, skipped: 0, dup: [], same: false, ready: false, empty: !rows.length, uneven: 0, neis };
   if(id == null || score == null || id === score) return out;
   // 탭 없이 공백으로만 나뉜 표는 빈칸이 있으면 칸이 밀려 석차 같은 값을 점수로 읽는다 — 칸 수가 다른 줄이 있으면 멈춘다
   if(!rows.tabbed){
@@ -166,7 +214,9 @@ function grPasteNoteHtml_(){
   else if(p.uneven) msg = '<b>칸 수가 다른 줄이 ' + p.uneven + '개라 칸이 밀릴 수 있어요.</b> 엑셀에서 복사해 붙여 넣어 주세요.';
   else if(p.dup.length) msg = '<b>같은 번호가 여러 줄이에요(' + p.dup.join(', ') + '번).</b> 이 반 표만 붙여 넣어 주세요.';
   else if(!v.length) msg = '<b>읽은 점수가 없어요.</b> 번호 칸·점수 칸을 확인해 주세요.';
-  else msg = `${v.length}명 읽음 · 점수 ${Math.min(...v)}~${Math.max(...v)}${p.skipped ? ' · 못 읽은 줄 ' + p.skipped + '개' : ''}${p.same ? ' · <b>점수가 전부 같아요. 점수 칸이 맞는지 확인해 주세요.</b>' : ''}`;
+  else msg = `${p.neis ? '나이스 성적일람표 합계로 ' : ''}${v.length}명 읽음 · 점수 ${Math.min(...v)}~${Math.max(...v)}${p.skipped ? ' · 못 읽은 줄 ' + p.skipped + '개' : ''}${p.same ? ' · <b>점수가 전부 같아요. 점수 칸이 맞는지 확인해 주세요.</b>' : ''}`;
+  if(p.neis && p.neis.zero.length) msg += `<br>합계가 0점이라 뺀 번호: ${p.neis.zero.join(', ')} — 전입생이면 번호 칸에 넣어 주세요(반 평균으로 들어가요). 전출생이면 빼 두면 돼요.`;
+  if(p.neis && p.neis.otherBan) msg += `<br><b>이 반이 아닌 줄 ${p.neis.otherBan}개는 뺐어요.</b> ${ctEsc_(GR.key)}반 표가 맞는지 확인해 주세요.`;
   return `<label class="dash-hint">번호 칸 ${sel('id', p.id)}</label> <label class="dash-hint">점수 칸 ${sel('score', p.score)}</label><p class="dash-hint">${msg}</p>`;
 }
 function grPickCol_(which, val){
@@ -228,9 +278,10 @@ function grBody_(){
   const [grade, ban] = GR.key.split('-');
   const body = { action: 'groupAssign', token: TOKEN, grade, ban: Number(ban), size: GR.size, seed: GR.seed, roster: grParseNums_(grRosterText_(GR.key)) };
   if(String(GR.paste[GR.key] || '').trim()){
-    if(!body.roster.length) throw new Error('번호 칸을 먼저 적어 주세요(예: 1-13, 21-33).');
     const p = grParsePaste_(GR.paste[GR.key], GR.key);
+    if(!body.roster.length && !(p.neis && p.ready)) throw new Error('번호 칸을 먼저 적어 주세요(예: 1-13, 21-33).');
     if(!p.ready) throw new Error('붙여 넣은 표를 아직 못 읽었어요. 번호 칸·점수 칸을 확인해 주세요.');
+    if(!body.roster.length) body.roster = Object.keys(p.scores).map(Number); // v149 — 번호 칸이 빈 반(2학년 4~8반)은 일람표 번호로. 0점으로 뺀 번호는 화면에 알린다
     body.scores = p.scores;
     GR.pasteNames = GR.pasteNames || {}; GR.pasteNames[GR.key] = p.names;
   } else {
@@ -422,7 +473,7 @@ function grDraftHtml_(d){
 function grSourceHtml_(sheetN){
   if(String(GR.paste[GR.key] || '').trim()) return '<p class="gr-source">붙여 넣은 성적표로 짜요.</p>';
   if(sheetN) return `<p class="gr-source ok">✓ 성적관리 탭의 학기말 성적(수행 30 + 지필 70)으로 짜요 · ${sheetN}명. 바로 «미리보기»를 눌러 주세요.</p>`;
-  if(sheetN === 0) return '<p class="gr-source">이 반은 성적관리 탭에 성적이 없어요. 아래에 성적표를 붙여 넣어 주세요.</p>';
+  if(sheetN === 0) return '<p class="gr-source">이 반은 성적관리 탭에 성적이 없어요. 나이스 성적일람표를 엑셀에서 전체 선택해 복사한 뒤 아래에 그대로 붙여 넣어 주세요.</p>';
   return '';
 }
 function grActionsHtml_(){
