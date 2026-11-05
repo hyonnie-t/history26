@@ -364,7 +364,8 @@ function myTrackOf(cur, ban){
 }
 function filterLessonsForBan(cur, ban){
   const track = myTrackOf(cur, ban);
-  return cur.lessons.filter(l => !l.owner || l.owner === track);
+  // v145 — l.bans가 있으면 그 반에만 공개된 차시(대시보드 커리큘럼의 반 칩)
+  return cur.lessons.filter(l => (!l.owner || l.owner === track) && (!l.bans || l.bans.includes(Number(ban))));
 }
 
 /* ── 포털 렌더 ── */
