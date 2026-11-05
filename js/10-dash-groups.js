@@ -7,9 +7,10 @@
  *  - 붙여 넣은 표: 머리글로 번호 칸·점수 칸을 짐작해 보여 주고, 애매하면 교사가 고른다(석차·응시자 수를 점수로 읽지 않게). 미리보기 뒤에는 접고, 확정하면 지운다.
  *  - 확정은 미리보기 때 보낸 요청(GR.draft.req)을 그대로 다시 보낸다. 계산이 결정적이라 본 판이 그대로 저장되고, 그사이 입력을 고치면 미리보기를 버린다.
  *  - v147: 미리보기·수정 화면에서 번호와 이름을 같이 보고, 학생 둘을 차례로 눌러 자리를 바꾼다(모둠 제목을 누르면 그 모둠으로 옮긴다). 이름은 교사 화면에만, 시트에 저장하지 않는다.
+ *  - v151: «확정 취소»가 그 반 줄을 시트에서 뺀다(백엔드 groupCancel). 방금 취소한 판은 이 화면 메모리(GR.undo)에 남겨 «되돌리기»로 다시 확정한다. 새로고침하면 사라진다.
  *  - 계산 함수는 백엔드 84_groups.gs 하나뿐이다. 화면은 받은 결과를 그리기만 한다.
  * ══════════════════════════════════════════════════════ */
-const GR = { sub: 'class', scoreN: null, nameBy: {}, picked: null, detailOpen: false, key: '', saved: null, draft: null, err: '', busy: false, nums: {}, paste: {}, cols: {}, fold: {}, titles: {}, title: {}, size: 4, seed: 1, full: false, rev: 0 };
+const GR = { sub: 'class', scoreN: null, nameBy: {}, picked: null, detailOpen: false, key: '', saved: null, draft: null, err: '', busy: false, nums: {}, paste: {}, cols: {}, fold: {}, titles: {}, title: {}, size: 4, seed: 1, full: false, rev: 0, undo: {} };
 const GR_MAX_NUM = 50; // 백엔드 GROUP_MAX_NUM과 같게
 
 /* v146 — «모둠·팀» 탭 위쪽 고르기. 고른 쪽은 이 기기에 기억한다. */
@@ -348,8 +349,75 @@ async function grConfirm_(){
     GR.draft = null;
     delete GR.paste[key]; delete GR.cols[key]; delete GR.fold[key]; // 이름·성적 표는 쓸모가 끝나면 화면에서 지운다
     GR.picked = null;
+    delete GR.undo[key]; // v151 새 판을 확정했으니 취소한 옛 판으로 되돌릴 일이 없다
     showToast(key + '반 모둠을 확정했어요. «크게 보기»로 칠판에 띄워 주세요.');
   } catch(e){ showToast('저장 못 했어요: ' + e.message); }
+  GR.busy = false; grRender_();
+}
+
+/* ── 확정 취소·되돌리기(v151) ── */
+async function grCancelSaved_(){
+  if(GR.busy || GR.draft) return;
+  if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 취소하지 않았어요.'); return; }
+  const key = GR.key, [grade, ban] = key.split('-');
+  GR.busy = true; grRender_();
+  try {
+    await grLoadSaved_(); // 다른 PC에서 그새 바꿨는지 다시 본다. 되돌릴 판도 이때의 것으로 남긴다
+    const first = grSavedBan_();
+    if(!first.length){ showToast(key + '반은 이미 취소돼 있어요.'); GR.busy = false; grRender_(); return; }
+    const count = first.reduce((a, g) => a + g.nums.length, 0);
+    if(!confirm(key + '반 모둠 확정을 취소할까요?\n\n' + count + '명의 모둠이 시트에서 지워지고, 로그인 없이 보는 모둠 페이지에서도 사라져요.\n이 화면을 닫기 전까지는 «되돌리기»로 살릴 수 있어요.')){ GR.busy = false; grRender_(); return; }
+    await grLoadSaved_(); // 확인창이 떠 있는 동안 다른 PC가 바꿨을 수 있다. 되돌릴 판은 지우기 바로 전 것으로
+    GR.undo[key] = grSavedBan_().map(g => ({ no: g.no, nums: g.nums.slice() })); // 보내기 전에 남긴다. 서버는 지웠는데 응답만 못 받아도 판을 잃지 않게
+    let replied = false;
+    try {
+      const j = await grPost_({ action: 'groupCancel', token: TOKEN, grade, ban: Number(ban) });
+      replied = true;
+      if(j.result !== 'success') throw new Error(/gameName/.test(j.message || '') ? '백엔드 v151 «새 버전» 재배포 전이에요' : (j.message || '취소하지 못했어요'));
+      if(j.cancelled !== true) throw new Error('백엔드 v151 «새 버전» 재배포 전이에요');
+      await grLoadSaved_();
+      if(grSavedBan_().length) throw new Error('시트에 모둠이 남아 있어요. 새로고침한 뒤 확인해 주세요');
+      GR.full = false;
+      showToast(key + '반 모둠 확정을 취소했어요.');
+    } catch(e){
+      // 실패로 보여도 서버에서는 끝났을 수 있다. 시트를 다시 읽어 결과를 가린다
+      let left = null;
+      try { await grLoadSaved_(); left = grSavedBan_().length; } catch(e2){ /* 못 읽으면 되돌릴 판을 그대로 둔다 */ }
+      if(left === 0){ GR.full = false; showToast(key + '반 모둠 확정을 취소했어요.'); }
+      else if(left === null) showToast('취소됐는지 확인하지 못했어요. 새로고침하기 전에 다시 눌러 확인해 주세요.');
+      else if(!replied) showToast('응답을 받지 못했어요. 잠시 뒤 «확정 취소»를 다시 눌러 결과를 확인해 주세요.'); // 서버가 아직 처리 중일 수 있어 되돌릴 판을 지우지 않는다. 판이 있는 동안 버튼은 안 보이고 다음 취소 때 새로 남긴다
+      else showToast('취소 못 했어요: ' + e.message);
+    }
+  } catch(e){ showToast('취소 못 했어요: ' + e.message); }
+  GR.busy = false; grRender_();
+}
+async function grUndoCancel_(){
+  const key = GR.key, snap = GR.undo[key];
+  if(!snap || GR.busy) return;
+  if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 계속할까요?')) return;
+  if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return; }
+  const [grade, ban] = key.split('-');
+  GR.busy = true; grRender_();
+  try {
+    await grLoadSaved_();
+    const same = () => JSON.stringify(grSavedBan_().map(g => g.nums)) === JSON.stringify(snap.map(g => g.nums));
+    if(grSavedBan_().length && same()){ // 앞서 응답만 못 받았고 이미 되돌려져 있다
+      delete GR.undo[key]; GR.draft = null; GR.picked = null; GR.rev++;
+      showToast(key + '반 모둠을 취소 전으로 되돌렸어요.');
+      GR.busy = false; grRender_(); return;
+    }
+    if(grSavedBan_().length){ delete GR.undo[key]; throw new Error('그사이 새 모둠이 확정돼 있어요'); } // 새 판을 옛 판으로 덮지 않는다
+    const layout = {}; snap.forEach(g => g.nums.forEach(n => { layout[n] = g.no; }));
+    let sent = null;
+    try {
+      const j = await grPost_({ action: 'groupAssign', token: TOKEN, grade, ban: Number(ban), size: GR.size, seed: 1, roster: Object.keys(layout).map(Number), layout, confirm: true });
+      if(j.result !== 'success') throw new Error(grErrText_(j));
+    } catch(e){ sent = e; } // 응답만 못 받았을 수 있다. 아래에서 시트로 가린다
+    try { await grLoadSaved_(); } catch(e){ throw new Error('결과를 확인하지 못했어요. 다시 눌러 확인해 주세요'); }
+    if(!same()) throw (sent || new Error('저장된 모둠이 취소 전과 달라요. «확정한 모둠»을 확인해 주세요'));
+    delete GR.undo[key]; GR.draft = null; GR.picked = null; GR.rev++;
+    showToast(key + '반 모둠을 취소 전으로 되돌렸어요.');
+  } catch(e){ showToast('되돌리지 못했어요: ' + e.message); }
   GR.busy = false; grRender_();
 }
 
@@ -512,8 +580,8 @@ function grRender_(){
       ${GR.size !== 4 ? ' <b>국민 국가 3차시 보스 레이드는 모둠 4명·최종전 대표 8명까지예요.</b>' : ''}</label>
     <div id="grActions">${grActionsHtml_()}</div></section>`;
   html += `<section class="dash-card"><h2 class="dash-card-title">② 확정한 모둠 — ${GR.key}반</h2>` + (saved.length
-    ? `<div class="ct-top"><button type="button" class="btn btn-sm" onclick="GR.full=true;grRender_()"${GR.draft ? ' disabled title="이름이 보이는 판을 닫은 뒤에 띄울 수 있어요"' : ''}>⛶ 칠판에 크게 보기</button>${GR.draft ? `<button type="button" class="btn btn-sm btn-ghost" onclick="grCloseDraft_()">판 닫기</button>` : ''}<button type="button" class="btn btn-sm btn-ghost" onclick="grEditSaved_()"${GR.busy ? ' disabled' : ''}>✏️ 고치기</button></div>` + grBoardHtml_(saved)
-    : '<p class="dash-hint">아직 확정한 모둠이 없어요.</p>') + '</section>';
+    ? `<div class="ct-top"><button type="button" class="btn btn-sm" onclick="GR.full=true;grRender_()"${GR.draft ? ' disabled title="이름이 보이는 판을 닫은 뒤에 띄울 수 있어요"' : ''}>⛶ 칠판에 크게 보기</button>${GR.draft ? `<button type="button" class="btn btn-sm btn-ghost" onclick="grCloseDraft_()">판 닫기</button>` : ''}<button type="button" class="btn btn-sm btn-ghost" onclick="grEditSaved_()"${GR.busy ? ' disabled' : ''}>✏️ 고치기</button><button type="button" class="btn btn-sm btn-ghost" onclick="grCancelSaved_()"${GR.busy || GR.draft ? ' disabled' : ''}${GR.draft ? ' title="이름이 보이는 판을 닫은 뒤에 취소할 수 있어요"' : ''}>↩️ 확정 취소</button></div>` + grBoardHtml_(saved)
+    : '<p class="dash-hint">아직 확정한 모둠이 없어요.</p>' + (GR.undo[GR.key] ? `<div class="ct-top"><button type="button" class="btn btn-sm btn-ghost" onclick="grUndoCancel_()"${GR.busy ? ' disabled' : ''}>↩️ 방금 취소한 모둠 되돌리기</button></div>` : '')) + '</section>';
   if(GR.full && saved.length) html += `<div class="gr-full" onclick="GR.full=false;grRender_()"><h2>${GR.key}반 모둠</h2>${grBoardHtml_(saved, true)}<p>화면을 누르면 닫혀요</p></div>`;
   box.innerHTML = html;
 }
