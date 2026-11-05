@@ -9,7 +9,8 @@
  * 결석 표시와 «오늘 발표» 목록은 날짜가 바뀌면 비워진다. 서버에 쓰지 않는다.
  * v130 — 후보는 «실제 학급 번호»다(전출로 빈 번호·인원수보다 큰 번호가 있어 1~BAN_SIZE로는 틀린다).
  *   우선순위: 이 기기에서 «번호 명단»으로 고친 값(h26_picker_v1.nums) > config.js BAN_NUMS > 1~BAN_SIZE.
- * v152 — «👥 모둠 보기»: 고른 반의 확정 모둠을 창으로 띄운다. 그리기·불러오기는 js/group-board.js(groups.html과 공용). */
+ * v152 — «👥 모둠 보기»: 고른 반의 확정 모둠을 창으로 띄운다. 그리기·불러오기는 js/group-board.js(groups.html과 공용).
+ * v155 — «🎲 모둠 뽑기»: 번호 뽑기와 같은 공정성 규칙(같은 난수, 한 바퀴, 새 바퀴 첫 번째는 직전 모둠 제외). 모둠 창이 떠 있으면 리모컨·→·스페이스는 모둠을 뽑는다. */
 (function(){
   const CONFIG = window.PORTAL_CONFIG || {};
   const PK_KEY = 'h26_picker_v1';
@@ -20,6 +21,7 @@
   let PK_GROUPS = null;      // v152 — 서버에서 받은 확정 모둠. 아직 못 받았으면 null
   let PK_GROUPS_JSON = '';   // 같은 내용이면 다시 그리지 않으려고(등장 움직임이 반복되지 않게)
   let PK_GROUPS_BUSY = false;
+  let PK_STAGE_MODE = 'num'; // v155 — 무대가 번호('num')를 뽑는지 모둠('group')을 뽑는지
 
   function today_(){ const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function loadAll_(){ try{ return JSON.parse(localStorage.getItem(PK_KEY)) || {}; }catch(e){ return {}; } }
@@ -29,8 +31,8 @@
   }
   function state_(key){
     const all = loadAll_();
-    const st = Object.assign({ picked: [], last: null, absent: [], day: '', todayNums: [] }, (all.classes || {})[key] || {});
-    if(st.day !== today_()){ st.absent = []; st.todayNums = []; st.day = today_(); }
+    const st = Object.assign({ picked: [], last: null, absent: [], day: '', todayNums: [], groupPicked: [], groupLast: null, groupSig: '', todayGroups: [] }, (all.classes || {})[key] || {});
+    if(st.day !== today_()){ st.absent = []; st.todayNums = []; st.todayGroups = []; st.day = today_(); }
     return st;
   }
   function saveState_(key, st){
@@ -112,8 +114,9 @@
       const tip = cls === ' is-picked' ? '눌러서 다시 후보에 넣기' : '눌러서 결석 표시/해제';
       return `<button type="button" class="pk-chip${cls}" data-num="${n}" title="${tip}" aria-label="${n}번 ${tip}">${n}</button>`;
     }).join('');
-    $('pkToday').textContent = st.todayNums.length ? st.todayNums.map(n => n + '번').join(', ') : '아직 없어요';
-    $('pkCopy').hidden = !st.todayNums.length;
+    const todayParts = st.todayNums.map(n => n + '번').concat(st.todayGroups.map(g => g.no + '모둠')); // v155
+    $('pkToday').textContent = todayParts.length ? todayParts.join(', ') : '아직 없어요';
+    $('pkCopy').hidden = !todayParts.length;
   }
   function toggleChip_(num){
     if(PK_SPINNING || !$('pkStage').hidden) return; // 결과 무대가 떠 있을 땐 뒤쪽 칩이 Tab·스페이스로 눌리지 않게
@@ -214,6 +217,23 @@
     $('pkCat').classList.add('is-done'); // 팻말 번호·«샥!» 튀어나오기(CSS 애니메이션)
   }
 
+  /* v155 — 번호·모둠이 같이 쓰는 무대 열기. 모둠은 한 자리면 충분해 릴 하나만 쓴다. */
+  function stageStart_(mode, title){
+    const group = mode === 'group';
+    PK_STAGE_MODE = mode; PK_SPINNING = true;
+    $('pkDrawBtn').disabled = true; $('pkActions').hidden = true;
+    $('pkStageClass').textContent = title;
+    $('pkHint').textContent = '';
+    $('pkResult').classList.remove('is-show');
+    $('pkReel0').hidden = group;
+    $('pkUnit').textContent = group ? '모둠' : '번';
+    $('pkAgainBtn').textContent = group ? '한 모둠 더' : '한 명 더';
+    $('pkReel0').textContent = '?'; $('pkReel1').textContent = '?';
+    $('pkReel0').classList.remove('is-stop'); $('pkReel1').classList.remove('is-stop');
+    $('pkGroups').inert = group; // 무대 뒤 모둠 창 버튼이 Tab으로 눌리지 않게
+    $('pkStage').hidden = false;
+    catStart_();
+  }
   async function draw_(){
     if(PK_SPINNING || !PK_CLASS || !$('pkNumsBox').hidden || !$('pkGroups').hidden) return;
     const roster = roster_(PK_CLASS), st = state_(PK_CLASS);
@@ -229,18 +249,10 @@
     // 번호를 먼저 확정·저장한 뒤 연출을 돌린다(연출은 결과에 영향 없음, 중간에 창을 닫아도 기록은 남는다).
     st.picked.push(pick); st.last = pick; st.todayNums.push(pick);
     saveState_(PK_CLASS, st);
-    PK_SPINNING = true;
-    $('pkDrawBtn').disabled = true; $('pkActions').hidden = true;
     const [grade, ban] = PK_CLASS.split('-');
-    $('pkStageClass').textContent = `${grade}학년 ${ban}반 발표자는…`;
-    $('pkHint').textContent = '';
-    $('pkResult').classList.remove('is-show');
-    $('pkStage').hidden = false;
+    stageStart_('num', `${grade}학년 ${ban}반 발표자는…`);
     const fast = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const two = String(pick).padStart(2, '0');
-    $('pkReel0').textContent = '?'; $('pkReel1').textContent = '?';
-    $('pkReel0').classList.remove('is-stop'); $('pkReel1').classList.remove('is-stop');
-    catStart_();
     try{
       await spinReel_($('pkReel0'), two[0], fast ? 400 : 1800);
       // 실제로 뽑힐 수 있었던 후보 중 같은 십의 자리 수
@@ -259,11 +271,18 @@
       render_();
     }
   }
-  function closeStage_(){ if(!PK_SPINNING){ $('pkStage').hidden = true; $('pkDrawBtn').focus(); } }
+  function closeStage_(){
+    if(PK_SPINNING) return;
+    $('pkStage').hidden = true; $('pkGroups').inert = false;
+    ($('pkGroups').hidden ? $('pkDrawBtn') : $('pkGroupDrawBtn')).focus();
+  }
+  /* v155 — 모둠 창이 떠 있으면 모둠을, 아니면 번호를 뽑는다(리모컨·«한 명 더» 공용) */
+  function drawAny_(){ if($('pkGroups').hidden) draw_(); else groupDraw_(); }
   function copyToday_(){
     const st = state_(PK_CLASS);
     const [grade, ban] = PK_CLASS.split('-');
-    const text = `${grade}학년 ${ban}반 ${st.day} 발표: ` + st.todayNums.map(n => n + '번').join(', ');
+    const text = `${grade}학년 ${ban}반 ${st.day} 발표: ` + st.todayNums.map(n => n + '번')
+      .concat(st.todayGroups.map(g => `${g.no}모둠(${g.nums.join(', ')}번)`)).join(', '); // v155
     const done = () => say_('복사했어요. 대시보드 탐구포인트 탭에서 지급하세요.');
     if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => prompt('복사해서 쓰세요', text));
     else prompt('복사해서 쓰세요', text);
@@ -276,10 +295,77 @@
   function groupsDraw_(){
     const [grade, ban] = PK_CLASS.split('-');
     $('pkGroupsTitle').textContent = `${grade}학년 ${ban}반 모둠`;
-    if(!PK_GROUPS){ groupsMsg_('불러오는 중…'); return; }
-    const list = Object.prototype.hasOwnProperty.call(PK_GROUPS, PK_CLASS) ? PK_GROUPS[PK_CLASS] : null;
-    if(!list || !list.length){ groupsMsg_('이 반은 아직 확정한 모둠이 없어요.'); return; }
-    const box = $('pkGroupsBox'); box.textContent = ''; box.appendChild(GroupBoard.board(list));
+    const list = groupList_();
+    if(!PK_GROUPS) groupsMsg_('불러오는 중…');
+    else if(!list.length) groupsMsg_('이 반은 아직 확정한 모둠이 없어요.');
+    else { const box = $('pkGroupsBox'); box.textContent = ''; box.appendChild(GroupBoard.board(list)); }
+    groupsMark_();
+  }
+  function groupList_(){
+    return PK_GROUPS && Object.prototype.hasOwnProperty.call(PK_GROUPS, PK_CLASS) ? PK_GROUPS[PK_CLASS] || [] : [];
+  }
+  /* v155 — 모둠 번호는 자리 번호일 뿐이라 다시 확정하면 다른 학생들이 같은 번호를 받는다.
+   * 구성이 바뀌면 이번 바퀴 기록을 비운다(«오늘 발표»는 뽑을 때의 모둠원을 따로 저장해 그대로 둔다). */
+  function groupSync_(st, list){
+    const sig = JSON.stringify(list);
+    if(st.groupSig === sig) return false;
+    if(st.groupSig){ st.groupPicked = []; st.groupLast = null; }
+    st.groupSig = sig;
+    return true;
+  }
+  /* v155 — 이번 바퀴에 나온 모둠 표시. 칸을 다시 그리지 않아 등장 움직임이 반복되지 않는다. */
+  function groupsMark_(){
+    const list = groupList_(), has = list.length > 0;
+    $('pkGroupDrawBtn').hidden = $('pkGroupsReset').hidden = $('pkGroupsStatus').hidden = !has;
+    if(!has) return;
+    const nos = list.map(g => g.no);
+    const st = state_(PK_CLASS);
+    if(groupSync_(st, list)) saveState_(PK_CLASS, st);
+    const picked = st.groupPicked;
+    $('pkGroupsStatus').textContent = `이번 바퀴: ${nos.length}모둠 중 ${picked.length}모둠 발표 · 남은 후보 ${nos.length - picked.length}모둠`;
+    $('pkGroupsBox').querySelectorAll('.gp-col').forEach(col => {
+      col.classList.toggle('is-picked', picked.some(n => String(n) === col.dataset.no));
+    });
+  }
+  function groupsResetRound_(){
+    if(PK_SPINNING || !confirm('이번 바퀴 기록을 지우고 모든 모둠을 다시 후보에 넣을까요?')) return;
+    const st = state_(PK_CLASS); st.groupPicked = []; saveState_(PK_CLASS, st); groupsMark_();
+  }
+  async function groupDraw_(){
+    if(PK_SPINNING || !PK_CLASS) return;
+    const list = groupList_();
+    if(!list.length) return;
+    const nos = list.map(g => g.no), st = state_(PK_CLASS);
+    groupSync_(st, list);
+    let left = nos.filter(n => st.groupPicked.indexOf(n) < 0);
+    if(!left.length){ // 한 바퀴 끝 → 새 바퀴. 직전 모둠은 첫 번째에서 뺀다.
+      st.groupPicked = []; left = nos.slice();
+      say_('모든 모둠이 한 번씩 나왔어요. 새 바퀴를 시작해요.');
+    }
+    const cand = left.length > 1 && st.groupLast != null ? left.filter(n => n !== st.groupLast) : left;
+    const pick = cand[randInt_(cand.length)];
+    const nums = list.find(g => g.no === pick).nums;
+    // 번호 뽑기와 같이 먼저 확정·저장한 뒤 연출을 돌린다.
+    st.groupPicked.push(pick); st.groupLast = pick; st.todayGroups.push({ no: pick, nums: nums.slice() });
+    saveState_(PK_CLASS, st);
+    const [grade, ban] = PK_CLASS.split('-');
+    stageStart_('group', `${grade}학년 ${ban}반 발표 모둠은…`);
+    $('pkHint').textContent = `${cand.length}모둠 중 한 모둠!`;
+    const fast = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try{
+      await spinReel_($('pkReel1'), pick, fast ? 500 : 3000);
+      catStop_(pick);
+      $('pkHint').textContent = nums.join(', ') + '번';
+      $('pkResult').textContent = pick + '모둠 발표!';
+      $('pkResult').classList.add('is-show');
+      beep_(660, .12); setTimeout(() => beep_(990, .3), 130);
+      $('pkActions').hidden = false;
+      $('pkAgainBtn').focus();
+    }finally{
+      if(CAT_TIMER){ clearInterval(CAT_TIMER); CAT_TIMER = null; }
+      PK_SPINNING = false; $('pkDrawBtn').disabled = false;
+      groupsMark_(); render_();
+    }
   }
   /* 페이지를 열 때 미리 받아 두고(창이 바로 뜨게), 창을 열 때 한 번 더 받아 최신으로 맞춘다. 실패해도 보이던 모둠은 지우지 않는다. */
   async function groupsFetch_(){
@@ -292,17 +378,20 @@
         const json = JSON.stringify(got);
         const changed = json !== PK_GROUPS_JSON;
         PK_GROUPS = got; PK_GROUPS_JSON = json;
-        if(changed && !$('pkGroups').hidden) groupsDraw_();
+        if(changed && !$('pkGroups').hidden){
+          groupsDraw_();
+          if(document.activeElement === $('pkGroupsClose') && !$('pkGroupDrawBtn').hidden) $('pkGroupDrawBtn').focus(); // v155 — 열 때 아직 못 받았던 경우, 스페이스가 «닫기»에 걸리지 않게
+        }
       } else fail = '아직 준비 중이에요. 조금 뒤에 다시 열어 주세요.';
     }catch(e){ fail = '모둠을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'; }
     PK_GROUPS_BUSY = false; $('pkGroupsReload').disabled = false;
     if(fail && !$('pkGroups').hidden){ if(PK_GROUPS) say_(fail); else groupsMsg_(fail); }
   }
   function groupsOpen_(){
-    if(PK_SPINNING || !PK_CLASS) return;
+    if(PK_SPINNING || !PK_CLASS || !$('pkStage').hidden) return; // v155 — 결과 무대 뒤로 창이 열리면 «한 명 더»가 모둠을 뽑는다
     $('pkGroups').hidden = false; $('pkMain').inert = true; // 뒤쪽 번호 칩·버튼이 Tab으로 눌리지 않게
     groupsDraw_();
-    $('pkGroupsClose').focus();
+    ($('pkGroupDrawBtn').hidden ? $('pkGroupsClose') : $('pkGroupDrawBtn')).focus(); // 스페이스로 바로 뽑게
     groupsFetch_();
   }
   function groupsClose_(){
@@ -324,7 +413,7 @@
     $('pkClass').innerHTML = opts.map(o => `<option value="${o.key}"${o.key === PK_CLASS ? ' selected' : ''}>${o.label}</option>`).join('');
     $('pkClass').addEventListener('change', e => selectClass_(e.target.value));
     $('pkDrawBtn').addEventListener('click', draw_);
-    $('pkAgainBtn').addEventListener('click', draw_);
+    $('pkAgainBtn').addEventListener('click', drawAny_);
     $('pkCloseBtn').addEventListener('click', closeStage_);
     $('pkResetBtn').addEventListener('click', resetRound_);
     $('pkCopy').addEventListener('click', copyToday_);
@@ -332,6 +421,8 @@
     $('pkGroupsBtn').addEventListener('click', groupsOpen_); // v152
     $('pkGroupsClose').addEventListener('click', groupsClose_);
     $('pkGroupsReload').addEventListener('click', groupsFetch_);
+    $('pkGroupDrawBtn').addEventListener('click', groupDraw_); // v155
+    $('pkGroupsReset').addEventListener('click', groupsResetRound_);
     $('pkGroups').addEventListener('click', e => { if(e.target === $('pkGroups')) groupsClose_(); });
     $('pkNumsBtn').addEventListener('click', numsOpen_); // v130
     $('pkNumsSave').addEventListener('click', numsSave_);
@@ -349,8 +440,8 @@
       if(ev.key === 'Escape' && !$('pkGroups').hidden){ groupsClose_(); return; }
       if(ev.repeat || ev.altKey || ev.ctrlKey || ev.metaKey) return; // 꾹 누름·브라우저 단축키(Alt+→ 등)는 뽑기로 가로채지 않는다
       const tag = (ev.target && ev.target.tagName) || '';
-      if((ev.key === 'PageDown' || ev.key === 'ArrowRight') && tag !== 'SELECT' && tag !== 'INPUT'){ ev.preventDefault(); draw_(); return; }
-      if(ev.key === ' ' && !/^(BUTTON|SELECT|INPUT|TEXTAREA|LABEL)$/.test(tag)){ ev.preventDefault(); draw_(); }
+      if((ev.key === 'PageDown' || ev.key === 'ArrowRight') && tag !== 'SELECT' && tag !== 'INPUT'){ ev.preventDefault(); drawAny_(); return; }
+      if(ev.key === ' ' && !/^(BUTTON|SELECT|INPUT|TEXTAREA|LABEL)$/.test(tag)){ ev.preventDefault(); drawAny_(); }
     });
     render_();
     groupsFetch_(); // v152

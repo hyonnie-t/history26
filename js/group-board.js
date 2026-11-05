@@ -12,7 +12,7 @@ window.GroupBoard = (function(){
   function board(list){
     const wrap = document.createElement('div'); wrap.className = 'gp-board';
     list.forEach((g, i) => {
-      const col = document.createElement('div'); col.className = 'gp-col'; col.style.setProperty('--i', i);
+      const col = document.createElement('div'); col.className = 'gp-col'; col.dataset.no = g.no; col.style.setProperty('--i', i);
       const head = document.createElement('div'); head.className = 'gp-head'; head.textContent = g.no + '모둠 ';
       const small = document.createElement('small'); small.textContent = g.nums.length + '명'; head.appendChild(small);
       const nos = document.createElement('div'); nos.className = 'gp-nos';
