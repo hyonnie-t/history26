@@ -7,6 +7,9 @@
 이력도 있음 — `git log` "버전표기 충돌 정리" 커밋 참고). 확인 시점 기준 `index.html`/`style.css`에서
 가장 높은 버전 표기는 v68.
 
+## v157 (2026-11-09) — 홈 화면 아이콘 새로 그리기 + «홈 화면에 추가» 버튼
+효니: 폰 홈 화면 아이콘이 밋밋하니 파스텔 스티커풍으로 다시 만들고, 앱 안에서 바로 홈 화면에 추가할 수 있게 해 달라. 힉스필드 gpt_image_2_6로 두루마리·고서·고궁 지붕 그림을 그려 `images/icon-192`·`icon-512`·`icon-maskable-512`·`apple-touch-icon-180`·`favicon-32`·`favicon.ico`로 만들고(192·512·favicon은 모서리 바깥 투명, apple-touch는 iOS가 직접 깎으니 불투명, maskable은 중앙 안전영역), `manifest.webmanifest`·`sw.js`(캐시 없이 통과만 하는 최소 서비스워커)·`theme-color`를 추가했다. 포털 맨 아래에 작은 «📲 폰 화면에 아이콘 만들기» 버튼(`js/11-pwa-install.js`): 안드로이드·크롬은 설치 창(`beforeinstallprompt`), iOS·그 밖은 방법 안내 창, 이미 홈 화면에서 연 상태(standalone)면 숨김. 쓰기·서버 호출 없음. 이미 홈 화면에 추가한 폰은 아이콘을 지우고 다시 추가해야 새 그림이 보인다.
+
 ## v156 (2026-11-09) — 로그인 책 표지에 표지 그림
 효니: 노션 «만든 웹앱» 카드 표지 그림을 실제 웹앱에도 넣어 달라. 책 표지(`#bookCover .book-frame`) 맨 위, 제목 위에
 `images/cover.webp`(1200px, 65KB)를 금선 액자처럼 16:7로 넣었다. 글자 없는 장식 그림이라 `alt=""`. 처음 보일 때 한 번

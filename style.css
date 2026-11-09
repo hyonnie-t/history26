@@ -329,6 +329,9 @@ button{font-family:inherit; cursor:pointer;}
   background:var(--card); border:1px solid var(--line); border-radius:999px; color:var(--ink-soft);
 }
 .btn-logout:hover{border-color:var(--ink-soft);}
+/* v157 — 포털 맨 아래 «폰 화면에 아이콘 만들기»(눈에 덜 띄게 가운데 작게) */
+.addhome-row{text-align:center; margin:22px 0 0;}
+.addhome-row .btn-logout{font-size:.82rem; color:var(--ink-soft); white-space:nowrap;}
 
 /* 2단 레이아웃 */
 .layout{display:grid; grid-template-columns:250px minmax(0,1fr); gap:18px; align-items:start;}
