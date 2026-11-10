@@ -10,7 +10,8 @@
  * v130 — 후보는 «실제 학급 번호»다(전출로 빈 번호·인원수보다 큰 번호가 있어 1~BAN_SIZE로는 틀린다).
  *   우선순위: 이 기기에서 «번호 명단»으로 고친 값(h26_picker_v1.nums) > config.js BAN_NUMS > 1~BAN_SIZE.
  * v152 — «👥 모둠 보기»: 고른 반의 확정 모둠을 창으로 띄운다. 그리기·불러오기는 js/group-board.js(groups.html과 공용).
- * v155 — «🎲 모둠 뽑기»: 번호 뽑기와 같은 공정성 규칙(같은 난수, 한 바퀴, 새 바퀴 첫 번째는 직전 모둠 제외). 모둠 창이 떠 있으면 리모컨·→·스페이스는 모둠을 뽑는다. */
+ * v155 — «🎲 모둠 뽑기»: 번호 뽑기와 같은 공정성 규칙(같은 난수, 한 바퀴, 새 바퀴 첫 번째는 직전 모둠 제외). 모둠 창이 떠 있으면 리모컨·→·스페이스는 모둠을 뽑는다.
+ * v158 — 모둠 창에 3학년 «🏺 문화사 발굴단» 팀(반·팀·번호, groupsPublic.culture)도 같이 보인다. 팀은 보기만 하고 모둠 뽑기 후보가 아니다. */
 (function(){
   const CONFIG = window.PORTAL_CONFIG || {};
   const PK_KEY = 'h26_picker_v1';
@@ -19,6 +20,7 @@
   let PK_SPINNING = false;
   let PK_AUDIO = null;
   let PK_GROUPS = null;      // v152 — 서버에서 받은 확정 모둠. 아직 못 받았으면 null
+  let PK_CULTURE = {};       // v158 — 문화사 발굴단 팀 {'3-5': [{team, nums}]}
   let PK_GROUPS_JSON = '';   // 같은 내용이면 다시 그리지 않으려고(등장 움직임이 반복되지 않게)
   let PK_GROUPS_BUSY = false;
   let PK_STAGE_MODE = 'num'; // v155 — 무대가 번호('num')를 뽑는지 모둠('group')을 뽑는지
@@ -294,11 +296,19 @@
   }
   function groupsDraw_(){
     const [grade, ban] = PK_CLASS.split('-');
-    $('pkGroupsTitle').textContent = `${grade}학년 ${ban}반 모둠`;
     const list = groupList_();
+    const teams = Object.prototype.hasOwnProperty.call(PK_CULTURE, PK_CLASS) ? PK_CULTURE[PK_CLASS] || [] : []; // v158
+    $('pkGroupsTitle').textContent = `${grade}학년 ${ban}반 ${!list.length && teams.length ? '팀' : '모둠'}`;
     if(!PK_GROUPS) groupsMsg_('불러오는 중…');
-    else if(!list.length) groupsMsg_('이 반은 아직 확정한 모둠이 없어요.');
-    else { const box = $('pkGroupsBox'); box.textContent = ''; box.appendChild(GroupBoard.board(list)); }
+    else if(!list.length && !teams.length) groupsMsg_('이 반은 아직 확정한 모둠이 없어요.');
+    else {
+      const box = $('pkGroupsBox'); box.textContent = '';
+      if(list.length) box.appendChild(GroupBoard.board(list));
+      if(teams.length){
+        const h = document.createElement('h3'); h.className = 'gp-sub'; h.textContent = '🏺 문화사 발굴단'; box.appendChild(h);
+        box.appendChild(GroupBoard.teamBoard(teams));
+      }
+    }
     groupsMark_();
   }
   function groupList_(){
@@ -373,11 +383,12 @@
     PK_GROUPS_BUSY = true; $('pkGroupsReload').disabled = true;
     let fail = '';
     try{
-      const got = await GroupBoard.fetchGroups();
+      const all = await GroupBoard.fetchAll(); // v158 — 모둠 + 문화사 팀
+      const got = all && all.groups;
       if(got){
-        const json = JSON.stringify(got);
+        const json = JSON.stringify(all);
         const changed = json !== PK_GROUPS_JSON;
-        PK_GROUPS = got; PK_GROUPS_JSON = json;
+        PK_GROUPS = got; PK_CULTURE = all.culture; PK_GROUPS_JSON = json;
         if(changed && !$('pkGroups').hidden){
           groupsDraw_();
           if(document.activeElement === $('pkGroupsClose') && !$('pkGroupDrawBtn').hidden) $('pkGroupDrawBtn').focus(); // v155 — 열 때 아직 못 받았던 경우, 스페이스가 «닫기»에 걸리지 않게

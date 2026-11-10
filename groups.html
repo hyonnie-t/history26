@@ -4,60 +4,68 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>모둠 보기</title>
+<title>모둠·팀 보기</title>
 <link rel="icon" href="images/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=155">
+<link rel="stylesheet" href="style.css?v=158">
 </head>
 <body class="pk-body">
 <main class="pk-page">
   <header class="pk-head">
-    <h1 class="pk-title">👥 모둠 보기</h1>
+    <h1 class="pk-title">👥 모둠·팀 보기</h1>
     <button type="button" class="btn btn-sm btn-ghost" id="gpReload">새로고침</button>
   </header>
   <div class="gp-tabs" id="gpTabs"></div>
   <section id="gpBox" aria-live="polite"><p class="gp-msg">불러오는 중…</p></section>
 </main>
 <script src="config.js?v=133"></script>
-<script src="js/group-board.js?v=155"></script>
+<script src="js/group-board.js?v=158"></script>
 <script>
 /* v150 — 교사 토큰 없이 확정 모둠을 본다(대시보드 로그인이 안 될 때). 백엔드 mode=groupsPublic은 효니 담당 반의 반·모둠·번호만 준다. 쓰기 없음.
  * config.js는 window.PORTAL_CONFIG만 만든다(CONFIG는 01-core-login.js 쪽 이름). */
 (function(){
+  /* v158 — 3학년 문화사 발굴단 팀(culture)도 같이 본다(반 탭은 모둠·팀 둘 중 하나라도 있는 반). 학생 포털의 «👥 모둠·팀» 링크가
+   * ?ban=3-5&me=7 로 열면 그 반을 바로 띄우고 자기 번호를 강조한다(번호는 이 기기 안에서만 쓰고 서버로 보내지 않는다). */
   const KEY = 'h26_groups_view_ban';
   const tabs = document.getElementById('gpTabs'), box = document.getElementById('gpBox'), reloadBtn = document.getElementById('gpReload');
-  const has = key => Object.prototype.hasOwnProperty.call(groups, key);
+  const q = new URLSearchParams(location.search);
+  const asked = q.get('ban') || '', me = Number(q.get('me')) || 0;
+  const own = (o, key) => Object.prototype.hasOwnProperty.call(o, key);
+  const has = key => own(groups, key) || own(culture, key);
   const byBan = (a, b) => { const x = a.split('-').map(Number), y = b.split('-').map(Number); return x[0] - y[0] || x[1] - y[1]; };
-  let groups = {}, cur = '', loaded = false;
+  let groups = {}, culture = {}, cur = '', loaded = false;
   const message = text => { box.textContent = ''; const p = document.createElement('p'); p.className = 'gp-msg'; p.textContent = text; box.appendChild(p); };
   const remember = key => { try { localStorage.setItem(KEY, key); } catch(e){ /* 기억만 못 할 뿐 */ } };
   const remembered = () => { try { return localStorage.getItem(KEY) || ''; } catch(e){ return ''; } };
+  const title = text => { const h = document.createElement('h2'); h.className = 'gp-title'; h.textContent = text; box.appendChild(h); };
   function draw(){
     tabs.textContent = '';
-    Object.keys(groups).sort(byBan).forEach(key => {
+    const keys = Object.keys(groups).concat(Object.keys(culture).filter(k => !own(groups, k)));
+    keys.sort(byBan).forEach(key => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'btn btn-sm' + (key === cur ? '' : ' btn-ghost'); b.textContent = key + '반';
       b.setAttribute('aria-pressed', String(key === cur));
       b.onclick = () => { cur = key; remember(key); draw(); };
       tabs.appendChild(b);
     });
-    if(!cur || !has(cur)){ message('아직 확정한 모둠이 없어요.'); return; }
+    if(!cur || !has(cur)){ message((cur ? cur + '반은 ' : '') + '아직 확정한 모둠·팀이 없어요.'); return; }
     box.textContent = '';
-    const h = document.createElement('h2'); h.className = 'gp-title'; h.textContent = cur + '반 모둠'; box.appendChild(h);
-    box.appendChild(GroupBoard.board(groups[cur])); // v152 — picker.html과 같은 코드
+    const meHere = cur === asked ? me : 0; // 다른 반 탭을 누르면 강조하지 않는다
+    if(meHere) { const p = document.createElement('p'); p.className = 'gp-msg'; p.textContent = '⭐ 표시가 내 번호(' + meHere + '번)예요.'; box.appendChild(p); }
+    if(own(culture, cur) && culture[cur].length){ title(cur + '반 🏺 문화사 발굴단'); box.appendChild(GroupBoard.teamBoard(culture[cur], meHere)); }
+    if(own(groups, cur) && groups[cur].length){ title(cur + '반 모둠'); box.appendChild(GroupBoard.board(groups[cur], meHere)); } // v152 — picker.html과 같은 코드
   }
   /* 비상용 페이지라 일시 오류에 한 번 더 시도하고, 실패해도 이미 보이던 모둠은 지우지 않는다 */
   const notice = text => { if(!loaded){ tabs.textContent = ''; message(text); return; } let n = document.getElementById('gpNotice'); if(!n){ n = document.createElement('p'); n.id = 'gpNotice'; n.className = 'gp-msg'; box.prepend(n); } n.textContent = text; };
   async function load(){
     reloadBtn.disabled = true;
     try {
-      const got = await GroupBoard.fetchGroups();
+      const got = await GroupBoard.fetchAll();
       if(!got){ notice('아직 준비 중이에요. 조금 뒤에 다시 열어 주세요.'); return; }
-      groups = got; loaded = true;
-      const asked = new URLSearchParams(location.search).get('ban') || '';
-      if(!has(cur)) cur = has(asked) ? asked : (has(remembered()) ? remembered() : Object.keys(groups).sort(byBan)[0] || '');
+      groups = got.groups; culture = got.culture; loaded = true;
+      if(!cur) cur = asked || (has(remembered()) ? remembered() : Object.keys(groups).concat(Object.keys(culture)).sort(byBan)[0] || '');
       draw();
     } catch(e){
       notice('불러오지 못했어요. 인터넷 연결을 확인하고 새로고침을 눌러 주세요.');
