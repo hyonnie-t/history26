@@ -71,7 +71,7 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 | `config.js`/`checkin_data.js`(RANKS·BAN_SIZE·포인트·체크인) | `.claude/rules/config-data.md` |
 | 학생 화면 문구·사료·해석 콘텐츠 | `.claude/rules/student-screen.md` |
 | 특정 기능 고치기 | `docs/features.md` — `grep -n "^## " docs/features.md`로 제목 보고 그 섹션만 |
-| 개별 수업 웹앱 제작·수정, `snippets/` | `webapp-builder` 스킬 + `docs/webapp-rules.md` |
+| 개별 수업 웹앱 제작·수정, `snippets/` | `webapp-builder` 스킬 + `docs/webapp-rules.md` + 새 앱은 `docs/pieces/README.md`(틀·조각 설명서) |
 | 활동지·수업설계·루브릭·세특 등 콘텐츠 | `docs/lesson-design.md` |
 | 패들렛·Gemini 키·외부 에듀테크 도구 | `docs/tools.md` |
 | 배지(칭호첩)·`?mode=`/`action=` 동작·배포 여부 | `history26_backend` 레포(AGENTS.md·`docs/deploy-status.md`) |
