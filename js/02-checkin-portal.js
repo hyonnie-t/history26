@@ -395,6 +395,7 @@ function renderPortal(){
   }
   $('sideName').textContent = SESSION.name;
   $('sideClass').textContent = `${SESSION.grade}학년 ${SESSION.ban}반 ${SESSION.num}번`;
+  if($('sideGroupsLink')) $('sideGroupsLink').href = `groups.html?ban=${SESSION.grade}-${Number(SESSION.ban)}&me=${Number(SESSION.num)}`; // v158 — 내 반 모둠·문화사 팀, 내 번호 강조
 
   renderAnnouncements();
 

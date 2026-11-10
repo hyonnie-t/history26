@@ -23,7 +23,7 @@ paths:
   | `js/05-badges-events.js` | 칭호첩, 로그인 화면 이벤트 바인딩, 비밀번호 변경·초기화 요청, 자동 재조회, 대시보드→실제 학생 화면 보기 |
   | `js/06-dashboard.js` | 교사 대시보드(탭·공지·커리큘럼·웰컴 체크인·문항·이미지 업로드·질문함·메시지·AI 의심·학급 피드백·발표 포인트·re_judge·성적 업로드) |
   | `js/08-dash-today.js` | (v134) 대시보드 «📅 오늘» 탭 — 시간표 앱 모듈 동적 import(탭을 열 때만). (v135) `?dash=` 딥링크·주소 동기화·시간표 앱으로 가는 링크(`tdOpenTimetable_`·`tdQuickAdd_`·`tdGoRecords_`) |
-  | `js/09-dash-culture.js` | (v142) 대시보드 «🏺 문화사 팀» 탭 — 3학년 문화사(culture-dig) 팀 뽑기·결산. 로드 시점 코드 없음(선언만). 탭을 열 때 culture-dig `logic.js`를 script로 불러 `Logic.drawTeams/teamResults/parseNumbers`를 쓴다. 백엔드 `cultureTeamsSave`·`mode=cultureTeams` |
+  | `js/09-dash-culture.js` | (v142) 대시보드 «🏺 문화사 팀» 탭 — 3학년 문화사(culture-dig) 팀 뽑기·결산. 로드 시점 코드 없음(선언만). 탭을 열 때 culture-dig `logic.js`를 script로 불러 `Logic.drawTeams/teamResults/parseNumbers`를 쓴다. 백엔드 `cultureTeamsSave`·`mode=cultureTeams`. v158: 제출 기록은 탭이 따로 읽음(`ctLoadRows_`, `game=` 필터·no-store, 탭 열 때·다시 읽기·30초 자동, 맨 위 «새로고침»도 부름), «✋ 팀 옮기기»(`ctMove_`). 시험 `tests/webapp-testing/culture_check.js` |
   | `js/10-dash-groups.js` | (v145) 대시보드 «👥 모둠·팀» 탭(v146부터 09 문화사 팀도 이 탭 안, `grSetSub_`로 고름) — 성적 균형 수업 모둠 미리보기·확정·칠판 보기. 로드 시점 코드 없음(`GR` 상태와 선언만). 09의 `ctEsc_`를 쓴다. 계산은 백엔드 `groupAssign`, 조회 `mode=groups`, 확정 취소 `groupCancel`(v151) |
   | `js/07-dash-admin-boot.js` | 학생 계정(v83), 성적 열람 상태, 수행평가 현황, 고민리스트 보너스, AI 검토·중복 삭제·AI 코멘트 관리, 학생 화면 미리보기, 초기 부팅 |
 - `groups.html`(v150): 토큰 없이 보는 확정 모둠 페이지. 포털 js를 싣지 않으므로 `window.PORTAL_CONFIG`를 직접 쓴다. 백엔드 `mode=groupsPublic`. (v152) 칸 그리기·불러오기는 `js/group-board.js`로, `picker.html`의 «👥 모둠 보기»와 공용. 포털 js와 따로 돈다.

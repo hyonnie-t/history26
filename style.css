@@ -429,6 +429,9 @@ button{font-family:inherit; cursor:pointer;}
 .tree-box svg{width:100%; height:auto; display:block;}
 .side-name{font-family:var(--font-display); font-size:1.35rem; font-weight:700;}
 .side-class{font-size:.86rem; color:var(--ink-soft); margin-bottom:12px;}
+/* v158 — 내 반 모둠·문화사 팀 보기 링크(groups.html). 반 정보 바로 아래 작게 */
+.side-groups{display:flex; width:fit-content; align-items:center; min-height:var(--tap-min); margin:-6px auto 10px; padding:0 12px; font-size:.82rem; color:var(--indigo); border:1px solid var(--line); border-radius:999px; background:var(--card); text-decoration:none;}
+.side-groups:hover{border-color:var(--indigo);}
 .rank-badge{
   display:inline-flex; align-items:center; gap:6px;
   background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25);
@@ -2366,6 +2369,17 @@ body.perf-modal-open{overflow:hidden;}
 .gp-msg{color:var(--ink-soft);}
 @keyframes gpIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
 @media (prefers-reduced-motion:reduce){ .gp-col{animation:none;} }
+/* v158 — 문화사 발굴단 팀 칸(.gp-tcol)은 모둠 칸과 같은 모양, 머리만 흙색. 발표자 뽑기의 모둠 표시(.gp-col)와 섞이지 않게 클래스를 나눴다.
+   ?me=번호로 열면 자기 번호를 금박 테두리로 강조(.is-me). */
+.gp-tcol{border:2px solid var(--amber-text); border-radius:var(--radius-sm); background:var(--card); overflow:hidden; animation:gpIn .3s ease both; animation-delay:calc(var(--i) * .05s);}
+.gp-tcol .gp-head{background:var(--amber-text);}
+.gp-title + .gp-board, .gp-board + .gp-title{margin-top:var(--space-sm);}
+.gp-board + .gp-title{margin-top:var(--space-lg);}
+.gp-sub{font-size:1.2rem; margin:var(--space-md) 0 var(--space-sm); color:var(--ink);}
+.gp-nos span.is-me{outline:3px solid var(--gold); outline-offset:1px; background:var(--amber-bg);}
+.gp-nos span.is-me::before{content:'⭐'; font-size:.5em; vertical-align:super;}
+.gp-tcol.has-me, .gp-col.has-me{border-width:3px;}
+@media (prefers-reduced-motion:reduce){ .gp-tcol{animation:none;} }
 /* v152 — 발표자 뽑기 «👥 모둠 보기» 창. 교실 TV에서 한눈에 보이게 넓게, 낮은 화면에선 창 안에서 스크롤. */
 .pk-groups-inner{background:var(--paper); border-radius:var(--radius-lg); padding:var(--space-lg); width:min(1200px, 100%); max-height:100%; overflow-y:auto;}
 .pk-groups-head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-sm); margin-bottom:var(--space-sm);}
@@ -2474,6 +2488,14 @@ body.perf-modal-open{overflow:hidden;}
 #dashView .ct-table{width:100%; border-collapse:collapse; margin:var(--space-sm) 0; font-size:var(--fs-base);}
 #dashView .ct-table th, #dashView .ct-table td{border-bottom:1px solid var(--line); padding:6px; text-align:center;}
 #dashView .ct-table th{background:var(--paper);}
+/* v158 — 팀 옮기기 줄, 방금 옮긴 번호 강조(한 번 반짝), 다시 읽은 시각 */
+#dashView .ct-move{display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center; margin:var(--space-sm) 0 var(--space-xs); padding:var(--space-sm); border:1px dashed var(--line); border-radius:var(--radius-sm);}
+#dashView .ct-move-l{display:inline-flex; align-items:center; gap:6px;}
+#dashView .ct-move select{min-height:var(--tap-min); max-width:100%; padding:0 var(--space-xs); border:1px solid var(--line); border-radius:var(--radius-sm); font-size:var(--fs-base); background:var(--card);}
+#dashView .ct-nos span.ct-moved{outline:3px solid var(--gold); background:var(--amber-bg); animation:ctMoved .9s ease 2;}
+@keyframes ctMoved{50%{transform:scale(1.15);}}
+@media (prefers-reduced-motion:reduce){ #dashView .ct-nos span.ct-moved{animation:none;} }
+#dashView .ct-read{font-size:var(--fs-sm);}
 
 /* v145 — 커리큘럼 반 칩(한 반씩 공개) */
 .cl-bans{display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:6px;}

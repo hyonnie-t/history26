@@ -1265,6 +1265,9 @@ $('btnDashRefresh').addEventListener('click', async () => {
       dashCheckinGrades_().forEach(grade => dashLoadCheckinAdmin(grade));
       await dashLoadCheckinLessonsAdmin(); dashRenderCheckinLessonsList();
     }
+    // v158 — 문화사 발굴단 탭을 한 번이라도 열었으면 그 탭도 새로 읽고 다시 그린다. 전엔 여기서 기록만 받고 탭은 옛 순위를 그대로 보여 줬다
+    // (2026-11-10 효니: «새로고침해도 팀 순위가 안 바뀌어 Ctrl+Shift+R → 다시 로그인»).
+    if(typeof ctRefresh_ === 'function' && typeof CT !== 'undefined' && CT.saved !== null) await ctRefresh_();
     showToast('최신 기록으로 갱신했어요.');
   }
   catch(e){ showToast('갱신 실패: ' + e.message); }
