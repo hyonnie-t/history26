@@ -7,26 +7,45 @@
 # 참고용 경고만 systemMessage로 띄운다.
 set -uo pipefail
 
+# v163 — 경고 출력은 node로 한다. 효니 PC(Windows)의 python3는 스토어 바로가기라 실행되지 않아, 전에는 훅이 «통과»가 아니라 «조용히 못 돎»이었다.
+emit_msg() {
+  if command -v node >/dev/null 2>&1; then
+    node -e 'console.log(JSON.stringify({systemMessage: process.argv[1]}))' "$1"
+  else
+    python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$1"
+  fi
+}
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$REPO_ROOT" || exit 0
 
 FILES="index.html js/*.js style.css config.js checkin_data.js"
 
-CHANGED=$(git status --porcelain -- $FILES 2>/dev/null)
+HTML_FILES="index.html picker.html groups.html picker-check.html"
+
+CHANGED=$(git status --porcelain -- $FILES $HTML_FILES 2>/dev/null)
 [ -z "$CHANGED" ] && exit 0
 
-DIFF=$(git diff HEAD -- $FILES 2>/dev/null)
-[ -z "$DIFF" ] && exit 0
-
-[ -f CHANGELOG.md ] || exit 0
-
-NEW_VNUMS=$(echo "$DIFF" | grep -E '^\+' | grep -oE '\bv[0-9]+\b' | sed 's/^v//' | sort -un)
-[ -z "$NEW_VNUMS" ] && exit 0
-
-CL_MAX=$(grep -oE 'v[0-9]+' CHANGELOG.md | sed 's/^v//' | sort -n | tail -1)
-CL_MAX=${CL_MAX:-0}
-
 MSGS=()
+
+# v163 — config.js?v= 번호가 HTML 4개에서 같은지. 한 곳만 올리면 페이지마다 다른 config.js가 캐시에서 나온다(v159 전에는 136과 133으로 어긋나 있었다).
+CFG_VS=$(grep -ohE 'config\.js\?v=[0-9]+' $HTML_FILES 2>/dev/null | sort -u)
+if [ "$(echo "$CFG_VS" | grep -c .)" -gt 1 ]; then
+  MSGS+=("config.js?v= 번호가 HTML마다 다름: $(grep -oHE 'config\.js\?v=[0-9]+' $HTML_FILES 2>/dev/null | tr '\n' ' ')— 네 파일을 같은 번호로 맞출 것.")
+fi
+for h in $HTML_FILES; do
+  [ -f "$h" ] || continue
+  grep -q 'config\.js' "$h" && ! grep -qE 'config\.js\?v=[0-9]+' "$h" && MSGS+=("$h 의 config.js에 ?v= 번호가 없음.")
+done
+
+DIFF=$(git diff HEAD -- $FILES 2>/dev/null)
+NEW_VNUMS=""
+if [ -n "$DIFF" ] && [ -f CHANGELOG.md ]; then
+  NEW_VNUMS=$(echo "$DIFF" | grep -E '^\+' | grep -oE '\bv[0-9]+\b' | sed 's/^v//' | sort -un)
+fi
+
+CL_MAX=$(grep -oE 'v[0-9]+' CHANGELOG.md 2>/dev/null | sed 's/^v//' | sort -n | tail -1)
+CL_MAX=${CL_MAX:-0}
 
 for NN in $NEW_VNUMS; do
   PRE_COUNT=0
@@ -46,8 +65,8 @@ for NN in $NEW_VNUMS; do
 done
 
 if [ "${#MSGS[@]}" -gt 0 ]; then
-  FULL_MSG="⚠️ 버전 번호 재사용 점검 (AGENTS.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
-  python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$FULL_MSG"
+  FULL_MSG="⚠️ 버전 번호 점검 (AGENTS.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
+  emit_msg "$FULL_MSG"
 fi
 
 exit 0

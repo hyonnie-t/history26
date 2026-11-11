@@ -11,7 +11,7 @@ paths:
   `#checkinView`(웰컴 체크인: 감정 온도·단어칩·문항) / `#portalView`("나의 역사책": 탐구 나무·타임라인·자가체크·공지·질문함) /
   `#dashView`(교사 대시보드 탭: 학생 기록·질문함·공지 관리·커리큘럼 관리·체크인·탐구포인트).
 - (v134) `js/08-dash-today.js`는 07 뒤에 붙는다. 로드 시점 코드는 `TD_DEEP`(주소의 `?dash=` 읽기)와 visibilitychange 등록뿐이고, 07의 `initPortal`은 `loadCurriculum()` fetch를 기다린 뒤 08을 부르므로 순서 문제는 없다. (v135) 06·07은 `typeof tdXxx_ === 'function'` 가드로만 08을 부른다(`switchDashTab`→`tdSyncUrl_`, `enterDash`→`tdAfterEnter_`, `initPortal`→`tdDeepLink_`, `btnDashOut`→`tdClearUrl_`). 시간표 앱과 오가는 주소 규칙(`?dash=탭&cls=반` ↔ 시간표 `?tab=탭&task=ID&add=글`)은 08 맨 위 주석과 시간표 레포 CLAUDE.md «시작 주소 규칙»에 있다 — 한쪽을 바꾸면 둘 다.
-- JS는 v104(2026-10-25)부터 `index.html` 인라인이 아니라 `js/` 7개 파일이다. `index.html` 맨 아래 `<script src="js/...?v=NN">` 순서가 실행 순서이고, 전부 classic script라
+- JS는 v104(2026-10-25)부터 `index.html` 인라인이 아니라 `js/` 아래 파일들이다(파일 목록 = `index.html`의 script 순서. 아래 표는 내용 안내이고 수·줄 수는 적지 않는다). `index.html` 맨 아래 `<script src="js/...?v=NN">` 순서가 실행 순서이고, 전부 classic script라
   최상위 `const`/`let`·함수는 파일 사이에 공유된다(`type="module"`로 바꾸지 않는다 — 전역 스코프 공유가 깨진다). 옛 `/* ══` 구분선이 그대로 파일 경계이고,
   파일 안에서는 `/* ──` 구분선으로 찾는다. 마지막 파일 끝의 `initPortal()` IIFE로 부팅.
   | 파일 | 내용 |
@@ -24,7 +24,9 @@ paths:
   | `js/08-dash-today.js` | (v134) 대시보드 «📅 오늘» 탭 — 시간표 앱 모듈 동적 import(탭을 열 때만). (v135) `?dash=` 딥링크·주소 동기화·시간표 앱으로 가는 링크(`tdOpenTimetable_`·`tdQuickAdd_`·`tdGoRecords_`) |
   | `js/09-dash-culture.js` | (v142) 대시보드 «🏺 문화사 팀» 탭 — 3학년 문화사(culture-dig) 팀 뽑기·결산. 로드 시점 코드 없음(선언만). 탭을 열 때 culture-dig `logic.js`를 script로 불러 `Logic.drawTeams/teamResults/parseNumbers`를 쓴다. 백엔드 `cultureTeamsSave`·`mode=cultureTeams`. v158: 제출 기록은 탭이 따로 읽음(`ctLoadRows_`, `game=` 필터·no-store, 탭 열 때·다시 읽기·30초 자동, 맨 위 «새로고침»도 부름), «✋ 팀 옮기기»(`ctMove_`). 시험 `tests/webapp-testing/culture_check.js` |
   | `js/10-dash-groups.js` | (v145) 대시보드 «👥 모둠·팀» 탭(v146부터 09 문화사 팀도 이 탭 안, `grSetSub_`로 고름) — 성적 균형 수업 모둠 미리보기·확정·칠판 보기. 로드 시점 코드 없음(`GR` 상태와 선언만). 09의 `ctEsc_`를 쓴다. 계산은 백엔드 `groupAssign`, 조회 `mode=groups`, 확정 취소 `groupCancel`(v151) |
-  | `js/07-dash-admin-boot.js` | 학생 계정(v83), 성적 열람 상태, 수행평가 현황, 고민리스트 보너스, AI 검토·중복 삭제·AI 코멘트 관리, 학생 화면 미리보기, 초기 부팅 |
+  | `js/07-dash-admin-boot.js` | 학생 계정(v83), 학기말 성적·수행평가 현황, 고민리스트 보너스, AI 검토·중복 삭제·AI 코멘트 관리, 학생 화면 미리보기, 초기 부팅 |
+  | `js/11-pwa-install.js` | (v157) «홈 화면에 추가» 버튼. `<head>`에서 먼저 싣는다(포털 js와 무관, 쓰기 없음) |
+  | `js/picker.js` · `js/group-board.js` | 포털이 아니라 `picker.html`(발표자 뽑기)·`groups.html`(확정 모둠 공개 보기)이 싣는다. 포털 js와 전역을 공유하지 않는다 |
 - `groups.html`(v150): 토큰 없이 보는 확정 모둠 페이지. 포털 js를 싣지 않으므로 `window.PORTAL_CONFIG`를 직접 쓴다. 백엔드 `mode=groupsPublic`. (v152) 칸 그리기·불러오기는 `js/group-board.js`로, `picker.html`의 «👥 모둠 보기»와 공용. 포털 js와 따로 돈다.
 - **파일 경계 규칙**: 함수 선언 호이스팅은 파일을 넘지 않는다. 앞 파일의 로드 시점 코드(최상위 문·IIFE·`forEach` 같은 동기 콜백, 그때 불리는 함수 본문까지)가 뒤 파일 선언을
   부르면 ReferenceError. 코드를 다른 파일로 옮기거나 새 파일을 끼울 땐 이 조건을 다시 확인한다(v104 분리 때 AST로 0건 확인).

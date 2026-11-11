@@ -5,11 +5,27 @@
 # 브라우저를 반복해서 켜는 비용을 줄인다. 변경된 파일이 없으면 조용히 종료한다.
 set -uo pipefail
 
+# v163 — 경고 출력은 node로 한다. 효니 PC(Windows)의 python3는 스토어 바로가기라 실행되지 않아, 전에는 훅이 «통과»가 아니라 «조용히 못 돎»이었다.
+emit_msg() {
+  if command -v node >/dev/null 2>&1; then
+    node -e 'console.log(JSON.stringify({systemMessage: process.argv[1]}))' "$1"
+  else
+    python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$1"
+  fi
+}
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$REPO_ROOT" || exit 0
 
-CHANGED=$(git status --porcelain -- index.html js/*.js config.js checkin_data.js 2>/dev/null)
+# v163 — 공개 페이지(groups.html·picker.html·picker-check.html)와 tree.js를 고쳤을 때도 돈다.
+CHANGED=$(git status --porcelain -- index.html js/*.js config.js checkin_data.js groups.html picker.html picker-check.html tree.js 2>/dev/null)
 [ -z "$CHANGED" ] && exit 0
+
+# v163 — python3를 실행할 수 없는 PC(Windows 스토어 바로가기)에서는 못 돌렸다고 말한다. 전에는 아무 말 없이 끝나 «통과»처럼 보였다.
+if ! python3 -c "import sys" >/dev/null 2>&1; then
+  emit_msg "⚠️ webapp-testing 자동 검증을 못 돌렸어요(이 PC는 python3가 실행되지 않음). 같은 점검을 손으로: node tests/webapp-testing/mock_check.js <출력 폴더> all — 콘솔 요약의 errs가 «없음»인지 본다."
+  exit 0
+fi
 
 if ! python3 -c "import playwright" 2>/dev/null; then
   pip install --quiet playwright >/dev/null 2>&1
@@ -56,4 +72,4 @@ else
 fi
 
 FULL_MSG="$HEADER"$'\n'"$(printf '%s\n' "${SUMMARY_LINES[@]}")"
-python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$FULL_MSG"
+emit_msg "$FULL_MSG"
