@@ -7,6 +7,13 @@
 이력도 있음 — `git log` "버전표기 충돌 정리" 커밋 참고). 확인 시점 기준 `index.html`/`style.css`에서
 가장 높은 버전 표기는 v68.
 
+## v159 (2026-11-11) — 청소: 안 쓰는 코드·선택자·숨긴 성적조회 지우기
+- 2026-11-11 세 관점 점검(②-가)에서 «레포 전체 검색 0건»으로 나온 것만 지웠다. 화면 동작은 그대로다.
+- 지운 것: `ctSid_`, `PK_STAGE_MODE`, `GroupBoard.fetchGroups`, `config.js` `POINTS_PER_LESSON`과 `CONFIG.POINTS ||` 폴백, `checkin_data.js` `temperature.enabled`·`scale`, 옛 토큰 청소 `store.del('dash_token')`, `hyonnie.md`, `images/.gitkeep`, `.claude/launch.json`의 `timetable` 구성, 참조 없는 id 5개, `style.css`의 안 쓰는 선택자(`.portfolio-card`·`.dash-questions`·`.feedback-item`·`.section-divider`·`.ck-submitting-hint`·`.dm-box`·`.dm-title`·`.stat-alert-names`·`.perf-wait-tag`·`.chk-label`·`.field-label-tight`, 변수 `--space-2xl`·`--fs-display`).
+- 숨긴 성적조회(«나의 성적 확인하기»)를 지웠다(효니: 안 쓰니 꺼도 된다): `#gradeCard`, `js/03-grade-lookup.js`, 대시보드 «나의 성적 확인하기(엑셀 성적조회) 관리» 칸과 `dashUploadGradeExcel`·`dashLoadGradeStatus_`·`dashSetGradeDisplayStatus`. 수행평가 점수·학기말 성적(`js/04`, `#perfCard`, 성적관리 탭의 나머지)은 건드리지 않았다. 백엔드 `mode=grade` 쪽은 그대로다.
+- 보관(지우지 않음): 고민리스트 보너스 `GONGMIN_*`, `dashCourtCasePush`, `perfTopic_`, `picker-check.html`.
+- `config.js?v=`를 HTML 4개에서 같은 번호(159)로 맞췄다(전에는 136과 133).
+
 ## v158 (2026-11-10) — 문화사 발굴단: 팀 옮기기·다시 읽기, 공개 보기에 문화사 팀
 3학년 문화사 1차시(2026-11-10) 뒤 효니 지적 3개.
 - «팀 순위·제출이 새로고침해도 안 바뀌고 Ctrl+Shift+R 해야 했고 그러면 다시 로그인» — 원인은 캐시가 아니라 화면이었다. 대시보드 맨 위 «새로고침»(`btnDashRefresh`)은 기록을 다시 받고 «최신 기록으로 갱신했어요»를 띄우지만 «🏺 문화사 발굴단» 탭은 다시 그리지 않았고, 탭을 다시 열거나 결석을 눌러도 «들어올 때» 받은 기록을 썼다. 강제 새로고침은 대시보드를 닫아 토큰을 다시 넣게 했다. Apps Script 응답(no-store)·서비스워커(sw.js, 통과만)·학교망 프록시(인증서 발급자 Google, 프록시 없음)는 실험으로 원인 아님 확인. 고침: 맨 위 «새로고침»도 문화사 탭을 새로 읽음, 탭은 문화사 3활동만 `game=` 필터·no-store로 따로 읽고(`ctLoadRows_`) 탭을 열 때·«🔄 다시 읽기»·결석 표시 때·탭이 보이는 동안 30초마다 읽으며 읽은 시각을 보여 준다. 시험 `tests/webapp-testing/culture_check.js`(옛 07로 돌리면 맨 위 새로고침 항목이 실패 = 재현).

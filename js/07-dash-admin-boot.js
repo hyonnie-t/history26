@@ -111,56 +111,6 @@ async function dashResetAllPw(btn){
   finally{ btn.disabled = false; }
 }
 
-async function dashUploadGradeExcel(btn){
-  const fileInput = $('gradeExcelFile');
-  const file = fileInput.files[0];
-  const statusEl = $('gradeUploadStatus');
-  if(!file){ statusEl.textContent = '❌ 파일을 선택해 주세요.'; return; }
-  btn.disabled = true; btn.textContent = '업로드 중…';
-  statusEl.textContent = '';
-  try{
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'uploadGradeExcel', token:TOKEN, fileBase64: base64, filename: file.name })
-    });
-    const data = await res.json();
-    if(data.result === 'success'){
-      statusEl.textContent = '✅ 업로드 완료 — 이제 이 시트가 조회 대상이에요.';
-      fileInput.value = '';
-      dashLoadGradeStatus_();
-    } else {
-      statusEl.textContent = `❌ ${data.message || '업로드 실패'}`;
-    }
-  }catch(e){
-    statusEl.textContent = '❌ 업로드하지 못했어: ' + e.message;
-  }finally{
-    btn.disabled = false; btn.textContent = '업로드';
-  }
-}
-
-/* ── 성적 열람 상태 조회·전환 (교사, 2026-09-15 신규) ── */
-async function dashLoadGradeStatus_(){
-  const box = $('gradeStatusBox');
-  box.textContent = '불러오는 중…';
-  try{
-    const res = await fetch(CONFIG.WEBAPP_URL + '?mode=gradeStatus&token=' + encodeURIComponent(TOKEN));
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
-    const statusLabel = data.status === 'ON' ? '🟢 열람 중' : '⚪ 닫힘';
-    const sheetLine = data.sheetUrl
-      ? ' · <a href="' + data.sheetUrl + '" target="_blank" rel="noopener">활성 시트 열기</a>'
-      : ' · 등록된 시트 없음';
-    box.innerHTML = statusLabel + sheetLine;
-  }catch(e){
-    box.textContent = '❌ 상태를 불러오지 못했어: ' + e.message;
-  }
-}
 /* v101 — 학생이 응답한 뒤 점수가 바뀌었는지(응답 때 점수 ≠ 지금 점수). */
 function perfAdminChanged_(r){
   return !!r.response && r.answeredScore !== '' && r.answeredScore != null && Number(r.answeredScore) !== Number(r.score);
@@ -657,22 +607,6 @@ async function dashAdjustPerfScore_(sid){
     dashRenderPerfStudents_();
   }catch(e){
     showToast('❌ ' + e.message + ' (백엔드 재배포 전이면 안 돼요)');
-  }
-}
-async function dashSetGradeDisplayStatus(btn, status){
-  btn.disabled = true;
-  try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'setGradeDisplayStatus', token:TOKEN, status })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '전환 실패');
-    dashLoadGradeStatus_();
-  }catch(e){
-    showToast('❌ ' + e.message);
-  }finally{
-    btn.disabled = false;
   }
 }
 

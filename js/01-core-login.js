@@ -30,7 +30,6 @@ const store = {
   set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
-store.del('dash_token'); // v67 — 옛 버전이 무조건 저장해둔 토큰 일괄 삭제(교실 PC 등에 남은 것 포함)
 
 function parseStudentId(sid){
   if(!/^\d{5}$/.test(sid)) return null;

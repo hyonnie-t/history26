@@ -18,7 +18,6 @@ paths:
   |---|---|
   | `js/01-core-login.js` | config 가드, `$`·`store`·`fetchJsonRetry_`, 세션 상태 변수, 학생 로그인(`login`·`parseStudentId`), 커리큘럼·체크인 계획 로드 |
   | `js/02-checkin-portal.js` | 웰컴 체크인, 탐구 나무 SVG, 포털 렌더, 자가체크, 공지, 피드백 모아보기, 상단 탭, 질문함, 개인 메시지, 유틸 |
-  | `js/03-grade-lookup.js` | 성적조회 |
   | `js/04-perf-score.js` | 수행평가 점수 확인 |
   | `js/05-badges-events.js` | 칭호첩, 로그인 화면 이벤트 바인딩, 비밀번호 변경·초기화 요청, 자동 재조회, 대시보드→실제 학생 화면 보기 |
   | `js/06-dashboard.js` | 교사 대시보드(탭·공지·커리큘럼·웰컴 체크인·문항·이미지 업로드·질문함·메시지·AI 의심·학급 피드백·발표 포인트·re_judge·성적 업로드) |
@@ -41,9 +40,8 @@ paths:
 - 완료 판정 AND 조건(`lessonDone()` ↔ `lessonAllActivityIds_()`)은 AGENTS.md 절대 규칙 10.
 
 ## 포인트·칭호
-- 실제 포인트: `renderPortal()` 안 `const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 }` — 활동 단위, 첫 완료 `FIRST`점,
-  재도전마다 활동당 `RETRY_MAX`회까지 `RETRY`점. `CONFIG.POINTS`는 config.js에도 API 응답에도 없어 항상 10/5/2.
-  배점 변경은 config.js에 `POINTS: { FIRST, RETRY, RETRY_MAX }` 추가 또는 이 리터럴 수정. (`POINTS_PER_LESSON`은 죽은 값)
+- 실제 포인트: `renderPortal()` 안 `const P = { FIRST: 10, RETRY: 5, RETRY_MAX: 2 }` — 활동 단위, 첫 완료 `FIRST`점,
+  재도전마다 활동당 `RETRY_MAX`회까지 `RETRY`점. 배점 변경은 이 리터럴을 고친다(v159에서 정의된 적 없는 `CONFIG.POINTS` 폴백과 `POINTS_PER_LESSON`을 지움).
 - "칭호"는 두 시스템: (1) `RANKS` 8단계 계급(권지 사관→…→대제학) — 순수 프론트, `renderPortal()`이 `CONFIG.RANKS[SESSION.grade]`와
   점수 비교. 탐구 나무 8단계와 1:1. (2) "칭호첩" 배지(`.badge-card`; `learning`/`behavior`/`strength` × `once`/`repeat`) —
   `renderBadges()`/`renderBadgeChip()`이 그리고 `checkNewBadges()`가 localStorage 기준선과 비교해 신규만 토스트.

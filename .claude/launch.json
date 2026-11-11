@@ -6,12 +6,6 @@
       "runtimeExecutable": "npx.cmd",
       "runtimeArgs": ["--yes", "http-server", ".", "-p", "8138", "-c-1"],
       "port": 8138
-    },
-    {
-      "name": "timetable",
-      "runtimeExecutable": "npx.cmd",
-      "runtimeArgs": ["--yes", "http-server", "../timetable", "-p", "8137", "-c-1"],
-      "port": 8137
     }
   ]
 }

@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=158">
+<link rel="stylesheet" href="style.css?v=159">
 <script src="js/11-pwa-install.js?v=157" defer></script>
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
@@ -329,33 +329,6 @@
         <p class="section-head-sub">성적 · 선생님 피드백을 한곳에 모았어요</p>
       </div>
 
-      <!-- v54(2026-09-15, 핸드오프 "성적조회 통합 v2" 옵션 A) — 성적조회 진입점.
-           포트폴리오·클래스카드와 다르게 "학기 내내 접근 가능한 링크"가 아니라
-           v83: 포털 로그인에 비밀번호가 생겨 성적용 비밀번호를 따로 받지 않는다(효니 확정) — 로그인 세션이
-           곧 인증이라 버튼을 누르면 바로 조회한다. 카드 안 상태 전환(안내 → 결과/오류)은 그대로. -->
-      <section class="ref-card grade-card" id="gradeCard" aria-label="성적조회" hidden style="display:none;"> <!-- 2026-10-25 효니: 지금은 안 쓰는 기간이라 학생 화면에서 숨김(필요하면 hidden·display:none만 지우면 됨) -->
-        <div class="ref-card-row">
-          <span class="ref-ico ref-ico-seal" aria-hidden="true">🧮</span>
-          <div class="ref-text">
-            <p class="pf-label">나의 성적 확인하기</p>
-            <p class="pf-desc">성적 열람 기간에만 확인할 수 있어요.</p>
-          </div>
-          <div id="gradeIntro">
-            <button class="btn-go" id="gradeOpenBtn" onclick="openGradeGate()">성적 확인하기 →</button>
-          </div>
-        </div>
-        <div id="gradeForm" class="grade-form" style="display:none;">
-          <div class="hstack-sm">
-            <button class="btn-go" id="gradeSubmitBtn" onclick="submitGradeLookup()">다시 확인</button>
-            <button class="btn-logout" onclick="closeGradeGate_()">닫기</button>
-          </div>
-          <p class="login-error" id="gradeError" style="display:none;"></p>
-        </div>
-        <div id="gradeResultWrap" style="display:none;">
-          <table class="grade-table" id="gradeTable"></table>
-          <button class="btn-logout" style="margin-top:8px;" onclick="closeGradeResult_()">닫기</button>
-        </div>
-      </section>
 
 
       <!-- v42 — "학기 총평" 전용 카드(구 #feedbackCard)는 제거. fbGeneral(차시에
@@ -496,7 +469,7 @@
       </select>
       <p class="an-target-hint" id="anTargetHint"></p>
       <textarea id="anContent" placeholder="공지 내용을 입력…"></textarea>
-      <button id="btnAddAnnounce" onclick="dashAddAnnouncement(this)">게시</button>
+      <button onclick="dashAddAnnouncement(this)">게시</button>
     </div>
     <!-- v92 — 공지가 쌓이면 내 학급 것만 보고 싶어서: 보기 범위·상태 필터. 시트에 작성자 칸이 없어 "내가 올린 것"은
          "내 담당 학급으로 지정한 공지"로 가늠한다(dashAnnounceVisible_). -->
@@ -607,7 +580,7 @@
               <span class="cl-help">"학습 칭호" 판정에 쓰여요. 자유서술형이면 선택 안 함.</span>
             </label>
             <label class="cl-field">
-              <span class="cl-field-label" id="clBadgeNameLabel">칭호명 <span class="cl-opt">선택</span></span>
+              <span class="cl-field-label">칭호명 <span class="cl-opt">선택</span></span>
               <input id="clBadgeName" type="text" placeholder="예: 저울질의 고수" list="clBadgeNameOptions">
               <datalist id="clBadgeNameOptions"></datalist>
               <span class="cl-help">"상"을 받으면 학생이 얻는 이름(사고유형을 고른 뒤에 입력할 수 있어요).</span>
@@ -754,7 +727,7 @@
       <div class="cl-subtabs" id="ckqGradeTabs" style="margin-bottom:12px;"></div>
 
       <div id="ckqActiveList" style="margin-bottom:8px;"></div>
-      <details class="cl-past-collapse" id="ckqPastCollapse">
+      <details class="cl-past-collapse">
         <summary>지난 체크인 (<span id="ckqPastCount">0</span>) <span class="cl-arrow">▶</span></summary>
         <div class="cl-past-list" id="ckqPastList"></div>
       </details>
@@ -944,7 +917,7 @@
     </section>
 
     <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). v137: 접기(내용·로드는 그대로 — 학기말 합계가 PERF_ADMIN_ROWS를 쓴다). -->
-    <details class="cl-collapse" id="perfAdminFold">
+    <details class="cl-collapse">
       <summary>수행평가 점수 확인 현황 <span class="cl-sum-note">이상 있음·재확인 대기·학생별 점수 조정</span> <span class="cl-arrow">▶</span></summary>
       <div class="cl-collapse-body">
       <details class="fold-note" data-fold="perfDesc"><summary>설명 보기</summary>
@@ -954,33 +927,6 @@
       </div>
     </details>
 
-    <details class="cl-collapse" id="gradeLegacyBox">
-      <summary>나의 성적 확인하기(엑셀 성적조회) 관리 <span class="cl-sum-note">지금은 학생 화면에서 숨김</span> <span class="cl-arrow">▶</span></summary>
-      <div class="cl-collapse-body">
-      <p class="dash-hint">
-        성적 엑셀(.xlsx)을 올리면 자동으로 스프레드시트로 변환돼 조회용 시트로 지정돼요. 새로 올리면 이전 시트는 더 이상 조회되지 않아요.
-      </p>
-      <p class="dash-hint">
-        ⚠️ 학생이 성적조회에서 쓰는 매칭키는 history26 학번(5자리)이에요 — 엑셀의 학번 열도 5자리 형식이어야 조회돼요.
-      </p>
-      <div class="filters">
-        <input type="file" id="gradeExcelFile" accept=".xlsx,.xls">
-        <button type="button" id="gradeUploadBtn" onclick="dashUploadGradeExcel(this)">업로드</button>
-      </div>
-      <div id="gradeUploadStatus" class="dash-hint" style="min-height:18px;"></div>
-
-      <p class="dash-section-title">열람 상태</p>
-      <div id="gradeStatusBox" class="dash-hint">불러오는 중…</div>
-      <div class="filters">
-        <button type="button" id="gradeStatusOnBtn" onclick="dashSetGradeDisplayStatus(this,'ON')">열람 열기</button>
-        <button type="button" id="gradeStatusOffBtn" onclick="dashSetGradeDisplayStatus(this,'OFF')">열람 닫기</button>
-      </div>
-
-      <p class="dash-hint" style="margin-top:22px;">
-        v83부터 성적조회는 포털 로그인(🔐 학생 계정 탭)으로 확인해요. 옛 "계정" 시트 비밀번호는 로그인 세션이 없을 때만 쓰여요.
-      </p>
-      </div>
-    </details>
   </div>
 
   <!-- v134 — 📅 오늘: 시간표 앱(timetable)의 오늘 수업·반별 진도·할 일. 로직은 js/08-dash-today.js(탭을 열 때만 불러옴). -->
@@ -1056,7 +1002,7 @@
     </section>
 
     <!-- v92 — 학생 계정 표는 길어서 기본으로 접어 두고, 접힌 제목줄에 인원 요약을 보여준다. -->
-    <details class="cl-collapse" id="paAccountsBox">
+    <details class="cl-collapse">
       <summary>학생 계정 <span class="cl-sum-note" id="paSummary"></span> <span class="cl-arrow">▶</span></summary>
       <div class="cl-collapse-body">
         <div class="filters">
@@ -1111,21 +1057,20 @@
 
 <div class="toast" id="toast"></div>
   
-<script src="config.js?v=136"></script>
-<script src="checkin_data.js?v=128"></script>
+<script src="config.js?v=159"></script>
+<script src="checkin_data.js?v=159"></script>
 <script src="tree.js"></script>
-<script src="js/01-core-login.js?v=104"></script>
-<script src="js/02-checkin-portal.js?v=158"></script>
-<script src="js/03-grade-lookup.js?v=104"></script>
+<script src="js/01-core-login.js?v=159"></script>
+<script src="js/02-checkin-portal.js?v=159"></script>
 <script src="js/04-perf-score.js?v=139"></script>
 <script src="js/05-badges-events.js?v=104"></script>
-<script src="js/06-dashboard.js?v=146"></script>
+<script src="js/06-dashboard.js?v=159"></script>
 <!-- v126 — 교사 질문함 아이콘(Lucian Icons v2.0.13, MIT, 로컬 사본 — 학교망 외부 로드 미확인이라 CDN 안 씀) -->
 <script type="module" src="vendor/lucian-icons/help.js"></script>
 <script type="module" src="vendor/lucian-icons/envelope.js"></script>
-<script src="js/07-dash-admin-boot.js?v=158"></script>
+<script src="js/07-dash-admin-boot.js?v=159"></script>
 <script src="js/08-dash-today.js?v=146"></script>
-<script src="js/09-dash-culture.js?v=158"></script>
+<script src="js/09-dash-culture.js?v=159"></script>
 <script src="js/10-dash-groups.js?v=151"></script>
 </body>
 </html>

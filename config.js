@@ -10,10 +10,6 @@
 window.PORTAL_CONFIG = {
   WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyXSjCfWY_HiZFqW_OBR-FQDoIfF1z_STqyKWUI31MacHeY3u7hbirFSFDvW-5yuUHaJQ/exec",
 
-  // 탐구 포인트: 활동 "완료"마다 적립 (달성도와 무관 — 참여 기반)
-  // ⚠️ 미사용 죽은 값 — 실제 배점은 index.html renderPortal()의
-  // `const P = CONFIG.POINTS || { FIRST:10, RETRY:5, RETRY_MAX:2 }`가 담당.
-  POINTS_PER_LESSON: 100,
   // 누적 포인트 → 칭호. 조선의 역사 기록 관직(춘추관·홍문관 계열)에서 이름만 따옴 —
   // 이 8단계가 실제 조선 품계 서열이라는 사학적 고증은 하지 않았음(게임 진행 단계용 임의 배열).
   // v31(발표 탐구포인트 + RANK 재설계, 2026-08-31 핸드오프): 학년마다 진도(차시 수)가

@@ -115,7 +115,7 @@ function switchDashTab(tab){
   });
   if(tab === 'grades'){
     document.querySelectorAll('#panelGrades details[data-fold]').forEach(dashFoldInit_); // v105
-    dashLoadGradeStatus_(); dashLoadPerfStatus_();
+    dashLoadPerfStatus_();
   }
   if(tab === 'points') ppRenderRecent_(); // v105 — 탭을 열 때마다 최근 지급 5건 갱신
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
@@ -3156,7 +3156,3 @@ async function dashCourtCasePush(btn){
   }
 }
 
-/* ── 성적 엑셀 업로드 (교사, 2026-09-15 신규 — 핸드오프 "성적조회 통합 v2") ──
- * 파일을 base64로 읽어 action=uploadGradeExcel로 보낸다. 업로드에 성공하면
- * 그 시트가 즉시 활성 조회 대상이 된다(이전 시트는 더 이상 조회되지 않음 —
- * 원본 스크립트와 동일한 "덮어쓰기" 방식). */
