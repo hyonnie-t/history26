@@ -27,7 +27,6 @@
   --space-md:14px;
   --space-lg:22px;
   --space-xl:32px;
-  --space-2xl:48px;
 
   /* font-size 스케일 (v1: 신규 토큰 확장) */
   --fs-xs:.75rem;
@@ -35,7 +34,6 @@
   --fs-base:1rem;
   --fs-lg:1.2rem;
   --fs-xl:1.6rem;
-  --fs-display:2rem;
 
   /* 터치 타겟 최소값 — 학생 활동 버튼은 전부 이 값 이상 유지 */
   --tap-min:44px;
@@ -203,10 +201,8 @@ button{font-family:inherit; cursor:pointer;}
 .side-card,
 .kpi,
 .unit-banner,
-.portfolio-card,
 .tab-card,
 .lesson-card,
-.dash-questions,
 .filters,
 .sum-card,
 .table-wrap{
@@ -278,7 +274,6 @@ button{font-family:inherit; cursor:pointer;}
 .judg-btn:hover, .judg-btn:active{border-color:var(--indigo);}
 .judg-btn.selected{border-color:var(--indigo); background:rgba(46,74,122,.08); box-shadow:inset 0 0 0 1px var(--indigo);}
 .judg-btn:disabled, .chip-btn:disabled{opacity:.45; cursor:default;}
-.ck-submitting-hint{text-align:center; font-size:.78rem; color:var(--ink-soft); margin-top:10px;}
 .source-box{background:var(--card); border-left:4px solid var(--ochre); border-radius:var(--radius-xs); padding:12px 14px; margin-bottom:16px;}
 .source-text{font-family:var(--font-display); font-size:.92rem; line-height:1.75; color:var(--ink);}
 .source-origin{font-size:.74rem; color:var(--ink-soft); margin-top:6px; text-align:right;}
@@ -491,22 +486,14 @@ button{font-family:inherit; cursor:pointer;}
 .unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
 
 /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드.
- * v57 — pf-label/title/desc는 .portfolio-card(성적조회 카드가 계속 씀) 밖에서도
- * .ref-link-panel(패들렛·클래스카드 탭 패널)이 재사용하므로 스코프를 풀었다. */
-.portfolio-card{
-  display:none; /* v85 왼쪽 줄 제거 */
-  padding:14px 18px; margin-bottom:14px;
-  align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-}
+ * pf-label/title/desc는 .ref-card·.ref-link-panel(패들렛·클래스카드 탭 패널)이 같이 쓴다. */
 .pf-label{
   font-size:.76rem; letter-spacing:.22em; color:var(--jade); font-weight:700; margin-bottom:2px;
 }
 .pf-title{font-family:var(--font-display); font-size:1.05rem; font-weight:700;}
 .pf-desc{font-size:.86rem; color:var(--ink-soft); margin-top:2px;}
 
-/* v54(2026-09-15) — 성적조회 카드. 포트폴리오/클래스카드와 달리 데이터 유무로
-   숨겨지는 카드가 아니라 항상 노출되는 진입점이라, 부모 .portfolio-card의
-   기본 display:none을 여기서 명시적으로 뒤집는다. */
+/* .grade-card는 수행평가 점수 카드(#perfCard), .grade-table은 그 표가 쓴다(성적조회 카드는 v159에서 지움). */
 .grade-card{ display:flex; }
 .grade-table{ width:100%; border-collapse:collapse; margin-top:6px; }
 .grade-table th, .grade-table td{
@@ -583,10 +570,6 @@ button{font-family:inherit; cursor:pointer;}
 .feedback-card h2{
   font-family:var(--font-display); font-size:1.02rem; margin-bottom:8px; color:var(--amber-text);
 }
-.feedback-item{padding:9px 0; border-top:1px dashed var(--amber-border); font-size:.95rem;}
-.feedback-item:first-of-type{border-top:none; padding-top:0;}
-.feedback-item .fb-meta{font-size:.8rem; color:var(--ink-soft); margin-bottom:2px;}
-.feedback-item .fb-ask-btn{margin-top:8px;} /* v38 — 피드백 모아보기 카드 전용, 학기 총평 카드엔 안 뜸 */
 
 /* 달성도 모아보기 — v57: 최근 3개만 기본 노출, 나머지는 #overviewMoreBtn 토글로 펼침 */
 .overview-item{
@@ -613,14 +596,6 @@ button{font-family:inherit; cursor:pointer;}
 .archive-item .ar-text{
   font-size:.94rem; white-space:pre-wrap; word-break:break-word;
   font-family:var(--font-display); line-height:1.7;
-}
-
-/* v42 — 핵심(차시 목록까지) 구간과 참고용 "그 밖의 기록" 구간을 시각적으로 나누는
- * 얇은 구분선. 카드 스타일(배경·테두리)을 안 써서 또 하나의 색깔 카드로 보이지
- * 않게 하고, 위쪽 괘선 하나로만 "여기서부터는 매번 볼 필요는 없는 내용"임을 신호. */
-.section-divider{
-  margin:32px 0 14px; padding-top:18px; border-top:1px dashed var(--line);
-  font-size:.78rem; letter-spacing:.28em; color:var(--ink-soft); font-weight:600;
 }
 
 /* ══════════════ 연표 ══════════════ */
@@ -809,9 +784,6 @@ button{font-family:inherit; cursor:pointer;}
 .dash-panel{animation:fadeIn .15s ease;}
 @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
 
-.dash-questions{
-  padding:16px 18px; margin-bottom:14px;
-}
 .dq-badge{
   background:var(--seal); color:#fff; font-size:.74rem; font-weight:700;
   border-radius:999px; padding:1px 9px; margin-left:2px;
@@ -826,7 +798,7 @@ button{font-family:inherit; cursor:pointer;}
   padding:8px 16px; font-size:.85rem; font-weight:700; cursor:pointer;
 }
 
-/* 공지 관리 (교사 대시보드) — .dash-questions 스타일 재사용 */
+/* 공지 관리 (교사 대시보드) */
 .an-add-form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed var(--line);}
 .an-add-form select{min-height:42px; padding:8px 10px; border:1.5px solid var(--line); border-radius:var(--radius-xs); background:var(--input-bg); font-family:inherit; font-size:.9rem;}
 .an-add-form textarea{flex:1 1 220px; min-height:42px; padding:9px 11px; border:1.5px solid var(--line); border-radius:var(--radius-xs); font-family:inherit; font-size:.9rem;}
@@ -1030,8 +1002,6 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .msg-bubble .msg-text{white-space:pre-wrap; overflow-wrap:anywhere;}
 .msg-bubble.from-teacher{align-self:flex-start; background:var(--amber-bg); border-color:var(--amber-border);}
 .msg-bubble.from-me{align-self:flex-end; background:var(--indigo-bg); border-color:rgba(46,74,122,.25);}
-.dm-box{margin-bottom:18px;}
-.dm-title{font-size:.98rem; margin:0 0 8px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;}
 .dm-detail{border:1px solid var(--line); border-radius:var(--radius-xs); padding:8px 12px; margin-bottom:6px; background:var(--paper);}
 .dm-detail summary{cursor:pointer; display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:.9rem;}
 .dm-detail .msg-wrap{margin-top:10px;}
@@ -1211,8 +1181,6 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
  * 반복되던 패턴만 정리했다. */
 .hstack-sm{display:flex; gap:8px;}
 .field-label-sm{display:block; font-size:.82rem; color:var(--ink-soft); margin-bottom:4px;}
-.field-label-tight{font-size:.85rem; display:block; margin-bottom:-2px;}
-.chk-label{display:flex; align-items:center; gap:6px; font-size:.85rem; color:var(--ink-soft);}
 .dash-hint{font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;}
 .empty-hint{color:var(--ink-soft); font-size:.9rem;}
 
@@ -1240,7 +1208,6 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
   border-radius:var(--radius-xs); padding:10px 14px; margin-bottom:14px;
 }
 .stat-alert-title{font-size:.82rem; font-weight:700; color:var(--seal); margin-bottom:4px;}
-.stat-alert-names{font-size:.85rem; color:var(--ink-soft);}
 .choice-bucket{margin-bottom:8px;}
 .choice-bucket-title{font-size:.85rem; font-weight:700; margin-bottom:2px;}
 .choice-bucket-title small{color:var(--ink-soft); font-weight:400;}
@@ -1333,18 +1300,17 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 /* ① 주 버튼 통일 — 클래스 없이 id/컨테이너로만 스타일되던 것들을 .btn과 같은 모양으로 */
 .q-form button, .dq-reply-form button, .an-add-form button, .gi-block button,
 .cl-form button:not(.btn-ghost):not([style*="background:none"]),
-#btnCkqSave, #ccPushBtn, #gradeUploadBtn, #gradeStatusOnBtn, #gradeStatusOffBtn{
+#btnCkqSave, #ccPushBtn{
   background:var(--indigo); color:#fff; border:none; border-radius:var(--radius-sm);
   min-height:42px; padding:9px 18px; font-size:.9rem; font-weight:700; cursor:pointer; flex-shrink:0;
 }
 .q-form button:hover, .dq-reply-form button:hover, .an-add-form button:hover, .gi-block button:hover,
 .cl-form button:not(.btn-ghost):not([style*="background:none"]):hover,
-#btnCkqSave:hover, #ccPushBtn:hover, #gradeUploadBtn:hover, #gradeStatusOnBtn:hover, #gradeStatusOffBtn:hover{
+#btnCkqSave:hover, #ccPushBtn:hover{
   background:var(--indigo-deep);
 }
 .q-form button:disabled, .dq-reply-form button:disabled, .an-add-form button:disabled, .gi-block button:disabled,
-.cl-form button:disabled, #btnCkqSave:disabled, #ccPushBtn:disabled, #gradeUploadBtn:disabled,
-#gradeStatusOnBtn:disabled, #gradeStatusOffBtn:disabled{
+.cl-form button:disabled, #btnCkqSave:disabled, #ccPushBtn:disabled{
   background:var(--disabled-bg); opacity:1; cursor:wait;
 }
 .q-form button, .dq-reply-form button{align-self:flex-end;}   /* textarea 높이만큼 늘어나 원형이 되던 문제 */
@@ -1427,9 +1393,8 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 
 /* ⑨ 마무리 손질 */
 /* 옅은 회색(--muted-2)은 placeholder용이라 본문 보조 글씨엔 대비가 낮음 — 이 카드들 안에서는 ink-soft */
-.dm-box .muted, .suspect-box .muted, .dm-detail .muted{color:var(--ink-soft);}
+.suspect-box .muted, .dm-detail .muted{color:var(--ink-soft);}
 .ai-notice{background:var(--indigo-bg); border-color:rgba(46,74,122,.25);}
-.field-label-tight{font-weight:700; color:var(--ink);}
 @media (max-width:1024px){
   .dash-tab{padding:10px 11px; font-size:.88rem;}
   .dash-tabs{gap:0;}
@@ -1487,13 +1452,6 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 .ref-ico-amber{background:var(--amber-bg); border:1px solid var(--amber-border);}
 .ref-card .pf-label, .ref-link-panel .pf-label{color:var(--ink-soft); letter-spacing:.14em;}
 .ref-card.grade-card{display:block;}
-.grade-form{margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);}
-.grade-form input{
-  width:100%; min-height:44px; padding:8px 12px; margin-bottom:10px; font:inherit;
-  background:var(--input-bg); border:1.5px solid var(--line); border-radius:var(--radius-sm);
-}
-.grade-form input:focus{border-color:var(--indigo); outline:none;}
-#gradeResultWrap{margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);}
 .ref-card.feedback-card{background:var(--card); border-color:var(--line);}
 .fbi-list{margin-top:14px; border-top:1px dashed var(--line);}
 .fbi-item{padding:14px 0; border-bottom:1px solid var(--row-line);}
@@ -1509,7 +1467,7 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 #feedbackInboxMoreBtn{margin-top:10px;}
 @media (max-width:640px){
   .ref-card-row .ref-text, .ref-link-panel .ref-text{flex-basis:calc(100% - 64px);}
-  .ref-link-panel .btn-go, #gradeIntro, #gradeIntro .btn-go{width:100%; text-align:center;}
+  .ref-link-panel .btn-go{width:100%; text-align:center;}
   .timeline-tools .btn-tiny{flex:1 1 auto;}
   .lesson.collapsed .lesson-card{padding:12px 14px;}
 }
@@ -1694,12 +1652,12 @@ html{scrollbar-gutter:stable;}
 
 /* 카드 — 모든 묶음이 쓰는 한 가지 모양 */
 #dashView :is(.filters,.sum-card,.an-add-form,.dash-card,.cl-collapse,.cl-past-collapse,.gi-block,.stat-block,
-  .dm-box,.class-fb-box,.suspect-box,.pp-box,.table-wrap,#anList:not(:empty),#clList .cl-active-list,#dqList .dq-student){
+  .class-fb-box,.suspect-box,.pp-box,.table-wrap,#anList:not(:empty),#clList .cl-active-list,#dqList .dq-student){
   background:var(--card); border:1px solid var(--d-line); border-radius:var(--radius); box-shadow:none;
 }
 #dashView :is(.filters,.sum-card,.an-add-form,.dash-card,.gi-block){padding:var(--d-pad);}
 #dashView :is(.filters,.an-add-form,.dash-card,.cl-collapse,.cl-past-collapse,.gi-block,.table-wrap,.summary,.stat-block,
-  .dm-box,.class-fb-box,.suspect-box,#anList,#dqList .dq-student){margin-bottom:var(--d-gap);}
+  .class-fb-box,.suspect-box,#anList,#dqList .dq-student){margin-bottom:var(--d-gap);}
 #dashView .dash-card > div{padding:0;}
 #dashView .cl-collapse summary, #dashView .cl-past-collapse summary{padding:14px 20px; font-size:.93rem; font-weight:700; color:var(--ink);}
 #dashView .cl-collapse .cl-collapse-body{padding:0 20px 18px;}
@@ -1743,13 +1701,13 @@ html{scrollbar-gutter:stable;}
  * 선택자를 :is()로 묶으면 안의 가장 센 것에 특이도가 맞춰져 보조 버튼이 못 이기므로 하나씩 푼다. */
 #dashView .btn, #dashView .q-form button, #dashView .dq-reply-form button, #dashView .an-add-form button,
 #dashView .gi-block button, #dashView .cl-form button:not(.btn-ghost):not([style*="background:none"]),
-#dashView #btnCkqSave, #dashView #ccPushBtn, #dashView #gradeUploadBtn, #dashView #gradeStatusOnBtn, #dashView #gradeStatusOffBtn{
+#dashView #btnCkqSave, #dashView #ccPushBtn{
   min-height:40px; padding:8px 18px; font-size:.9rem; font-weight:700; border-radius:var(--radius-sm);
   background:var(--indigo); color:#fff; border:1px solid var(--indigo); letter-spacing:-.01em; transition:background .15s,border-color .15s;
 }
 #dashView .btn:hover, #dashView .q-form button:hover, #dashView .dq-reply-form button:hover, #dashView .an-add-form button:hover,
 #dashView .gi-block button:hover, #dashView .cl-form button:not(.btn-ghost):not([style*="background:none"]):hover,
-#dashView #btnCkqSave:hover, #dashView #ccPushBtn:hover, #dashView #gradeUploadBtn:hover, #dashView #gradeStatusOnBtn:hover, #dashView #gradeStatusOffBtn:hover{
+#dashView #btnCkqSave:hover, #dashView #ccPushBtn:hover{
   background:var(--indigo-deep); border-color:var(--indigo-deep);
 }
 #dashView .btn.btn-sm{min-height:34px; padding:5px 13px; font-size:.84rem;}
@@ -1943,7 +1901,7 @@ html{scrollbar-gutter:stable;}
 
 /* 카드 — 종이색 바탕에서 한 겹 떠 보이게 */
 #dashView :is(.filters,.sum-card,.an-add-form,.dash-card,.cl-collapse,.cl-past-collapse,.gi-block,.stat-block,
-  .dm-box,.class-fb-box,.suspect-box,.table-wrap,#anList:not(:empty),#clList .cl-active-list,#dqList .dq-student){
+  .class-fb-box,.suspect-box,.table-wrap,#anList:not(:empty),#clList .cl-active-list,#dqList .dq-student){
   box-shadow:0 1px 2px rgba(35,38,44,.05), 0 4px 14px rgba(35,38,44,.04);
 }
 #dashView .dash-card{padding:22px 24px;}
@@ -2179,7 +2137,6 @@ body.perf-modal-open{overflow:hidden;}
 .grade-table.perf-stat th, .grade-table.perf-stat td{text-align:center; white-space:nowrap; width:auto;}
 .grade-table.perf-stat th.l, .grade-table.perf-stat td.l{text-align:left;}
 .grade-table.perf-stat td.perf-wait{font-weight:700; color:var(--amber-text-deep); background:var(--amber-bg);}
-.perf-wait-tag{display:inline-block; padding:0 6px; border-radius:999px; font-size:var(--fs-xs); white-space:nowrap; background:var(--amber-bg); color:var(--amber-text-deep);}
 .perf-askbtn-wait{background:var(--amber-bg); border-color:var(--amber-border); color:var(--amber-text-deep);}
 .perf-changed{margin:10px 0 0; padding:10px 12px; border-radius:8px; background:var(--amber-bg); border:1px solid var(--amber-border); color:var(--amber-text-deep); font-size:.95rem;}
 

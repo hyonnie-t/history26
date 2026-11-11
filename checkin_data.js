@@ -15,8 +15,6 @@ const CHECKIN_CONFIG = {
 
   /* ── 공통: 감정 온도 (모든 차시에서 수집) ── */
   temperature: {
-    enabled: true,
-    scale: 5,
     prompt: "지금 내 상태는?",
     labels: {
       1: "완전 방전",

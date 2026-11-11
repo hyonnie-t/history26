@@ -12,6 +12,6 @@ paths:
   - **`CURRICULUM`은 비워 둔다** — 실제 소스는 Google Sheets, 로딩 시 `mode=curriculum`으로 채워지고 교사 대시보드 "커리큘럼 관리" 탭에서 편집한다.
   - `BAN_SIZE`: 숫자가 채워진 반 = 실제 담당 반(현재 2학년 1~3반, 3학년 5~8반. 2-4는 효니 수업(역사B)이지만 포털을 안 써서 0 — 2026-11-03 효니 확인. 3학년 1~4반은 다른 선생님 담당). 담당 반이 바뀌면 같이 갱신해야 체크인 탭
     "OO명 중 XX명 완료" 분모가 맞는다.
-  - `POINTS_PER_LESSON`은 **안 쓰이는 죽은 값**. 실제 배점은 `.claude/rules/index-html.md` "포인트·칭호".
+  - 배점은 config.js에 없다(v159에서 죽은 값 `POINTS_PER_LESSON`을 지움). 실제 배점은 `.claude/rules/index-html.md` "포인트·칭호".
 - `checkin_data.js` = `CHECKIN_CONFIG`(감정 온도 척도·기본 단어칩 등 정적 UI만). 문항(`CHECKIN_PLAN`)은 시트 "체크인문항" 탭 → `mode=checkinPlan`.
   체크인 문항 폼 함정은 `docs/features.md` "체크인 문항 관리 폼".

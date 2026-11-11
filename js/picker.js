@@ -23,7 +23,6 @@
   let PK_CULTURE = {};       // v158 — 문화사 발굴단 팀 {'3-5': [{team, nums}]}
   let PK_GROUPS_JSON = '';   // 같은 내용이면 다시 그리지 않으려고(등장 움직임이 반복되지 않게)
   let PK_GROUPS_BUSY = false;
-  let PK_STAGE_MODE = 'num'; // v155 — 무대가 번호('num')를 뽑는지 모둠('group')을 뽑는지
 
   function today_(){ const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function loadAll_(){ try{ return JSON.parse(localStorage.getItem(PK_KEY)) || {}; }catch(e){ return {}; } }
@@ -222,7 +221,7 @@
   /* v155 — 번호·모둠이 같이 쓰는 무대 열기. 모둠은 한 자리면 충분해 릴 하나만 쓴다. */
   function stageStart_(mode, title){
     const group = mode === 'group';
-    PK_STAGE_MODE = mode; PK_SPINNING = true;
+    PK_SPINNING = true;
     $('pkDrawBtn').disabled = true; $('pkActions').hidden = true;
     $('pkStageClass').textContent = title;
     $('pkHint').textContent = '';

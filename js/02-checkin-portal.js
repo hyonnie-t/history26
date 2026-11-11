@@ -461,7 +461,7 @@ function renderPortal(){
    * v27: 포인트는 활동 단위로 지급(첫 완료 FIRST점 + 재도전 1회당 RETRY점, 활동당
    * RETRY_MAX회까지) — 차시에 활동이 2개면 둘 다 채워야 그만큼 포인트가 쌓임.
    * 나무 잎(leaves)·칭호 단계는 기존처럼 "완료한 차시" 개수 기준 유지. */
-  const P = CONFIG.POINTS || { FIRST: 10, RETRY: 5, RETRY_MAX: 2 };
+  const P = { FIRST: 10, RETRY: 5, RETRY_MAX: 2 };
   const attemptCnt = {};
   STUDENT_DATA.activities.forEach(a => {
     const id = String(a.activityId);
@@ -592,10 +592,10 @@ function renderPortal(){
    * 그려지므로(feedbackLabel_) 별도 처리가 필요 없다 — fbGeneral 계산 자체는
    * ackFeedbackItems_ 주석에서 설명하는 공유 참조 구조상 그대로 둔다. */
   renderFeedbackInbox(fbAll);
-  /* v119 — «그 밖의 기록» 머리글은 아래에 보일 카드(성적조회·피드백 모아보기)가 하나라도 있을 때만. 둘 다 숨겨지면 빈 제목만 남아 있었다. */
+  /* v119 — «그 밖의 기록» 머리글은 아래에 보일 카드(피드백 모아보기, v159에서 성적조회 카드는 지움)가 있을 때만. 숨겨지면 빈 제목만 남아 있었다. */
   const otherHead = $('otherHead');
   if(otherHead){
-    const visible = ['gradeCard','feedbackInboxCard'].some(id => { const el = $(id); return el && !el.hidden && el.style.display !== 'none'; });
+    const visible = ['feedbackInboxCard'].some(id => { const el = $(id); return el && !el.hidden && el.style.display !== 'none'; });
     otherHead.style.display = visible ? '' : 'none';
   }
 

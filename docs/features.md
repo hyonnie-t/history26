@@ -184,6 +184,8 @@ v124: 그 학년 시험기간(`config.js EXAM_PERIOD`, `treeExamActive_()` 재�
 - **교사 탭 화면(v106)**: `#panelAccounts`는 다른 탭처럼 `#dashView` 안의 `.dash-panel`이고, 본문은 `.dash-card`(제목 `.dash-card-title`·설명 `.dash-card-desc`) 4장(«초기화 요청»·«공통 초기 비밀번호»·«로그인 필수»·«전체 초기화») + 학생 계정 `cl-collapse` 표다. 카드 안 입력·버튼 줄은 `.filters` 말고 `.dash-inline`(`.filters`는 그 자체가 카드). 2026-10-25까지는 `#panelGrades` 뒤의 남는 `</div>`가 `#dashView`를 먼저 닫아 이 탭만 `body` 직속이었고 그래서 통일 레이어가 안 먹었다 — 패널을 새로 넣을 땐 `el.closest('#dashView')`로 한 번 확인한다.
 
 ## 성적조회
+> **v159(2026-11-11)에 포털에서 지웠다**(효니: 안 쓰니 꺼도 된다). 학생 카드 `#gradeCard`·`js/03-grade-lookup.js`·대시보드 «나의 성적 확인하기 관리»(엑셀 업로드·열람 토글)가 없다. 백엔드의 `mode=grade`/`gradeStatus`·`uploadGradeExcel`/`setGradeDisplayStatus`는 그대로 남아 있다. 되살리려면 v158 커밋에서 가져온다. 아래는 지우기 전 설명이다.
+
 별도 GAS 스크립트로 있던 "엑셀 성적표 → 학생 개인 조회"를 포털에 통합했다. v83부터 **성적용 비밀번호를 따로 받지 않는다**(효니 확정) —
 `#gradeCard`의 "성적 확인하기"를 누르면 로그인 세션으로 바로 `mode=grade`를 부른다(`openGradeGate()`/`submitGradeLookup()`).
 아래는 v54 당시 설명(옛 "계정" 시트 3중 매칭은 서버에 세션이 없을 때의 대체 경로로만 남아 있다). 매칭 실패 사유(학번/이름/
@@ -305,7 +307,7 @@ v151: «② 확정한 모둠»의 «↩️ 확정 취소»(백엔드 `groupCance
 
 ## 화면 정리 (v105)
 - **학생 «지금 할 활동» 카드**: `renderPortal()`이 `lessonDone` 정의 직후 `renderNextActivity_(lessons, doneIds, lessonDone)`를 부른다. 교육과정 순서(`lessons`, 이미 담당 트랙 필터링됨)에서 `lessonDone`이 거짓이고 첫 미완료 활동에 `lessonActivityUrl`이 있는 차시를 후보로 모아 **가장 최근(순서상 마지막) 후보**를 고른다(v119 — 전엔 첫 후보라 1학기 복습이 떠 있었다). 앞선 후보 수는 `#nextSub`에 «밀린 차시 N개 더 있어요 · 아래 연표에서 단원을 펼쳐 찾아요»로 보이고, 0이면 숨긴다(단위는 차시: 활동 2개짜리 차시도 1로 센다). 차시 완료 판정은 AND 조건 그대로(절대 규칙 10)이고 새 판정을 만들지 않는다. 링크는 module이면 `withStudentParams`(미리보기면 `&preview=1`), 아니면 `ensureUrlScheme_`. 첫 미완료 활동은 앞 활동이 끝난 상태라 순차 잠금에 걸리지 않는다. 읽기 전용이라 `PREVIEW_MODE` 분기 없음.
-- **«그 밖의 기록» 머리글(v119)**: `#otherHead`는 `renderFeedbackInbox` 직후 `#gradeCard`(hidden+display:none)·`#feedbackInboxCard`(JS가 display만 바꿈)가 둘 다 숨겨졌으면 `display:none`. 성적조회를 다시 공개하면 머리글도 저절로 돌아온다.
+- **«그 밖의 기록» 머리글(v119)**: `#otherHead`는 `renderFeedbackInbox` 직후 `#feedbackInboxCard`(JS가 display만 바꿈)가 숨겨졌으면 `display:none`(v159에서 `#gradeCard`를 지워 카드가 하나만 남음).
 - **교사 커리큘럼 관리 «제출 N건»(v120)**: `clLessonSubmitInfo_(l)`이 활동 id(활동목록JSON 또는 단일 id)를 모아 `ROWS.gameName`과 대조한다. URL이 있는 진행중 항목이 0건이면 `.cl-warn` «⚠ 제출 0건» — 웹앱 `GAME_NAME`과 커리큘럼 id가 다른 사고를 바로 보이게(아직 수업 전인 차시도 0건으로 뜨므로 툴팁에 안내, v121). `?token=` 기본 GET은 교사 구분 없이 전체 행이라 담당 반 밖 활동도 정상 집계된다.
 - **행 번호 action의 신원 동봉(v122)**: 삭제·AI 검토·AI 수정·의심 검토·답변·체크인 문항 삭제는 `row` 외에 학번·게임명(`dashRowIdent_`) 또는 차시id를 보낸다. 백엔드 v104의 `rowMatches_`가 거절하면 토스트에 서버 메시지("그 사이 기록이 바뀌어…")가 뜨므로 새로고침 뒤 다시 한다.
 - **접힘 기억**: `dashFoldInit_(el)` — `<details data-fold="이름">`을 localStorage `dash_fold_이름`('1'=펼침)에 맞추고 토글 때 저장한다. 기본 접힘. 다시 그려지는 박스(`#suspectBox`)는 그릴 때마다 호출한다. 새 접기 UI는 이 헬퍼를 쓴다.

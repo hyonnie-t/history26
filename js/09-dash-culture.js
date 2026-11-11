@@ -31,7 +31,6 @@ const CT_MAX_NUM = 50; // 백엔드 CULTURE_TEAM_MAX_NUM과 같게
 
 function ctEsc_(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function ctBans_(){ return Object.keys(CONFIG.BAN_NUMS || {}).filter(k => k.startsWith('3-')).map(k => k.slice(2)); }
-function ctSid_(no){ return '3' + String(CT.ban).padStart(2, '0') + String(no).padStart(2, '0'); }
 function ctJson_(r){ try { return JSON.parse(r.choicesJson || '{}') || {}; } catch(e){ return {}; } }
 
 /* 그 반·그 활동의 학생별 마지막 제출 → {번호: 행}. 같은 학번은 나중 시각이 이긴다(방탈출은 다시 낼 수 있음). */

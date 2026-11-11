@@ -11,7 +11,6 @@ window.GroupBoard = (function(){
     if(!(j.result === 'success' && j.groups && typeof j.groups === 'object')) return null;
     return { groups: j.groups, culture: j.culture && typeof j.culture === 'object' ? j.culture : {} };
   }
-  async function fetchGroups(){ const a = await fetchAll(); return a ? a.groups : null; }
   function col_(cls, i, title, count, nums, me){
     const col = document.createElement('div'); col.className = cls; col.style.setProperty('--i', i);
     const head = document.createElement('div'); head.className = 'gp-head'; head.textContent = title + ' ';
@@ -37,5 +36,5 @@ window.GroupBoard = (function(){
     list.forEach((t, i) => { const col = col_('gp-tcol', i, (CULTURE_EMOJI[t.team] || '') + ' ' + t.team + ' 발굴단', t.nums.length, t.nums, me); col.dataset.team = t.team; wrap.appendChild(col); });
     return wrap;
   }
-  return { fetchAll, fetchGroups, board, teamBoard };
+  return { fetchAll, board, teamBoard };
 })();
