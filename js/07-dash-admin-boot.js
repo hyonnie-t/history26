@@ -1002,7 +1002,7 @@ async function dashSendFeedback(btn){
   if(!text){ showToast('피드백 내용을 입력해 주세요.'); return; }
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method:'POST',
       body: JSON.stringify({
         action:'feedback', token:TOKEN,
@@ -1010,6 +1010,8 @@ async function dashSendFeedback(btn){
         activityId, feedback:text
       })
     });
+    const j = await res.json();
+    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     FEEDBACKS.push({ timestamp:new Date().toISOString(), studentId:btn.dataset.sid,
       studentName:btn.dataset.name, activityId, feedback:text, ack:false }); // v37 — 방금 보낸 피드백은 당연히 미확인
     showToast('피드백을 보냈어요. 학생 포털의 해당 활동 카드에 표시됩니다.');

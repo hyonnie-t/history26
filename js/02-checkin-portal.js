@@ -1290,7 +1290,7 @@ async function askQuestion(){
   const btn = $('btnAskQuestion');
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({
         action: 'askQuestion',
@@ -1301,6 +1301,12 @@ async function askQuestion(){
         question: text
       })
     });
+    /* v161 — 응답을 읽는다. 전에는 세션 만료 등으로 서버가 거절해도 «보냈어요»가 뜨고 입력이 지워져 질문이 조용히 사라졌다. 실패하면 쓴 글을 남긴다. */
+    const data = await res.json();
+    if(data.result !== 'success'){
+      showToast('질문을 보내지 못했어요. ' + (data.message ? data.message : '새로고침한 뒤 다시 시도해 주세요.'));
+      return;
+    }
     STUDENT_DATA.questions = STUDENT_DATA.questions || [];
     STUDENT_DATA.questions.push({
       timestamp: new Date().toISOString(), question: text, answer: '', status: '대기'

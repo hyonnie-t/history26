@@ -2524,3 +2524,6 @@ body.perf-modal-open{overflow:hidden;}
 /* v156 — 책 표지 안에서는 금선 액자처럼, 높이를 줄여 로그인 칸이 밀리지 않게 */
 .book .cover-banner{aspect-ratio:16/7; margin:0 0 14px; border-radius:var(--radius-xs, 6px);
   border:1.5px solid rgba(243,231,208,.45); box-shadow:none;}
+
+/* v161 — 체크인 탭을 못 읽었을 때: 안내 칸만 보이고 나머지는 숨긴다(다시 시도하면 원래대로) */
+#panelCheckin[data-load-error] > :not(.ck-load-error){display:none;}

@@ -274,16 +274,19 @@ async function dashAddAnnouncement(btn){
   if(!content){ showToast('공지 내용을 입력해 주세요.'); return; }
   btn.disabled = true; btn.textContent = '게시하는 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'addAnnouncement', token:TOKEN, grade, ban, content })
     });
+    const j = await res.json();
+    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     $('anContent').value = '';
     showToast('공지를 게시했어요.');
-    await dashLoadData();
-    dashRenderAnnouncements();
+    /* v161 — 게시는 끝났으니 목록 다시 읽기가 실패해도 «게시하지 못했어요»라고 하지 않는다(다시 써서 두 번 게시하게 됨). */
+    try{ await dashLoadData(); dashRenderAnnouncements(); }
+    catch(e2){ showToast('공지는 게시했어요. 목록을 다시 읽지 못했으니 «새로고침»을 눌러 주세요.'); }
   }catch(e){
-    showToast('게시하지 못했어요. 다시 시도해 주세요.');
+    showToast('게시하지 못했어요' + (e.message ? ': ' + e.message : '') + ' — 다시 시도해 주세요.');
   }finally{
     btn.disabled = false; btn.textContent = '게시';
   }
@@ -293,10 +296,12 @@ async function dashToggleAnnouncement(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    await fetch(CONFIG.WEBAPP_URL, {
+    const res = await fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'toggleAnnouncement', token:TOKEN, row })
     });
+    const j = await res.json();
+    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     const a = ANNOUNCEMENTS_ADMIN.find(x => String(x._row) === String(row));
     if(a){ a.status = (a.status === '게시') ? '보류' : '게시'; }
     dashRenderAnnouncements();
@@ -436,7 +441,9 @@ async function dashSaveGradeInfo(grade, btn){
   const btnLabel = btn.textContent;
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
-    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
+    const res = await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
+    const j = await res.json();
+    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     Object.assign(GRADE_INFO_ADMIN[grade], {
       unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
       portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText,
@@ -562,10 +569,23 @@ async function dashInitCheckinForm(){
   /* v118: 설정·오늘 응답 조회는 문항(plan)과 무관하니 plan을 기다리지 않고 같이 시작한다(서로 겹쳐 총 대기 = 가장 느린 하나). */
   ckLoadSettings_(); ckAdminFetch_().catch(() => {});
   await loadCheckinPlan(); // 대시보드 들어올 때마다 시트에서 최신 문항으로 새로고침
+  /* v161 — 실패해도 패널을 지우지 않는다. 안내와 «다시 시도»만 보이고(나머지는 CSS로 숨김) 읽음 표시를 되돌려, 탭을 다시 열거나 버튼을 누르면 다시 읽는다.
+   * 전에는 패널 전체를 오류 문구로 덮어써 새로고침 말고는 방법이 없었다. */
+  let errBox = $('ckLoadError');
   if(!CHECKIN_PLAN){
-    $('panelCheckin').innerHTML = '<p style="color:var(--ink-soft); padding:16px;">체크인문항 시트를 불러오지 못했어요. 새로고침해 주세요.</p>';
+    CK_ADMIN_LOADED = false;
+    if(CK_SETTINGS_OK === false) CK_SETTINGS_OK = null; // 같이 실패한 설정 조회를 «이 백엔드는 모름»으로 굳히지 않는다(다시 시도 때 다시 읽음)
+    if(!errBox){
+      errBox = document.createElement('div'); errBox.id = 'ckLoadError'; errBox.className = 'dash-card ck-load-error';
+      $('panelCheckin').prepend(errBox);
+    }
+    errBox.innerHTML = '<p class="dash-hint">체크인문항 시트를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.</p>'
+      + '<button type="button" class="btn btn-sm" onclick="this.disabled=true;this.textContent=\'다시 읽는 중…\';switchDashTab(\'checkin\')">다시 시도</button>';
+    $('panelCheckin').dataset.loadError = '1';
     return;
   }
+  if(errBox) errBox.remove();
+  delete $('panelCheckin').dataset.loadError;
   const grades = Object.keys(CHECKIN_PLAN);
   $('ckSetGrade').innerHTML = grades.map(g => `<option value="${g}">${g}학년</option>`).join('');
   // v58 — "새 문항 추가" 폼 안에 있던 ckqFormGrade select를 제거. 위 학년 탭(ckqGradeTabs)이
@@ -834,12 +854,15 @@ async function dashApplyCkSet(){
   const btn = $('btnCkSetApply');
   btn.disabled = true; btn.textContent = '적용 중…';
   try{
-    await Promise.all(bans.map(ban => fetch(CONFIG.WEBAPP_URL, {
+    /* v161 — 반마다 응답을 확인해 저장된 반만 화면에 반영한다. 전에는 일부가 거절돼도 전부 저장했다고 표시했다. */
+    const results = await Promise.all(bans.map(ban => fetch(CONFIG.WEBAPP_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'setTodayCheckin', token:TOKEN, grade, ban, lessonId })
-    })));
-    bans.forEach(ban => { CK_TODAY_LESSON[grade + '-' + ban] = lessonId; });
-    showToast(scopeLabel + ' 오늘의 체크인 차시를 저장했어요.');
+    }).then(r => r.json()).then(j => j.result === 'success', () => false)));
+    const failed = bans.filter((ban, i) => !results[i]);
+    bans.forEach((ban, i) => { if(results[i]) CK_TODAY_LESSON[grade + '-' + ban] = lessonId; });
+    if(failed.length === bans.length) throw new Error('all failed');
+    showToast(failed.length ? `일부만 저장했어요 — 저장 못 한 반: ${failed.join(', ')}. 다시 «적용»을 눌러 주세요.` : scopeLabel + ' 오늘의 체크인 차시를 저장했어요.');
     dashOnCkSetTargetChange_(); // "현재 설정" 문구 갱신(담당 학급반이면 안내 문구, 아니면 재조회)
     dashRenderCkSummaryTable_(); // v40: 요약 표도 즉시 갱신 — 이 설정이 어느 범위든 반영됨
     if($('ckViewBan_' + grade)) dashLoadCheckinAdmin(grade); // v40: 그 학년 컬럼이 떠 있으면 회수 질문도 갱신
@@ -1083,7 +1106,9 @@ async function dashToggleCheckinLessonPast(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'toggleCheckinLessonPast', token:TOKEN, row }) });
+    const res = await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'toggleCheckinLessonPast', token:TOKEN, row }) });
+    const j = await res.json();
+    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
     if(l){ l.isPast = !l.isPast; }
     dashRenderCheckinLessonsList();
@@ -1352,28 +1377,22 @@ async function dashSubmitCheckinLessonForm(btn){
   }
   btn.disabled = true; btn.textContent = editRow ? '저장하는 중…' : '추가하는 중…';
   try{
-    if(editRow){
-      await fetch(CONFIG.WEBAPP_URL, {
-        method:'POST',
-        body: JSON.stringify(Object.assign({ action:'updateCheckinLesson', token:TOKEN, row:editRow }, payload))
-      });
-      showToast('문항을 수정했어요.');
-    } else {
-      await fetch(CONFIG.WEBAPP_URL, {
-        method:'POST',
-        body: JSON.stringify(Object.assign({ action:'addCheckinLesson', token:TOKEN }, payload))
-      });
-      showToast('문항을 추가했어요.');
-    }
+    const res = await fetch(CONFIG.WEBAPP_URL, {
+      method:'POST',
+      body: JSON.stringify(Object.assign(editRow ? { action:'updateCheckinLesson', token:TOKEN, row:editRow } : { action:'addCheckinLesson', token:TOKEN }, payload))
+    });
+    const j = await res.json();
+    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
+    showToast(editRow ? '문항을 수정했어요.' : '문항을 추가했어요.');
     dashResetCheckinLessonForm();
     await loadCheckinPlan();
     await dashLoadCheckinLessonsAdmin();
     dashRenderCheckinLessonsList();
     dashRefreshCkSetLessons();
   }catch(e){
-    showToast('저장하지 못했어요. 다시 시도해 주세요.');
+    showToast('저장하지 못했어요' + (e.message ? ': ' + e.message : '') + ' — 다시 시도해 주세요.'); // v161 — 입력은 그대로 둔다
   }finally{
-    btn.disabled = false; btn.textContent = editRow ? '수정 저장' : '문항 추가';
+    btn.disabled = false; btn.textContent = $('ckqEditRow').value ? '수정 저장' : '문항 추가'; // v161 — 폼의 지금 모드에 맞춘다(전엔 수정에 성공해도 «수정 저장»으로 남았다)
   }
 }
 
@@ -1851,7 +1870,7 @@ async function dashUpdateLesson(btn, row){
   }catch(e){
     showToast('저장하지 못했어요. 다시 시도해 주세요.');
   }finally{
-    btn.disabled = false; btn.textContent = '활동 추가';
+    btn.disabled = false; btn.textContent = $('clId').disabled ? '수정 저장' : '활동 추가'; // v161 — 실패하면 폼이 수정 모드로 남으니 글자도 «수정 저장»
   }
 }
 
@@ -1864,7 +1883,8 @@ async function dashToggleLessonPublic(btn){
       method: 'POST',
       body: JSON.stringify({ action:'toggleLessonPublic', token:TOKEN, row, public:want })
     });
-    const j = await res.json().catch(() => ({}));
+    const j = await res.json();
+    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 오류 응답이면 화면을 뒤집지 않는다(전엔 실패해도 «공개/비공개»가 바뀌어 보였다)
     const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
     // 재배포 전 옛 백엔드는 뒤집기만 하고 public을 안 돌려준다 — 그때는 예전처럼 뒤집힌 값으로 그린다
     if(l){ l.public = typeof j.public === 'boolean' ? j.public : !l.public; l.publicBans = []; } // v145 — 이 버튼은 언제나 모든 반 기준

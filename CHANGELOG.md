@@ -7,6 +7,14 @@
 이력도 있음 — `git log` "버전표기 충돌 정리" 커밋 참고). 확인 시점 기준 `index.html`/`style.css`에서
 가장 높은 버전 표기는 v68.
 
+## v161 (2026-11-11) — 응답 확인: 서버가 거절하면 «성공»이라고 하지 않기
+- 2026-11-11 점검 ①-가 3번, ①-나 1·2·4·5번. 응답을 읽지 않고 성공 처리하던 곳이 서버 응답의 `result`를 확인한다.
+- 학생 `askQuestion`: 실패하면 «보냈어요»를 띄우지 않고 쓴 글을 남긴다(전엔 세션이 만료된 학생의 질문이 조용히 사라졌다).
+- 교사 쓰기 8곳: `dashAddAnnouncement`, `dashToggleAnnouncement`, `dashSaveGradeInfo`, `dashApplyCkSet`(반마다 확인, 일부 실패면 어느 반인지 알림), `dashToggleCheckinLessonPast`, `dashSubmitCheckinLessonForm`, `dashToggleLessonPublic`(오류면 화면을 뒤집지 않음), `dashSendFeedback`.
+- `dashUpdateLesson`: 실패하면 버튼 글자가 «수정 저장»으로 남는다(전엔 «활동 추가»로 바뀌고 폼은 수정 모드). 체크인 문항 폼도 같은 식으로 폼의 지금 모드를 따른다.
+- 체크인 탭 첫 로딩이 실패하면 패널을 지우지 않고 «다시 시도» 버튼을 보여 준다(`CK_ADMIN_LOADED`를 되돌림). 전엔 새로고침해야 했다.
+- 공통 함수(`dashPost_`)로 묶는 일은 하지 않았다(타겟 수정만).
+
 ## v160 (2026-11-11) — 세션 비우기: 다음 학생에게 앞 학생 화면이 넘어가지 않게
 - 2026-11-11 점검 ①-가 1·2·8번, ①-나 3번. 공용 기기에서 A가 수행평가 점수를 열고 «책 덮기»를 누른 뒤 B가 로그인하면 A의 점수 칸이 열린 채였다(닫는 코드가 없었음).
 - `resetPortalState_()`(js/05) 한 곳에서 비운다: 점수 칸(`#perfBody`·`PERF_ITEMS`·`PERF_EXAMS`), 쓰다 만 질문·답장, 차시·단원 접힘 기억, 피드백 «더 보기», 메시지 팝업 본 시각, 떠 있는 팝업. `exitToLogin`·`previewAsStudent`(이전/다음 학생 포함)·`exitPreviewToDash_`가 부른다. 같은 학생 화면을 다시 그릴 때는 부르지 않는다.
