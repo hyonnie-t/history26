@@ -11,6 +11,11 @@ function perfDescUpdate_(published){
   if(!el) return;
   const base = '지금까지 쓴 글로 매긴 점수예요.';
   const hasSem = !!(CONFIG.GRADE_TARGET && SESSION && CONFIG.GRADE_TARGET[SESSION.grade]);
+  /* v162 — 카드 제목도 학년에 맞춘다. 학기말 성적을 계산하는 학년(GRADE_TARGET이 있는 3학년)은 «학기말 성적 확인하기», 나머지는 «수행평가 점수 확인하기».
+   * 전에는 제목이 index.html에 고정돼 있어 3학년도 «수행평가 점수 확인하기»로 보였다(v139는 아래 안내 문구만 학년별로 바꿨다). */
+  const label = hasSem ? '학기말 성적 확인하기' : '수행평가 점수 확인하기';
+  if($('perfLabel')) $('perfLabel').textContent = label;
+  if($('perfCard')) $('perfCard').setAttribute('aria-label', label);
   el.textContent = !hasSem ? base
     : base + (published ? ' 학기말 성적과 성취도, 공부 길잡이도 여기서 볼 수 있어요.' : ' 학기말 성적이 나오면 성취도와 공부 길잡이도 여기서 볼 수 있어요.');
 }
@@ -151,7 +156,7 @@ function perfSemesterHtml_(){
   return '<section class="sem-card" aria-label="학기말 성적">'
     + '<p class="sem-eyebrow">📊 ' + escapeHtml(ex.title || '학기말 성적') + '</p>'
     + '<div class="sem-top"><div class="sem-total"><span class="sem-total-label">학기말 합계</span><b>' + String(total) + '</b><span class="sem-total-max">/ 100점</span></div>'
-    + '<div class="sem-grade sem-g-' + escapeHtml(grade) + '" aria-label="성취도 ' + escapeHtml(grade) + '">' + escapeHtml(grade) + '</div></div>'
+    + '<div class="sem-grade sem-g' + escapeHtml(grade) + '" aria-label="성취도 ' + escapeHtml(grade) + '">' + escapeHtml(grade) + '</div></div>'
     + '<div class="sem-rows"><div class="sem-row"><b>수행평가</b><span>' + fmt(pGot) + ' / ' + fmt(pMax) + '점</span><small>→ ' + fmt(perf) + '점 반영 (' + cfg.perfWeight + '%)</small></div>'
     + '<div class="sem-row"><b>기말고사</b><span>' + fmt(Number(ex.score)) + ' / ' + fmt(Number(ex.max)) + '점</span><small>→ ' + fmt(exam) + '점 반영 (' + cfg.examWeight + '%)</small></div></div>'
     + '<p class="perf-sub">성취도는 합계로 정해요: ' + cfg.cuts.map(c => c.g + ' ' + c.min + '점 이상').join(' · ') + ' · 그 아래 ' + (cfg.lowest || 'E') + '. 최종 성적은 학교 성적표로 확정돼요.</p>'
