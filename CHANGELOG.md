@@ -7,6 +7,14 @@
 이력도 있음 — `git log` "버전표기 충돌 정리" 커밋 참고). 확인 시점 기준 `index.html`/`style.css`에서
 가장 높은 버전 표기는 v68.
 
+## v160 (2026-11-11) — 세션 비우기: 다음 학생에게 앞 학생 화면이 넘어가지 않게
+- 2026-11-11 점검 ①-가 1·2·8번, ①-나 3번. 공용 기기에서 A가 수행평가 점수를 열고 «책 덮기»를 누른 뒤 B가 로그인하면 A의 점수 칸이 열린 채였다(닫는 코드가 없었음).
+- `resetPortalState_()`(js/05) 한 곳에서 비운다: 점수 칸(`#perfBody`·`PERF_ITEMS`·`PERF_EXAMS`), 쓰다 만 질문·답장, 차시·단원 접힘 기억, 피드백 «더 보기», 메시지 팝업 본 시각, 떠 있는 팝업. `exitToLogin`·`previewAsStudent`(이전/다음 학생 포함)·`exitPreviewToDash_`가 부른다. 같은 학생 화면을 다시 그릴 때는 부르지 않는다.
+- 점수를 불러오는 사이 학생이 바뀌면 응답을 그리지 않는다(`openPerfScore`).
+- 대시보드 «나가기»가 교사 토큰·학생 기록 배열을 비우고 문화사 30초 타이머·오늘 탭 할 일 구독을 끊는다(`dashClearSession_`). 나간 뒤 «학생 화면 테스트»는 토큰을 다시 넣어야 열린다. 들어가지 못한 토큰도 메모리에 남기지 않는다.
+- 검토에서 나온 경합도 막았다: 재조회(`refreshStudentData`)·«학생 화면 보기»(`previewAsStudent`) 응답이 늦게 와서 그 사이 학생이 바뀌었거나 «나가기»를 눌렀으면 그리지 않는다(`PREVIEW_SEQ`). «나가기»는 탭을 «학생 기록»으로 돌리고 성적관리·학생 계정 칸도 비운다.
+- 대시보드에서 온 학생 미리보기 중 «책 덮기»는 «대시보드로»와 같게 대시보드로 돌아간다(전엔 토큰을 쥔 채 로그인 화면).
+
 ## v159 (2026-11-11) — 청소: 안 쓰는 코드·선택자·숨긴 성적조회 지우기
 - 2026-11-11 세 관점 점검(②-가)에서 «레포 전체 검색 0건»으로 나온 것만 지웠다. 화면 동작은 그대로다.
 - 지운 것: `ctSid_`, `PK_STAGE_MODE`, `GroupBoard.fetchGroups`, `config.js` `POINTS_PER_LESSON`과 `CONFIG.POINTS ||` 폴백, `checkin_data.js` `temperature.enabled`·`scale`, 옛 토큰 청소 `store.del('dash_token')`, `hyonnie.md`, `images/.gitkeep`, `.claude/launch.json`의 `timetable` 구성, 참조 없는 id 5개, `style.css`의 안 쓰는 선택자(`.portfolio-card`·`.dash-questions`·`.feedback-item`·`.section-divider`·`.ck-submitting-hint`·`.dm-box`·`.dm-title`·`.stat-alert-names`·`.perf-wait-tag`·`.chk-label`·`.field-label-tight`, 변수 `--space-2xl`·`--fs-display`).

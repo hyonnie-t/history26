@@ -146,6 +146,7 @@ function ctAutoStart_(){
     CT.note = ''; ctRefresh_(true);
   }, CT_AUTO_MS);
 }
+function ctAutoStop_(){ if(CT_TIMER){ clearInterval(CT_TIMER); CT_TIMER = null; } } // v160 — 대시보드 «나가기». 탭을 다시 열면 dashCultureOpen_이 다시 켠다
 
 async function ctSave_(teams, absent, msg, overwrite){
   if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return false; }

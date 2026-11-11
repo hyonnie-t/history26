@@ -22,12 +22,14 @@ async function openPerfScore(){
   body.innerHTML = '<p class="perf-msg">불러오는 중…</p>';
   try{
     if(PREVIEW_MODE && !PREVIEW_REAL) throw new Error('샘플 미리보기에서는 점수를 조회하지 않아요. 학생을 골라 미리보기하면 그 학생 점수가 보여요.');
+    const sid = SESSION.studentId; // v160 — 응답을 기다리는 사이 학생이 바뀌면(책 덮기·다음 학생) 그리지 않는다
     const url = CONFIG.WEBAPP_URL
       + '?mode=perfScore&studentId=' + encodeURIComponent(SESSION.studentId)
       + '&name=' + encodeURIComponent(SESSION.name)
       + (PREVIEW_MODE ? '&token=' + encodeURIComponent(TOKEN) : ''); // 교사 미리보기는 교사 토큰으로 통과(읽기 전용)
     const res = await fetch(url);
     const data = await res.json();
+    if(!SESSION || SESSION.studentId !== sid) return; // v160
     if(data.result !== 'success') throw new Error(data.message || '조회에 실패했어요.');
     PERF_ITEMS = data.items || [];
     PERF_EXAMS = data.exams || [];
@@ -35,6 +37,7 @@ async function openPerfScore(){
     renderPerfScore_();
     $('perfIntro').style.display = 'none';
   }catch(e){
+    if(!SESSION) return; // v160 — 이미 나간 화면에 오류 칸을 다시 열지 않는다
     body.innerHTML = '<p class="login-error">' + escapeHtml(e.message || '조회에 실패했어요. 다시 시도해 주세요.') + '</p>'
       + '<button class="btn-logout" onclick="closePerfScore_()">닫기</button>';
   }finally{
