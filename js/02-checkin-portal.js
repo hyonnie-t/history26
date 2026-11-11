@@ -941,7 +941,7 @@ function renderActivityBlock(l, act, idx, opts){
     actions = `<a class="btn-go" href="${withStudentParams(url)}" target="_blank" rel="noopener">
       ${done ? "다시 하러 가기" : "하러 가기"} →</a>`;
   } else {
-    actions = `<a class="btn-go" href="${url}" target="_blank" rel="noopener">활동 열기 →</a>`
+    actions = `<a class="btn-go" href="${escapeHtml(ensureUrlScheme_(url))}" target="_blank" rel="noopener">활동 열기 →</a>` /* v162 — https:// 없이 넣은 주소도 열리게(«지금 할 활동»과 같게) */
       + (done
         // v69 — 자가체크로만 완료된 활동(최신 기록이 selfCheck)은 되돌릴 수 있다.
         ? (latest && latest.selfCheck ? `<button class="btn-uncheck" data-activity="${escapeHtml(act.id)}">완료 취소</button>` : '')
