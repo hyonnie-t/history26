@@ -2,7 +2,7 @@
 
 중학교 역사 수업용 학생 포털(교사 "효니": 2학년 세계사·3학년 한국사). 학생은 5자리 학번(학년1+반2+번호2)+이름+비밀번호(v83)로
 로그인해 차시 활동·체크인·질문함을 쓰고, 교사는 대시보드에서 기록·AI 코멘트·공지·커리큘럼·체크인 문항을 관리한다.
-**빌드·패키지 매니저·린터·테스트 러너 없는 정적 파일**(`index.html` 단일 SPA, 로직은 `js/01~07-*.js` 7개 + `config.js`/`checkin_data.js`/`style.css`/`tree.js`).
+**빌드·패키지 매니저·린터·테스트 러너 없는 정적 파일**(`index.html` 단일 SPA, 로직은 `js/*.js` + `config.js`/`checkin_data.js`/`style.css`/`tree.js`. 파일 목록은 `index.html` 맨 아래 `<script src>` 순서가 곧 목록이다).
 **백엔드는 이 레포에 없다** — `config.js`의 `WEBAPP_URL`(Apps Script, 데이터는 Google Sheets)이며 소스는
 `hyonnie-t/history26_backend`(`?mode=` GET 조회 / `{action}` POST 변경, 교사 쓰기는 `token`). 배지 판정·AI 코멘트 생성도 거기다.
 개별 수업 웹앱(`crusades` 등)·SEL 팝업(`SEL_APP_URL`)·`re_judge`도 각자 다른 레포/프로젝트다.
@@ -25,7 +25,7 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 6. **이 레포는 public**: URL/ID/토큰·반 정보 등 민감정보는 `효니.local.md`(gitignore됨)에만. 커밋 전 diff에 민감정보 없는지 확인.
 7. 긴 URL/ID(`WEBAPP_URL`, `SHEET_WEBAPP_URL`, 시트 ID)를 옮겨 적을 땐 육안 말고 grep/diff로 원본과 대조(조용한 전송 실패의 주원인).
 8. `grantPresentationPoint`의 `reason` 문자열(`GONGMIN_BONUS_REASON` 등)을 다른 용도로 재사용하지 않는다(중복 지급 판별 오작동).
-9. 로그인·성적조회 모두 실패 사유(학번/이름/비밀번호 중 무엇)를 구분해 보여주지 않는다(서버 메시지를 그대로). 성적조회는 v83부터 별도 비밀번호 없이 로그인 세션으로 인증한다.
+9. 로그인은 실패 사유(학번/이름/비밀번호 중 무엇)를 구분해 보여주지 않는다(서버 메시지를 그대로). 엑셀 성적조회(«나의 성적 확인하기»)는 v159에서 포털에서 지웠다 — 되살릴 때도 같은 규칙이고, v83부터 별도 비밀번호 없이 로그인 세션으로 인증한다.
 10. 차시 "완료"는 그 차시 **모든** activity id가 `doneIds`에 있어야 하는 AND 조건 — 학생 `lessonDone()`과 대시보드
     `lessonAllActivityIds_()` 두 곳이 따로 구현한다. 진행률·완료 뱃지·포인트를 고치면 둘 다 확인.
 11. **학생 본인 데이터를 부르는 새 fetch는 `snippets/portal_auth.js`가 세션을 붙여 주는 형태로만** 쓴다: GET은 주소에 `studentId=`, POST는 `JSON.stringify` 문자열 본문.
@@ -33,7 +33,7 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 
 ## 작업 습관
 - 고치기 전에 `git fetch` 후 `origin/main`에서 임시 worktree(`git worktree add <임시폴더> -b <브랜치> origin/main`)를 만들어 작업한다. 여러 세션이 이 폴더를 같이 쓰므로 공용 폴더는 `main`으로 둔다(2026-11-08).
-- **포털 JS는 `js/` 7개 파일 + v134 `js/08-dash-today.js`(대시보드 «📅 오늘» 탭, 시간표 앱 연결) + v142 `js/09-dash-culture.js`(«🏺 문화사 팀» 탭)**(v104에서 `index.html` 인라인 `<script>`를 그대로 꺼냄, 합쳐 6천 줄·390KB). 가장 큰 `js/06-dashboard.js`(2.7천 줄)는 통째로 Read 금지 —
+- **포털 JS는 `js/` 아래 여러 파일이다**(v104에서 `index.html` 인라인 `<script>`를 그대로 꺼냄). 파일 수·줄 수는 여기 적지 않는다 — `index.html`의 script 순서가 파일 목록이고, `picker.html`·`groups.html`은 `js/picker.js`·`js/group-board.js`를 따로 싣는다. 가장 큰 `js/06-dashboard.js`는 통째로 Read 금지 —
   `grep -n "^function 이름\|/\* ──" js/*.js`로 파일·위치를 찾고 범위만 Read. 파일 순서 = 실행 순서(`index.html` 맨 아래 `<script src>` 순). 파일별 내용 표는 `.claude/rules/index-html.md`.
   `js/*.js`를 고치면 `index.html`의 그 `<script src="...?v=NN">` 번호를 올린다(`style.css?v=`와 같은 캐시 키).
   문서에 줄번호를 적지 말고 함수·id 이름만 쓴다(편집마다 밀림).
@@ -45,7 +45,7 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 - 로컬 확인은 반드시 `python3 -m http.server 8765 &`(`file://`는 스크립트 로드·fetch가 막힌다). 새 화면은
   `node tests/webapp-testing/shot.js http://localhost:8765/index.html <출력폴더> <접두어>`로 폰360·태블릿820·PC1280 세 폭 확인
   (playwright 경로는 스크립트가 찾는다 — 세션마다 새로 찾지 말 것).
-- Stop 훅(`.claude/hooks/`)이 턴 끝에 Playwright 스모크·버전 재사용·`.side-card` 브레이크포인트·검증 메타 유출을 **경고만** 한다(차단 아님). 경고가 뜨면 고친다.
+- Stop 훅(`.claude/hooks/`)이 턴 끝에 Playwright 스모크·버전 재사용·`config.js?v=` 번호 일치(HTML 4개)·`.side-card` 브레이크포인트·검증 메타 유출을 **경고만** 한다(차단 아님). 경고가 뜨면 고친다. 경고 출력은 node로 한다(v163). Playwright 스모크는 python이 필요해 효니 PC에서는 «못 돌렸어요»라고만 알린다 — 그때는 `node tests/webapp-testing/mock_check.js <출력 폴더> all`로 손으로 본다.
 
 ## 로컬 세션 (효니 PC, Windows·OneDrive)
 클라우드에선 샌드박스가 막아 주던 것이 로컬에선 풀린다. 아래는 그걸 규칙으로 대신한 것이다.

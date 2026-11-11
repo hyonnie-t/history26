@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Stop hook — index.html/js/*.js/config.js/checkin_data.js에 커밋 안 된 변경이 있으면
+# Stop hook — index.html/js/*.js/config.js/checkin_data.js와 공개 페이지(groups.html·picker.html·picker-check.html)·tree.js에
+# 커밋 안 된 변경이 있으면(v163: 공개 페이지 추가 — groups.html은 로그인 없이 학생이 보는 화면)
 # .claude/rules/student-screen.md "검증 메타데이터 분리 원칙"의 완료 기준
 # ("검수", "대조", "미확인", "2차", "확인 전" 문자열이 학생 화면 렌더링
 # 문자열에 0건이어야 한다")을 점검한다.
@@ -16,10 +17,19 @@
 # 같은 정상 콘텐츠가 걸리는 오탐을 막으려고(2026-10-14). 패턴은 grep -E 정규식.
 set -uo pipefail
 
+# v163 — 경고 출력은 node로 한다. 효니 PC(Windows)의 python3는 스토어 바로가기라 실행되지 않아, 전에는 훅이 «통과»가 아니라 «조용히 못 돎»이었다.
+emit_msg() {
+  if command -v node >/dev/null 2>&1; then
+    node -e 'console.log(JSON.stringify({systemMessage: process.argv[1]}))' "$1"
+  else
+    python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$1"
+  fi
+}
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$REPO_ROOT" || exit 0
 
-FILES="index.html js/*.js config.js checkin_data.js"
+FILES="index.html js/*.js config.js checkin_data.js groups.html picker.html picker-check.html tree.js"
 
 CHANGED=$(git status --porcelain -- $FILES 2>/dev/null)
 [ -z "$CHANGED" ] && exit 0
@@ -48,7 +58,7 @@ done
 
 if [ "${#MSGS[@]}" -gt 0 ]; then
   FULL_MSG="⚠️ 검증 메타데이터 유출 점검 (.claude/rules/student-screen.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
-  python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$FULL_MSG"
+  emit_msg "$FULL_MSG"
 fi
 
 exit 0

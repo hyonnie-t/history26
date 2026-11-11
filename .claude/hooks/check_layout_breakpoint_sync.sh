@@ -6,6 +6,15 @@
 # systemMessage로 띄운다(강제 차단 없음).
 set -uo pipefail
 
+# v163 — 경고 출력은 node로 한다. 효니 PC(Windows)의 python3는 스토어 바로가기라 실행되지 않아, 전에는 훅이 «통과»가 아니라 «조용히 못 돎»이었다.
+emit_msg() {
+  if command -v node >/dev/null 2>&1; then
+    node -e 'console.log(JSON.stringify({systemMessage: process.argv[1]}))' "$1"
+  else
+    python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$1"
+  fi
+}
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$REPO_ROOT" || exit 0
 
@@ -51,7 +60,7 @@ fi
 
 if [ "${#MSGS[@]}" -gt 0 ]; then
   FULL_MSG="⚠️ .side-card/.side-combined 브레이크포인트 동기화 점검 (.claude/rules/style-css.md 기준, 참고용 — 강제 차단 아님):"$'\n'"$(printf -- '- %s\n' "${MSGS[@]}")"
-  python3 -c "import json,sys; print(json.dumps({'systemMessage': sys.argv[1]}))" "$FULL_MSG"
+  emit_msg "$FULL_MSG"
 fi
 
 exit 0
