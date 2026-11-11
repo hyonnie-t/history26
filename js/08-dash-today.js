@@ -51,9 +51,11 @@ async function dashTodayOpen_(){
     TD.mods.fb.onAuthStateChanged(TD.mods.fb.auth, tdOnUser_);   // 처음 한 번 바로 불린다(저장된 로그인 복원 포함)
     return;
   }
+  if(TD.user && !TD.unsub){ tdOnUser_(TD.user); return; } // v160 — «나가기»로 끊은 할 일 구독을 다시 잇는다(데이터도 여기서 새로 읽음)
   if(TD.user) tdLoadData_(); else tdRender_();
 }
 
+function tdStop_(){ if(TD.unsub){ TD.unsub(); TD.unsub = null; } } // v160 — 대시보드 «나가기»: 할 일 실시간 구독을 끊는다
 function tdOnUser_(user){
   TD.user = user || null;
   if(TD.unsub){ TD.unsub(); TD.unsub = null; }

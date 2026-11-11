@@ -385,6 +385,8 @@ async function refreshStudentData(force){
   if($('portalView').style.display !== 'block') return;
   if(!force && Date.now() - lastRefresh < 15000) return; // 15초 쿨다운
   lastRefresh = Date.now();
+  const sid = SESSION.studentId; // v160 — 응답이 늦게 와서 그 사이 학생이 바뀌었으면 그리지 않는다(앞 학생 기록이 다음 학생 화면에 그려지던 경합)
+  const stale = () => !SESSION || SESSION.studentId !== sid;
   try{
     const url = CONFIG.WEBAPP_URL
       + "?mode=student&studentId=" + encodeURIComponent(SESSION.studentId)
@@ -392,14 +394,16 @@ async function refreshStudentData(force){
       + (PREVIEW_MODE ? "&token=" + encodeURIComponent(TOKEN) : ""); // v83 — 실제 학생 미리보기는 교사 토큰으로
     const res = await fetch(url);
     const data = await res.json();
+    if(stale()) return;
     if(data.needLogin && !PREVIEW_MODE){ // v83 — 다른 기기에서 비번을 바꿨거나 교사가 초기화했다
       exitToLogin();
       showLoginError(data.message || "다시 로그인해 주세요.");
       return;
     }
     if(data.result === 'success'){
+      data.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
+      if(stale()) return;
       STUDENT_DATA = data;
-      STUDENT_DATA.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
       renderPortal();
       if(force) showToast('최신 기록으로 갱신했어요.');
     }
@@ -413,7 +417,25 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', () => refreshStudentData(false));
 $('btnPortalRefresh').addEventListener('click', () => refreshStudentData(true));
 
+/* v160 — 화면에 남는 학생별 상태를 한 곳에서 비운다. 학생이 바뀌는 길(책 덮기, 교사 미리보기 진입·이전/다음 학생, 대시보드로 복귀)마다 부른다.
+ * 전에는 공용 기기에서 앞 학생이 연 수행평가 점수 칸·쓰다 만 질문·차시 접힘 기억이 다음 학생에게 그대로 넘어갔다.
+ * 같은 학생 화면을 다시 그리는 길(refreshStudentData·제출 뒤 재조회)에서는 부르지 않는다 — 접힘 기억·쓰던 글이 지워진다. */
+let PREVIEW_SEQ = 0; // v160 — 미리보기 요청 번호. 화면이 바뀌면 올라가서, 늦게 온 «학생 화면 보기» 응답을 버린다
+function resetPortalState_(){
+  PREVIEW_SEQ++;
+  $('perfBody').style.display = 'none'; $('perfBody').innerHTML = '';
+  $('perfIntro').style.display = 'block';
+  PERF_ITEMS = []; PERF_EXAMS = [];
+  $('questionInput').value = ''; $('msgInput').value = '';
+  LESSON_OPEN = {};
+  Object.keys(UNIT_OPEN).forEach(k => { delete UNIT_OPEN[k]; });
+  FEEDBACK_INBOX_OPEN = false; FEEDBACK_INBOX_ITEMS = [];
+  MSG_POPUP_SEEN_TS = '';
+  document.querySelectorAll('.msg-popup-overlay, .pp-popup-overlay, .fb-popup-overlay').forEach(el => el.remove());
+  ['pwCur','pwNew','pwNew2'].forEach(id => { $(id).value = ''; }); closePwDialog_(); // 열려 있던 비밀번호 바꾸기 창
+}
 function exitToLogin(){
+  resetPortalState_(); // v160
   store.del('portal_session');
   store.del('portal_handoff'); // v81
   if(window.H26Auth) H26Auth.clear(); // v83 — 이 기기의 로그인 세션(웹앱 공용)도 지운다
@@ -428,7 +450,7 @@ function exitToLogin(){
   $('loginView').style.display = 'flex';
   $('inputId').value = ''; $('inputName').value = '';
 }
-$('btnLogout').addEventListener('click', exitToLogin);
+$('btnLogout').addEventListener('click', () => PREVIEW_FROM_DASH ? exitPreviewToDash_() : exitToLogin()); // v160 — 대시보드에서 온 미리보기는 «책 덮기»도 대시보드로(전엔 교사 토큰을 쥔 채 로그인 화면으로 갔다)
 $('btnExitPreview').addEventListener('click', () => PREVIEW_FROM_DASH ? exitPreviewToDash_() : exitToLogin());
 
 /* ── 대시보드에서 "이 학생의 실제 학생 화면" 보기 (v64) ──
@@ -440,13 +462,16 @@ async function previewAsStudent(sid, name, fromNav){
   const parsed = parseStudentId(sid);
   if(!parsed || !CONFIG.CURRICULUM[parsed.grade]){ showToast('이 학생의 학년 정보를 찾지 못했어요.'); return; }
   showToast(`${name} 학생 화면을 불러오는 중이에요…`);
+  const seq = ++PREVIEW_SEQ; // v160
   try{
     const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
       + '?mode=student&studentId=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(name)
       + '&token=' + encodeURIComponent(TOKEN)); // v83 — 로그인 필수가 켜져도 교사 토큰으로 통과
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
     data.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
+    if(seq !== PREVIEW_SEQ || !TOKEN) return; // v160 — 기다리는 사이 다른 학생을 골랐거나 대시보드로 돌아갔거나 «나가기»를 눌렀다
     if(!fromNav) PREVIEW_DASH_SCROLL = window.scrollY;
+    resetPortalState_(); // v160 — 앞에 본 학생의 점수 칸·접힘 기억을 넘기지 않는다
     PREVIEW_MODE = true; PREVIEW_REAL = true; PREVIEW_FROM_DASH = true;
     SESSION = { studentId: sid, name, ...parsed };
     STUDENT_DATA = data;
@@ -455,6 +480,7 @@ async function previewAsStudent(sid, name, fromNav){
     renderPortal();
     window.scrollTo(0, 0);
   }catch(e){
+    if(seq !== PREVIEW_SEQ || !TOKEN) return;
     showToast('학생 화면을 불러오지 못했어요. 다시 시도해 주세요.');
   }
 }
@@ -465,6 +491,7 @@ function previewStepStudent_(delta){
   previewAsStudent(next.sid, next.name, true);
 }
 function exitPreviewToDash_(){
+  resetPortalState_(); // v160
   SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; PREVIEW_REAL = false; PREVIEW_FROM_DASH = false;
   CHECKIN_CTX = null;
   $('portalView').style.display = 'none';

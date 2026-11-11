@@ -1206,7 +1206,28 @@ $('btnDashRefresh').addEventListener('click', async () => {
   }
   catch(e){ showToast('갱신 실패: ' + e.message); }
 });
+/* v160 — «나가기»는 화면만 숨기지 않고 교사 토큰과 학생 기록을 메모리에서 비운다. 전에는 토큰이 남아 «학생 화면 테스트»가 토큰 없이 열렸고,
+ * 문화사 30초 타이머와 오늘 탭 실시간 구독도 계속 돌았다. 다시 들어오면 enterDash가 전부 새로 읽는다. */
+function dashClearSession_(){
+  TOKEN = ''; TEACHER_NAME = null;
+  ROWS = []; FEEDBACKS = []; CLASS_FEEDBACKS = []; QUESTIONS = []; MESSAGES = [];
+  DASH_STUDENT_ORDER = []; openDetailSid = null; PP_RECENT = [];
+  PA_DATA = null; PERF_ADMIN_ROWS = []; CK_ADMIN_CACHE = null;
+  if(typeof ctAutoStop_ === 'function') ctAutoStop_();
+  if(typeof tdStop_ === 'function') tdStop_();
+  /* 숨긴 화면에 남은 학생 기록도 비운다. 탭은 처음 탭(학생 기록)으로 돌려, 다시 들어왔을 때 비운 데이터로 그려진 낡은 탭이 보이지 않게 한다
+   * (성적관리·학생 계정·문화사·오늘 탭은 탭을 누를 때 새로 읽는다). */
+  try{
+    PREVIEW_SEQ++; // 기다리던 «학생 화면 보기» 응답을 버린다
+    switchDashTab('records');
+    renderDash(); dashRenderQuestions();
+    $('paRequests').textContent = ''; $('paAccounts').innerHTML = ''; $('paBadge').style.display = 'none';
+    $('perfAdminBox').textContent = '불러오는 중…'; $('semAdminBox').textContent = '불러오는 중…';
+  }catch(e){}
+}
 $('btnDashOut').addEventListener('click', () => {
+  dashClearSession_(); // v160
+  $('tokenInput').value = '';
   $('dashView').style.display = 'none';
   $('loginView').style.display = 'flex';
   $('teacherGate').style.display = 'none';
