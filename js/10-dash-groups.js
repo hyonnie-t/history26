@@ -606,3 +606,7 @@ function grRender_(){
 function grPasteNote_(){
   const el = $('grPasteNote'); if(el) el.innerHTML = grPasteNoteHtml_();
 }
+
+/* v173 — 이 파일이 포털의 마지막 classic script다. 여기까지 실렸다고 js/07의 initPortal에 알린다(08·09·10 선언을 쓸 수 있다는 신호).
+ * 이 파일의 유일한 로드 시점 코드다. index.html에서 이 뒤에 classic script를 더하면 이 호출을 그 파일 끝으로 옮긴다. */
+if(typeof bootScriptsReady_ === 'function') bootScriptsReady_();

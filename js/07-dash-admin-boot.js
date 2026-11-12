@@ -1192,6 +1192,15 @@ $('btnDashOut').addEventListener('click', () => {
 
 /* ── 초기 부팅: 커리큘럼(시트)을 먼저 불러온 뒤에야 로그인·미리보기·대시보드 필터가
  * 의미 있는 CONFIG.CURRICULUM을 참조할 수 있음. 그 전엔 로그인 버튼을 잠가 둠. ── */
+/* v173 — 이 파일 뒤에 실리는 classic script(js/08·09·10)가 다 실렸다는 신호. js/10 맨 끝이 bootScriptsReady_()를 부른다.
+ * initPortal은 tdDeepLink_·자동 로그인처럼 뒤 파일 선언에 닿는 코드 앞에서 이걸 기다린다.
+ * v172는 DOMContentLoaded를 기다렸는데, 그건 학생 입장과 무관한 module·defer 스크립트(아이콘·«홈 화면에 추가»)까지 기다려서
+ * 그 파일 하나가 늦으면 책이 그만큼 늦게 열리고, 안 오면 로그인 버튼이 잠긴 채 멈췄다(v172 검토에서 재현).
+ * js/10이 끝내 안 실려도 멈추지 않게 DOMContentLoaded도 같은 신호로 받는다(그때는 전처럼 08 없이 이어 간다). */
+let bootScriptsReady_;
+const BOOT_SCRIPTS_READY = new Promise(r => { bootScriptsReady_ = r; });
+document.addEventListener('DOMContentLoaded', () => bootScriptsReady_(), { once: true });
+
 (async function initPortal(){
   const btn = $('btnLogin');
   btn.disabled = true; btn.textContent = '커리큘럼 불러오는 중…';
@@ -1219,12 +1228,13 @@ $('btnDashOut').addEventListener('click', () => {
   let ok;
   if(curCached){
     CONFIG.CURRICULUM = curCached; CURRICULUM_FROM_CACHE = true; ok = true; // v171
-    /* v172 — 저장본이면 여기까지 기다림(await)이 한 번도 없어서, 이 파일 뒤에 실리는 js/08(tdDeepLink_)·09·10이 아직 없는 채로
-     * 아래 코드가 돌았다. 그래서 저장본이 있는 기기에서 ?dash= 교사 주소가 대시보드로 안 가고 학생 자동 입장으로 흘렀다.
-     * 전에는 커리큘럼 fetch를 기다리는 동안 나머지 스크립트가 다 실렸다 — 그 순서를 되살린다(문서가 다 읽힐 때까지만 기다림). */
-    if(document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
   }
   else ok = await loadCurriculum();
+  /* v172 — 저장본이면 여기까지 기다림(await)이 한 번도 없어서, 이 파일 뒤에 실리는 js/08(tdDeepLink_)·09·10이 아직 없는 채로
+   * 아래 코드가 돌았다. 그래서 저장본이 있는 기기에서 ?dash= 교사 주소가 대시보드로 안 가고 학생 자동 입장으로 흘렀다.
+   * v173 — 뒤 스크립트가 실릴 때까지만 기다린다(BOOT_SCRIPTS_READY). 저장본 없는 길도 같이 기다린다:
+   * 전에는 «커리큘럼 응답이 08보다 늦게 온다»에 기대고 있어서, 08이 더 늦으면 같은 일이 났다. 보통은 이미 실려 있어 기다림이 없다. */
+  await BOOT_SCRIPTS_READY;
   if(!ok){
     showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
   }
