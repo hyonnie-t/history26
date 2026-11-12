@@ -404,6 +404,7 @@ async function refreshStudentData(force){
       data.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
       if(stale()) return;
       STUDENT_DATA = data;
+      if(PREVIEW_REAL) PREVIEW_CACHE.set(previewCacheKey_(SESSION.studentId, SESSION.name), { at: Date.now(), done: true, promise: Promise.resolve(data) }); // v168 — 새로 받은 기록으로 미리보기 캐시도 바꾼다(다음→이전으로 돌아왔을 때 옛 기록이 뜨지 않게)
       renderPortal();
       if(force) showToast('최신 기록으로 갱신했어요.');
     }
