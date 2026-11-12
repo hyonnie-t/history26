@@ -42,7 +42,9 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 - 클라우드 샌드박스에서 `script.google.com`·`*.github.io`·`cdn.jsdelivr.net`은 막혀 있다. 실제 응답·배포 확인은 curl 말고
   효니에게 URL을 열어 결과를 붙여 달라고 하고, 백엔드 응답은 `tests/webapp-testing/fixtures.py`처럼 가짜로 시험한다.
   **로컬 세션은 이 차단이 없다 — 아래 "로컬 세션" 규칙을 따른다.**
-- 로컬 확인은 반드시 `python3 -m http.server 8765 &`(`file://`는 스크립트 로드·fetch가 막힌다). 새 화면은
+- 로컬 확인은 반드시 로컬 서버로 띄운다(`file://`는 스크립트 로드·fetch가 막힌다). 클라우드는 `python3 -m http.server 8765 &`.
+  **효니 PC(Windows)는 `python3`가 스토어 가짜 실행 파일이라 안 된다** — `npx.cmd --yes http-server@14.1.1 . -p 8765 -c-1`로 띄우거나
+  내장 브라우저 `preview_start`의 `history26`(`.claude/launch.json`, 포트 8138)를 쓴다. 가짜 응답 점검 `mock_check.js`는 서버를 스스로 띄운다(8765라 겹치지 않게). 새 화면은
   `node tests/webapp-testing/shot.js http://localhost:8765/index.html <출력폴더> <접두어>`로 폰360·태블릿820·PC1280 세 폭 확인
   (playwright 경로는 스크립트가 찾는다 — 세션마다 새로 찾지 말 것).
 - Stop 훅(`.claude/hooks/`)이 턴 끝에 Playwright 스모크·버전 재사용·`config.js?v=` 번호 일치(HTML 4개)·`.side-card` 브레이크포인트·검증 메타 유출을 **경고만** 한다(차단 아님). 경고가 뜨면 고친다. 경고 출력은 node로 한다(v163). Playwright 스모크는 python이 필요해 효니 PC에서는 «못 돌렸어요»라고만 알린다 — 그때는 `node tests/webapp-testing/mock_check.js <출력 폴더> all`로 손으로 본다.
@@ -54,6 +56,8 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 - **비밀 파일은 출력·커밋·로그에 옮기지 않는다.** `효니.local.md`, 백엔드 `.gas.local.json`, 구글 `token.json` 경로.
   커밋 전 `git diff --cached`에서 URL·ID·토큰을 grep으로 확인한다(이 레포는 public).
 - **푸시는 작업 브랜치에만 한다.** PR 병합은 클로드가 한다(2026-10-25 효니 지시: 검증→PR→`gh pr merge`→로컬 main 맞추기→배포 확인). 효니가 시킨 적 없는 `main` 직접 푸시·force push 금지.
+  배포 확인 때 GitHub Pages가 `index.html`에 10분 캐시(`Cache-Control: max-age=600`)를 붙여, 배포 직후 브라우저가 옛 화면을 띄울 수 있다(`sw.js`는 캐시하지 않는다).
+  재거나 보기 전에 페이지의 `<script src>` `?v=` 번호가 새 번호인지 먼저 보고, 옛 번호면 다시 연다. 학생·효니 기기도 배포 뒤 최대 10분은 옛 화면일 수 있다.
 - **OneDrive 안의 `.git`은 PC 3대가 동기화한다.** 한 번에 한 PC에서만 작업하고, 시작 전에 `git status`와
   `.git/index.lock` 유무를 본다(락이 있으면 지우지 말고 효니에게 알린다). 끝나면 push까지 하고,
   다른 PC로 넘어가기 전에 OneDrive 동기화가 끝났는지 효니에게 상기시킨다. 원본은 GitHub이니 푸시 안 한 변경만 잃을 수 있다.
