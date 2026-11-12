@@ -1,7 +1,8 @@
 /* 세 폭(폰 360·태블릿 820·PC 1280) 스크린샷 + 콘솔 오류 확인.
  *
  * 사용: node tests/webapp-testing/shot.js <URL> <출력 폴더> [이름접두어]
- *   예) python3 -m http.server 8765 &      # 포털은 file:// 말고 로컬 서버로
+ *   예) python3 -m http.server 8765 &      # 포털은 file:// 말고 로컬 서버로(클라우드)
+ *       npx.cmd --yes http-server@14.1.1 . -p 8765 -c-1   # 효니 PC(Windows) — python3는 스토어 가짜 실행 파일이라 안 된다
  *       node tests/webapp-testing/shot.js http://localhost:8765/index.html "$SCRATCH" portal
  * 결과 PNG는 Read로 열어 눈으로 확인한다.
  *
