@@ -270,9 +270,28 @@ async function grOpenClass_(){
   if(!GR.key) GR.key = grKeys_()[0] || '';
   grRender_();
   if(GR.scoreN === null) grLoadScoreCounts_().catch(() => { GR.scoreN = undefined; }).then(() => { if(GR.sub === 'class') grRender_(); }); // 못 세어도 시트 계산은 된다. 안내만 줄어든다
-  try { if(GR.saved === null) await grLoadSaved_(); GR.err = ''; }
-  catch(e){ GR.err = e.message; }
+  if(GR.saved === null) DASH_LOAD.groups = 'loading';
+  try { if(GR.saved === null) await grLoadSaved_(); GR.err = ''; DASH_LOAD.groups = 'ready'; }
+  catch(e){ GR.err = e.message; DASH_LOAD.groups = 'error'; }
   grRender_();
+}
+/* v167 — 읽기 실패 뒤 «다시 시도»(전에는 탭을 나갔다 와야 다시 읽었다). */
+function grRetry_(){ GR.err = ''; grOpenClass_(); }
+/* v167 — 이 탭이 지금 어떤 상태인지 한 곳에서 계산한다(2026-11-11 점검 ③-2). 그리는 쪽은 GR의 여러 필드를 따로 보지 않고 이 값을 본다.
+ *  load : 'nokey'(담당 반 없음) · 'error' · 'loading' · 'ready'
+ *  draft: 'none' · 'preview'(계산만 한 판) · 'editing'(자리를 손으로 바꾼 판) · 'savedEdit'(확정본을 고치는 판)
+ *  full : 칠판 전체화면을 띄울지. 띄울 확정 모둠이 없으면 «띄워 둠» 기억(GR.full)도 지운다 —
+ *         전에는 다른 PC가 확정을 취소해도 기억이 남아, 나중에 새로 확정되면 전체화면이 예고 없이 다시 떴다. */
+function grState_(){
+  const saved = GR.saved === null ? [] : grSavedBan_();
+  if(!saved.length) GR.full = false;
+  const d = GR.draft && GR.draft.key === GR.key ? GR.draft : null;
+  return {
+    load: !GR.key ? 'nokey' : GR.err ? 'error' : GR.saved === null ? 'loading' : 'ready',
+    draft: !d ? 'none' : d.fromSaved ? 'savedEdit' : d.edited ? 'editing' : 'preview',
+    full: GR.full && saved.length > 0,
+    saved
+  };
 }
 function grPick_(key){ if(GR.busy) return; if(GR.draft && GR.draft.edited && !confirm('직접 바꾼 자리가 사라져요. 다른 반으로 갈까요?')) return; GR.picked = null; GR.key = key; GR.draft = null; GR.seed = 1; GR.rev++; grRender_(); }
 
@@ -557,8 +576,9 @@ function grRender_(){
   if(!box) return;
   const keys = grKeys_();
   const head = `<div class="ct-top">${keys.map(k => `<button type="button" class="btn btn-sm${k === GR.key ? '' : ' btn-ghost'}" onclick="grPick_('${k}')"${GR.busy ? ' disabled' : ''}>${k}${GR.scoreN && GR.scoreN[k] ? ' ✓' : ''}</button>`).join('')}${GR.busy ? ' <span class="dash-hint">계산하는 중…</span>' : ''}</div>`;
-  if(GR.err){ box.innerHTML = head + `<p class="dash-hint" style="color:var(--seal)">${ctEsc_(GR.err)} — 백엔드 v145 «새 버전» 재배포 전이면 이 탭을 못 써요.</p>`; return; }
-  if(GR.saved === null || !GR.key){ box.innerHTML = head + `<p class="dash-hint">${GR.key ? '불러오는 중…' : '담당 반을 찾지 못했어요.'}</p>`; return; }
+  const st = grState_(); // v167
+  if(st.load === 'error'){ box.innerHTML = head + `<p class="dash-hint" style="color:var(--seal)">${ctEsc_(GR.err)} — 백엔드 v145 «새 버전» 재배포 전이면 이 탭을 못 써요.${dashRetryBtn_('grRetry_()')}</p>`; return; }
+  if(st.load !== 'ready'){ box.innerHTML = head + `<p class="dash-hint">${st.load === 'loading' ? '불러오는 중…' : '담당 반을 찾지 못했어요.'}</p>`; return; }
   const pasteText = GR.paste[GR.key] || '';
   const titles = GR.titles[GR.key];
   const saved = grSavedBan_();
@@ -579,7 +599,7 @@ function grRender_(){
   html += `<section class="dash-card"><h2 class="dash-card-title">② 확정한 모둠 — ${GR.key}반</h2>` + (saved.length
     ? `<div class="ct-top"><button type="button" class="btn btn-sm" onclick="GR.full=true;grRender_()"${GR.draft ? ' disabled title="이름이 보이는 판을 닫은 뒤에 띄울 수 있어요"' : ''}>⛶ 칠판에 크게 보기</button>${GR.draft ? `<button type="button" class="btn btn-sm btn-ghost" onclick="grCloseDraft_()">판 닫기</button>` : ''}<button type="button" class="btn btn-sm btn-ghost" onclick="grEditSaved_()"${GR.busy ? ' disabled' : ''}>✏️ 고치기</button><button type="button" class="btn btn-sm btn-ghost" onclick="grCancelSaved_()"${GR.busy || GR.draft ? ' disabled' : ''}${GR.draft ? ' title="이름이 보이는 판을 닫은 뒤에 취소할 수 있어요"' : ''}>↩️ 확정 취소</button></div>` + grBoardHtml_(saved)
     : '<p class="dash-hint">아직 확정한 모둠이 없어요.</p>' + (GR.undo[GR.key] ? `<div class="ct-top"><button type="button" class="btn btn-sm btn-ghost" onclick="grUndoCancel_()"${GR.busy ? ' disabled' : ''}>↩️ 방금 취소한 모둠 되돌리기</button></div>` : '')) + '</section>';
-  if(GR.full && saved.length) html += `<div class="gr-full" onclick="GR.full=false;grRender_()"><h2>${GR.key}반 모둠</h2>${grBoardHtml_(saved, true)}<p>화면을 누르면 닫혀요</p></div>`;
+  if(st.full) html += `<div class="gr-full" onclick="GR.full=false;grRender_()"><h2>${GR.key}반 모둠</h2>${grBoardHtml_(saved, true)}<p>화면을 누르면 닫혀요</p></div>`;
   box.innerHTML = html;
 }
 /* 입력 중 다시 그리면 글자 칸 포커스가 날아가서 읽은 결과 부분만 고친다 */

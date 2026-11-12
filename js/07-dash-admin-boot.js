@@ -5,15 +5,17 @@
  * ════════════════════════════════════════════════════════ */
 let PA_DATA = null;
 async function dashLoadPwAdmin_(){
+  DASH_LOAD.accounts = 'loading'; // v167
   try{
     const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + '?mode=pwAdmin&token=' + encodeURIComponent(TOKEN));
     if(data.result !== 'success') throw new Error(data.message || '불러오지 못했어요.');
-    PA_DATA = data;
+    PA_DATA = data; DASH_LOAD.accounts = 'ready';
     const n = (data.requests || []).length;
     $('paBadge').textContent = n; $('paBadge').style.display = n ? 'inline-block' : 'none';
     dashRenderPwAdmin_();
   }catch(e){
-    $('paRequests').textContent = '불러오지 못했어요: ' + e.message + ' (백엔드 v83 재배포 전이면 이 탭은 아직 동작하지 않아요.)';
+    DASH_LOAD.accounts = 'error';
+    $('paRequests').innerHTML = escapeHtml('불러오지 못했어요: ' + e.message + ' (백엔드 v83 재배포 전이면 이 탭은 아직 동작하지 않아요.)') + dashRetryBtn_('dashLoadPwAdmin_()'); // v167 — 다시 시도
   }
 }
 function fmtPaTime_(v){
@@ -192,6 +194,7 @@ async function dashSetSemShow_(btn, status){
 async function dashLoadPerfStatus_(){
   const box = $('perfAdminBox');
   box.textContent = '불러오는 중…';
+  DASH_LOAD.grades = 'loading'; // v167
   try{
     const res = await fetch(CONFIG.WEBAPP_URL + '?mode=perfScoreAdmin&token=' + encodeURIComponent(TOKEN));
     const data = await res.json();
@@ -199,6 +202,7 @@ async function dashLoadPerfStatus_(){
     const rows = data.rows || [];
     PERF_ADMIN_ROWS = rows;
     SEM_ADMIN = { exams: data.exams || [], show: data.examShow || 'OFF' }; // v136
+    DASH_LOAD.grades = 'ready';
     dashRenderSemAdmin_();
     if(!rows.length){ box.textContent = '올라온 수행평가 점수가 없어요.'; return; }
     const byBan = {};
@@ -237,7 +241,8 @@ async function dashLoadPerfStatus_(){
       + '</select></div><div id="perfStudentBox"></div>';
     dashRenderPerfStudents_();
   }catch(e){
-    box.textContent = '❌ 현황을 불러오지 못했어: ' + e.message;
+    DASH_LOAD.grades = 'error';
+    box.innerHTML = escapeHtml('❌ 현황을 불러오지 못했어: ' + e.message) + dashRetryBtn_('dashLoadPerfStatus_()'); // v167 — 다시 시도
     if($('semAdminBox') && /불러오는 중/.test($('semAdminBox').textContent)) $('semAdminBox').textContent = '❌ 학기말 성적을 불러오지 못했어: ' + e.message; // v136
   }
 }
@@ -1142,7 +1147,7 @@ $('btnDashRefresh').addEventListener('click', async () => {
     await loadCurriculum(); dashRefreshActivityOptions();
     renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderLessons(); dashRenderGradeInfoForm();
     dashRenderGongminBonus_();
-    if(CK_ADMIN_LOADED && CHECKIN_PLAN){
+    if(DASH_LOAD.checkin === 'ready' && CHECKIN_PLAN){ // v167
       CK_TODAY_LESSON = {};
       CK_ADMIN_CACHE = null; // v118
       await dashLoadCkSetCurrent();

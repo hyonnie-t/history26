@@ -16,6 +16,11 @@ async function dashPost_(body, fallbackMsg){
   if(j.result !== 'success'){ const err = new Error(j.message || fallbackMsg || ''); err.fromServer = true; err.response = j; throw err; }
   return j;
 }
+/* v167 — 탭별 «읽었나» 상태를 한 모양으로 둔다: 'idle'(아직 안 읽음) · 'loading' · 'ready' · 'error'(2026-11-11 점검 ③-3).
+ * 전에는 탭마다 모양이 달랐고(CK_ADMIN_LOADED 참/거짓, PA_DATA null, GR.saved null …) 실패 뒤 다시 읽는 방법도 제각각이었다.
+ * 실패 안내 옆에는 dashRetryBtn_()로 «다시 시도»를 붙인다. checkin만 이 값으로 «처음 한 번만 초기화»를 가른다(나머지 탭은 열 때마다 다시 읽는다). */
+const DASH_LOAD = { checkin: 'idle', accounts: 'idle', grades: 'idle', groups: 'idle', culture: 'idle' };
+function dashRetryBtn_(call){ return ' <button type="button" class="btn btn-sm btn-ghost" onclick="' + call + '">다시 시도</button>'; }
 let TEACHER_NAME = null; // v29 — 로그인 토큰으로 식별된 교사('효니'/'미현쌤'). 서버 권한엔 영향 없고,
                           // 대시보드 기본 필터·커리큘럼 "담당" 기본값을 여기에 맞춰 보여주는 용도.
 let ROWS = [];
@@ -79,7 +84,7 @@ async function dashLoadData(){
   FEEDBACKS = (r2.rows || []);
   QUESTIONS = (r3.rows || []);
   ANNOUNCEMENTS_ADMIN = (r4.rows || []);
-  LESSONS_ADMIN = (r5.lessons || []);
+  LESSONS_ADMIN = (r5.lessons || []).map(lessonNormalizeVisibility_); // v167
   GRADE_INFO_ADMIN = (r5.gradeInfo || {});
   if(r5.badgeNamePool) BADGE_NAME_POOL = r5.badgeNamePool; // v24
   CLASS_FEEDBACKS = (r6.rows || []); // v34
@@ -134,7 +139,7 @@ function switchDashTab(tab){
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
   if(tab === 'groups' && typeof dashGroupsOpen_ === 'function') dashGroupsOpen_(); // v145 — js/10-dash-groups.js가 수업 모둠·문화사 팀(09)을 고른다
   if(tab === 'today' && typeof dashTodayOpen_ === 'function') dashTodayOpen_(); // v134 — js/08-dash-today.js
-  if(tab === 'checkin' && !CK_ADMIN_LOADED){ CK_ADMIN_LOADED = true; dashInitCheckinForm(); }
+  if(tab === 'checkin' && (DASH_LOAD.checkin === 'idle' || DASH_LOAD.checkin === 'error')){ DASH_LOAD.checkin = 'loading'; dashInitCheckinForm(); } // v167 — 읽는 중·읽음이면 다시 초기화하지 않는다
   if(typeof tdSyncUrl_ === 'function') tdSyncUrl_(tab); // v135 — 주소를 ?dash=탭으로 (새로고침·시간표 앱 링크가 같은 탭으로)
 }
 
@@ -473,7 +478,7 @@ const CHECKIN_LOW_TEMP_DISPLAY = 2; // 온도 분포 막대에서 "저온도"로
  * 실제로 열 때 1회만 불러오도록 미룸. dashLoadData()의 6개 요청과 겹쳐 한 번에 15~20개
  * 요청이 몰리면서 GAS 쪽 동시 실행 한도에 걸려 일부가 404 나고 대시보드 전체 체감 속도도
  * 느려졌던 문제였음(다른 탭은 이 데이터를 참조하지 않아 미뤄도 안전). */
-let CK_ADMIN_LOADED = false;
+/* v167 — 이 탭의 읽기 상태는 DASH_LOAD.checkin(옛 CK_ADMIN_LOADED 참/거짓을 대신함). */
 
 /* v40 — config.js BAN_SIZE에서 인원수가 채워진(=실제 수업 맡은) 반만 뽑아낸다.
  * 학번체계상 2학년(1~4반)/3학년(5~8반)이 겹치지 않는다는 전제(핸드오프 "체크인 대시보드:
@@ -573,7 +578,7 @@ async function dashInitCheckinForm(){
    * 전에는 패널 전체를 오류 문구로 덮어써 새로고침 말고는 방법이 없었다. */
   let errBox = $('ckLoadError');
   if(!CHECKIN_PLAN){
-    CK_ADMIN_LOADED = false;
+    DASH_LOAD.checkin = 'error';
     if(CK_SETTINGS_OK === false) CK_SETTINGS_OK = null; // 같이 실패한 설정 조회를 «이 백엔드는 모름»으로 굳히지 않는다(다시 시도 때 다시 읽음)
     if(!errBox){
       errBox = document.createElement('div'); errBox.id = 'ckLoadError'; errBox.className = 'dash-card ck-load-error';
@@ -605,6 +610,7 @@ async function dashInitCheckinForm(){
   await dashLoadCheckinLessonsAdmin();
   dashRenderCheckinLessonsList();
   dashRefreshCkSetLessons(); // v55 — CHECKIN_LESSONS_ADMIN(isPast)이 이제 막 채워졌으니 다시 걸러서 그림
+  DASH_LOAD.checkin = 'ready';
 }
 
 /* v111 — 요약 표를 «반 카드»로 바꿨다. 카드마다 오늘 차시(수업=초록 칩, 기본 감정=회색 칩) + 출처 + 응답 n/총원 + 연속 저온도 + «바꾸기».
@@ -1441,14 +1447,19 @@ function clLessonBans_(l){
   const hyo = cur.hyoBans || [], mihyun = cur.mihyunBans || [];
   return l.owner === '효니' ? hyo : l.owner === '미현쌤' ? mihyun : hyo.concat(mihyun);
 }
+/* v167 — 공개 범위를 한 값으로: 'off'(비공개) · 'all'(모든 반) · 'bans'(publicBans에 든 반만). 화면은 public·publicBans를 따로 보지 않고 이 값을 본다
+ * (전에는 public=false인데 publicBans가 차 있는 조합이 그대로 돌아다녔다 — 읽을 때·바꿀 때 lessonNormalizeVisibility_로 비운다). */
+function lessonVisibility_(l){ return !l.public ? 'off' : (l.publicBans || []).length ? 'bans' : 'all'; }
+function lessonNormalizeVisibility_(l){ if(!l.public) l.publicBans = []; return l; }
 function clLessonBanOpen_(l, ban){
-  return !!l.public && (!(l.publicBans || []).length || l.publicBans.includes(ban));
+  const v = lessonVisibility_(l);
+  return v === 'all' || (v === 'bans' && l.publicBans.includes(ban));
 }
 /* v145 — 한 반씩 공개하는 칩 줄 + 지금 상태 한 줄 */
 function clLessonBanRowHtml_(l){
   const bans = clLessonBans_(l);
-  const partial = l.public && (l.publicBans || []).length;
-  const state = !l.public ? '🔒 비공개' : partial ? '👁 ' + l.publicBans.join('·') + '반만 공개' : '👁 모든 반 공개';
+  const vis = lessonVisibility_(l);
+  const state = vis === 'off' ? '🔒 비공개' : vis === 'bans' ? '👁 ' + l.publicBans.join('·') + '반만 공개' : '👁 모든 반 공개';
   if(!bans.length) return `<div class="cl-bans"><span class="cl-ban-state">${state}</span></div>`;
   return `<div class="cl-bans"><span class="cl-ban-state">${state}</span>` + bans.map(b => {
     const on = clLessonBanOpen_(l, b);
@@ -1478,8 +1489,8 @@ function clLessonItemHtml(l, isPastItem){
           <button class="btn-tiny cl-move" data-row="${l._row}" data-dir="up" title="위로 이동">▲</button>
           <button class="btn-tiny cl-move" data-row="${l._row}" data-dir="down" title="아래로 이동">▼</button>`}
         <button class="an-toggle" data-row="${l._row}" onclick="dashEditLesson(this)">수정</button>
-        <button class="an-toggle" data-row="${l._row}" data-public="${l.public && !(l.publicBans || []).length ? 'false' : 'true'}" onclick="dashToggleLessonPublic(this)">${l.public && !(l.publicBans || []).length ? '전체 비공개' : '전체 공개'}</button>
-        ${l.public && (l.publicBans || []).length ? `<button class="an-toggle" data-row="${l._row}" data-public="false" onclick="dashToggleLessonPublic(this)">전체 비공개</button>` : ''}
+        <button class="an-toggle" data-row="${l._row}" data-public="${lessonVisibility_(l) === 'all' ? 'false' : 'true'}" onclick="dashToggleLessonPublic(this)">${lessonVisibility_(l) === 'all' ? '전체 비공개' : '전체 공개'}</button>
+        ${lessonVisibility_(l) === 'bans' ? `<button class="an-toggle" data-row="${l._row}" data-public="false" onclick="dashToggleLessonPublic(this)">전체 비공개</button>` : ''}
         <button class="an-toggle" data-row="${l._row}" onclick="dashToggleLessonPast(this)">${isPastItem ? '진행중으로 되돌리기' : '지난 활동으로 표시'}</button>
         <button class="an-toggle cl-del" data-row="${l._row}" data-id="${escapeHtml(l.id)}" onclick="dashDeleteLesson(this)">삭제</button>
       </div>
@@ -1741,11 +1752,9 @@ function dashEditLesson(btn){
   const row = btn.dataset.row;
   const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
   if(!l){ showToast('활동 정보를 찾지 못했어요.'); return; }
-  $('clEditRow').value = row;
   $('clGrade').value = l.grade;
   $('clType').value = l.type;
   $('clId').value = l.id;
-  $('clId').disabled = true;
   $('clTitle').value = l.title;
   $('clDesc').value = l.desc || '';
   $('clUrl').value = l.urlText || '';
@@ -1754,9 +1763,7 @@ function dashEditLesson(btn){
   $('clThinkingType').value = l.thinkingType || '';
   clRefreshBadgeNameOptions();
   $('clBadgeName').value = l.badgeName || ''; // v24
-  $('clPublicRow').style.display = 'none'; // 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
-  $('clEditBanner').style.display = 'block';
-  $('btnAddLesson').textContent = '수정 저장';
+  clSetEditing_(row); // v167 — 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
 
   let acts = [];
   if(l.activitiesRaw){
@@ -1783,9 +1790,19 @@ function dashEditLesson(btn){
   $('clTitle').focus();
 }
 
+/* v167 — 폼이 «수정 중»인지는 이 함수만 바꾼다(row = 시트 행 번호, 추가 모드는 null). 전에는 숨은 칸 값·잠긴 id 칸·안내 띠·공개 칸·버튼 글자를
+ * 두 함수가 따로 맞춰, 수정 모드인데 버튼은 «활동 추가»인 어긋남이 생겼다. 읽을 때는 clEditing_(). */
+function clSetEditing_(row){
+  const editing = row != null && row !== '';
+  $('clEditRow').value = editing ? row : '';
+  $('clId').disabled = editing;
+  $('clEditBanner').style.display = editing ? 'block' : 'none';
+  $('clPublicRow').style.display = editing ? 'none' : 'flex';
+  $('btnAddLesson').textContent = editing ? '수정 저장' : '활동 추가';
+}
+function clEditing_(){ return $('clEditRow').value || null; }
 function dashResetLessonForm(){
-  $('clEditRow').value = '';
-  $('clId').value = ''; $('clId').disabled = false;
+  $('clId').value = '';
   $('clTitle').value = ''; $('clDesc').value = ''; $('clUrl').value = ''; $('clPublic').checked = false;
   $('clOwner').value = TEACHER_NAME || '공통';
   $('clOwnerHint').style.display = 'none';
@@ -1797,9 +1814,7 @@ function dashResetLessonForm(){
     .forEach(id => { $(id).value = ''; });
   $('clSequential').checked = false;
   clToggleMulti();
-  $('clEditBanner').style.display = 'none';
-  $('clPublicRow').style.display = 'flex';
-  $('btnAddLesson').textContent = '활동 추가';
+  clSetEditing_(null);
 }
 
 async function dashUpdateLesson(btn, row){
@@ -1837,7 +1852,7 @@ async function dashUpdateLesson(btn, row){
   }catch(e){
     showToast('저장하지 못했어요. 다시 시도해 주세요.');
   }finally{
-    btn.disabled = false; btn.textContent = $('clId').disabled ? '수정 저장' : '활동 추가'; // v161 — 실패하면 폼이 수정 모드로 남으니 글자도 «수정 저장»
+    btn.disabled = false; btn.textContent = clEditing_() ? '수정 저장' : '활동 추가'; // v161 — 실패하면 폼이 수정 모드로 남으니 글자도 «수정 저장»
   }
 }
 
@@ -1871,7 +1886,7 @@ async function dashToggleLessonBan(btn){
     const j = await dashPostRaw_({ action:'setLessonBanPublic', row, id:l.id, ban, on });
     // 옛 백엔드는 모르는 action을 기본 제출 경로로 보내 gameName 오류를 돌려준다
     if(j.result !== 'success' || typeof j.public !== 'boolean') throw new Error(/gameName/.test(j.message || '') || !j.message ? '백엔드 v145 «새 버전» 재배포 전이에요' : j.message);
-    l.public = j.public; l.publicBans = j.publicBans || [];
+    l.public = j.public; l.publicBans = j.publicBans || []; lessonNormalizeVisibility_(l);
     dashRenderLessons();
     dashSyncCurriculum_();
     showToast(ban + '반에 ' + (on ? '공개했어요.' : '안 보이게 했어요.'));
@@ -2578,8 +2593,9 @@ function dashRenderClassFeedback(){
     bodyHtml = `<p class="muted" style="margin:0 0 10px;">아직 이 범위에 대한 학급 공통 피드백이 없어요.</p>`;
   }
 
-  const genLabel = existing ? '🔄 다시 생성' : '🤖 학급 공통 피드백 생성';
-  const disabled = studentCount ? '' : 'disabled';
+  const busyGen = CLASS_FB_BUSY.has(grade + '|' + banParam + '|' + act); // v167 — 생성 중에 화면이 다시 그려져도 버튼이 살아나지 않게(두 번 요청 방지)
+  const genLabel = busyGen ? '생성 중… (몇 초 걸릴 수 있어요)' : existing ? '🔄 다시 생성' : '🤖 학급 공통 피드백 생성';
+  const disabled = (studentCount && !busyGen) ? '' : 'disabled';
 
   box.innerHTML = `
     <div class="class-fb-head">
@@ -2607,6 +2623,7 @@ async function dashCopyClassFeedbackText_(text, btn){
     showToast('복사에 실패했어요 — 문구를 직접 드래그해서 복사해 주세요.');
   }
 }
+const CLASS_FB_BUSY = new Set(); // v167 — 생성 요청이 진행 중인 범위('학년|반|활동')
 async function dashGenerateClassFeedback(ev){
   const btn = ev.currentTarget;
   const grade = Number($('selGrade').value);
@@ -2614,10 +2631,13 @@ async function dashGenerateClassFeedback(ev){
   const ban = dashClassFeedbackBanParam_(grade, banScope); // 'mine'은 담당 반 콤마 문자열로 풀어서 보냄
   const act = $('selActivity').value;
   const prevLabel = btn.textContent;
+  const busyKey = grade + '|' + ban + '|' + act;
+  if(CLASS_FB_BUSY.has(busyKey)) return; // v167
+  CLASS_FB_BUSY.add(busyKey);
   btn.disabled = true;
   btn.textContent = '생성 중… (몇 초 걸릴 수 있어요)';
   try{
-    const data = await dashPost_({ action:'generateClassFeedback', grade, ban, activityId: act }, '생성 실패');
+    const data = await dashPost_({ action:'generateClassFeedback', grade, ban, activityId: act }, '생성 실패').finally(() => CLASS_FB_BUSY.delete(busyKey));
     if(!data.entry) throw new Error('서버 응답에 결과가 없어요');
     const idx = CLASS_FEEDBACKS.findIndex(f =>
       Number(f.grade) === grade && String(f.ban) === String(ban) && String(f.activityId) === String(act));
@@ -2630,6 +2650,7 @@ async function dashGenerateClassFeedback(ev){
     showToast('생성하지 못했어요: ' + e.message);
     btn.disabled = false;
     btn.textContent = prevLabel;
+    dashRenderClassFeedback(); // v167 — 기다리는 사이 화면이 다시 그려졌으면 새 버튼은 «생성 중»으로 잠겨 있다. 다시 그려 풀어 준다
   }
 }
 
