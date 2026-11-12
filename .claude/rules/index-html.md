@@ -39,7 +39,7 @@ paths:
   원본 JSON 문자열 `activitiesRaw` + `activitiesCount` + `sequential`. `dashEditLesson()`이 `activitiesRaw`를 파싱해 폼을 채우고
   `clLessonItemHtml()`이 목록 배지("활동 2개 · 🔒 순차")를 그린다.
 - 학생 화면: `renderLessonCard()`/`renderActivityBlock()`. `l.sequential`이면 앞 활동이 `doneIds`에 들기 전까지 다음 활동 잠금(`locked`).
-- 완료 판정 AND 조건(`lessonDone()` ↔ `lessonAllActivityIds_()`)은 AGENTS.md 절대 규칙 10.
+- 완료 판정 AND 조건과 진도 분모(`js/02`의 `lessonDone_`·`lessonCounts_`, 대시보드도 같이 씀)는 AGENTS.md 절대 규칙 10.
 
 ## 포인트·칭호
 - 실제 포인트: `renderPortal()` 안 `const P = { FIRST: 10, RETRY: 5, RETRY_MAX: 2 }` — 활동 단위, 첫 완료 `FIRST`점,

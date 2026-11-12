@@ -444,13 +444,14 @@ function renderPortal(){
   /* v27: 차시 하나에 활동이 여러 개(cur.lessons[].activities) 있을 수 있음.
    * "완료했다"는 그 차시의 activities를 전부 doneIds에 넣었을 때만 인정 —
    * 진행률·나무·포인트 계산에서 "차시" 단위 숫자는 전부 이 기준으로 통일. */
-  function lessonHasUrl(l){ return l.activities.some(a => a.url || a.urlByBan); }
-  function lessonDone(l){ return l.activities.every(a => doneIds.has(a.id)); }
+  /* v164 — 판정식은 맨 아래 공용 함수(lessonHasUrlForBan_·lessonDone_·lessonCounts_) 한 벌뿐이고, 대시보드 진행률(js/06 renderDash)도 같은 함수를 쓴다. */
+  function lessonHasUrl(l){ return lessonHasUrlForBan_(l, SESSION.ban); }
+  function lessonDone(l){ return lessonDone_(l, doneIds); }
 
   renderNextActivity_(lessons, doneIds, lessonDone); // v105
 
   /* KPI: 진행률 (차시 단위) */
-  const active = lessons.filter(lessonHasUrl);
+  const active = lessons.filter(l => lessonCounts_(l, SESSION.ban, doneIds)); // v164 — 내 반 링크가 없는(아직 못 하는) 차시는 분모에서 뺀다
   const doneCount = active.filter(lessonDone).length;
   const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
   $('progressDone').textContent = doneCount;
@@ -514,7 +515,9 @@ function renderPortal(){
     requestAnimationFrame(() => { $('rankFill').style.width = '100%'; });
   }
   /* v94: 그림 나무 장면(단풍철) + 3학년 시험기간 연출. 응원 문구는 시험기간에만 보인다. */
-  $('treeBox').innerHTML = treeScene(rankIdx, doneLessonsCount, active.length, SESSION.grade);
+  /* v164 — 나무의 «전체 차시»는 내 반 링크가 있는 차시 수로 둔다. 진도 분모(active)는 «이미 끝낸 링크 없는 차시»도 세므로 그대로 넘기면
+   * 전보다 분모가 커져 잎 비율이 내려가는 학생이 생긴다. 이 값은 전의 분모보다 크지 않아 비율이 내려가지 않는다. */
+  $('treeBox').innerHTML = treeScene(rankIdx, doneLessonsCount, lessons.filter(lessonHasUrl).length, SESSION.grade);
   const examOn_ = !!$('treeBox').querySelector('.is-exam');
   $('treeBox').classList.toggle('is-exam', examOn_);
   const cheerEl_ = $('examCheer');
@@ -1356,10 +1359,19 @@ function ensureUrlScheme_(url){
  * urlByBan이 있으면 로그인한 학생의 반(SESSION.ban) 링크를 골라 쓰고,
  * 없으면 기존처럼 공통 url을 그대로 씁니다. 해당 반 링크가 없으면 '준비 중'으로 처리됩니다.
  * v27: 차시(l)가 아니라 활동(act) 하나를 받음 — url/urlByBan이 이제 활동 레벨에 있음. */
-function lessonActivityUrl(act){
-  if (act.urlByBan) return act.urlByBan[SESSION.ban] || '';
+function lessonActivityUrl(act){ return activityUrlForBan_(act, SESSION.ban); }
+/* v164 — «링크 있음»·«차시 완료»·«진도에 세는 차시» 판정은 여기 한 벌만 둔다(학생 renderPortal과 대시보드 renderDash가 같이 쓴다, AGENTS.md 절대 규칙 10).
+ * 백엔드 parseUrlField_는 반별 링크를 {반: 주소}로 주고 줄이 없는 반은 키 자체가 없다 — 그래서 urlByBan 객체가 있다는 것만으로 «링크 있음»이 아니다.
+ * 전에는 진도 분모가 a.url || a.urlByBan(객체가 있기만 하면 참)이라, 일부 반에만 링크가 있는 차시가 링크 없는 반 학생의 분모에 들어가 100%가 될 수 없었다. */
+function activityUrlForBan_(act, ban){
+  if (act.urlByBan) return act.urlByBan[ban] || '';
   return act.url || '';
 }
+function lessonHasUrlForBan_(l, ban){ return l.activities.some(a => !!activityUrlForBan_(a, ban)); }
+/* 차시 완료 = 그 차시의 모든 활동 id가 doneIds(Set)에 있다(AND). */
+function lessonDone_(l, doneIds){ return l.activities.every(a => doneIds.has(a.id)); }
+/* 진도(분모)에 세는 차시 = 내 반이 지금 할 수 있는 차시(내 반 링크 있음) 또는 이미 끝낸 차시. 끝낸 차시를 같이 세므로 이 규칙으로 진도가 내려가는 학생은 없다. */
+function lessonCounts_(l, ban, doneIds){ return lessonHasUrlForBan_(l, ban) || lessonDone_(l, doneIds); }
 
 /* ── 유틸 ── */
 function achieveDots(level){
