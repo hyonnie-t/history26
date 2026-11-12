@@ -441,13 +441,10 @@ function exitToLogin(){
   if(window.H26Auth) H26Auth.clear(); // v83 — 이 기기의 로그인 세션(웹앱 공용)도 지운다
   if(PW_CHANGE_CTX) cancelFirstPwChange_();
   $('inputPw').value = '';
-  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; CHECKIN_CTX = null;
-  PREVIEW_REAL = false; PREVIEW_FROM_DASH = false; TEST_WRITE_MODE = false;
-  $('portalView').style.display = 'none';
-  $('portalView').classList.remove('shown');
-  $('checkinView').style.display = 'none';
+  SESSION = null; STUDENT_DATA = null; CHECKIN_CTX = null;
+  setPortalMode_('student'); // v166
+  setView_('login');
   $('bookCover').classList.remove('opening');
-  $('loginView').style.display = 'flex';
   $('inputId').value = ''; $('inputName').value = '';
 }
 $('btnLogout').addEventListener('click', () => PREVIEW_FROM_DASH ? exitPreviewToDash_() : exitToLogin()); // v160 — 대시보드에서 온 미리보기는 «책 덮기»도 대시보드로(전엔 교사 토큰을 쥔 채 로그인 화면으로 갔다)
@@ -472,7 +469,7 @@ async function previewAsStudent(sid, name, fromNav){
     if(seq !== PREVIEW_SEQ || !TOKEN) return; // v160 — 기다리는 사이 다른 학생을 골랐거나 대시보드로 돌아갔거나 «나가기»를 눌렀다
     if(!fromNav) PREVIEW_DASH_SCROLL = window.scrollY;
     resetPortalState_(); // v160 — 앞에 본 학생의 점수 칸·접힘 기억을 넘기지 않는다
-    PREVIEW_MODE = true; PREVIEW_REAL = true; PREVIEW_FROM_DASH = true;
+    setPortalMode_('readonly'); // v166
     SESSION = { studentId: sid, name, ...parsed };
     STUDENT_DATA = data;
     CHECKIN_CTX = null;
@@ -492,11 +489,10 @@ function previewStepStudent_(delta){
 }
 function exitPreviewToDash_(){
   resetPortalState_(); // v160
-  SESSION = null; STUDENT_DATA = null; PREVIEW_MODE = false; PREVIEW_REAL = false; PREVIEW_FROM_DASH = false;
+  SESSION = null; STUDENT_DATA = null;
+  setPortalMode_('student'); // v166
   CHECKIN_CTX = null;
-  $('portalView').style.display = 'none';
-  $('portalView').classList.remove('shown');
-  $('dashView').style.display = 'block';
+  setView_('dash');
   window.scrollTo(0, PREVIEW_DASH_SCROLL);
 }
 function dashPreviewStudent(btn){ previewAsStudent(btn.dataset.sid, btn.dataset.name); }

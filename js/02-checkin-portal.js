@@ -43,13 +43,12 @@ async function maybeStartCheckin(){
 
 function enterCheckinFlow(){
   CK_SUBMITTING = false;
-  $('loginView').style.display = 'none';
-  $('checkinView').style.display = 'flex';
+  setView_('checkin'); // v166
   renderCheckinSpread();
 }
 
 function finishCheckinFlow(){
-  $('checkinView').style.display = 'none';
+  // v166 — 체크인 화면은 renderPortal의 setView_('portal')이 닫는다(openBook(true)는 곧바로 renderPortal을 부른다)
   openBook(true); // 이미 체크인으로 한 번 화면 전환을 거쳤으니 책 애니메이션 없이 바로 포털
 }
 
@@ -373,11 +372,9 @@ function renderPortal(){
   if(typeof perfDescUpdate_ === 'function') perfDescUpdate_(); // v139 — 수행평가 카드 안내 문구(학년별)
   const cur = CONFIG.CURRICULUM[SESSION.grade];
   const lessons = filterLessonsForBan(cur, SESSION.ban); // v28: 담당 트랙 필터링된 차시 목록
-  $('loginView').style.display = 'none';
-  $('dashView').style.display = 'none';
+  setView_('portal'); // v166
   const pv = $('portalView');
-  pv.style.display = 'block';
-  requestAnimationFrame(() => pv.classList.add('shown'));
+  requestAnimationFrame(() => { if(VIEW === 'portal') pv.classList.add('shown'); });
 
   $('portalEyebrow').textContent = `2학기 · ${SESSION.grade}학년 ${cur.subject}`;
   $('previewBanner').style.display = (PREVIEW_MODE || TEST_WRITE_MODE) ? 'flex' : 'none';

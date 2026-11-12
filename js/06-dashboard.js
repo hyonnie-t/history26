@@ -95,9 +95,7 @@ async function enterDash(token){
     /* v67 — 토큰은 "이 기기에서 로그인 유지"를 켠 경우에만 저장. 끄면 기존 저장분도 지운다. */
     if($('tokenRemember').checked) store.set('dash_token_saved', token);
     else store.del('dash_token_saved');
-    $('loginView').style.display = 'none';
-    $('portalView').style.display = 'none';
-    $('dashView').style.display = 'block';
+    setView_('dash'); // v166
     dashInitFilters();
     dashInitAnnounceForm();
     dashInitCurriculumForm();

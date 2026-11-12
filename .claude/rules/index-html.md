@@ -59,6 +59,7 @@ paths:
   `portal_auth.js`가 `window.fetch`를 감싸 Apps Script 호출에 `session`을 붙이므로 각 호출부는 세션을 직접 다루지 않는다. 교사 `TOKEN`·`PREVIEW_MODE`는 메모리 변수.
   "이 기기에서 로그인 유지"(`#tokenRemember`)를 켤 때만 `dash_token_saved`에 저장(v67, 옛 키 `dash_token`은 부팅 때 삭제).
 - 학번 파싱은 `parseStudentId()`가 단일 소스 — 학번 로직은 이것을 재사용.
+- (v166) 화면 전환은 `setView_('login'|'checkin'|'portal'|'dash')`(js/01)만, 모드 불리언(`PREVIEW_MODE`·`PREVIEW_REAL`·`PREVIEW_FROM_DASH`·`TEST_WRITE_MODE`)은 `setPortalMode_('student'|'sample'|'readonly'|'test')`만 바꾼다. 화면 div의 `style.display`나 이 불리언에 직접 대입하지 않는다(읽기는 그대로).
 - `PREVIEW_MODE`: 포털 함수를 고칠 때 이 플래그로 API 호출/기록이 분기되는 지점이 있는지 확인(미리보기 종류는 features.md "학생 화면 미리보기").
   주의: 로그인 화면 "🧪 학생 화면 테스트"는 v70부터 99번 `미리보기 학생`으로 진짜 로그인하는 `TEST_WRITE_MODE`(시트에 실제 저장, `PREVIEW_MODE` 아님)다.
   읽기 전용 미리보기는 대시보드의 `previewAsStudent()`(`PREVIEW_REAL=true`)뿐.
