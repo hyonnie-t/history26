@@ -54,7 +54,7 @@ paths:
 ## 네트워크·세션·학번
 - `fetch` 직접 호출과 `fetchJsonRetry_()`(기본 3회·700ms, Apps Script 재배포 직후 일시적 404/JSON 실패 흡수)가 섞여 있다.
   `Promise.all`로 묶는 곳(대시보드)은 `fetchJsonRetry_`를 쓴다(하나만 실패해도 전체 reject).
-- (v169) 학생 `login()`은 `mode=student`·공지·오늘 체크인(`checkinTodayFetch_`)을 동시에 보내고, 판정·`CHECKIN_CTX`·화면 반영은 학생 기록이 성공한 뒤에만 한다(needLogin·실패면 먼저 보낸 응답은 버린다). 로그인 길에 조회를 더할 때도 이 꼴로 — 학생 기록 응답 뒤에 줄 세우지 않는다. 체크인 계획은 `checkinPlanReady_()`로 기다린다(받는 중인 요청을 다시 보내지 않음). (v170) 이 조회 묶음은 `loginPrefetch_()`(js/01) 한 곳에서 보낸다 — 자동 입장은 `initPortal`이 커리큘럼과 같이 미리 보내 `login(…, pre)`로 넘기고, 상태·화면은 건드리지 않는다. 책을 여는 데 필요한 조회를 더할 땐 `loginPrefetch_`에 넣는다(커리큘럼에 기대지 않게).
+- (v169) 학생 `login()`은 `mode=student`·공지·오늘 체크인(`checkinTodayFetch_`)을 동시에 보내고, 판정·`CHECKIN_CTX`·화면 반영은 학생 기록이 성공한 뒤에만 한다(needLogin·실패면 먼저 보낸 응답은 버린다). 로그인 길에 조회를 더할 때도 이 꼴로 — 학생 기록 응답 뒤에 줄 세우지 않는다. 체크인 계획은 `checkinPlanReady_()`로 기다린다(받는 중인 요청을 다시 보내지 않음). (v170) 이 조회 묶음은 `loginPrefetch_()`(js/01) 한 곳에서 보낸다 — 자동 입장은 `initPortal`이 커리큘럼과 같이 미리 보내 `login(…, pre)`로 넘기고, 상태·화면은 건드리지 않는다. 책을 여는 데 필요한 조회를 더할 땐 `loginPrefetch_`에 넣는다(커리큘럼에 기대지 않게). (v171) 학생 기록·오늘 체크인 조회는 `fetchJsonJitter_`(오류·JSON 아님만 2번 더, 600~1500ms 무작위, 정상 JSON은 재시도 없음)로 보낸다. 커리큘럼·체크인 계획은 localStorage 저장본(`h26_cache_*_v1`, 12시간)이 있으면 부팅 때 기다리지 않고 `bootCacheRefreshLater_`가 로그인 조회 뒤 1~5초에 새로 받는다 — 한 반이 같이 들어올 때 동시 조회를 줄이려는 것(배포 백엔드는 동시 100건에서 37% 실패, 60건은 0%). 부팅 순간 조회를 더하면 이 숫자가 늘어난다.
 - 학생 세션: `localStorage` `portal_session`(`store.get/set/del`)에 `{ sid, name }`(자동 입장할 학번 기억용)과, v83부터 로그인 세션 `h26_auth`
   (`{token, exp, sid, name}`, `H26Auth.get/set/clear` — `snippets/portal_auth.js`, 웹앱과 공유). 자동 입장은 `h26_auth`의 학번이 같을 때만.
   `portal_auth.js`가 `window.fetch`를 감싸 Apps Script 호출에 `session`을 붙이므로 각 호출부는 세션을 직접 다루지 않는다. 교사 `TOKEN`·`PREVIEW_MODE`는 메모리 변수.
