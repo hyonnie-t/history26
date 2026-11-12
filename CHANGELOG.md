@@ -8,6 +8,12 @@
 (오래된 구간은 순서가 섞여 있으니 새 번호를 정할 땐 `grep -oE '^## v[0-9]+' CHANGELOG.md | sort -V | tail -1`로 확인).
 이 번호는 프론트(이 레포)만의 번호다. 백엔드 `history26_backend`는 자기 번호를 따로 쓴다(같은 «v159»가 두 레포에서 서로 다른 변경이다).
 
+## v165 (2026-11-12) — 교사 쓰기 공통 함수 `dashPost_`
+- 2026-11-11 점검 ②-나 단순화 2. 교사 쓰기(POST) 방식이 네 가지(인라인 `fetch`, `dashPwPost_`, `dashAiPost`, `grPost_`)였고 응답 확인 여부가 방식마다 달랐다. `js/06` 맨 위 `dashPost_(body, fallbackMsg)`(토큰 붙임, JSON 파싱, success가 아니면 throw — `fromServer`·`response` 포함)와 `dashPostRaw_(body)`(응답 그대로) 두 개로 모았다.
+- 각 호출의 성공·실패 문구와 응답 필드 사용은 그대로다. «재배포 전 옛 백엔드» 폴백 분기는 건드리지 않았다. `dashPwPost_`·`dashAiPost`·`grPost_`는 이름을 남기고 공용 함수를 부른다.
+- `dashPostRaw_`를 쓰는 곳(실패 응답의 필드나 success 말고 다른 결과를 직접 봐야 해서): 활동 추가·수정·삭제, 반별 공개, 개인 메시지, 역사법정 등록(partial), 고민리스트 보너스, 모둠 편성.
+- 옮기지 않은 것: `ckqUploadImageWithRetry_`(HTTP 상태를 보고 재시도하는 다른 모양), `startPreview`의 `issueTestSession`(대시보드 밖에서 입력칸의 토큰으로 보냄), 학생 쪽 쓰기 전부.
+
 ## v164 (2026-11-12) — 진도 판정 한 곳으로: 내 반 링크가 없는 차시는 분모에서 빠진다
 - 2026-11-11 점검 ①-가 4번. 반별 링크(`urlByBan`)가 일부 반에만 있는 차시가 링크 없는 반 학생의 진도 분모에 들어가 100%가 될 수 없었다. 백엔드 `parseUrlField_`를 읽어 확인: 반별 링크는 `{반: 주소}`로 오고 줄이 없는 반은 키가 없다. 그런데 분모는 `a.url || a.urlByBan`(객체가 있기만 하면 참)이었고 카드는 `urlByBan[내 반]`을 봤다.
 - 판정식을 `js/02` 맨 아래 한 벌로 모았다: `activityUrlForBan_`, `lessonHasUrlForBan_`, `lessonDone_`, `lessonCounts_`. 학생 `renderPortal`과 대시보드 `renderDash`가 같이 쓴다(`lessonAllActivityIds_` 삭제, 규칙 10 문구 갱신).

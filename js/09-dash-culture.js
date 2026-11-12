@@ -152,9 +152,8 @@ async function ctSave_(teams, absent, msg, overwrite){
   if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return false; }
   CT.busy = true; ctRender_();
   try {
-    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify({ action: 'cultureTeamsSave', token: TOKEN, grade: '3', ban: Number(CT.ban), teams, absent, overwrite: !!overwrite }) });
-    const j = await res.json();
-    if(j.result !== 'success'){ if(j.already) await ctLoadSaved_(); throw new Error(j.message || '저장 실패'); }
+    await dashPost_({ action: 'cultureTeamsSave', grade: '3', ban: Number(CT.ban), teams, absent, overwrite: !!overwrite }, '저장 실패') // v165 — 공용 dashPost_(js/06)
+      .catch(async e => { if(e.response && e.response.already) await ctLoadSaved_(); throw e; });
     await ctLoadSaved_();
     if(msg) showToast(msg);
     return true;

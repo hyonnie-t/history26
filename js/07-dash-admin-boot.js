@@ -54,12 +54,7 @@ function dashRenderPwAccounts_(){
       + '<td>' + fmtPaTime_(a.lastLogin) + '</td>'
       + '<td class="pa-actions">' + (a.state === '설정' ? '<button type="button" class="btn btn-ghost btn-sm" data-sid="' + escapeHtml(a.studentId) + '" data-name="' + escapeHtml(a.name) + '" onclick="dashResetPw(this)">초기화</button>' : '') + '</td></tr>').join('');
 }
-async function dashPwPost_(body){
-  const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(Object.assign({ token: TOKEN }, body)) });
-  const r = await res.json();
-  if(r.result !== 'success') throw new Error(r.message || '실패했어요.');
-  return r;
-}
+function dashPwPost_(body){ return dashPost_(body, '실패했어요.'); } // v165 — 공용 dashPost_(js/06)로
 async function dashResetPw(btn){
   const sid = btn.dataset.sid, name = btn.dataset.name;
   if(!confirm(sid + ' ' + name + ' 학생의 비밀번호를 초기 비밀번호로 되돌릴까요?\n\n그 학생은 모든 기기에서 로그아웃되고, 초기 비밀번호로 들어와 새 비밀번호를 다시 정해요.')) return;
@@ -184,9 +179,7 @@ async function dashSetSemShow_(btn, status){
   if(status === 'ON' && !confirm('3학년 학생들이 포털에서 학기말 성적·성취도·피드백을 보게 돼요. 공개할까요?')) return;
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify({ action: 'setExamScoreShow', token: TOKEN, status }) });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '저장 실패');
+    const data = await dashPost_({ action: 'setExamScoreShow', status }, '저장 실패');
     SEM_ADMIN.show = data.status;
     dashRenderSemAdmin_();
     showToast(data.status === 'ON' ? '학생 화면에 공개했어요.' : '학생 화면에서 숨겼어요.');
@@ -371,12 +364,7 @@ async function dashAdjustPerfPost_(order, score){
   PERF_UI_KEEP = { sid: d.sid, scroll: body.scrollTop, open: {} };
   body.querySelectorAll('.perf-grp').forEach(g => { PERF_UI_KEEP.open[g.dataset.s] = g.open; });
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'adjustPerfPostScore', token:TOKEN, studentId:d.sid, title:d.title, order, score, reason })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '조정 실패');
+    const data = await dashPost_({ action:'adjustPerfPostScore', studentId:d.sid, title:d.title, order, score, reason }, '조정 실패');
     const stu = PERF_ADMIN_ROWS.find(x => x.studentId === d.sid);
     if(stu) stu.score = data.total;
     showToast('✅ ' + order + '번째 글 ' + data.previousPost + '점 → ' + data.score + '점, 총점 ' + data.previousTotal + '점 → ' + data.total + '점');
@@ -481,12 +469,7 @@ function perfMemoCancel_(order){
 }
 async function perfMemoPost_(body){
   const d = PERF_EVID_LAST;
-  const res = await fetch(CONFIG.WEBAPP_URL, {
-    method:'POST',
-    body: JSON.stringify(Object.assign({ action:'savePerfMemo', token:TOKEN, studentId:d.sid, name:d.name, title:d.title }, body))
-  });
-  const data = await res.json();
-  if(data.result !== 'success') throw new Error(data.message || '저장 실패');
+  const data = await dashPost_(Object.assign({ action:'savePerfMemo', studentId:d.sid, name:d.name, title:d.title }, body), '저장 실패');
   let m = d.memos.find(x => x.order === data.order);
   if(!m){ m = { title:d.title, order:data.order, memo:'', checked:false }; d.memos.push(m); }
   m.memo = data.memo; m.checked = data.checked; m.at = data.at;
@@ -596,12 +579,7 @@ async function dashAdjustPerfScore_(sid){
   const reason = prompt('조정 사유를 적어 주세요 (이력에 남아요, 비워도 돼요)', '');
   if(reason === null) return;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'adjustPerfScore', token:TOKEN, studentId:sid, title:r.title, score, reason })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '조정 실패');
+    const data = await dashPost_({ action:'adjustPerfScore', studentId:sid, title:r.title, score, reason }, '조정 실패');
     r.score = score;
     showToast('✅ ' + r.name + ' ' + data.previous + '점 → ' + score + '점으로 조정했어요.');
     dashRenderPerfStudents_();
@@ -670,15 +648,7 @@ async function dashGrantGongminBonus_(btn){
   let done = 0, failed = 0;
   for(const v of pending){
     try{
-      const res = await fetch(CONFIG.WEBAPP_URL, {
-        method:'POST',
-        body: JSON.stringify({
-          action:'grantPresentationPoint', token:TOKEN,
-          studentId: v.sid, studentName: v.name,
-          thinkingType: '', reason: GONGMIN_BONUS_REASON, level: GM_BONUS_LEVEL
-        })
-      });
-      const data = await res.json();
+      const data = await dashPostRaw_({ action:'grantPresentationPoint', studentId: v.sid, studentName: v.name, thinkingType: '', reason: GONGMIN_BONUS_REASON, level: GM_BONUS_LEVEL });
       if(data.result === 'success'){
         done++;
         // 재조회 없이 dedupe 판단이 바로 반영되도록 ROWS에 최소 필드만 채운 가짜 행을 얹는다.
@@ -868,11 +838,7 @@ async function dashReviewSuspect(ev, btn){
   const status = btn.dataset.status;
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST', body: JSON.stringify(Object.assign({ action:'reviewSuspect', token: TOKEN, row, status }, dashRowIdent_(row))) // v122
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '실패');
+    const data = await dashPost_(Object.assign({ action:'reviewSuspect', row, status }, dashRowIdent_(row)), '실패'); // v122
     const rec = dashFindRowRec(row);
     if(rec) rec['의심검토'] = status;
     REC_OPEN.add(String(row)); // 방금 누른 기록이 재렌더 뒤에도 펼쳐진 채로
@@ -896,13 +862,8 @@ async function dashDeleteActivityRow(ev, btn){
   if(!confirm(`"${label}" 제출 기록을 삭제할까요? 되돌릴 수 없고, 학생 포털에서도 즉시 사라져요.`)) return;
   btn.disabled = true; btn.textContent = '삭제 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'deleteActivityRow', token:TOKEN, row,
-        studentId: rec ? rec.studentId : '', gameName: rec ? rec.gameName : '' }) // v122 — 백엔드 v104가 행과 대조(행이 밀렸으면 거절)
-    });
-    const data = await res.json(); // v122 — 전엔 응답을 안 읽어 거절돼도 «삭제했어요»가 떴다
-    if(data.result !== 'success') throw new Error(data.message || '삭제 실패');
+    const data = await dashPost_({ action:'deleteActivityRow', row,
+        studentId: rec ? rec.studentId : '', gameName: rec ? rec.gameName : '' }, '삭제 실패'); // v122 — 백엔드 v104가 행과 대조(행이 밀렸으면 거절) / v122 — 전엔 응답을 안 읽어 거절돼도 «삭제했어요»가 떴다
     // v122 — 시트에서 행이 빠지면 아래 행 번호가 1씩 당겨진다. 전엔 안 당겨서 같은 화면에서 두 번째 삭제가 옆 행을 가리켰다(v104는 거절).
     const rowNum = Number(row);
     ROWS = ROWS.filter(r => String(r._row) !== String(row));
@@ -926,14 +887,7 @@ function dashRowIdent_(rowNum){
   const rec = dashFindRowRec(rowNum);
   return { studentId: rec ? rec.studentId : '', gameName: rec ? rec.gameName : '' };
 }
-async function dashAiPost(payload){
-  const res = await fetch(CONFIG.WEBAPP_URL, {
-    method:'POST',
-    body: JSON.stringify(Object.assign({ token: TOKEN }, payload))
-  });
-  const data = await res.json();
-  if (data.result !== 'success') throw new Error(data.message || '요청 실패');
-}
+async function dashAiPost(payload){ await dashPost_(payload, '요청 실패'); } // v165 — 공용 dashPost_(js/06)로
 async function dashAiConfirm(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
@@ -1002,16 +956,11 @@ async function dashSendFeedback(btn){
   if(!text){ showToast('피드백 내용을 입력해 주세요.'); return; }
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({
-        action:'feedback', token:TOKEN,
+    const j = await dashPost_({
+        action:'feedback',
         studentId:btn.dataset.sid, studentName:btn.dataset.name,
         activityId, feedback:text
-      })
-    });
-    const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
+      }); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     FEEDBACKS.push({ timestamp:new Date().toISOString(), studentId:btn.dataset.sid,
       studentName:btn.dataset.name, activityId, feedback:text, ack:false }); // v37 — 방금 보낸 피드백은 당연히 미확인
     showToast('피드백을 보냈어요. 학생 포털의 해당 활동 카드에 표시됩니다.');

@@ -2,6 +2,20 @@
  * 교사 대시보드
  * ════════════════════════════════════════════════════════ */
 let TOKEN = '';
+/* v165 — 교사 쓰기(POST)는 이 두 함수로만 보낸다. 교사 토큰은 여기서 붙인다(본문에 token이 있으면 그 값이 우선).
+ * dashPost_: 서버가 success가 아니면 throw한다. 오류의 message는 서버 문구(없으면 fallbackMsg), fromServer=true, response=서버 응답 전체.
+ *   네트워크 오류·JSON이 아닌 응답은 fetch/파싱 오류가 그대로 던져진다(fromServer 없음) — 부르는 쪽 catch의 일반 안내로 간다.
+ * dashPostRaw_: 응답 JSON을 그대로 돌려준다. success 말고 다른 값(partial 등)이나 실패 응답의 필드를 직접 봐야 하는 곳만 쓴다.
+ * 여기로 안 옮긴 것: ckqUploadImageWithRetry_(HTTP 상태를 보고 재시도), startPreview의 issueTestSession(대시보드 밖, 입력칸의 토큰). */
+async function dashPostRaw_(body){
+  const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(Object.assign({ token: TOKEN }, body)) });
+  return res.json();
+}
+async function dashPost_(body, fallbackMsg){
+  const j = await dashPostRaw_(body);
+  if(j.result !== 'success'){ const err = new Error(j.message || fallbackMsg || ''); err.fromServer = true; err.response = j; throw err; }
+  return j;
+}
 let TEACHER_NAME = null; // v29 — 로그인 토큰으로 식별된 교사('효니'/'미현쌤'). 서버 권한엔 영향 없고,
                           // 대시보드 기본 필터·커리큘럼 "담당" 기본값을 여기에 맞춰 보여주는 용도.
 let ROWS = [];
@@ -274,12 +288,7 @@ async function dashAddAnnouncement(btn){
   if(!content){ showToast('공지 내용을 입력해 주세요.'); return; }
   btn.disabled = true; btn.textContent = '게시하는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'addAnnouncement', token:TOKEN, grade, ban, content })
-    });
-    const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
+    const j = await dashPost_({ action:'addAnnouncement', grade, ban, content }); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     $('anContent').value = '';
     showToast('공지를 게시했어요.');
     /* v161 — 게시는 끝났으니 목록 다시 읽기가 실패해도 «게시하지 못했어요»라고 하지 않는다(다시 써서 두 번 게시하게 됨). */
@@ -296,12 +305,7 @@ async function dashToggleAnnouncement(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'toggleAnnouncement', token:TOKEN, row })
-    });
-    const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
+    const j = await dashPost_({ action:'toggleAnnouncement', row }); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     const a = ANNOUNCEMENTS_ADMIN.find(x => String(x._row) === String(row));
     if(a){ a.status = (a.status === '게시') ? '보류' : '게시'; }
     dashRenderAnnouncements();
@@ -441,9 +445,7 @@ async function dashSaveGradeInfo(grade, btn){
   const btnLabel = btn.textContent;
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify(payload) });
-    const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
+    const j = await dashPost_(payload); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     Object.assign(GRADE_INFO_ADMIN[grade], {
       unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
       portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText,
@@ -855,10 +857,7 @@ async function dashApplyCkSet(){
   btn.disabled = true; btn.textContent = '적용 중…';
   try{
     /* v161 — 반마다 응답을 확인해 저장된 반만 화면에 반영한다. 전에는 일부가 거절돼도 전부 저장했다고 표시했다. */
-    const results = await Promise.all(bans.map(ban => fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'setTodayCheckin', token:TOKEN, grade, ban, lessonId })
-    }).then(r => r.json()).then(j => j.result === 'success', () => false)));
+    const results = await Promise.all(bans.map(ban => dashPost_({ action:'setTodayCheckin', grade, ban, lessonId }).then(() => true, () => false)));
     const failed = bans.filter((ban, i) => !results[i]);
     bans.forEach((ban, i) => { if(results[i]) CK_TODAY_LESSON[grade + '-' + ban] = lessonId; });
     if(failed.length === bans.length) throw new Error('all failed');
@@ -1106,9 +1105,7 @@ async function dashToggleCheckinLessonPast(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'toggleCheckinLessonPast', token:TOKEN, row }) });
-    const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
+    const j = await dashPost_({ action:'toggleCheckinLessonPast', row }); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     const l = CHECKIN_LESSONS_ADMIN.find(x => String(x._row) === String(row));
     if(l){ l.isPast = !l.isPast; }
     dashRenderCheckinLessonsList();
@@ -1320,9 +1317,7 @@ async function dashDeleteCheckinLesson(btn){
   if(!confirm(`"${l ? l.topic : row}" 문항을 삭제할까요? 되돌릴 수 없어요.`)) return;
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'deleteCheckinLesson', token:TOKEN, row, id: l ? l.id : '' }) }); // v122 — 백엔드 v104가 차시id와 대조
-    const data = await res.json(); // v122 — 거절 응답 확인
-    if(data.result !== 'success'){ const err = new Error(data.message || '실패'); err.fromServer = true; throw err; }
+    const data = await dashPost_({ action:'deleteCheckinLesson', row, id: l ? l.id : '' }, '실패'); // v122 — 백엔드 v104가 차시id와 대조 / v122 — 거절 응답 확인
     showToast('문항을 삭제했어요.');
     await loadCheckinPlan();
     await dashLoadCheckinLessonsAdmin();
@@ -1377,12 +1372,7 @@ async function dashSubmitCheckinLessonForm(btn){
   }
   btn.disabled = true; btn.textContent = editRow ? '저장하는 중…' : '추가하는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify(Object.assign(editRow ? { action:'updateCheckinLesson', token:TOKEN, row:editRow } : { action:'addCheckinLesson', token:TOKEN }, payload))
-    });
-    const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
+    const j = await dashPost_(Object.assign(editRow ? { action:'updateCheckinLesson', row:editRow } : { action:'addCheckinLesson' }, payload)); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     showToast(editRow ? '문항을 수정했어요.' : '문항을 추가했어요.');
     dashResetCheckinLessonForm();
     await loadCheckinPlan();
@@ -1508,11 +1498,7 @@ async function dashDeleteLesson(btn){
   if(!confirm(`"${l.title}" (${l.id}) 활동을 커리큘럼에서 삭제할까요?\n학생이 이미 제출한 기록은 남지만, 되돌릴 수 없어요.`)) return;
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'deleteLesson', token:TOKEN, row, id })
-    });
-    const json = await res.json().catch(() => null);
+    const json = await dashPostRaw_({ action:'deleteLesson', row, id }).catch(e => { if(e instanceof SyntaxError) return null; throw e; }); // v165 — 전처럼 JSON이 아닌 응답은 null로 보고 아래 안내로
     if(!json || json.result !== 'success'){
       showToast('삭제하지 못했어요' + (json && json.message ? ': ' + json.message : '') + ' — 백엔드 재배포 전이면 삭제가 안 돼요.');
       return;
@@ -1586,12 +1572,8 @@ async function dashSaveGradeOrder_(grade, activeRowsInOrder){
   });
   if(!items.length) return true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'reorderLessons', token: TOKEN, items })
-    });
-    const data = await res.json();
-    return data.result === 'success';
+    await dashPost_({ action:'reorderLessons', items });
+    return true;
   }catch(e){
     return false;
   }
@@ -1630,12 +1612,7 @@ async function dashToggleLessonPast(btn){
   const row = btn.dataset.row;
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'toggleLessonPast', token:TOKEN, row })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || 'fail');
+    const data = await dashPost_({ action:'toggleLessonPast', row }, 'fail');
     const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
     if(l){
       l.isPast = !l.isPast;
@@ -1732,14 +1709,10 @@ async function dashAddLesson(btn){
 
   btn.disabled = true; btn.textContent = '추가하는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'addLesson', token:TOKEN, grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType, badgeName })
-    });
+    const json = await dashPostRaw_({ action:'addLesson', grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType, badgeName }).catch(e => { if(e instanceof SyntaxError) return null; throw e; }); // v165 — 전처럼 JSON이 아닌 응답은 null로 보고 아래 안내로
     // v23 버그 수정 — 지금까지 여기서 서버 응답을 안 읽어서, 백엔드가 에러를 던져도
     // 프론트는 무조건 "저장했어요"를 띄웠음(실패가 조용히 묻힘). 이제 result:'success'가
     // 아니면 실패로 처리하고 실제 에러 메시지를 보여줌 — 아래서 리스트 새로고침도 안 함.
-    const json = await res.json().catch(() => null);
     if(!json || json.result !== 'success'){
       showToast('저장하지 못했어요' + (json && json.message ? ': ' + json.message : '') + ' — 다시 시도해 주세요.');
       return;
@@ -1851,13 +1824,9 @@ async function dashUpdateLesson(btn, row){
 
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'updateLesson', token:TOKEN, row, title, desc, type, url, activities, sequential, owner, thinkingType, badgeName })
-    });
+    const json = await dashPostRaw_({ action:'updateLesson', row, title, desc, type, url, activities, sequential, owner, thinkingType, badgeName }).catch(e => { if(e instanceof SyntaxError) return null; throw e; }); // v165 — 전처럼 JSON이 아닌 응답은 null로 보고 아래 안내로
     // v23 버그 수정 — addLesson과 동일: 서버 응답을 확인 안 하면 백엔드가 던진 에러가
     // 조용히 묻히고 무조건 "저장했어요"가 뜸. result:'success' 아니면 실패로 처리.
-    const json = await res.json().catch(() => null);
     if(!json || json.result !== 'success'){
       showToast('저장하지 못했어요' + (json && json.message ? ': ' + json.message : '') + ' — 다시 시도해 주세요.');
       return;
@@ -1879,12 +1848,7 @@ async function dashToggleLessonPublic(btn){
   const want = btn.dataset.public === 'true'; // v145 — 뒤집지 않고 원하는 상태를 보낸다(낡은 화면에서 눌러도 반대로 열리지 않게)
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'toggleLessonPublic', token:TOKEN, row, public:want })
-    });
-    const j = await res.json();
-    if(j.result !== 'success') throw new Error(j.message || ''); // v161 — 오류 응답이면 화면을 뒤집지 않는다(전엔 실패해도 «공개/비공개»가 바뀌어 보였다)
+    const j = await dashPost_({ action:'toggleLessonPublic', row, public:want }); // v161 — 오류 응답이면 화면을 뒤집지 않는다(전엔 실패해도 «공개/비공개»가 바뀌어 보였다)
     const l = LESSONS_ADMIN.find(x => String(x._row) === String(row));
     // 재배포 전 옛 백엔드는 뒤집기만 하고 public을 안 돌려준다 — 그때는 예전처럼 뒤집힌 값으로 그린다
     if(l){ l.public = typeof j.public === 'boolean' ? j.public : !l.public; l.publicBans = []; } // v145 — 이 버튼은 언제나 모든 반 기준
@@ -1906,11 +1870,7 @@ async function dashToggleLessonBan(btn){
   const on = !clLessonBanOpen_(l, ban);
   btn.disabled = true;
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'setLessonBanPublic', token:TOKEN, row, id:l.id, ban, on })
-    });
-    const j = await res.json();
+    const j = await dashPostRaw_({ action:'setLessonBanPublic', row, id:l.id, ban, on });
     // 옛 백엔드는 모르는 action을 기본 제출 경로로 보내 gameName 오류를 돌려준다
     if(j.result !== 'success' || typeof j.public !== 'boolean') throw new Error(/gameName/.test(j.message || '') || !j.message ? '백엔드 v145 «새 버전» 재배포 전이에요' : j.message);
     l.public = j.public; l.publicBans = j.publicBans || [];
@@ -2082,11 +2042,7 @@ async function dashSendMessage(btn){
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'sendMessage', token: TOKEN, studentId: sid, studentName: name, content: text })
-    });
-    const data = await res.json();
+    const data = await dashPostRaw_({ action:'sendMessage', studentId: sid, studentName: name, content: text });
     if(data.result !== 'success'){
       // 서버가 준 검증 메시지("메시지는 1000자까지…")만 그대로 보여준다. 재배포 전이라 action을 모르면
       // gameName 에러가 오므로, 그때는 아래 catch의 일반 안내로 떨어지게 한다.
@@ -2115,13 +2071,8 @@ async function dashAnswerQuestion(btn){
   const label = btn.textContent; // v123 — 실패하면 «답변 수정»도 원래 글자로
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action:'answerQuestion', token: TOKEN, row, answer: text,
-        studentId: (QUESTIONS.find(x => String(x._row) === String(row)) || {}).studentId || '' }) // v122 — 백엔드 v104가 학번과 대조
-    });
-    const data = await res.json(); // v122 — 거절 응답을 성공으로 보이지 않게
-    if(data.result !== 'success'){ const err = new Error(data.message || '실패'); err.fromServer = true; throw err; }
+    const data = await dashPost_({ action:'answerQuestion', row, answer: text,
+        studentId: (QUESTIONS.find(x => String(x._row) === String(row)) || {}).studentId || '' }, '실패'); // v122 — 백엔드 v104가 학번과 대조 / v122 — 거절 응답을 성공으로 보이지 않게
     const q = QUESTIONS.find(x => String(x._row) === String(row));
     if(q){
       q.answer = text; q.status = '답변완료'; q.answerTime = new Date().toISOString();
@@ -2668,12 +2619,7 @@ async function dashGenerateClassFeedback(ev){
   btn.disabled = true;
   btn.textContent = '생성 중… (몇 초 걸릴 수 있어요)';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'generateClassFeedback', token:TOKEN, grade, ban, activityId: act })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '생성 실패');
+    const data = await dashPost_({ action:'generateClassFeedback', grade, ban, activityId: act }, '생성 실패');
     if(!data.entry) throw new Error('서버 응답에 결과가 없어요');
     const idx = CLASS_FEEDBACKS.findIndex(f =>
       Number(f.grade) === grade && String(f.ban) === String(ban) && String(f.activityId) === String(act));
@@ -2955,15 +2901,10 @@ async function dashGrantPresentationPoint(btn){
   const inQuickTab = !!box.closest('#ppSelected');
   btn.disabled = true; btn.textContent = '지급 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({
-        action:'grantPresentationPoint', token:TOKEN,
+    const data = await dashPost_({
+        action:'grantPresentationPoint',
         studentId: sid, studentName: name, thinkingType, reason, level
-      })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '지급 실패');
+      }, '지급 실패');
     const grantedPoints = data.points || 6;
     showToast(`${name} 학생에게 ${thinkingType ? thinkingType + ' ' : ''}탐구포인트 +${grantedPoints}점을 지급했어요.`);
     // v33 — "방금 지급함" 목록에 추가(세션 메모리만, 새로고침하면 비워짐).
@@ -3117,12 +3058,7 @@ async function ppEditSave_(btn, i){
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = '고치는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'updatePresentationPoint', token:TOKEN, row:g.row, studentId:g.sid, prevGameName:g.gameName, thinkingType, level })
-    });
-    const data = await res.json();
-    if(data.result !== 'success') throw new Error(data.message || '수정 실패');
+    const data = await dashPost_({ action:'updatePresentationPoint', row:g.row, studentId:g.sid, prevGameName:g.gameName, thinkingType, level }, '수정 실패');
     const rec = ROWS.find(r => Number(r._row) === g.row);
     if(rec){ rec.gameName = data.gameName; rec['성취수준'] = data.level; rec['탐구포인트(발표)'] = data.points; }
     const fresh = PP_RECENT.find(p => p.row === g.row);
@@ -3150,14 +3086,7 @@ async function dashCourtCasePush(btn){
   btn.disabled = true; btn.textContent = '등록 중…';
   statusEl.textContent = '';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({
-        action:'courtCasePush', token:TOKEN,
-        gameName: COURT_CASE_GAME_NAME, grade:'3', ban
-      })
-    });
-    const data = await res.json();
+    const data = await dashPostRaw_({ action:'courtCasePush', gameName: COURT_CASE_GAME_NAME, grade:'3', ban }); // partial 결과가 있어 응답을 그대로 본다
     if(data.result === 'success'){
       statusEl.textContent = `✅ 등록 완료 — 검사 ${data.prosecutionCount}명 · 변호인 ${data.defenseCount}명 · 배심원 ${data.juryCount}명. re_judge 목록에서 확인해줘.`;
     } else if(data.result === 'partial'){
