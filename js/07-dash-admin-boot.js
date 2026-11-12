@@ -1062,13 +1062,13 @@ async function startPreview(){
   $('previewToken').value = '';
   $('teacherGate').style.display = 'none';
   $('previewGate').style.display = 'none';
-  TEST_WRITE_MODE = true;
+  setPortalMode_('test'); // v166
   $('inputPw').value = '';
   await login(sid, TEST_STUDENT_NAME, false, true);
   store.del('portal_session');
   /* v81 — 기출 오답노트·체크리스트 웹앱이 읽는 별도 키. portal_session은 위처럼 지워야 하므로(자동 입장 방지) 따로 둔다. 테스트 계정만 넣는다. */
   if(SESSION) store.set('portal_handoff', JSON.stringify({ sid, name: TEST_STUDENT_NAME }));
-  if(!SESSION){ TEST_WRITE_MODE = false; } // 로그인 실패 — 로그인 화면의 오류 메시지를 그대로 보여준다
+  if(!SESSION){ setPortalMode_('student'); } // 로그인 실패 — 로그인 화면의 오류 메시지를 그대로 보여준다
 }
 $('btnPreviewMode').addEventListener('click', () => {
   const g = $('previewGate');
@@ -1179,8 +1179,7 @@ function dashClearSession_(){
 $('btnDashOut').addEventListener('click', () => {
   dashClearSession_(); // v160
   $('tokenInput').value = '';
-  $('dashView').style.display = 'none';
-  $('loginView').style.display = 'flex';
+  setView_('login'); // v166
   $('teacherGate').style.display = 'none';
   if(typeof tdClearUrl_ === 'function') tdClearUrl_(); // v135 — ?dash=탭을 지워 새로고침이 학생 표지로 돌아오게
 });

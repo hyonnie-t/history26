@@ -8,6 +8,12 @@
 (오래된 구간은 순서가 섞여 있으니 새 번호를 정할 땐 `grep -oE '^## v[0-9]+' CHANGELOG.md | sort -V | tail -1`로 확인).
 이 번호는 프론트(이 레포)만의 번호다. 백엔드 `history26_backend`는 자기 번호를 따로 쓴다(같은 «v159»가 두 레포에서 서로 다른 변경이다).
 
+## v166 (2026-11-12) — 화면·모드 상태를 한 값씩으로(`setView_`·`setPortalMode_`)
+- 2026-11-11 점검 ③-1. 화면은 div 4개의 `display`, 모드는 불리언 4개(`PREVIEW_MODE`·`PREVIEW_REAL`·`PREVIEW_FROM_DASH`·`TEST_WRITE_MODE`)였고 9곳에서 따로 바꿨다. 이제 `VIEW`(login·checkin·portal·dash)는 `setView_()`만, `PORTAL_MODE`(student·sample·readonly·test)는 `setPortalMode_()`만 바꾼다(js/01).
+- 불리언 4개는 이름을 그대로 두고 `setPortalMode_()`가 한꺼번에 맞춘다. 읽는 코드(PREVIEW_MODE 가드 54곳 등)는 한 줄도 바꾸지 않았다.
+- 동작은 그대로다. 달라진 것 하나: 포털 등장 효과(`shown`)를 붙이는 다음 프레임 콜백이 그 사이 화면이 바뀌었으면 붙이지 않는다.
+- `sample` 모드는 값만 남겼다 — v70에서 «학생 화면 테스트»가 진짜 로그인으로 바뀐 뒤 들어가는 길이 없다.
+
 ## v165 (2026-11-12) — 교사 쓰기 공통 함수 `dashPost_`
 - 2026-11-11 점검 ②-나 단순화 2. 교사 쓰기(POST) 방식이 네 가지(인라인 `fetch`, `dashPwPost_`, `dashAiPost`, `grPost_`)였고 응답 확인 여부가 방식마다 달랐다. `js/06` 맨 위 `dashPost_(body, fallbackMsg)`(토큰 붙임, JSON 파싱, success가 아니면 throw — `fromServer`·`response` 포함)와 `dashPostRaw_(body)`(응답 그대로) 두 개로 모았다.
 - 각 호출의 성공·실패 문구와 응답 필드 사용은 그대로다. «재배포 전 옛 백엔드» 폴백 분기는 건드리지 않았다. `dashPwPost_`·`dashAiPost`·`grPost_`는 이름을 남기고 공용 함수를 부른다.

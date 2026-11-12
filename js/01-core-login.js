@@ -21,6 +21,28 @@ let PREVIEW_REAL = false, PREVIEW_FROM_DASH = false, PREVIEW_DASH_SCROLL = 0;
 /* v70 — 교사 "기록 테스트 모드": PREVIEW_MODE(읽기 전용)와 달리 99번 테스트 계정으로 진짜 로그인해 쓰기가 실제로 저장된다.
  * 학생 화면 코드는 PREVIEW_MODE만 보고 쓰기를 막으므로, 이 모드에선 PREVIEW_MODE를 켜지 않고 배너만 따로 띄운다. */
 let TEST_WRITE_MODE = false;
+/* v166 — 화면과 모드를 한 값씩으로 드러낸다(2026-11-11 점검 ③-1). 전에는 div 4개의 display와 불리언 4개를 9곳에서 따로 바꿔,
+ * «로그인 화면인데 교사 미리보기 상태» 같은 뜻 없는 조합이 생길 수 있었다.
+ * PORTAL_MODE: 'student'(학생 본인) / 'sample'(샘플 미리보기 — 지금은 들어가는 길이 없다) / 'readonly'(대시보드에서 연 실제 학생 화면, 읽기 전용) / 'test'(99번 기록 테스트 계정).
+ * 위 불리언 4개는 setPortalMode_()만 바꾼다 — 다른 곳에서 직접 대입하지 않는다. 읽는 코드(PREVIEW_MODE 가드 등)는 그대로다.
+ * VIEW: 'login' / 'checkin' / 'portal' / 'dash'. 화면 div의 display는 setView_()만 바꾼다. */
+let PORTAL_MODE = 'student';
+function setPortalMode_(mode){
+  PORTAL_MODE = mode;
+  PREVIEW_MODE = (mode === 'sample' || mode === 'readonly');
+  PREVIEW_REAL = (mode === 'readonly');
+  PREVIEW_FROM_DASH = (mode === 'readonly');
+  TEST_WRITE_MODE = (mode === 'test');
+}
+let VIEW = 'login';
+function setView_(view){
+  VIEW = view;
+  $('loginView').style.display = view === 'login' ? 'flex' : 'none';
+  $('checkinView').style.display = view === 'checkin' ? 'flex' : 'none';
+  $('portalView').style.display = view === 'portal' ? 'block' : 'none';
+  if(view !== 'portal') $('portalView').classList.remove('shown');
+  $('dashView').style.display = view === 'dash' ? 'block' : 'none';
+}
 const TEST_STUDENT_NAME = '미리보기 학생';
 let DASH_STUDENT_ORDER = []; // renderDash가 매번 갱신 — 미리보기 "이전/다음 학생" 이동 순서
 let CHECKIN_PLAN = null; // v17: 이제 checkin_data.js 정적 값이 아니라 mode=checkinPlan API로 채움 (loadCheckinPlan)
