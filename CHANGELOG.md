@@ -8,6 +8,15 @@
 (오래된 구간은 순서가 섞여 있으니 새 번호를 정할 땐 `grep -oE '^## v[0-9]+' CHANGELOG.md | sort -V | tail -1`로 확인).
 이 번호는 프론트(이 레포)만의 번호다. 백엔드 `history26_backend`는 자기 번호를 따로 쓴다(같은 «v159»가 두 레포에서 서로 다른 변경이다).
 
+## v167 (2026-11-12) — 대시보드 숨은 상태 드러내기: 모둠 탭·탭 읽기 상태·커리큘럼 폼·공개 범위
+- 2026-11-11 점검 ③-2·3·4·7·8.
+- 모둠 탭(`js/10`): 상태를 `grState_()` 한 곳에서 계산한다(load·draft·full). 읽기 실패 안내에 «다시 시도»(전엔 탭을 나갔다 와야 다시 읽음). 확정 모둠이 없으면 «칠판에 띄워 둠» 기억을 지운다(전엔 다른 PC가 취소한 뒤 새로 확정되면 전체화면이 예고 없이 다시 떴다).
+- 탭 읽기 상태를 `DASH_LOAD[탭]`(idle·loading·ready·error) 한 모양으로. `CK_ADMIN_LOADED`를 대신하고, 학생 계정·성적관리 탭의 실패 안내에도 «다시 시도»(`dashRetryBtn_`).
+- 커리큘럼 폼: 수정 모드는 `clSetEditing_(row)`만 바꾼다(숨은 칸·잠긴 id 칸·안내 띠·공개 칸·버튼 글자를 한꺼번에). 공개 범위는 `lessonVisibility_()`(off·all·bans)로 판정하고, 비공개인데 `publicBans`가 차 있는 조합은 읽을 때·바꿀 때 비운다.
+- 학급 공통 피드백: «생성 중»을 `CLASS_FB_BUSY`로 기억해 화면이 다시 그려져도 버튼이 살아나지 않는다(두 번 요청 방지).
+- 문화사 팀: 반을 바꿀 때 확정 안 한 초안이 있으면 먼저 묻는다(`ctPickBan_`). 지금 보고 있는 반을 다시 누르면 아무것도 안 한다(전엔 초안이 말없이 지워졌다).
+- 하지 않은 것: 로그인 단계(③-5), 알림 줄 세우기(③-6 — 학생이 보는 순서가 바뀜), 문화사 busy 나누기(③-7의 나머지), 발표자 뽑기 `PK_MODE`(③-9 — 지금 맞게 돈다), 오늘 탭 상태.
+
 ## v166 (2026-11-12) — 화면·모드 상태를 한 값씩으로(`setView_`·`setPortalMode_`)
 - 2026-11-11 점검 ③-1. 화면은 div 4개의 `display`, 모드는 불리언 4개(`PREVIEW_MODE`·`PREVIEW_REAL`·`PREVIEW_FROM_DASH`·`TEST_WRITE_MODE`)였고 9곳에서 따로 바꿨다. 이제 `VIEW`(login·checkin·portal·dash)는 `setView_()`만, `PORTAL_MODE`(student·sample·readonly·test)는 `setPortalMode_()`만 바꾼다(js/01).
 - 불리언 4개는 이름을 그대로 두고 `setPortalMode_()`가 한꺼번에 맞춘다. 읽는 코드(PREVIEW_MODE 가드 54곳 등)는 한 줄도 바꾸지 않았다.

@@ -129,11 +129,17 @@ async function ctRefresh_(quiet){
   CT.busy = true; if(!quiet) ctRender_();
   try {
     if(!CT.logic) CT.logic = await ctLoadLogic_(); // 처음에 못 불러왔으면 다시 시도
-    await Promise.all([ctLoadRows_(), ctLoadSaved_()]); CT.err = '';
-  } catch(e){ if(!quiet || CT.saved === null) CT.err = e.message; else CT.note = '자동으로 다시 읽지 못했어요(' + e.message + ') — 잠시 뒤 다시 해요.'; }
+    await Promise.all([ctLoadRows_(), ctLoadSaved_()]); CT.err = ''; DASH_LOAD.culture = 'ready';
+  } catch(e){ if(!quiet || CT.saved === null){ CT.err = e.message; DASH_LOAD.culture = 'error'; } else CT.note = '자동으로 다시 읽지 못했어요(' + e.message + ') — 잠시 뒤 다시 해요.'; }
   CT.busy = false;
   if(quiet && ctTyping_()) return; // 번호 칸·선택 상자를 만지는 중이면 다시 그리지 않는다(입력이 날아가지 않게). 다음 차례에 그린다.
   ctRender_();
+}
+/* v167 — 반을 바꾸면 확정 안 한 팀 초안이 사라지니 먼저 묻는다(전에는 말없이 지워졌다). */
+function ctPickBan_(b){
+  if(String(CT.ban) === String(b)) return;
+  if(CT.draft && !confirm('확정하지 않은 팀 초안이 사라져요. 다른 반으로 갈까요?')) return;
+  CT.ban = b; CT.draft = null; ctRender_();
 }
 function ctVisible_(){ const b = $('ctBox'), p = $('panelGroups'); return !!(b && p && b.style.display !== 'none' && p.style.display === 'block' && $('dashView') && $('dashView').style.display === 'block'); }
 function ctTyping_(){ const a = document.activeElement; return !!(a && $('ctBox') && $('ctBox').contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)); }
@@ -265,7 +271,7 @@ function ctRender_(){
   const box = $('ctBox');
   if(!box) return;
   const bans = ctBans_();
-  const head = `<div class="ct-top">${bans.map(b => `<button type="button" class="btn btn-sm${b === String(CT.ban) ? '' : ' btn-ghost'}" onclick="CT.ban='${b}';CT.draft=null;ctRender_()">3-${b}</button>`).join('')}` +
+  const head = `<div class="ct-top">${bans.map(b => `<button type="button" class="btn btn-sm${b === String(CT.ban) ? '' : ' btn-ghost'}" onclick="ctPickBan_('${b}')">3-${b}</button>`).join('')}` +
     `<button type="button" class="btn btn-sm btn-ghost" onclick="ctRefresh_()"${CT.busy ? ' disabled' : ''}>🔄 다시 읽기</button>` +
     (CT.busy ? ' <span class="dash-hint">불러오는 중…</span>' : (CT.readAt ? ` <span class="dash-hint ct-read">${CT.readAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}에 읽음 · 30초마다 저절로</span>` : '')) +
     (CT.note ? ` <span class="dash-hint">${ctEsc_(CT.note)}</span>` : '') + '</div>'; // v158 — 다시 읽은 시각이 보여야 «새 값인지» 안다
