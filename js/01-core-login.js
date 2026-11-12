@@ -79,6 +79,28 @@ async function fetchJsonRetry_(url, maxAttempts, delayMs){
   throw lastErr;
 }
 
+/* v171 — 학생 로그인 조회(학생 기록·오늘 체크인)용 재시도. 반 전체가 한꺼번에 들어오면 부팅 순간 조회가 몰려
+ * Apps Script 동시 실행 한도(계정당 30건)에 걸릴 수 있다. 전에는 두 조회에 재시도가 없어, 한 번 실패하면 자동 입장 학생은
+ * 안내 없이 로그인 화면에 머물고 체크인은 건너뛰었다.
+ * 네트워크 오류·HTTP 오류·JSON 아님일 때만 최대 extraTries번 더 보낸다. 간격은 600~1500ms 무작위 —
+ * 같은 순간 실패한 학생들이 같은 순간 다시 몰리지 않게 학생마다 다르게 한다.
+ * 정상 JSON이면(needLogin·result가 success 아님 포함) 그대로 돌려준다 — 로그인 실패 사유는 다시 묻지 않는다(절대 규칙 9). */
+const LOGIN_RETRY_EXTRA = 2;
+function loginRetryDelay_(){ return 600 + Math.floor(Math.random() * 901); }
+async function fetchJsonJitter_(url, extraTries){
+  if(extraTries == null) extraTries = LOGIN_RETRY_EXTRA;
+  for(let attempt = 0; ; attempt++){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }catch(e){
+      if(attempt >= extraTries) throw e;
+      await new Promise(r => setTimeout(r, loginRetryDelay_()));
+    }
+  }
+}
+
 /* ── 로그인 ──
  * v83: 비밀번호 단계 추가. silent(자동 입장)는 이 기기에 같은 학번의 유효한 세션(H26Auth)이 있을 때만 들어가고,
  * 없으면 학번·이름만 채워 둔 채 비밀번호를 기다린다. preAuthed는 세션을 방금 받은 경우(첫 비번 변경 직후·교사 테스트 모드). */
@@ -89,9 +111,10 @@ let PW_CHANGE_CTX = null; // v83 — { sid, name, oldPw }: 초기 비밀번호�
  * 커리큘럼이 필요 없어서(학년·반은 학번에서 나온다) 부팅(initPortal)이 커리큘럼과 같이 보낼 수 있다.
  * student만 실패를 던진다(login의 try가 받는다). 안 쓰고 버려져도 «처리 안 된 실패» 경고가 나지 않게 빈 catch를 달아 둔다. */
 function loginPrefetch_(sid, name, parsed){
-  const student = fetch(CONFIG.WEBAPP_URL
+  // v171 — 네트워크·HTTP 오류·JSON 아님이면 최대 2번 더(fetchJsonJitter_). needLogin 같은 정상 응답은 다시 보내지 않는다.
+  const student = fetchJsonJitter_(CONFIG.WEBAPP_URL
       + "?mode=student&studentId=" + encodeURIComponent(sid)
-      + "&name=" + encodeURIComponent(name)).then(res => res.json());
+      + "&name=" + encodeURIComponent(name));
   student.catch(() => {});
   return {
     sid, name, student,
@@ -120,6 +143,11 @@ async function login(sid, name, silent, preAuthed, pre){
     $('loginError').style.display = 'none';
   }
 
+  // v171 — 저장본 커리큘럼에 이 학년이 없으면 오타로 단정하지 말고 새로 받아 한 번 더 본다
+  // 새로 받기마저 실패하면 «학번 확인»이 아니라 통신 문제로 안내한다(v22와 같은 구분, v171 검토 지적)
+  if(!CONFIG.CURRICULUM[parsed.grade] && CURRICULUM_FROM_CACHE && !(await loadCurriculum())){
+    showLoginError("커리큘럼 정보를 불러오지 못했어요. 새로고침 후 다시 시도해 주세요."); return;
+  }
   if(!CONFIG.CURRICULUM[parsed.grade]){
     showLoginError("이 학번의 학년 정보를 찾을 수 없어요. 학번을 다시 확인해 주세요."); return;
   }
@@ -220,11 +248,47 @@ async function fetchAnnouncements(grade, ban){
  * v21: 재시도 추가(fetchJsonRetry_ 공용화, v22). 재시도 없이 CONFIG.CURRICULUM이
  * 빈 채로 남으면 login()에서 학번 자체가 잘못된 것처럼("학년 정보를 찾을 수 없어요")
  * 오해를 주는 메시지가 떴음. */
+/* v171 — 커리큘럼·체크인 계획 저장본(localStorage). 2026-11-12 배포 백엔드 실측: 동시 GET 60건은 전부 성공, 100건은 37%가
+ * JSON이 아닌 구글 오류 페이지였다. 한 반(27명)이 같이 들어오면 학생당 5건, 최악 135건이 몰린다.
+ * 저장본이 있으면 부팅 때 커리큘럼을 기다리지 않고(체크인 계획도 받지 않고) 바로 시작하고, 새 것은 로그인 조회가 끝난 뒤
+ * 1~5초 무작위로 늦춰 받아 바꾼다(부팅 순간 학생당 조회 5건 → 3건). 12시간보다 오래됐거나 없거나 깨졌으면 지금처럼 기다린다.
+ * 반 공통 정보만 담는다 — 학생별 정보(기록·공지·체크인 여부)는 저장하지 않는다. */
+const BOOT_CACHE_MAX_MS = 12 * 60 * 60 * 1000;
+const BOOT_CACHE_KEY = { curriculum: 'h26_cache_curriculum_v1', plan: 'h26_cache_checkinPlan_v1' };
+let CURRICULUM_FROM_CACHE = false, CHECKIN_PLAN_FROM_CACHE = false;
+function bootCacheRead_(key){
+  try{
+    const o = JSON.parse(store.get(key) || 'null');
+    if(!o || typeof o.at !== 'number' || !o.data || typeof o.data !== 'object' || Array.isArray(o.data)) return null;
+    const age = Date.now() - o.at;
+    if(!(age >= 0 && age <= BOOT_CACHE_MAX_MS)) return null;
+    if(key === BOOT_CACHE_KEY.curriculum && !Object.keys(o.data).length) return null;
+    return o.data;
+  }catch(e){ return null; }
+}
+function bootCacheWrite_(key, data){ store.set(key, JSON.stringify({ at: Date.now(), data })); }
+/* 저장본으로 시작했으면 waitFor(로그인 조회)가 끝난 뒤 1~5초 무작위로 늦춰 새로 받는다. 커리큘럼이 바뀌었고 학생이 책을 보고 있으면 다시 그린다.
+ * 체크인 문항은 체크인 화면을 띄울 학생이 maybeStartCheckin에서 먼저 새로 받는다(옛 문항을 보이지 않게). */
+function bootCacheRefreshLater_(waitFor){
+  if(!CURRICULUM_FROM_CACHE && !CHECKIN_PLAN_FROM_CACHE) return;
+  Promise.resolve(waitFor).catch(() => {})
+    .then(() => new Promise(r => setTimeout(r, 1000 + Math.floor(Math.random() * 4001))))
+    .then(async () => {
+      if(CHECKIN_PLAN_FROM_CACHE && !CHECKIN_PLAN_PENDING) loadCheckinPlan();
+      if(CURRICULUM_FROM_CACHE){
+        const before = JSON.stringify(CONFIG.CURRICULUM);
+        if(await loadCurriculum() && VIEW === 'portal' && SESSION && JSON.stringify(CONFIG.CURRICULUM) !== before) renderPortal();
+      }
+    }).catch(() => {});
+}
+
 async function loadCurriculum(){
   try{
     const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + "?mode=curriculum");
     if(data.result === 'success' && data.grades){
       CONFIG.CURRICULUM = data.grades;
+      CURRICULUM_FROM_CACHE = false; // v171
+      bootCacheWrite_(BOOT_CACHE_KEY.curriculum, data.grades);
       return true;
     }
   }catch(e){}
@@ -243,6 +307,8 @@ function loadCheckinPlan(){
       const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + "?mode=checkinPlan");
       if(data.result === 'success' && data.plan){
         CHECKIN_PLAN = data.plan;
+        CHECKIN_PLAN_FROM_CACHE = false; // v171
+        bootCacheWrite_(BOOT_CACHE_KEY.plan, data.plan);
         return true;
       }
     }catch(e){}

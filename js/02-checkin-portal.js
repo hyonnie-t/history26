@@ -16,8 +16,9 @@ async function checkinTodayFetch_(grade, ban, sid, name){
       + "&ban=" + encodeURIComponent(ban)
       + "&studentId=" + encodeURIComponent(sid)
       + "&name=" + encodeURIComponent(name);
-    const res = await fetch(url);
-    return await res.json();
+    // v171 — 네트워크·HTTP 오류·JSON 아님이면 최대 2번 더, 600~1500ms 무작위 간격(fetchJsonJitter_, js/01).
+    // 정상 JSON(result가 success 아님 포함)은 다시 보내지 않는다. 세 번 다 실패하면 전처럼 null(체크인 없이 포털로).
+    return await fetchJsonJitter_(url);
   }catch(e){
     return null;
   }
@@ -30,12 +31,18 @@ async function maybeStartCheckin(todayPending, planPending){
   await (planPending || checkinPlanReady_()); // 아직 백그라운드 로딩 중이면 여기서 기다림(v169: 받는 중인 요청을 그대로 기다린다)
   /* v88: 수업 체크인 문항을 못 불러와도(시트 실패·그 학년 문항 없음) 기본 감정 체크인은 뜬다.
    * checkin_data.js 자체가 없을 때만(CHECKIN_EMOTION 미정의) 예전처럼 조용히 건너뜀. */
-  const plan = CHECKIN_PLAN && CHECKIN_PLAN[SESSION.grade];
+  let plan = CHECKIN_PLAN && CHECKIN_PLAN[SESSION.grade];
   const emo = (typeof CHECKIN_EMOTION !== 'undefined') ? CHECKIN_EMOTION : null;
   try{
     const data = await todayPending;
     if(!data || data.result !== 'success') return false;
     const lessonId = data.lessonId || ''; // v88: 비어 있으면(교사가 안 골랐으면) 기본 감정 체크인
+    /* v171 — 문항 계획이 저장본(js/01 bootCacheRead_)이고 오늘 수업 문항을 띄울 학생이면, 띄우기 전에 새로 받는다.
+     * 교사가 문항을 고친 직후 옛 문항이 뜨지 않게. 이미 체크인했거나 감정 체크인이면 받지 않는다. 못 받으면 저장본을 쓴다. */
+    if(CHECKIN_PLAN_FROM_CACHE && !data.alreadyChecked && lessonId && !(emo && lessonId === emo.id)){
+      await (CHECKIN_PLAN_PENDING || loadCheckinPlan());
+      plan = CHECKIN_PLAN && CHECKIN_PLAN[SESSION.grade];
+    }
     /* v18: 하루 1번만 체크인하도록 복원. 백엔드는 계속 alreadyChecked를 계산해서
      * 내려주고 있었는데(v15부터), v17에서 프론트가 이 값을 무시하도록 바뀌어 있던 것.
      * 이미 오늘 체크인했으면 체크인 화면 없이 바로 포털로 들어감. */

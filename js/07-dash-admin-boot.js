@@ -1196,7 +1196,11 @@ $('btnDashOut').addEventListener('click', () => {
   const btn = $('btnLogin');
   btn.disabled = true; btn.textContent = '커리큘럼 불러오는 중…';
 
-  loadCheckinPlan(); // v169 — 커리큘럼과 같이 시작한다(전엔 커리큘럼이 끝난 뒤 시작해 그만큼 늦었다). 기다리지 않는다: 실패해도 로그인은 막지 않고, maybeStartCheckin이 필요하면 기다리거나 다시 받는다
+  /* v171 — 저장본(12시간 안)이 있으면 그걸로 바로 시작하고 부팅 때는 받지 않는다. 새 것은 bootCacheRefreshLater_가 로그인 조회 뒤에 받는다(js/01). */
+  const curCached = bootCacheRead_(BOOT_CACHE_KEY.curriculum);
+  const planCached = bootCacheRead_(BOOT_CACHE_KEY.plan);
+  if(planCached){ CHECKIN_PLAN = planCached; CHECKIN_PLAN_FROM_CACHE = true; }
+  else loadCheckinPlan(); // v169 — 커리큘럼과 같이 시작한다(전엔 커리큘럼이 끝난 뒤 시작해 그만큼 늦었다). 기다리지 않는다: 실패해도 로그인은 막지 않고, maybeStartCheckin이 필요하면 기다리거나 다시 받는다
 
   /* v170 — 자동 입장할 학생이면 책을 여는 조회(학생 기록·공지·오늘 체크인)도 커리큘럼과 같이 보낸다. 전에는 커리큘럼이 온 뒤에야 보냈다.
    * 조건은 login(silent)이 실제로 들어가는 조건과 같다: 기억된 학번·이름이 있고, 이 기기에 같은 학번의 유효한 세션이 있을 때.
@@ -1212,7 +1216,9 @@ $('btnDashOut').addEventListener('click', () => {
     }
   }catch(e){}
 
-  const ok = await loadCurriculum();
+  let ok;
+  if(curCached){ CONFIG.CURRICULUM = curCached; CURRICULUM_FROM_CACHE = true; ok = true; } // v171
+  else ok = await loadCurriculum();
   if(!ok){
     showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
   }
@@ -1221,15 +1227,17 @@ $('btnDashOut').addEventListener('click', () => {
   previewInitGradeOptions();
 
   /* v135 — 시간표 앱에서 ?dash=탭으로 옴: 저장된 토큰이 있으면 바로 대시보드로 가고 학생 자동 로그인은 건너뛴다 (js/08-dash-today.js) */
-  if(typeof tdDeepLink_ === 'function' && tdDeepLink_()) return;
+  if(typeof tdDeepLink_ === 'function' && tdDeepLink_()){ bootCacheRefreshLater_(null); return; } // v171
 
   /* 자동 로그인 (이전 접속 기억) */
   const saved = store.get('portal_session');
+  let loginDone = null;
   if(saved){
     try{
       const { sid, name } = JSON.parse(saved);
       $('inputId').value = sid; $('inputName').value = name;
-      login(sid, name, true, false, pre); // v170 — 미리 보낸 조회를 넘긴다(학번·이름이 같을 때만 쓰인다)
+      loginDone = login(sid, name, true, false, pre); // v170 — 미리 보낸 조회를 넘긴다(학번·이름이 같을 때만 쓰인다)
     }catch(e){}
   }
+  bootCacheRefreshLater_(loginDone); // v171 — 저장본으로 시작했으면 로그인 조회가 끝난 뒤 새로 받는다
 })();
