@@ -6,21 +6,35 @@
 let CHECKIN_CTX = null; // { grade, lessonId, lesson, temperature }
 let CK_SUBMITTING = false; // 응답 전송 중 중복 클릭 방지 — 버튼 반응이 느려도 두 번째 클릭을 무시
 
-async function maybeStartCheckin(){
-  if(CHECKIN_PLAN === null) await loadCheckinPlan(); // 아직 백그라운드 로딩 중이면 여기서 기다림
+/* v169 — 오늘 체크인 조회(GET)만 따로 뗐다. login()이 학생 기록과 동시에 보내려고 SESSION이 서기 전에 부른다.
+ * SESSION·CHECKIN_CTX를 읽지도 바꾸지도 않고, 실패하면 던지지 않고 null을 돌려준다(체크인 없이 포털로).
+ * 주소에 studentId=가 있어야 portal_auth.js가 세션을 붙인다(AGENTS 절대 규칙 11) — 빼지 말 것. */
+async function checkinTodayFetch_(grade, ban, sid, name){
+  try{
+    const url = CONFIG.WEBAPP_URL
+      + "?mode=checkinToday&grade=" + encodeURIComponent(grade)
+      + "&ban=" + encodeURIComponent(ban)
+      + "&studentId=" + encodeURIComponent(sid)
+      + "&name=" + encodeURIComponent(name);
+    const res = await fetch(url);
+    return await res.json();
+  }catch(e){
+    return null;
+  }
+}
+
+/* v169 — todayPending: login()이 미리 보낸 checkinTodayFetch_ 약속. 없으면 여기서 보낸다.
+ * 문항 계획(CHECKIN_PLAN)과 오늘 체크인 조회를 차례로가 아니라 같이 기다린다. */
+async function maybeStartCheckin(todayPending){
+  if(!todayPending) todayPending = checkinTodayFetch_(SESSION.grade, SESSION.ban, SESSION.studentId, SESSION.name);
+  await checkinPlanReady_(); // 아직 백그라운드 로딩 중이면 여기서 기다림(v169: 받는 중인 요청을 그대로 기다린다)
   /* v88: 수업 체크인 문항을 못 불러와도(시트 실패·그 학년 문항 없음) 기본 감정 체크인은 뜬다.
    * checkin_data.js 자체가 없을 때만(CHECKIN_EMOTION 미정의) 예전처럼 조용히 건너뜀. */
   const plan = CHECKIN_PLAN && CHECKIN_PLAN[SESSION.grade];
   const emo = (typeof CHECKIN_EMOTION !== 'undefined') ? CHECKIN_EMOTION : null;
   try{
-    const url = CONFIG.WEBAPP_URL
-      + "?mode=checkinToday&grade=" + encodeURIComponent(SESSION.grade)
-      + "&ban=" + encodeURIComponent(SESSION.ban)
-      + "&studentId=" + encodeURIComponent(SESSION.studentId)
-      + "&name=" + encodeURIComponent(SESSION.name);
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.result !== 'success') return false;
+    const data = await todayPending;
+    if(!data || data.result !== 'success') return false;
     const lessonId = data.lessonId || ''; // v88: 비어 있으면(교사가 안 골랐으면) 기본 감정 체크인
     /* v18: 하루 1번만 체크인하도록 복원. 백엔드는 계속 alreadyChecked를 계산해서
      * 내려주고 있었는데(v15부터), v17에서 프론트가 이 값을 무시하도록 바뀌어 있던 것.

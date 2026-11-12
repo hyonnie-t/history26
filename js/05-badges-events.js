@@ -387,6 +387,7 @@ async function refreshStudentData(force){
   lastRefresh = Date.now();
   const sid = SESSION.studentId; // v160 — 응답이 늦게 와서 그 사이 학생이 바뀌었으면 그리지 않는다(앞 학생 기록이 다음 학생 화면에 그려지던 경합)
   const stale = () => !SESSION || SESSION.studentId !== sid;
+  const annPending = fetchAnnouncements(SESSION.grade, SESSION.ban); // v169 — 학생 기록과 동시에 받는다(전엔 기록이 온 뒤 시작). 실패를 던지지 않고, 기록 조회가 실패·needLogin이면 그냥 버린다
   try{
     const url = CONFIG.WEBAPP_URL
       + "?mode=student&studentId=" + encodeURIComponent(SESSION.studentId)
@@ -401,7 +402,7 @@ async function refreshStudentData(force){
       return;
     }
     if(data.result === 'success'){
-      data.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
+      data.announcements = await annPending;
       if(stale()) return;
       STUDENT_DATA = data;
       if(PREVIEW_REAL) PREVIEW_CACHE.set(previewCacheKey_(SESSION.studentId, SESSION.name), { at: Date.now(), done: true, promise: Promise.resolve(data) }); // v168 — 새로 받은 기록으로 미리보기 캐시도 바꾼다(다음→이전으로 돌아왔을 때 옛 기록이 뜨지 않게)

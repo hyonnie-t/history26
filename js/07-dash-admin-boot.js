@@ -1196,11 +1196,11 @@ $('btnDashOut').addEventListener('click', () => {
   const btn = $('btnLogin');
   btn.disabled = true; btn.textContent = '커리큘럼 불러오는 중…';
 
+  loadCheckinPlan(); // v169 — 커리큘럼과 같이 시작한다(전엔 커리큘럼이 끝난 뒤 시작해 그만큼 늦었다). 기다리지 않는다: 실패해도 로그인은 막지 않고, maybeStartCheckin이 필요하면 기다리거나 다시 받는다
   const ok = await loadCurriculum();
   if(!ok){
     showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
   }
-  loadCheckinPlan(); // 실패해도 로그인은 막지 않음 — 백그라운드로 진행, maybeStartCheckin이 필요시 재시도
 
   btn.disabled = false; btn.textContent = '책 펼치기';
   previewInitGradeOptions();
