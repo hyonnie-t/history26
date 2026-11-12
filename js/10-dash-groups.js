@@ -294,10 +294,7 @@ function grBody_(){
   }
   return body;
 }
-async function grPost_(body){
-  const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(body) });
-  return res.json();
-}
+function grPost_(body){ return dashPostRaw_(body); } // v165 — 공용 함수(js/06)로. 응답을 그대로 받아 grErrText_가 실패 문구를 고른다
 /* 옛 백엔드는 모르는 action을 기본 제출 경로로 보내 gameName 오류를 돌려준다 — 그 문구 대신 재배포 안내를 보여 준다 */
 function grErrText_(j){
   const m = (j && j.message) || '';
