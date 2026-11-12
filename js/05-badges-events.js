@@ -404,6 +404,7 @@ async function refreshStudentData(force){
       data.announcements = await fetchAnnouncements(SESSION.grade, SESSION.ban);
       if(stale()) return;
       STUDENT_DATA = data;
+      if(PREVIEW_REAL) PREVIEW_CACHE.set(previewCacheKey_(SESSION.studentId, SESSION.name), { at: Date.now(), done: true, promise: Promise.resolve(data) }); // v168 — 새로 받은 기록으로 미리보기 캐시도 바꾼다(다음→이전으로 돌아왔을 때 옛 기록이 뜨지 않게)
       renderPortal();
       if(force) showToast('최신 기록으로 갱신했어요.');
     }
@@ -455,17 +456,72 @@ $('btnExitPreview').addEventListener('click', () => PREVIEW_FROM_DASH ? exitPrev
  * 조회되는 기존 mode=student를 그대로 쓰고(새 API 없음), PREVIEW_MODE를 켜서 모든 쓰기를 막는다 —
  * 질문·답장·자가체크·읽음 처리(ackMessages_/ackFeedbackItems_)·배지 기준선(localStorage)·체크인이 전부
  * PREVIEW_MODE 가드에 걸려 실제 기록이 남지 않는다. 자동로그인 세션(portal_session)도 안 건드린다. */
+/* v168 — 미리보기 «이전/다음 학생»이 한 명당 8~12초 걸리던 것을 줄인다.
+ * (1) 학생 기록과 공지를 순차가 아니라 동시에 받는다. (2) 화면에 띄운 학생의 앞뒤 학생을 미리 받아 메모리에 둔다.
+ * PREVIEW_CACHE: «학번|이름» → { promise, at, done }. 받는 중인 요청도 들어 있어서, 미리 받는 도중에 «다음»을 눌러도 요청이 두 번 나가지 않는다.
+ * PREVIEW_ANN_CACHE: «학년|반» → 공지. 공지는 반 단위라 같은 반 학생을 넘길 때 다시 묻지 않는다.
+ * 둘 다 읽기(GET)만 하고, PREVIEW_CACHE_TTL(60초)이 지나면 다시 받는다. 지금 학생·앞·뒤 3명만 남긴다.
+ * 대시보드로 돌아가거나(exitPreviewToDash_) «나가기»(dashClearSession_)를 누르면 previewCacheClear_()로 비운다 —
+ * 그래서 대시보드에서 무언가 고친 뒤 다시 연 미리보기는 항상 새로 받은 기록이다. */
+const PREVIEW_CACHE_TTL = 60000;
+const PREVIEW_CACHE = new Map();
+const PREVIEW_ANN_CACHE = new Map();
+function previewCacheKey_(sid, name){ return sid + '|' + name; }
+function previewCacheClear_(){ PREVIEW_CACHE.clear(); PREVIEW_ANN_CACHE.clear(); }
+function previewCacheFresh_(entry){ return !!entry && Date.now() - entry.at < PREVIEW_CACHE_TTL; }
+function previewAnn_(grade, ban){
+  const key = grade + '|' + ban;
+  const hit = PREVIEW_ANN_CACHE.get(key);
+  if(previewCacheFresh_(hit)) return hit.promise;
+  const entry = { at: Date.now() };
+  entry.promise = fetchAnnouncementsStrict_(grade, ban).catch(() => {
+    if(PREVIEW_ANN_CACHE.get(key) === entry) PREVIEW_ANN_CACHE.delete(key); // 실패는 남기지 않는다 — 다음 학생 때 다시 묻는다
+    return []; // 공지를 못 받아도 학생 화면은 뜬다(전과 같음)
+  });
+  PREVIEW_ANN_CACHE.set(key, entry);
+  return entry.promise;
+}
+function previewLoad_(sid, name, parsed){
+  const key = previewCacheKey_(sid, name);
+  const hit = PREVIEW_CACHE.get(key);
+  if(previewCacheFresh_(hit)) return hit;
+  const entry = { at: Date.now(), done: false };
+  entry.promise = Promise.all([
+    fetchJsonRetry_(CONFIG.WEBAPP_URL
+      + '?mode=student&studentId=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(name)
+      + '&token=' + encodeURIComponent(TOKEN)), // v83 — 로그인 필수가 켜져도 교사 토큰으로 통과
+    previewAnn_(parsed.grade, parsed.ban)
+  ]).then(([data, announcements]) => {
+    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
+    data.announcements = announcements;
+    entry.done = true;
+    return data;
+  });
+  entry.promise.catch(() => { if(PREVIEW_CACHE.get(key) === entry) PREVIEW_CACHE.delete(key); }); // 실패한 요청은 캐시에 남기지 않는다
+  PREVIEW_CACHE.set(key, entry);
+  return entry;
+}
+/* 지금 학생의 앞뒤 학생을 미리 받는다(다음 학생 먼저). 지금·앞·뒤가 아닌 캐시는 버린다. */
+function previewPrefetchNeighbors_(sid, name){
+  if(!TOKEN) return;
+  const i = DASH_STUDENT_ORDER.findIndex(x => x.sid === sid);
+  const near = i < 0 ? [] : [DASH_STUDENT_ORDER[i + 1], DASH_STUDENT_ORDER[i - 1]].filter(Boolean);
+  const keep = new Set([previewCacheKey_(sid, name)].concat(near.map(x => previewCacheKey_(x.sid, x.name))));
+  Array.from(PREVIEW_CACHE.keys()).forEach(k => { if(!keep.has(k)) PREVIEW_CACHE.delete(k); });
+  near.forEach(x => {
+    const p = parseStudentId(x.sid);
+    if(!p || !CONFIG.CURRICULUM[p.grade]) return;
+    previewLoad_(x.sid, x.name, p).promise.catch(() => {}); // 미리 받기 실패는 조용히 — 눌렀을 때 다시 받는다
+  });
+}
 async function previewAsStudent(sid, name, fromNav){
   const parsed = parseStudentId(sid);
   if(!parsed || !CONFIG.CURRICULUM[parsed.grade]){ showToast('이 학생의 학년 정보를 찾지 못했어요.'); return; }
-  showToast(`${name} 학생 화면을 불러오는 중이에요…`);
   const seq = ++PREVIEW_SEQ; // v160
   try{
-    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL
-      + '?mode=student&studentId=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(name)
-      + '&token=' + encodeURIComponent(TOKEN)); // v83 — 로그인 필수가 켜져도 교사 토큰으로 통과
-    if(data.result !== 'success') throw new Error(data.message || '조회 실패');
-    data.announcements = await fetchAnnouncements(parsed.grade, parsed.ban);
+    const entry = previewLoad_(sid, name, parsed); // v168 — 기록+공지 동시, 미리 받아 둔 게 있으면 그것
+    if(!entry.done) showToast(`${name} 학생 화면을 불러오는 중이에요…`);
+    const data = await entry.promise;
     if(seq !== PREVIEW_SEQ || !TOKEN) return; // v160 — 기다리는 사이 다른 학생을 골랐거나 대시보드로 돌아갔거나 «나가기»를 눌렀다
     if(!fromNav) PREVIEW_DASH_SCROLL = window.scrollY;
     resetPortalState_(); // v160 — 앞에 본 학생의 점수 칸·접힘 기억을 넘기지 않는다
@@ -476,6 +532,7 @@ async function previewAsStudent(sid, name, fromNav){
     $('portalView').classList.remove('shown');
     renderPortal();
     window.scrollTo(0, 0);
+    previewPrefetchNeighbors_(sid, name); // v168
   }catch(e){
     if(seq !== PREVIEW_SEQ || !TOKEN) return;
     showToast('학생 화면을 불러오지 못했어요. 다시 시도해 주세요.');
@@ -489,6 +546,7 @@ function previewStepStudent_(delta){
 }
 function exitPreviewToDash_(){
   resetPortalState_(); // v160
+  previewCacheClear_(); // v168
   SESSION = null; STUDENT_DATA = null;
   setPortalMode_('student'); // v166
   CHECKIN_CTX = null;
