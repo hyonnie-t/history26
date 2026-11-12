@@ -12,7 +12,7 @@
 - 배포본 실측(2026-11-12, v168): 다시 들어오는 학생이 책이 열리기까지 11~14초. 커리큘럼 4.2초 → 학생 기록 3.7~6.5초 → 그 뒤에야 공지(2.4~3.1초)·오늘 체크인(3.0초). 체크인 계획(3.2초)도 커리큘럼이 끝난 뒤 시작했다. 학생 기록 → 공지+체크인 순차 8.1초가 셋 동시면 4.0초였다.
 - `login`(js/01): 공지(`fetchAnnouncements`)와 오늘 체크인 조회(`checkinTodayFetch_`, js/02에 새로 뗌)를 `mode=student`와 같은 순간에 보낸다. 새 로그인은 로그인 응답으로 세션을 받은 뒤에 셋을 같이 보낸다. 판정·`CHECKIN_CTX`·화면 반영은 학생 기록이 성공한 뒤에만 한다 — needLogin·실패면 먼저 보낸 두 응답은 버린다(둘 다 실패를 던지지 않는다).
 - `maybeStartCheckin(todayPending)`(js/02): 조회 부분을 `checkinTodayFetch_(grade, ban, sid, name)`로 뗐다(SESSION·`CHECKIN_CTX`를 건드리지 않는다, 주소의 `studentId=`는 그대로 — 절대 규칙 11). 문항 계획과 오늘 체크인을 차례로가 아니라 같이 기다린다.
-- `loadCheckinPlan`(js/01): 받는 중인 요청을 `CHECKIN_PLAN_PENDING`에 둔다. `checkinPlanReady_()`는 이미 받았으면 그대로, 받는 중이면 그 요청을, 둘 다 아니면 새로 받는다. 전에는 부팅 요청이 안 끝난 채 학생이 들어오면 같은 조회가 한 번 더 나갔다. 대시보드의 `await loadCheckinPlan()`(늘 새로 받기)은 그대로다.
+- `loadCheckinPlan`(js/01): 받는 중인 요청을 `CHECKIN_PLAN_PENDING`에 둔다. `checkinPlanReady_()`는 이미 받았으면 그대로, 받는 중이면 그 요청을 기다리고(그 요청이 실패로 끝나면 한 번 새로 받는다 — 검토에서 나온 지적), 둘 다 아니면 새로 받는다. 전에는 부팅 요청이 안 끝난 채 학생이 들어오면 같은 조회가 한 번 더 나갔다. 대시보드의 `await loadCheckinPlan()`(늘 새로 받기)은 그대로다.
 - `initPortal`(js/07): `loadCheckinPlan()`을 `loadCurriculum()`과 같이 시작한다(커리큘럼만 기다린다).
 - `refreshStudentData`(js/05): 학생 기록과 공지를 동시에 받는다.
 - 알고 둔 것: 자동 입장에서 서버가 세션을 거절하면(needLogin) 전에는 조회 1건이던 것이 3건 나간다(전부 읽기). 커리큘럼(4.2초)을 기다린 뒤에야 학생 조회를 시작하는 순서는 그대로다 — 다음에 줄일 수 있는 곳.

@@ -25,9 +25,9 @@ async function checkinTodayFetch_(grade, ban, sid, name){
 
 /* v169 — todayPending: login()이 미리 보낸 checkinTodayFetch_ 약속. 없으면 여기서 보낸다.
  * 문항 계획(CHECKIN_PLAN)과 오늘 체크인 조회를 차례로가 아니라 같이 기다린다. */
-async function maybeStartCheckin(todayPending){
+async function maybeStartCheckin(todayPending, planPending){
   if(!todayPending) todayPending = checkinTodayFetch_(SESSION.grade, SESSION.ban, SESSION.studentId, SESSION.name);
-  await checkinPlanReady_(); // 아직 백그라운드 로딩 중이면 여기서 기다림(v169: 받는 중인 요청을 그대로 기다린다)
+  await (planPending || checkinPlanReady_()); // 아직 백그라운드 로딩 중이면 여기서 기다림(v169: 받는 중인 요청을 그대로 기다린다)
   /* v88: 수업 체크인 문항을 못 불러와도(시트 실패·그 학년 문항 없음) 기본 감정 체크인은 뜬다.
    * checkin_data.js 자체가 없을 때만(CHECKIN_EMOTION 미정의) 예전처럼 조용히 건너뜀. */
   const plan = CHECKIN_PLAN && CHECKIN_PLAN[SESSION.grade];

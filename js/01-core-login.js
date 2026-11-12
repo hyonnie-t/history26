@@ -137,7 +137,7 @@ async function login(sid, name, silent, preAuthed){
    * 판정·CHECKIN_CTX·화면 반영은 학생 기록이 성공한 뒤에만 한다 — needLogin·실패로 끝나면 두 응답은 그냥 버린다. */
   const annPending = fetchAnnouncements(parsed.grade, parsed.ban);
   const ckPending = checkinTodayFetch_(parsed.grade, parsed.ban, sid, name); // js/02
-  checkinPlanReady_(); // 부팅 때 문항 계획을 못 받았으면 지금 같이 다시 받는다(받았거나 받는 중이면 새 요청 없음)
+  const planPending = checkinPlanReady_(); // 부팅 때 문항 계획을 못 받았으면 지금 같이 다시 받는다(받았으면 새 요청 없음). 실패를 던지지 않는다
 
   try{
     const url = CONFIG.WEBAPP_URL
@@ -165,7 +165,7 @@ async function login(sid, name, silent, preAuthed){
      * v169: 두 조회는 위에서 학생 기록과 같이 이미 떠났다. 여기서는 그 결과를 받아 판정만 한다. */
     const [announcements, needsCheckin] = await Promise.all([
       annPending,
-      maybeStartCheckin(ckPending)
+      maybeStartCheckin(ckPending, planPending)
     ]);
     STUDENT_DATA.announcements = announcements;
 
@@ -237,8 +237,14 @@ function loadCheckinPlan(){
   p.then(() => { if(CHECKIN_PLAN_PENDING === p) CHECKIN_PLAN_PENDING = null; });
   return p;
 }
-function checkinPlanReady_(){
-  if(CHECKIN_PLAN !== null) return Promise.resolve(true);
+/* 받는 중인 요청이 실패로 끝나면 한 번 새로 받는다 — 전에도 부팅 요청과 따로 한 번 더 받았으므로,
+ * 부팅 요청이 실패해도 수업 체크인 문항을 받을 기회는 그대로다. */
+async function checkinPlanReady_(){
+  if(CHECKIN_PLAN !== null) return true;
+  if(CHECKIN_PLAN_PENDING){
+    await CHECKIN_PLAN_PENDING;
+    if(CHECKIN_PLAN !== null) return true;
+  }
   return CHECKIN_PLAN_PENDING || loadCheckinPlan();
 }
 
