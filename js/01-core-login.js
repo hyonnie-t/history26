@@ -83,7 +83,26 @@ async function fetchJsonRetry_(url, maxAttempts, delayMs){
  * v83: 비밀번호 단계 추가. silent(자동 입장)는 이 기기에 같은 학번의 유효한 세션(H26Auth)이 있을 때만 들어가고,
  * 없으면 학번·이름만 채워 둔 채 비밀번호를 기다린다. preAuthed는 세션을 방금 받은 경우(첫 비번 변경 직후·교사 테스트 모드). */
 let PW_CHANGE_CTX = null; // v83 — { sid, name, oldPw }: 초기 비밀번호로 맞게 들어와 새 비밀번호를 받는 중
-async function login(sid, name, silent, preAuthed){
+
+/* v170 — 책을 여는 데 필요한 조회 넷(학생 기록·공지·오늘 체크인·체크인 계획)을 한꺼번에 보내고 약속만 돌려준다.
+ * 조회(GET)만 하고 SESSION·STUDENT_DATA·CHECKIN_CTX·화면은 건드리지 않는다 — 반영은 login()이 학생 기록 성공을 확인한 뒤에 한다.
+ * 커리큘럼이 필요 없어서(학년·반은 학번에서 나온다) 부팅(initPortal)이 커리큘럼과 같이 보낼 수 있다.
+ * student만 실패를 던진다(login의 try가 받는다). 안 쓰고 버려져도 «처리 안 된 실패» 경고가 나지 않게 빈 catch를 달아 둔다. */
+function loginPrefetch_(sid, name, parsed){
+  const student = fetch(CONFIG.WEBAPP_URL
+      + "?mode=student&studentId=" + encodeURIComponent(sid)
+      + "&name=" + encodeURIComponent(name)).then(res => res.json());
+  student.catch(() => {});
+  return {
+    sid, name, student,
+    ann: fetchAnnouncements(parsed.grade, parsed.ban),
+    ck: checkinTodayFetch_(parsed.grade, parsed.ban, sid, name), // js/02
+    plan: checkinPlanReady_() // 부팅 때 문항 계획을 못 받았으면 지금 같이 다시 받는다(받았으면 새 요청 없음)
+  };
+}
+
+/* pre(v170): 자동 입장 때 initPortal이 커리큘럼과 같이 미리 보낸 loginPrefetch_ 결과. 같은 학번·이름일 때만 쓴다. */
+async function login(sid, name, silent, preAuthed, pre){
   const parsed = parseStudentId(sid);
   if(!parsed){ showLoginError("학번은 숫자 5자리예요. 예: 30512"); return; }
   if(!name){ showLoginError("이름을 입력해 주세요."); return; }
@@ -134,17 +153,13 @@ async function login(sid, name, silent, preAuthed){
 
   /* v169 — 공지·오늘 체크인 조회를 학생 기록(mode=student)과 동시에 보낸다. 전에는 학생 기록(4~6초)이 온 뒤에야
    * 둘을 시작해서 책이 열리기까지 그만큼 더 걸렸다. 여기서는 조회만 하고(둘 다 실패를 던지지 않는다),
-   * 판정·CHECKIN_CTX·화면 반영은 학생 기록이 성공한 뒤에만 한다 — needLogin·실패로 끝나면 두 응답은 그냥 버린다. */
-  const annPending = fetchAnnouncements(parsed.grade, parsed.ban);
-  const ckPending = checkinTodayFetch_(parsed.grade, parsed.ban, sid, name); // js/02
-  const planPending = checkinPlanReady_(); // 부팅 때 문항 계획을 못 받았으면 지금 같이 다시 받는다(받았으면 새 요청 없음). 실패를 던지지 않는다
+   * 판정·CHECKIN_CTX·화면 반영은 학생 기록이 성공한 뒤에만 한다 — needLogin·실패로 끝나면 두 응답은 그냥 버린다.
+   * v170 — 자동 입장은 initPortal이 커리큘럼과 같이 미리 보낸 조회(pre)를 그대로 받는다. 전에는 커리큘럼(2~4초)이 온 뒤에야 보냈다. */
+  const q = (silent && pre && pre.sid === sid && pre.name === name) ? pre : loginPrefetch_(sid, name, parsed);
+  const annPending = q.ann, ckPending = q.ck, planPending = q.plan;
 
   try{
-    const url = CONFIG.WEBAPP_URL
-      + "?mode=student&studentId=" + encodeURIComponent(sid)
-      + "&name=" + encodeURIComponent(name);
-    const res = await fetch(url);
-    const data = await res.json();
+    const data = await q.student;
     if(data.needLogin){ // v83 — 세션 만료·다른 기기에서 비번 변경·교사 초기화
       H26Auth.clear(); store.del('portal_session');
       showLoginError(data.message || "다시 로그인해 주세요.");

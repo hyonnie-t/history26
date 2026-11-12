@@ -1197,6 +1197,21 @@ $('btnDashOut').addEventListener('click', () => {
   btn.disabled = true; btn.textContent = '커리큘럼 불러오는 중…';
 
   loadCheckinPlan(); // v169 — 커리큘럼과 같이 시작한다(전엔 커리큘럼이 끝난 뒤 시작해 그만큼 늦었다). 기다리지 않는다: 실패해도 로그인은 막지 않고, maybeStartCheckin이 필요하면 기다리거나 다시 받는다
+
+  /* v170 — 자동 입장할 학생이면 책을 여는 조회(학생 기록·공지·오늘 체크인)도 커리큘럼과 같이 보낸다. 전에는 커리큘럼이 온 뒤에야 보냈다.
+   * 조건은 login(silent)이 실제로 들어가는 조건과 같다: 기억된 학번·이름이 있고, 이 기기에 같은 학번의 유효한 세션이 있을 때.
+   * ?dash= 주소(교사 딥링크)면 보내지 않는다. 조회만 하고 상태·화면은 안 건드린다 — login이 안 쓰면 그냥 버려진다. */
+  let pre = null;
+  try{
+    const savedEarly = JSON.parse(store.get('portal_session') || 'null');
+    const parsedEarly = savedEarly && savedEarly.name ? parseStudentId(String(savedEarly.sid)) : null;
+    const heldEarly = window.H26Auth && H26Auth.get();
+    const dashLink = new URLSearchParams(location.search).get('dash');
+    if(parsedEarly && !dashLink && heldEarly && heldEarly.sid === savedEarly.sid){
+      pre = loginPrefetch_(savedEarly.sid, savedEarly.name, parsedEarly);
+    }
+  }catch(e){}
+
   const ok = await loadCurriculum();
   if(!ok){
     showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
@@ -1214,7 +1229,7 @@ $('btnDashOut').addEventListener('click', () => {
     try{
       const { sid, name } = JSON.parse(saved);
       $('inputId').value = sid; $('inputName').value = name;
-      login(sid, name, true);
+      login(sid, name, true, false, pre); // v170 — 미리 보낸 조회를 넘긴다(학번·이름이 같을 때만 쓰인다)
     }catch(e){}
   }
 })();
