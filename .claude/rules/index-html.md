@@ -10,7 +10,7 @@ paths:
 - 뷰 4개(`<div id="...View">`)를 JS로 표시/숨김: `#loginView`(학생 로그인 책 표지 + 교사 토큰 게이트 + 학생 화면 테스트 진입) /
   `#checkinView`(웰컴 체크인: 감정 온도·단어칩·문항) / `#portalView`("나의 역사책": 탐구 나무·타임라인·자가체크·공지·질문함) /
   `#dashView`(교사 대시보드 탭: 학생 기록·질문함·공지 관리·커리큘럼 관리·체크인·탐구포인트).
-- (v134) `js/08-dash-today.js`는 07 뒤에 붙는다. 로드 시점 코드는 `TD_DEEP`(주소의 `?dash=` 읽기)와 visibilitychange 등록뿐이고, 07의 `initPortal`은 `loadCurriculum()` fetch를 기다린 뒤 08을 부르므로 순서 문제는 없다. (v135) 06·07은 `typeof tdXxx_ === 'function'` 가드로만 08을 부른다(`switchDashTab`→`tdSyncUrl_`, `enterDash`→`tdAfterEnter_`, `initPortal`→`tdDeepLink_`, `btnDashOut`→`tdClearUrl_`). 시간표 앱과 오가는 주소 규칙(`?dash=탭&cls=반` ↔ 시간표 `?tab=탭&task=ID&add=글`)은 08 맨 위 주석과 시간표 레포 CLAUDE.md «시작 주소 규칙»에 있다 — 한쪽을 바꾸면 둘 다.
+- (v134) `js/08-dash-today.js`는 07 뒤에 붙는다. 로드 시점 코드는 `TD_DEEP`(주소의 `?dash=` 읽기)와 visibilitychange 등록뿐이고, 07의 `initPortal`은 `loadCurriculum()` fetch(v172: 저장본으로 시작할 땐 `DOMContentLoaded`)를 기다린 뒤 08을 부르므로 순서 문제는 없다 — `initPortal`에서 `tdDeepLink_`·자동 로그인 앞의 이 기다림을 없애면 08이 실리기 전에 돌아 `?dash=`가 조용히 건너뛰어진다(v171에서 실제로 난 일). (v135) 06·07은 `typeof tdXxx_ === 'function'` 가드로만 08을 부른다(`switchDashTab`→`tdSyncUrl_`, `enterDash`→`tdAfterEnter_`, `initPortal`→`tdDeepLink_`, `btnDashOut`→`tdClearUrl_`). 시간표 앱과 오가는 주소 규칙(`?dash=탭&cls=반` ↔ 시간표 `?tab=탭&task=ID&add=글`)은 08 맨 위 주석과 시간표 레포 CLAUDE.md «시작 주소 규칙»에 있다 — 한쪽을 바꾸면 둘 다.
 - JS는 v104(2026-10-25)부터 `index.html` 인라인이 아니라 `js/` 아래 파일들이다(파일 목록 = `index.html`의 script 순서. 아래 표는 내용 안내이고 수·줄 수는 적지 않는다). `index.html` 맨 아래 `<script src="js/...?v=NN">` 순서가 실행 순서이고, 전부 classic script라
   최상위 `const`/`let`·함수는 파일 사이에 공유된다(`type="module"`로 바꾸지 않는다 — 전역 스코프 공유가 깨진다). 옛 `/* ══` 구분선이 그대로 파일 경계이고,
   파일 안에서는 `/* ──` 구분선으로 찾는다. 마지막 파일 끝의 `initPortal()` IIFE로 부팅.

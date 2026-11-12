@@ -1217,7 +1217,13 @@ $('btnDashOut').addEventListener('click', () => {
   }catch(e){}
 
   let ok;
-  if(curCached){ CONFIG.CURRICULUM = curCached; CURRICULUM_FROM_CACHE = true; ok = true; } // v171
+  if(curCached){
+    CONFIG.CURRICULUM = curCached; CURRICULUM_FROM_CACHE = true; ok = true; // v171
+    /* v172 — 저장본이면 여기까지 기다림(await)이 한 번도 없어서, 이 파일 뒤에 실리는 js/08(tdDeepLink_)·09·10이 아직 없는 채로
+     * 아래 코드가 돌았다. 그래서 저장본이 있는 기기에서 ?dash= 교사 주소가 대시보드로 안 가고 학생 자동 입장으로 흘렀다.
+     * 전에는 커리큘럼 fetch를 기다리는 동안 나머지 스크립트가 다 실렸다 — 그 순서를 되살린다(문서가 다 읽힐 때까지만 기다림). */
+    if(document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
   else ok = await loadCurriculum();
   if(!ok){
     showLoginError('커리큘럼 정보를 불러오지 못했어요. 새로고침해 주세요.');
