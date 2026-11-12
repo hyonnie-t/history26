@@ -173,15 +173,21 @@ async function login(sid, name, silent, preAuthed){
   }
 }
 
-/* 공지사항 조회 — 실패해도 로그인 자체는 막지 않도록 별도 try/catch */
+/* 공지사항 조회 — 실패해도 로그인 자체는 막지 않도록 별도 try/catch
+ * v168: 한 번 실패하면 조용히 빈 목록이 되던 것을 한 번 더 시도한다(fetchJsonRetry_ 2회).
+ * Apps Script가 순간 오류 페이지를 돌려주면 브라우저에는 CORS 오류로 보이고, 그때 공지가 통째로 안 보였다.
+ * fetchAnnouncementsStrict_는 실패를 던지는 판(미리보기 캐시가 «실패»와 «공지 없음»을 구분하려고 쓴다). */
+async function fetchAnnouncementsStrict_(grade, ban){
+  const url = CONFIG.WEBAPP_URL
+    + "?mode=announcements&grade=" + encodeURIComponent(grade)
+    + "&ban=" + encodeURIComponent(ban);
+  const data = await fetchJsonRetry_(url, 2);
+  if(data.result !== 'success') throw new Error(data.message || '공지 조회 실패');
+  return data.rows || [];
+}
 async function fetchAnnouncements(grade, ban){
   try{
-    const url = CONFIG.WEBAPP_URL
-      + "?mode=announcements&grade=" + encodeURIComponent(grade)
-      + "&ban=" + encodeURIComponent(ban);
-    const res = await fetch(url);
-    const data = await res.json();
-    return (data.result === 'success') ? (data.rows || []) : [];
+    return await fetchAnnouncementsStrict_(grade, ban);
   }catch(e){
     return [];
   }

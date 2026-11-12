@@ -285,6 +285,8 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 대시보드 학생 카드의 "학생 화면 보기", 그 학생의 진짜 `mode=student` 응답을 읽기 전용 렌더링, `PREVIEW_REAL=true`). 쓰기는 전부 기존
 `PREVIEW_MODE` 가드로 막힌다 — **새 쓰기/읽음 처리 코드를 추가할 땐 반드시 이 가드를 넣을 것**(안 그러면 교사가 미리보기만 해도 학생
 데이터가 바뀐다). 활동 링크는 `withStudentParams()`가 `&preview=1`을 붙인다. `refreshStudentData()`는 샘플에서만 재조회를 건너뛴다.
+(v168) 미리보기는 학생 기록과 공지를 동시에 받고(`previewLoad_`), 띄운 학생의 앞뒤 학생을 미리 받아 메모리(`PREVIEW_CACHE`, 지금·앞·뒤 3명, 60초)에 둔다.
+공지는 반 단위로 `PREVIEW_ANN_CACHE`에 둔다. 대시보드로 돌아가거나 «나가기»를 누르면 `previewCacheClear_()`로 비운다 — 미리보기에 새 조회를 더할 때도 GET만, 캐시를 비우는 길은 이 둘을 지킨다.
 
 ## 나무 일러스트 (v64)
 `tree.js`의 `treeSvg(stage, leaves, totalLessons)`(index.html에서 분리). 8단계 로직(진행률 새잎·개화·열매)은 유지,

@@ -1175,6 +1175,7 @@ function dashClearSession_(){
    * (성적관리·학생 계정·문화사·오늘 탭은 탭을 누를 때 새로 읽는다). */
   try{
     PREVIEW_SEQ++; // 기다리던 «학생 화면 보기» 응답을 버린다
+    previewCacheClear_(); // v168 — 미리 받아 둔 학생 화면도 버린다
     switchDashTab('records');
     renderDash(); dashRenderQuestions();
     $('paRequests').textContent = ''; $('paAccounts').innerHTML = ''; $('paBadge').style.display = 'none';
