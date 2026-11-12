@@ -132,6 +132,13 @@ async function login(sid, name, silent, preAuthed){
   btn.disabled = true; btn.textContent = "책을 펼치는 중…";
   $('loginError').style.display = 'none';
 
+  /* v169 — 공지·오늘 체크인 조회를 학생 기록(mode=student)과 동시에 보낸다. 전에는 학생 기록(4~6초)이 온 뒤에야
+   * 둘을 시작해서 책이 열리기까지 그만큼 더 걸렸다. 여기서는 조회만 하고(둘 다 실패를 던지지 않는다),
+   * 판정·CHECKIN_CTX·화면 반영은 학생 기록이 성공한 뒤에만 한다 — needLogin·실패로 끝나면 두 응답은 그냥 버린다. */
+  const annPending = fetchAnnouncements(parsed.grade, parsed.ban);
+  const ckPending = checkinTodayFetch_(parsed.grade, parsed.ban, sid, name); // js/02
+  const planPending = checkinPlanReady_(); // 부팅 때 문항 계획을 못 받았으면 지금 같이 다시 받는다(받았으면 새 요청 없음). 실패를 던지지 않는다
+
   try{
     const url = CONFIG.WEBAPP_URL
       + "?mode=student&studentId=" + encodeURIComponent(sid)
@@ -154,10 +161,11 @@ async function login(sid, name, silent, preAuthed){
      * SESSION만 있으면 됨, STUDENT_DATA와 무관) 순차로 기다리지 않고
      * 병렬로 쏨. Apps Script 호출 하나당 콜드스타트·동시접속 지연이
      * 붙는 구조라, 순차 2번을 병렬 1번 분량으로 줄여서 로그인 체감
-     * 속도를 개선 — 특히 반 전체가 한꺼번에 로그인하는 순간에 효과가 큼. */
+     * 속도를 개선 — 특히 반 전체가 한꺼번에 로그인하는 순간에 효과가 큼.
+     * v169: 두 조회는 위에서 학생 기록과 같이 이미 떠났다. 여기서는 그 결과를 받아 판정만 한다. */
     const [announcements, needsCheckin] = await Promise.all([
-      fetchAnnouncements(parsed.grade, parsed.ban),
-      maybeStartCheckin()
+      annPending,
+      maybeStartCheckin(ckPending, planPending)
     ]);
     STUDENT_DATA.announcements = announcements;
 
@@ -210,16 +218,34 @@ async function loadCurriculum(){
 
 /* v17: CHECKIN_PLAN(체크인 문항)을 "체크인문항" 시트에서 불러옴. 실패해도 체크인 기능만
  * 조용히 꺼질 뿐 로그인 자체는 막지 않음(loadCurriculum과 달리 필수 아님).
- * v22: fetchJsonRetry_로 공용화. */
-async function loadCheckinPlan(){
-  try{
-    const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + "?mode=checkinPlan");
-    if(data.result === 'success' && data.plan){
-      CHECKIN_PLAN = data.plan;
-      return true;
-    }
-  }catch(e){}
-  return false;
+ * v22: fetchJsonRetry_로 공용화.
+ * v169: 받는 중인 요청을 CHECKIN_PLAN_PENDING에 둔다 — 부팅 때 보낸 요청이 아직 안 끝났는데 학생이 들어오면
+ * maybeStartCheckin이 같은 조회를 한 번 더 보내던 것을, 그 요청을 기다리게 한다(checkinPlanReady_). */
+let CHECKIN_PLAN_PENDING = null;
+function loadCheckinPlan(){
+  const p = (async () => {
+    try{
+      const data = await fetchJsonRetry_(CONFIG.WEBAPP_URL + "?mode=checkinPlan");
+      if(data.result === 'success' && data.plan){
+        CHECKIN_PLAN = data.plan;
+        return true;
+      }
+    }catch(e){}
+    return false;
+  })();
+  CHECKIN_PLAN_PENDING = p;
+  p.then(() => { if(CHECKIN_PLAN_PENDING === p) CHECKIN_PLAN_PENDING = null; });
+  return p;
+}
+/* 받는 중인 요청이 실패로 끝나면 한 번 새로 받는다 — 전에도 부팅 요청과 따로 한 번 더 받았으므로,
+ * 부팅 요청이 실패해도 수업 체크인 문항을 받을 기회는 그대로다. */
+async function checkinPlanReady_(){
+  if(CHECKIN_PLAN !== null) return true;
+  if(CHECKIN_PLAN_PENDING){
+    await CHECKIN_PLAN_PENDING;
+    if(CHECKIN_PLAN !== null) return true;
+  }
+  return CHECKIN_PLAN_PENDING || loadCheckinPlan();
 }
 
 /* 책 펼침 연출 → 포털 진입 */
