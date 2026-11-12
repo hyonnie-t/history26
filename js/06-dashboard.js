@@ -2708,12 +2708,6 @@ function aiUnreviewedCount(){
   return { all, recent };
 }
 
-/* v27 — 차시(l) 전체 activities id의 Set. 학생별 doneIds/achieve 계산에서
- * "이 차시를 다 끝냈는지" 판정할 때 반복해서 쓰여서 헬퍼로 뺌. */
-function lessonAllActivityIds_(l){
-  return l.activities.map(a => a.id);
-}
-
 function renderDash(){
   const grade = Number($('selGrade').value);
   const ban = $('selBan').value;
@@ -2755,9 +2749,10 @@ function renderDash(){
     });
     // v28: 진행률 분모는 이 학생 반의 트랙(효니/미현쌤/공통 없음)에 맞는 차시만 —
     // 트랙이 갈리면 반마다 "전체 차시 개수" 자체가 달라지므로 학생별로 따로 계산.
-    const myActive = filterLessonsForBan(cur, s.p.ban).filter(l => l.activities.some(a => a.url || a.urlByBan));
+    // v164: 판정은 학생 화면과 같은 함수(js/02 lessonCounts_·lessonDone_)로 — 이 학생 반에 링크가 없는 차시는 분모에서 빠진다.
+    const myActive = filterLessonsForBan(cur, s.p.ban).filter(l => lessonCounts_(l, s.p.ban, s.doneIds));
     // v27: "완료한 차시"는 그 차시의 활동 id를 전부 doneIds에 갖고 있어야 인정.
-    const done = myActive.filter(l => lessonAllActivityIds_(l).every(id => s.doneIds.has(id))).length;
+    const done = myActive.filter(l => lessonDone_(l, s.doneIds)).length;
     s.pct = myActive.length ? Math.round(done/myActive.length*100) : 0;
     s.doneCount = done;
     s.totalLessons = myActive.length; // v28

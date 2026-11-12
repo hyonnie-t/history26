@@ -26,8 +26,8 @@ UI 텍스트·주석·커밋 메시지는 한국어.
 7. 긴 URL/ID(`WEBAPP_URL`, `SHEET_WEBAPP_URL`, 시트 ID)를 옮겨 적을 땐 육안 말고 grep/diff로 원본과 대조(조용한 전송 실패의 주원인).
 8. `grantPresentationPoint`의 `reason` 문자열(`GONGMIN_BONUS_REASON` 등)을 다른 용도로 재사용하지 않는다(중복 지급 판별 오작동).
 9. 로그인은 실패 사유(학번/이름/비밀번호 중 무엇)를 구분해 보여주지 않는다(서버 메시지를 그대로). 엑셀 성적조회(«나의 성적 확인하기»)는 v159에서 포털에서 지웠다 — 되살릴 때도 같은 규칙이고, v83부터 별도 비밀번호 없이 로그인 세션으로 인증한다.
-10. 차시 "완료"는 그 차시 **모든** activity id가 `doneIds`에 있어야 하는 AND 조건 — 학생 `lessonDone()`과 대시보드
-    `lessonAllActivityIds_()` 두 곳이 따로 구현한다. 진행률·완료 뱃지·포인트를 고치면 둘 다 확인.
+10. 차시 "완료"는 그 차시 **모든** activity id가 `doneIds`에 있어야 하는 AND 조건이다. 판정식은 `js/02` 맨 아래 한 벌(`lessonDone_`·`lessonHasUrlForBan_`·`lessonCounts_`, v164)뿐이고
+    학생 `renderPortal`과 대시보드 `renderDash`가 같이 쓴다 — 진행률·완료 뱃지·포인트를 고칠 때 판정식을 화면 쪽에 다시 쓰지 말고 이 함수를 고친다. 진도 분모는 «내 반 링크가 있는 차시 + 이미 끝낸 차시».
 11. **학생 본인 데이터를 부르는 새 fetch는 `snippets/portal_auth.js`가 세션을 붙여 주는 형태로만** 쓴다: GET은 주소에 `studentId=`, POST는 `JSON.stringify` 문자열 본문.
     FormData·URLSearchParams 본문이나 `studentId` 없는 GET은 세션이 안 붙어 로그인 필수(LOGIN_REQUIRED)를 켜면 막힌다. 상세 `docs/features.md` "학생 로그인 비밀번호".
 
