@@ -2527,3 +2527,6 @@ body.perf-modal-open{overflow:hidden;}
 
 /* v161 — 체크인 탭을 못 읽었을 때: 안내 칸만 보이고 나머지는 숨긴다(다시 시도하면 원래대로) */
 #panelCheckin[data-load-error] > :not(.ck-load-error){display:none;}
+/* v175 수행평가 미응시자 표 */
+.perf-miss-notes{margin:0 0 var(--space-sm); padding-left:16px; font-size:.9em; color:var(--ink-soft);}
+.perf-miss-table td.l, .perf-miss-table th.l{text-align:left;}
