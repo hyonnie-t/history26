@@ -1141,6 +1141,10 @@ $('btnCkViewRefreshAll').addEventListener('click', () => {
   dashCheckinGrades_().forEach(grade => dashLoadCheckinAdmin(grade));
 });
 $('btnDashRefresh').addEventListener('click', async () => {
+  /* v176 — 받는 동안 버튼을 잠그고 «새로고침 중…»으로 바꾼다. 전엔 토스트만 잠깐 떠서 다시 누르기 쉬웠고, 두 번 누르면 같은 요청이 겹쳐 나갔다. */
+  const rb = $('btnDashRefresh');
+  if(rb.disabled) return;
+  rb.disabled = true; rb.textContent = '새로고침 중…';
   showToast('새로고침 중…');
   try{
     await dashLoadData();
@@ -1158,9 +1162,11 @@ $('btnDashRefresh').addEventListener('click', async () => {
     // v158 — 문화사 발굴단 탭을 한 번이라도 열었으면 그 탭도 새로 읽고 다시 그린다. 전엔 여기서 기록만 받고 탭은 옛 순위를 그대로 보여 줬다
     // (2026-11-10 효니: «새로고침해도 팀 순위가 안 바뀌어 Ctrl+Shift+R → 다시 로그인»).
     if(typeof ctRefresh_ === 'function' && typeof CT !== 'undefined' && CT.saved !== null) await ctRefresh_();
-    showToast('최신 기록으로 갱신했어요.');
+    dashRenderSideErr_(); // v176
+    showToast(dashSideHasErr_() ? '갱신했어요. 다만 일부는 불러오지 못했어요(위 안내 참고).' : '최신 기록으로 갱신했어요.');
   }
   catch(e){ showToast('갱신 실패: ' + e.message); }
+  finally{ rb.disabled = false; rb.textContent = '새로고침'; }
 });
 /* v160 — «나가기»는 화면만 숨기지 않고 교사 토큰과 학생 기록을 메모리에서 비운다. 전에는 토큰이 남아 «학생 화면 테스트»가 토큰 없이 열렸고,
  * 문화사 30초 타이머와 오늘 탭 실시간 구독도 계속 돌았다. 다시 들어오면 enterDash가 전부 새로 읽는다. */
