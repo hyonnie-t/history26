@@ -21,6 +21,52 @@ async function dashPost_(body, fallbackMsg){
  * 실패 안내 옆에는 dashRetryBtn_()로 «다시 시도»를 붙인다. checkin만 이 값으로 «처음 한 번만 초기화»를 가른다(나머지 탭은 열 때마다 다시 읽는다). */
 const DASH_LOAD = { checkin: 'idle', accounts: 'idle', grades: 'idle', groups: 'idle', culture: 'idle' };
 function dashRetryBtn_(call){ return ' <button type="button" class="btn btn-sm btn-ghost" onclick="' + call + '">다시 시도</button>'; }
+/* v176 — 들어갈 때 곁가지 요청(AI 피드백·질문함·공지)은 실패해도 대시보드를 연다(2026-11-14 점검: 셋 중 하나만 HTTP 500이어도
+ * «들어가지 못했어요»로 통째로 막혔다). 실패한 것은 'error'로 두고 탭 줄 아래 안내 줄(#dashSideErr)과 그 탭의 빈 화면에
+ * «불러오지 못했어요 · 다시 시도»를 띄운다. 실패 때는 앞서 받은 목록을 지우지 않는다(새로고침 중 잠깐 실패해 목록이 «없어요»로 보이지 않게).
+ * 학생 기록(token)·커리큘럼(curriculumAdmin)은 대시보드의 바탕이라 지금처럼 실패하면 들어가지 않는다. */
+const DASH_SIDE = { feedback: 'ok', questions: 'ok', announce: 'ok' };
+const DASH_SIDE_NAME = { feedback: '보낸 피드백', questions: '질문함', announce: '공지' }; // mode=feedback은 교사가 학생에게 보낸 피드백(AI 아님)
+const DASH_SIDE_JOSA = { feedback: '을', questions: '을', announce: '를' };
+function dashSoft_(p, key){
+  return p.then(j => { if(j && j.result === 'error') throw new Error(j.message || '조회 실패'); DASH_SIDE[key] = 'ok'; return j; })
+          .catch(e => { DASH_SIDE[key] = 'error'; console.warn('[v176] ' + key + ' 불러오기 실패:', e && e.message); return null; });
+}
+function dashSideFetch_(){
+  const base = CONFIG.WEBAPP_URL, t = encodeURIComponent(TOKEN);
+  return Promise.all([
+    dashSoft_(fetchJsonRetry_(base + '?mode=feedback&token=' + t), 'feedback'),
+    dashSoft_(fetchJsonRetry_(base + '?mode=questions&token=' + t), 'questions'),
+    dashSoft_(fetchJsonRetry_(base + '?mode=announcementsAdmin&token=' + t), 'announce')
+  ]);
+}
+function dashSideApply_(side){
+  const [r2, r3, r4] = side;
+  if(r2) FEEDBACKS = (r2.rows || []);
+  if(r3) QUESTIONS = (r3.rows || []);
+  if(r4) ANNOUNCEMENTS_ADMIN = (r4.rows || []);
+}
+function dashSideErrHtml_(key){ return '<p class="empty-hint">⚠ ' + DASH_SIDE_NAME[key] + DASH_SIDE_JOSA[key] + ' 불러오지 못했어요.' + dashRetryBtn_('dashRetrySide_()') + '</p>'; }
+function dashSideHasErr_(){ return Object.keys(DASH_SIDE).some(k => DASH_SIDE[k] === 'error'); }
+function dashRenderSideErr_(){
+  const el = $('dashSideErr'); if(!el) return;
+  const bad = Object.keys(DASH_SIDE).filter(k => DASH_SIDE[k] === 'error');
+  if(!bad.length){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = '<span>⚠ ' + bad.map(k => DASH_SIDE_NAME[k]).join('·') + DASH_SIDE_JOSA[bad[bad.length - 1]]
+    + ' 불러오지 못했어요. 다른 탭은 그대로 쓸 수 있어요.</span>' + dashRetryBtn_('dashRetrySide_()');
+  el.style.display = '';
+}
+let DASH_SIDE_RETRYING = false;
+async function dashRetrySide_(){
+  if(DASH_SIDE_RETRYING || !TOKEN) return;
+  DASH_SIDE_RETRYING = true;
+  document.querySelectorAll('#dashSideErr button, .dash-panel .empty-hint button').forEach(b => { b.disabled = true; b.textContent = '불러오는 중…'; });
+  try{
+    dashSideApply_(await dashSideFetch_());
+    renderDash(); dashRenderQuestions(); dashRenderAnnouncements(); dashRenderSideErr_();
+    showToast(dashSideHasErr_() ? '아직 일부를 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.' : '다시 불러왔어요.');
+  } finally { DASH_SIDE_RETRYING = false; }
+}
 let TEACHER_NAME = null; // v29 — 로그인 토큰으로 식별된 교사('효니'/'미현쌤'). 서버 권한엔 영향 없고,
                           // 대시보드 기본 필터·커리큘럼 "담당" 기본값을 여기에 맞춰 보여주는 용도.
 let ROWS = [];
@@ -65,11 +111,9 @@ function dashFoldInit_(el){
  * Promise.all이 그대로 reject → 대시보드가 통째로 0/빈 값으로 뜨는 문제가 있었음. */
 async function dashLoadData(){
   const base = CONFIG.WEBAPP_URL;
-  const [r1, r2, r3, r4, r5, r6, r7] = await Promise.all([
+  const [r1, side, r5, r6, r7] = await Promise.all([
     fetchJsonRetry_(base + '?token=' + encodeURIComponent(TOKEN)),
-    fetchJsonRetry_(base + '?mode=feedback&token=' + encodeURIComponent(TOKEN)),
-    fetchJsonRetry_(base + '?mode=questions&token=' + encodeURIComponent(TOKEN)),
-    fetchJsonRetry_(base + '?mode=announcementsAdmin&token=' + encodeURIComponent(TOKEN)),
+    dashSideFetch_(), // v176 — 피드백·질문함·공지는 실패해도 들어간다(위 DASH_SIDE)
     fetchJsonRetry_(base + '?mode=curriculumAdmin&token=' + encodeURIComponent(TOKEN)),
     // v34: 백엔드에 아직 없을 수 있는 새 mode라 이 요청만 실패를 따로 흡수 —
     // 배포 전(또는 재배포 중)에도 나머지 4개 요청이 물려서 대시보드 전체가
@@ -81,9 +125,8 @@ async function dashLoadData(){
   if(r1.result === 'error') throw new Error(r1.message);
   ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
   TEACHER_NAME = r1.teacher || null; // v29
-  FEEDBACKS = (r2.rows || []);
-  QUESTIONS = (r3.rows || []);
-  ANNOUNCEMENTS_ADMIN = (r4.rows || []);
+  dashSideApply_(side); // v176
+  dashRenderSideErr_(); // v176 — 공지 게시·커리큘럼 저장 등 dashLoadData를 부르는 모든 경로에서 안내 줄을 맞춘다
   LESSONS_ADMIN = (r5.lessons || []).map(lessonNormalizeVisibility_); // v167
   GRADE_INFO_ADMIN = (r5.gradeInfo || {});
   if(r5.badgeNamePool) BADGE_NAME_POOL = r5.badgeNamePool; // v24
@@ -110,6 +153,7 @@ async function enterDash(token){
     dashRenderLessons();
     dashRenderGradeInfoForm();
     dashRenderGongminBonus_();
+    dashRenderSideErr_(); // v176
     dashLoadPwAdmin_(); // v83 — 초기화 요청 수 배지(기다리지 않음)
     if(typeof tdAfterEnter_ === 'function') tdAfterEnter_(); // v135 — ?dash=탭으로 들어왔으면 그 탭으로 (js/08-dash-today.js)
   }catch(e){
@@ -236,7 +280,7 @@ function dashAnnounceVisible_(a, mode){
 function dashRenderAnnouncements(){
   const list = $('anList');
   if(!ANNOUNCEMENTS_ADMIN.length){
-    list.innerHTML = '<p class="empty-hint">등록된 공지가 없어요.</p>';
+    list.innerHTML = DASH_SIDE.announce === 'error' ? dashSideErrHtml_('announce') : '<p class="empty-hint">등록된 공지가 없어요.</p>'; // v176 — 못 불러온 것을 «없어요»로 보이지 않게
     $('anFilterCount').textContent = '';
     return;
   }
@@ -295,7 +339,10 @@ async function dashAddAnnouncement(btn){
     $('anContent').value = '';
     showToast('공지를 게시했어요.');
     /* v161 — 게시는 끝났으니 목록 다시 읽기가 실패해도 «게시하지 못했어요»라고 하지 않는다(다시 써서 두 번 게시하게 됨). */
-    try{ await dashLoadData(); dashRenderAnnouncements(); }
+    try{
+      await dashLoadData(); dashRenderAnnouncements();
+      if(DASH_SIDE.announce === 'error') throw new Error('공지 목록 다시 읽기 실패'); // v176 — 곁가지 실패는 이제 예외를 안 던지므로 여기서 같은 안내로 보낸다
+    }
     catch(e2){ showToast('공지는 게시했어요. 목록을 다시 읽지 못했으니 «새로고침»을 눌러 주세요.'); }
   }catch(e){
     showToast('게시하지 못했어요' + (e.message ? ': ' + e.message : '') + ' — 다시 시도해 주세요.');
@@ -1974,7 +2021,7 @@ function dashRenderQuestions(){
     badge.style.display = 'none';
   }
   if(!groups.length){
-    list.innerHTML = '<p class="empty-hint">아직 들어온 질문이나 메시지가 없어요.</p>';
+    list.innerHTML = DASH_SIDE.questions === 'error' ? dashSideErrHtml_('questions') : '<p class="empty-hint">아직 들어온 질문이나 메시지가 없어요.</p>'; // v176
     return;
   }
   const waitingStudents = groups.filter(s => s.waiting).length;

@@ -1183,6 +1183,9 @@ tr.detail-row td{background:var(--panel-alt); padding:16px 18px;}
 .field-label-sm{display:block; font-size:.82rem; color:var(--ink-soft); margin-bottom:4px;}
 .dash-hint{font-size:.83rem; color:var(--ink-soft); margin-bottom:12px;}
 .empty-hint{color:var(--ink-soft); font-size:.9rem;}
+/* v176 — 곁가지 요청 실패 안내 줄(탭 줄 바로 아래). 안내 계열 amber 토큰을 쓴다 */
+.dash-side-err{display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-sm); margin:0 0 var(--space-md); padding:var(--space-sm) var(--space-md);
+  background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:var(--radius-xs); color:var(--amber-text-deep); font-size:.88rem;}
 
 .preview-banner{
   display:flex; align-items:center; justify-content:space-between; gap:10px;
