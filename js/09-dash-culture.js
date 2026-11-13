@@ -30,7 +30,29 @@ const CT_AUTO_MS = 30000; // v158 — 탭이 보이는 동안 제출 기록을 �
 const CT_MAX_NUM = 50; // 백엔드 CULTURE_TEAM_MAX_NUM과 같게
 
 function ctEsc_(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
-function ctBans_(){ return Object.keys(CONFIG.BAN_NUMS || {}).filter(k => k.startsWith('3-')).map(k => k.slice(2)); }
+/* v174 — 3학년 1~4반은 미현쌤 반이다(백엔드 RESTRICTED_CLASS_OWNERS — 그 반 팀 저장·조회는 미현쌤 토큰만 된다).
+ * 전에는 반 버튼을 config BAN_NUMS(효니 반 3-5~3-8만 있음)에서만 만들어 미현쌤 토큰으로 들어가도 1~4반이 안 나왔다.
+ * 이제 토큰 교사에 맞는 반만 보여 준다. 교사를 모르면(미리보기 등) 1~8반 모두. */
+const CT_MIHYUN_BANS = ['1', '2', '3', '4'];
+function ctBans_(){
+  const hyo = Object.keys(CONFIG.BAN_NUMS || {}).filter(k => k.startsWith('3-')).map(k => k.slice(2));
+  const who = typeof TEACHER_NAME !== 'undefined' ? TEACHER_NAME : null;
+  if(who === '미현쌤') return CT_MIHYUN_BANS.slice();
+  if(who === '효니') return hyo;
+  return CT_MIHYUN_BANS.filter(b => hyo.indexOf(b) < 0).concat(hyo);
+}
+/* v174 — config에 번호 명단이 없는 반(미현쌤 반)은 이 반 학생이 낸 문화사 기록(성향 테스트·발굴·방탈출)의 번호로 칸을 채운다.
+ * 아무것도 안 낸 학생은 빠지므로 화면에 «빠진 번호를 넣어 주세요»를 같이 띄운다. 반환: '1-13, 21-30' 꼴(없으면 ''). */
+function ctSeenNums_(){
+  const seen = {};
+  Object.keys(CT_GAME).forEach(k => Object.keys(ctLatest_(CT_GAME[k])).forEach(n => { if(Number(n) > 0) seen[Number(n)] = true; }));
+  const a = Object.keys(seen).map(Number).sort((x, y) => x - y), out = [];
+  for(let i = 0; i < a.length; i++){
+    let j = i; while(j + 1 < a.length && a[j + 1] === a[j] + 1) j++;
+    out.push(j > i ? a[i] + '-' + a[j] : String(a[i])); i = j;
+  }
+  return out.join(', ');
+}
 function ctJson_(r){ try { return JSON.parse(r.choicesJson || '{}') || {}; } catch(e){ return {}; } }
 
 /* 그 반·그 활동의 학생별 마지막 제출 → {번호: 행}. 같은 학번은 나중 시각이 이긴다(방탈출은 다시 낼 수 있음). */
@@ -119,7 +141,8 @@ async function ctLoadSaved_(){
 
 /* v146 — «모둠·팀» 탭에서 문화사 발굴단을 고르면 grSetSub_(10)가 부른다 */
 async function dashCultureOpen_(){
-  if(!CT.ban) CT.ban = ctBans_()[0] || '5';
+  const bans = ctBans_(); // v174 — 다른 교사 토큰으로 다시 들어오면 그 교사 반으로 맞춘다
+  if(!CT.ban || bans.indexOf(String(CT.ban)) < 0){ CT.ban = bans[0] || '5'; CT.draft = null; }
   ctAutoStart_();
   await ctRefresh_(); // v158 — 탭을 열 때마다 팀 명단·제출 기록을 새로 읽는다(전엔 처음 한 번만)
 }
@@ -280,10 +303,13 @@ function ctRender_(){
   const saved = ctSavedBan_();
   const hasSaved = Object.keys(saved.teams).length > 0;
   const prefs = ctPrefs_();
-  const numsText = CT.draft ? CT.draft.nums : (CT.nums[CT.ban] != null ? CT.nums[CT.ban] : ((CONFIG.BAN_NUMS || {})['3-' + CT.ban] || ''));
+  const cfgNums = (CONFIG.BAN_NUMS || {})['3-' + CT.ban] || '';
+  const numsText = CT.draft ? CT.draft.nums : (CT.nums[CT.ban] != null ? CT.nums[CT.ban] : (cfgNums || ctSeenNums_()));
+  const numsNote = (!cfgNums && CT.nums[CT.ban] == null && !CT.draft) // v174 — 명단 없는 반(미현쌤 반)
+    ? `<p class="dash-hint" style="color:var(--seal)">이 반은 번호 명단이 없어 <b>문화사 기록을 낸 학생 번호</b>로 채웠어요. 아직 아무것도 안 낸 학생 번호(결석생 포함)를 칸에 더 넣고 뽑아 주세요.</p>` : '';
   let draw = `<section class="dash-card"><h2 class="dash-card-title">① 팀 뽑기 — 3학년 ${CT.ban}반</h2>
     <p class="dash-card-desc">성향 테스트를 낸 학생 <b>${Object.keys(prefs).length}명</b>. «뽑기»는 팀 인원 차이를 1명 이하로 맞추고 그 안에서 1지망을 가장 많이 살려요(테스트 안 낸 학생은 빈자리에 랜덤). 마음에 들면 «확정» → 칠판에 띄우면 학생이 앱에서 자기 팀을 눌러요.</p>
-    <label class="dash-hint">번호 (config.js BAN_NUMS — 전출·전입이 있으면 여기서 고쳐 뽑기)<input id="ctNums" class="ct-nums" value="${ctEsc_(numsText)}" oninput="CT.nums[CT.ban]=this.value"></label>
+    <label class="dash-hint">번호 (config.js BAN_NUMS — 전출·전입이 있으면 여기서 고쳐 뽑기)<input id="ctNums" class="ct-nums" value="${ctEsc_(numsText)}" oninput="CT.nums[CT.ban]=this.value"></label>${numsNote}
     <div class="ct-top"><button type="button" class="btn btn-sm" onclick="ctDraw_()"${CT.busy ? ' disabled' : ''}>🎲 ${CT.draft ? '다시 뽑기' : '뽑기'}</button>${CT.draft ? `<button type="button" class="btn btn-sm" onclick="ctConfirm_()"${CT.busy ? ' disabled' : ''}>✅ 이 팀으로 확정</button><button type="button" class="btn btn-sm btn-ghost" onclick="CT.draft=null;ctRender_()">취소</button>` : ''}</div>`;
   if(CT.draft) draw += `<p class="dash-hint"><b>뽑은 결과(아직 저장 안 됨)</b></p>` + ctBoardHtml_(CT.draft.assign, CT.draft.withPref ? `테스트 낸 ${CT.draft.withPref}명 중 1지망 ${CT.draft.first}명 · 2지망 ${CT.draft.second}명` : '성향 테스트 결과 없이 랜덤');
   else if(hasSaved){
