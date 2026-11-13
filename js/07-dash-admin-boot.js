@@ -1168,7 +1168,7 @@ function dashClearSession_(){
   TOKEN = ''; TEACHER_NAME = null;
   ROWS = []; FEEDBACKS = []; CLASS_FEEDBACKS = []; QUESTIONS = []; MESSAGES = [];
   DASH_STUDENT_ORDER = []; openDetailSid = null; PP_RECENT = [];
-  PA_DATA = null; PERF_ADMIN_ROWS = []; CK_ADMIN_CACHE = null;
+  PA_DATA = null; PERF_ADMIN_ROWS = []; PERF_MISSING_LAST = null; CK_ADMIN_CACHE = null; // v175: 미응시자 명단도 비움
   if(typeof ctAutoStop_ === 'function') ctAutoStop_();
   if(typeof tdStop_ === 'function') tdStop_();
   /* 숨긴 화면에 남은 학생 기록도 비운다. 탭은 처음 탭(학생 기록)으로 돌려, 다시 들어왔을 때 비운 데이터로 그려진 낡은 탭이 보이지 않게 한다
@@ -1266,7 +1266,8 @@ function perfMissingGroups_(rows){
     const k = r.studentId.slice(0, 3);
     const byStu = g[k] = g[k] || {};
     const s = byStu[r.studentId] = byStu[r.studentId] || { studentId: r.studentId, name: r.name, titles: [] };
-    if(r.title && s.titles.indexOf(r.title) < 0) s.titles.push(r.title + (r.note ? ' (' + r.note + ')' : ''));
+    const label = (r.title || '(평가명 없음)') + (r.note ? ' (' + r.note + ')' : '');
+    if(s.titles.indexOf(label) < 0) s.titles.push(label);
   });
   const out = {};
   Object.keys(g).forEach(k => { out[k] = Object.keys(g[k]).sort().map(id => g[k][id]); });
