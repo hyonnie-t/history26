@@ -63,6 +63,16 @@
   window.H26Auth = { get: read, set: set, clear: clear, PORTAL_URL: PORTAL_URL };
 
   var me = document.currentScript;
+  /* v178 — 개별 수업 웹앱에 «🙋 선생님 도와주세요» 버튼(snippets/help_button.js)을 붙인다. 웹앱 레포는 안 고친다.
+   * 포털(data-guard="off")은 자기 버튼(js/03-help.js)이 있어서, data-help="off"인 웹앱은 원치 않아서 부르지 않는다. */
+  if (me && me.src && me.getAttribute('data-guard') !== 'off' && me.getAttribute('data-help') !== 'off') {
+    try {
+      var hs = document.createElement('script');
+      hs.src = me.src.replace(/portal_auth\.js[^/]*$/, 'help_button.js?v=178');
+      hs.defer = true;
+      (document.head || document.documentElement).appendChild(hs);
+    } catch (e) { /* 버튼이 없어도 웹앱은 그대로 돈다 */ }
+  }
   if (me && me.getAttribute('data-guard') === 'off') return;
 
   /* v89: 세션이 없을 때 "포털로 가세요" 안내만 띄우던 걸, 그 자리에서 로그인하는 창으로 바꿨다.

@@ -90,7 +90,8 @@ sticky↔static 전환 조건과 `.side-combined` 내부 스크롤 높이 제한
 수업 중 막힌 학생 신호. 로직은 `js/03-help.js` 하나, 백엔드는 `history26_backend` `97_help_request.gs`(시트 `도움요청`, 오늘 요청만 본다).
 - 학생: 포털 고정 버튼 `#helpFab` → `#helpDialog`(`<dialog>`) → `action=helpAsk`(한 학생 «대기» 줄은 하나, 다시 누르면 질문만 고침) / «혼자 해결했어요» `helpCancel`. 기다리는 동안만 30초마다 `mode=helpMine`, 교사가 해결하면 토스트. `renderPortal`이 `helpPortalInit_`를 부르고, 들어올 때 조회는 `localStorage h26_help_wait`(학번|날짜)가 있을 때만. `PREVIEW_MODE`면 보내지 않는다.
 - 교사: `enterDash`가 `helpDashStart_`(30초 `mode=helpAdmin`, 창 숨김·다른 화면이면 건너뜀, `dashClearSession_`이 `helpDashStop_`). `#helpPill`·`#helpTabBadge`·창 제목에 인원, 오늘 탭 `#helpCard`에 반별 묶음. `helpResolve_(ids, undo)` → `action=helpResolve`(되돌리기는 «해결»만, 학생이 취소한 줄은 안 됨).
-- 점검: `node tests/webapp-testing/help_check.js <출력 폴더>`.
+- 활동 웹앱(v178): 웹앱 레포는 고치지 않는다. 모든 웹앱이 싣는 `snippets/portal_auth.js`가 `snippets/help_button.js`를 불러 같은 버튼·창을 Shadow DOM 안에 그린다(웹앱 CSS와 안 섞임). 보이는 때: 세션 있음·`?preview=1` 아님·주소 sid가 있으면 세션 학번과 같음. 포털(`data-guard="off"`)·`data-help="off"`인 웹앱은 안 부른다. 웹앱의 아래 고정 버튼 줄(fixed/sticky)과 겹치면 그 위로 비키고(2초마다·스크롤·크기 변경 때 다시 잼), 페이지 끝에 80px 빈 칸을 둔다. 화면을 덮는 고정 창(모달·아래 시트)의 누를 것이 버튼 밑에 깔리면 창이 닫힐 때까지 숨는다. `h26_help_wait`를 포털과 같이 써서 포털↔웹앱을 오가도 «곧 와요»가 이어진다.
+- 점검: `node tests/webapp-testing/help_check.js <출력 폴더>`(포털·대시보드), `node tests/webapp-testing/help_apps_check.js <출력 폴더> [앱,...]`(배포된 활동 웹앱에 두 스니펫만 바꿔 끼움).
 
 ## 공지 대상 3분류 / 질문함 담당 반 필터링
 공지 작성 시 대상을 "담당 학급반"(`dashMyBans_()`가 콤마
