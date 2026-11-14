@@ -35,6 +35,9 @@
   --fs-lg:1.2rem;
   --fs-xl:1.6rem;
 
+  /* v177 — 8pt 간격 눈금(효니 웹앱 공통 규칙). 새로 쓰는 규칙은 이것만 쓴다(옛 --space-md 14·--space-lg 22는 기존 화면용으로 그대로) */
+  --space-1:4px; --space-2:8px; --space-3:16px; --space-4:24px; --space-5:32px; --space-6:48px; --space-7:64px;
+
   /* 터치 타겟 최소값 — 학생 활동 버튼은 전부 이 값 이상 유지 */
   --tap-min:44px;
 
@@ -2533,3 +2536,57 @@ body.perf-modal-open{overflow:hidden;}
 /* v175 수행평가 미응시자 표 */
 .perf-miss-notes{margin:0 0 var(--space-sm); padding-left:16px; font-size:.9em; color:var(--ink-soft);}
 .perf-miss-table td.l, .perf-miss-table th.l{text-align:left;}
+
+/* ══ v177 선생님 도와주세요 (js/03-help.js) ══ */
+/* 학생: 화면 아래 고정 버튼(Sticky 움직임 — 늘 보여야 하는 것). 토스트(가운데 아래)와 겹치지 않게 오른쪽 */
+.help-fab{position:fixed; right:var(--space-3); bottom:calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); z-index:40;
+  min-height:48px; padding:0 var(--space-3); display:inline-flex; align-items:center; gap:var(--space-2);
+  border:none; border-radius:999px; background:var(--seal); color:#fff; font:inherit; font-size:.95rem; font-weight:700;
+  box-shadow:0 4px 16px rgba(35,38,44,.22); cursor:pointer; transition:transform .15s, background-color .2s;}
+.help-fab:hover{transform:translateY(-2px);}
+.help-fab:active{transform:translateY(0);}
+.help-fab:focus-visible{outline:3px solid var(--ochre); outline-offset:2px;}
+.help-fab.is-waiting{background:var(--indigo);}
+.help-fab.is-waiting span{display:inline-block; animation:helpTick 2s ease-in-out infinite;}
+@keyframes helpTick{50%{transform:rotate(180deg);}}
+#portalView{padding-bottom:var(--space-7);} /* 고정 버튼이 맨 아래 내용을 가리지 않게 */
+/* 학생 창: <dialog> 바탕은 기존 비밀번호 창(.pw-dialog-card) 모양을 그대로 쓴다 */
+.help-dialog{border:none; padding:var(--space-3); background:transparent; max-width:100%; width:min(420px, 100%);}
+.help-dialog::backdrop{background:rgba(35,38,44,.45);}
+.help-dialog[open] .help-dialog-card{animation:helpRise .2s ease-out;}
+@keyframes helpRise{from{opacity:0; transform:translateY(var(--space-2));}}
+.help-dialog-card{width:100%;}
+.help-dialog-desc{margin:0 0 var(--space-3); color:var(--ink-soft); font-size:.92rem; line-height:1.5;}
+.help-label{display:block; margin:0 0 var(--space-2); font-size:.88rem; font-weight:600;}
+.help-label small{font-weight:400; color:var(--ink-soft);}
+.help-dialog-actions{display:flex; flex-wrap:wrap; gap:var(--space-2); margin-top:var(--space-2);}
+.help-dialog-actions .btn{min-height:48px; flex:1 1 auto;}
+/* 교사: 맨 위 «🙋 N명 기다려요»가 끼어도 «나가기»가 화면 밖으로 밀리지 않게 줄바꿈, 폰에선 한 줄을 다 쓴다 */
+#dashView .top-actions{flex-wrap:wrap;}
+@media (max-width:640px){ #dashView .top-actions > #helpPill{flex-basis:100%;} }
+/* 교사: 오늘 탭 맨 위 칸 */
+#dashView .help-card{margin-bottom:var(--space-4); border-left:4px solid var(--seal); scroll-margin-top:var(--space-7);} /* 폰: «N명 기다려요»로 왔을 때 제목이 고정 탭 줄에 안 가리게 */
+.help-card-head{display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); flex-wrap:wrap; margin-bottom:var(--space-2);}
+.help-card-head .dash-card-title{margin:0;}
+.help-empty{margin:0; color:var(--ink-soft); font-size:.9rem;}
+.help-status{margin:0 0 var(--space-2);}
+#helpList{display:grid; gap:var(--space-3); grid-template-columns:repeat(auto-fill, minmax(min(280px, 100%), 1fr));}
+.help-ban{border:1px solid var(--line); border-radius:var(--radius-sm); padding:var(--space-2) var(--space-3); background:var(--card);}
+.help-ban-head{display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; padding-bottom:var(--space-2); border-bottom:1px dashed var(--line);}
+.help-ban-head .btn{margin-left:auto;}
+.help-n{color:var(--seal); font-weight:700;}
+.help-rows{list-style:none; margin:0; padding:0;}
+.help-row{display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); padding:var(--space-2) 0; border-top:1px solid var(--line);}
+.help-row:first-child{border-top:none;}
+.help-row .btn{flex:0 0 auto; min-width:64px;}
+.help-who{min-width:0;}
+.help-ago{color:var(--ink-soft); font-size:.82rem; margin-left:var(--space-1);}
+.help-q{margin:var(--space-1) 0 0; font-size:.9rem; overflow-wrap:anywhere;}
+.help-row.is-new{animation:helpNew 1.6s ease-out;}
+@keyframes helpNew{from{background:rgba(201,151,46,.28);}}
+.help-done{margin-top:var(--space-3); font-size:.9rem;}
+.help-done summary{cursor:pointer; color:var(--ink-soft); min-height:32px; display:flex; align-items:center;}
+.help-row-done{font-size:.88rem;}
+@media (prefers-reduced-motion:reduce){
+  .help-fab, .help-fab.is-waiting span, .help-dialog[open] .help-dialog-card, .help-row.is-new{animation:none; transition:none;}
+}

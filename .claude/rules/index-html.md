@@ -18,6 +18,7 @@ paths:
   |---|---|
   | `js/01-core-login.js` | config 가드, `$`·`store`·`fetchJsonRetry_`, 세션 상태 변수, 학생 로그인(`login`·`parseStudentId`), 커리큘럼·체크인 계획 로드 |
   | `js/02-checkin-portal.js` | 웰컴 체크인, 탐구 나무 SVG, 포털 렌더, 자가체크, 공지, 피드백 모아보기, 상단 탭, 질문함, 개인 메시지, 유틸 |
+  | `js/03-help.js` | (v177) 선생님 도와주세요 — 학생 포털 고정 버튼·창(`helpPortalInit_`·`helpSend_`·`helpCancel_`), 교사 대시보드 도움 요청 칸·30초 읽기(`helpDashStart_`·`helpResolve_`). 로드 시점 코드는 상태 객체·visibilitychange뿐 |
   | `js/04-perf-score.js` | 수행평가 점수 확인 |
   | `js/05-badges-events.js` | 칭호첩, 로그인 화면 이벤트 바인딩, 비밀번호 변경·초기화 요청, 자동 재조회, 대시보드→실제 학생 화면 보기 |
   | `js/06-dashboard.js` | 교사 대시보드(탭·공지·커리큘럼·웰컴 체크인·문항·이미지 업로드·질문함·메시지·AI 의심·학급 피드백·발표 포인트·re_judge·성적 업로드) |
