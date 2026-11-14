@@ -86,6 +86,12 @@ sticky↔static 전환 조건과 `.side-combined` 내부 스크롤 높이 제한
 (`lessonActivityUrl()` 바로 앞)를 거쳐 스킴이 없으면 `https://`를 붙인다 — 스킴 없이(`www.example.com`)
 저장된 값이 `<a href>`에 그대로 들어가면 브라우저가 상대경로로 오해석하는 문제를 막기 위함.
 
+## 선생님 도와주세요 (v177)
+수업 중 막힌 학생 신호. 로직은 `js/03-help.js` 하나, 백엔드는 `history26_backend` `97_help_request.gs`(시트 `도움요청`, 오늘 요청만 본다).
+- 학생: 포털 고정 버튼 `#helpFab` → `#helpDialog`(`<dialog>`) → `action=helpAsk`(한 학생 «대기» 줄은 하나, 다시 누르면 질문만 고침) / «혼자 해결했어요» `helpCancel`. 기다리는 동안만 30초마다 `mode=helpMine`, 교사가 해결하면 토스트. `renderPortal`이 `helpPortalInit_`를 부르고, 들어올 때 조회는 `localStorage h26_help_wait`(학번|날짜)가 있을 때만. `PREVIEW_MODE`면 보내지 않는다.
+- 교사: `enterDash`가 `helpDashStart_`(30초 `mode=helpAdmin`, 창 숨김·다른 화면이면 건너뜀, `dashClearSession_`이 `helpDashStop_`). `#helpPill`·`#helpTabBadge`·창 제목에 인원, 오늘 탭 `#helpCard`에 반별 묶음. `helpResolve_(ids, undo)` → `action=helpResolve`(되돌리기는 «해결»만, 학생이 취소한 줄은 안 됨).
+- 점검: `node tests/webapp-testing/help_check.js <출력 폴더>`.
+
 ## 공지 대상 3분류 / 질문함 담당 반 필터링
 공지 작성 시 대상을 "담당 학급반"(`dashMyBans_()`가 콤마
 리스트로 반환)/"전체"/"개별 반" 3분류 라디오로 고르며, "담당 학급반"으로 게시하면 `ban` 필드에

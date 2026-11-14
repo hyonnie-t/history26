@@ -394,6 +394,7 @@ function renderPortal(){
   const cur = CONFIG.CURRICULUM[SESSION.grade];
   const lessons = filterLessonsForBan(cur, SESSION.ban); // v28: 담당 트랙 필터링된 차시 목록
   setView_('portal'); // v166
+  if(typeof helpPortalInit_ === 'function') helpPortalInit_(); // v177 — 선생님 도와주세요 버튼(js/03-help.js)
   const pv = $('portalView');
   requestAnimationFrame(() => { if(VIEW === 'portal') pv.classList.add('shown'); });
 

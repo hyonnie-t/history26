@@ -155,6 +155,7 @@ async function enterDash(token){
     dashRenderGongminBonus_();
     dashRenderSideErr_(); // v176
     dashLoadPwAdmin_(); // v83 — 초기화 요청 수 배지(기다리지 않음)
+    if(typeof helpDashStart_ === 'function') helpDashStart_(); // v177 — 도움 요청 30초마다(기다리지 않음, js/03-help.js)
     if(typeof tdAfterEnter_ === 'function') tdAfterEnter_(); // v135 — ?dash=탭으로 들어왔으면 그 탭으로 (js/08-dash-today.js)
   }catch(e){
     TOKEN = ''; // v160 — 들어가지 못한 토큰을 메모리에 남기지 않는다
