@@ -65,6 +65,11 @@
       '<div class="row"><button type="submit" class="go"></button><button type="button" class="ghost cancel">혼자 해결했어요</button><button type="button" class="ghost close">닫기</button></div>' +
       '</form></dialog><div class="toast" role="status"></div>';
     document.body.appendChild(host);
+    /* 페이지 맨 아래 내용(제출 버튼 등)이 떠 있는 버튼에 가려지지 않게, 끝까지 내리면 버튼 높이만큼 더 내려가도록 빈 칸을 둔다. */
+    var pad = document.createElement('div');
+    pad.id = 'h26-help-pad'; pad.setAttribute('aria-hidden', 'true');
+    pad.style.cssText = 'height:80px;pointer-events:none;';
+    document.body.appendChild(pad);
     var $ = function (s) { return root.querySelector(s); };
     var fab = $('.fab'), dlg = $('dialog'), inp = $('#h26hq'), err = $('.err'), go = $('.go'), cancelBtn = $('.cancel');
     var mine = null, timer = null, busy = false, toastT = null;
@@ -100,7 +105,7 @@
     function startPoll() { if (!timer) timer = setInterval(function () { if (!document.hidden) check(); }, POLL_MS); }
     function stopPoll() { if (timer) { clearInterval(timer); timer = null; } }
     function check() {
-      var s = session(); if (!s) { stopPoll(); host.remove(); return; }
+      var s = session(); if (!s) { stopPoll(); host.remove(); pad.remove(); return; }
       var was = waiting();
       fetch(API + '?mode=helpMine&studentId=' + encodeURIComponent(s.sid) + '&name=' + encodeURIComponent(s.name), { cache: 'no-store' })
         .then(function (r) { return r.json(); }).then(function (d) {
