@@ -190,6 +190,9 @@
     function placeSoon() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; place(); }); }
     window.addEventListener('resize', placeSoon); window.addEventListener('scroll', placeSoon, { passive: true });
     setInterval(placeSoon, 2000);
+    /* 웹앱이 창을 열고 닫는 순간(클래스·style·요소 추가) 바로 다시 잰다 — 2초를 기다리면 그사이 창 버튼을 가린다. */
+    if (window.MutationObserver) new MutationObserver(placeSoon).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'open', 'hidden'] });
+    document.addEventListener('click', function () { setTimeout(placeSoon, 50); }, true);
     render(); place();
     if (waitGet() === a.sid + '|' + day()) check(); // 포털이나 다른 웹앱에서 불러 둔 요청이 이어 보이게
   }

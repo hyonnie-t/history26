@@ -121,11 +121,13 @@ const ok = (app, what, pass, more) => { results.push({ app, what, pass, more: mo
         ok(app, '아래 고정 줄 생기면 위로 비킴', j.overlaps.length === 0 && j.inView, JSON.stringify(j.rect) + ' ' + j.overlaps.join(','));
         await page.screenshot({ path: path.join(OUT, `${app}_폰_고정줄.png`) });
         // 화면을 덮는 고정 창 안의 버튼이 밑에 깔리면 숨고, 창이 닫히면 다시 보이는지
-        await page.evaluate(() => { document.getElementById('fakeBar').remove(); const o = document.createElement('div'); o.id = 'fakeModal'; o.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20'; o.innerHTML = '<button style="position:absolute;left:16px;right:16px;bottom:16px;height:48px">확인</button>'; document.body.appendChild(o); });
-        await page.waitForTimeout(2300);
+        await page.evaluate(() => document.getElementById('fakeBar').remove());
+        await page.waitForTimeout(600); // 버튼이 제자리로 내려온 뒤
+        await page.evaluate(() => { const o = document.createElement('div'); o.id = 'fakeModal'; o.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20'; const fr = document.getElementById('h26-help-host').shadowRoot.querySelector('.fab').getBoundingClientRect(); o.innerHTML = '<button style="position:absolute;left:16px;right:16px;top:' + fr.top + 'px;height:48px">확인</button>'; /* 도움 버튼이 있는 자리에 */ document.body.appendChild(o); });
+        await page.waitForTimeout(150); // 2초 주기를 기다리지 않고 바로 숨어야 한다
         const vis1 = await page.evaluate(() => document.getElementById('h26-help-host').shadowRoot.querySelector('.fab').style.visibility);
         await page.evaluate(() => document.getElementById('fakeModal').remove());
-        await page.waitForTimeout(2300);
+        await page.waitForTimeout(150);
         const vis2 = await page.evaluate(() => document.getElementById('h26-help-host').shadowRoot.querySelector('.fab').style.visibility);
         ok(app, '덮는 창 버튼 위면 숨고 닫히면 다시 보임', vis1 === 'hidden' && vis2 === '', vis1 + '→' + (vis2 || '보임'));
       }
