@@ -96,7 +96,9 @@ const ok = (app, what, pass, more) => { results.push({ app, what, pass, more: mo
       const helpErrs = errs.filter(m => /help|h26|선생님/i.test(m));
       ok(app, tag + ' 버튼 관련 오류 없음', helpErrs.length === 0, errs.slice(0, 3).join(' / '));
       await page.screenshot({ path: path.join(OUT, `${app}_${tag}.png`) });
-      if (w === 375) {
+      const hiddenByApp = i.hosts === 1 && await page.evaluate(() => document.getElementById('h26-help-host').shadowRoot.querySelector('.fab').style.visibility === 'hidden');
+      if (hiddenByApp) ok(app, tag + ' 앱의 덮는 창 버튼 위라 숨음(흐름 시험 건너뜀)', true);
+      if (w === 375 && !hiddenByApp) {
         // 흐름: 열기 → 부르기 → 기다림 → 혼자 해결
         const fab = page.locator('#h26-help-host .fab');
         await fab.click(); await page.waitForTimeout(300);
@@ -118,6 +120,14 @@ const ok = (app, what, pass, more) => { results.push({ app, what, pass, more: mo
         const j = await fabInfo(page);
         ok(app, '아래 고정 줄 생기면 위로 비킴', j.overlaps.length === 0 && j.inView, JSON.stringify(j.rect) + ' ' + j.overlaps.join(','));
         await page.screenshot({ path: path.join(OUT, `${app}_폰_고정줄.png`) });
+        // 화면을 덮는 고정 창 안의 버튼이 밑에 깔리면 숨고, 창이 닫히면 다시 보이는지
+        await page.evaluate(() => { document.getElementById('fakeBar').remove(); const o = document.createElement('div'); o.id = 'fakeModal'; o.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20'; o.innerHTML = '<button style="position:absolute;left:16px;right:16px;bottom:16px;height:48px">확인</button>'; document.body.appendChild(o); });
+        await page.waitForTimeout(2300);
+        const vis1 = await page.evaluate(() => document.getElementById('h26-help-host').shadowRoot.querySelector('.fab').style.visibility);
+        await page.evaluate(() => document.getElementById('fakeModal').remove());
+        await page.waitForTimeout(2300);
+        const vis2 = await page.evaluate(() => document.getElementById('h26-help-host').shadowRoot.querySelector('.fab').style.visibility);
+        ok(app, '덮는 창 버튼 위면 숨고 닫히면 다시 보임', vis1 === 'hidden' && vis2 === '', vis1 + '→' + (vis2 || '보임'));
       }
       await ctx.close();
     }

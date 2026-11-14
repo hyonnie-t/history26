@@ -161,8 +161,30 @@
           break; // 맨 위 요소 하나만 본다
         }
       });
-      fab.style.bottom = lift + 'px';
-      $('.toast').style.bottom = (lift + 72) + 'px';
+      fab.style.bottom = 'calc(' + lift + 'px + env(safe-area-inset-bottom, 0px))';
+      $('.toast').style.bottom = 'calc(' + (lift + 72) + 'px + env(safe-area-inset-bottom, 0px))';
+      /* 웹앱이 화면을 덮는 고정 창(모달·아래 시트)을 띄웠고 그 안의 누를 것(버튼·링크·입력)이 이 버튼 밑에 깔리면,
+       * 비킬 자리가 없으니 창이 닫힐 때까지 버튼을 숨긴다. 보통 화면의 버튼은 페이지 끝 빈 칸으로 스크롤하면 되므로 숨기지 않는다. */
+      var hide = false;
+      if (!(dlg && dlg.open)) {
+        var cr = fab.getBoundingClientRect(); // 자리 옮김(bottom 0.2초 전환) 중일 수 있어 세로는 새 자리로 계산
+        var fr = { left: cr.left, right: cr.right, width: cr.width, height: cr.height, bottom: H - lift, top: H - lift - cr.height };
+        [[fr.left + 8, fr.top + 8], [fr.right - 8, fr.top + 8], [fr.left + fr.width / 2, fr.top + fr.height / 2], [fr.left + 8, fr.bottom - 8], [fr.right - 8, fr.bottom - 8]].forEach(function (p) {
+          if (hide) return;
+          var els = document.elementsFromPoint ? document.elementsFromPoint(p[0], p[1]) : [];
+          for (var i = 0; i < els.length; i++) {
+            var el = els[i];
+            if (el === host || el === document.body || el === document.documentElement) continue;
+            if (!el.closest || !el.closest('button,a[href],input,select,textarea,label,[role="button"],[onclick]')) return; // 맨 위 요소가 누를 것이 아님
+            for (var n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+              var ps = getComputedStyle(n).position;
+              if ((ps === 'fixed' || ps === 'sticky') && n.getBoundingClientRect().height > H * 0.5) { hide = true; break; }
+            }
+            return;
+          }
+        });
+      }
+      fab.style.visibility = hide ? 'hidden' : '';
     }
     var raf = 0;
     function placeSoon() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; place(); }); }
