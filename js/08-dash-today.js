@@ -1,4 +1,5 @@
-/* ══ v134 — 📅 오늘 탭: 시간표 앱(timetable)의 오늘 수업·반별 진도·할 일을 교사 대시보드에서 본다 ══
+/* v179 — 할 일 줄에 기다림(⏳/🚧) 표시, 교내 행사 교시는 «반 + 행사 이름», 보강(extra) 표시. 읽기·표시만 더했다(쓰기 경로 그대로).
+ * ══ v134 — 📅 오늘 탭: 시간표 앱(timetable)의 오늘 수업·반별 진도·할 일을 교사 대시보드에서 본다 ══
  * 시간표 앱과 같은 origin(hyonnie-t.github.io)이라 그 앱의 firebase.js·engine/*.js를 그대로 import한다
  *   → Firebase 설정값을 이 공개 레포에 복사하지 않고, 시간표 앱에서 해 둔 구글 로그인도 그대로 이어진다.
  *   (localhost에서 볼 때는 GitHub Pages의 CORS 허용으로 불러오고, 로그인은 한 번 따로 한다.)
@@ -135,13 +136,15 @@ function tdRenderLessons_(){
     const endMin = t.end ? PE.timeToMin(t.end) : null, startMin = t.start ? PE.timeToMin(t.start) : null;
     const state = endMin != null && endMin <= nowMin ? 'past' : (startMin != null && startMin <= nowMin ? 'now' : '');
     let what;
-    if(ev) what = `<span class="td-muted">수업 없음 — ${escapeHtml(ev.label || '학사일정')}</span>`;
+    // v179 — 교내 행사(교시 수업 반을 임장 지도)는 «수업 없음» 대신 «반 + 행사 이름». 시간표 앱 isInSchoolEvent 와 같은 판정
+    if(ev && typeof PE.isInSchoolEvent === 'function' && PE.isInSchoolEvent(ev)) what = `<span><span class="td-chip">교내 행사</span> ${escapeHtml(cell.class)} · ${escapeHtml(ev.label || '교내 행사')}</span>`;
+    else if(ev) what = `<span class="td-muted">수업 없음 — ${escapeHtml(ev.label || '학사일정')}</span>`;
     else if(sp) what = `<span><span class="td-chip">특별</span> ${escapeHtml(sp.label || '')}</span>`;
     else if(step) what = `<span><b>${step}차시</b>${tdTopic_(key, step)}</span>`;
     else what = '<span class="td-muted">차시 계산 안 됨(시간표 앱 학기 설정 확인)</span>';
     return `<li class="td-row ${state}">
       <span class="td-when"><b>${p}교시</b><small>${t.start ? escapeHtml(t.start) + '~' + escapeHtml(t.end || '') : ''}</small></span>
-      <span class="td-what"><button type="button" class="td-cls td-cls-btn" data-cls="${escapeHtml(cell.class)}" onclick="tdGoRecords_(this.dataset.cls)" title="이 반의 학생 기록 탭으로">${escapeHtml(cell.class)} ${escapeHtml(cell.subject)}</button>${what}</span>
+      <span class="td-what"><button type="button" class="td-cls td-cls-btn" data-cls="${escapeHtml(cell.class)}" onclick="tdGoRecords_(this.dataset.cls)" title="이 반의 학생 기록 탭으로">${escapeHtml(cell.class)} ${escapeHtml(cell.subject)}</button>${cell.extra ? '<span class="td-chip td-extra">보강</span>' : ''}${what}</span>
       ${state === 'now' ? '<span class="td-chip td-now">지금</span>' : ''}
     </li>`;
   }).join('');
@@ -167,6 +170,22 @@ function tdRenderProgress_(){
   el.innerHTML = rows.length ? `<ul class="td-list">${rows.join('')}</ul>` : '<p class="dash-hint">남은 수업이 있는 반이 없어요.</p>';
 }
 
+/* v179 — 기다림 표시(⏳ 남 기다림 / 🚧 막힘, who, N일째). 상태·날수·«3일 넘음» 판정은 시간표 앱 task-engine 의 waitState·waitDays·isWaitLong 을 불러 쓴다(여기서 다시 계산하지 않는다).
+ * 앱이 아직 이 함수들을 안 내보내는 옛 배포면 표시를 생략한다. 끝낸 일에는 붙이지 않는다. */
+function tdWaitChip_(t, today){
+  const T = TD.mods?.T;
+  if(!T || typeof T.waitState !== 'function' || typeof T.waitDays !== 'function') return '';
+  const st = T.waitState(t);
+  if(st === 'mine') return '';
+  const d = T.waitDays(t, today);
+  const long = typeof T.isWaitLong === 'function' && T.isWaitLong(t, today);
+  const who = String(t.wait?.who || '').trim();
+  const label = st === 'blocked' ? '🚧 막힘' : '⏳ ' + (who ? who + ' 기다림' : '기다림');
+  const tail = st === 'blocked' && who ? ' · ' + who : '';
+  const days = d == null ? '' : ' · ' + d + '일째';
+  return ` <span class="td-chip td-wait${long ? ' td-wait-long' : ''}" title="시간표 앱 기준: 3일을 넘기면 진하게 보여요">${escapeHtml(label + tail + days)}</span>`;
+}
+
 /* ── 할 일: 마감 지남·오늘·지켜볼 일 + 오늘 끝낸 일(되돌리기). 이번 주 남은 건 개수만 ── */
 function tdTaskItem_(t, done){
   const today = tdToday_();
@@ -175,6 +194,7 @@ function tdTaskItem_(t, done){
   else if(t.due && t.due !== today) meta.push(tdMD_(t.due) + ' 마감');
   if(t.daily === true) meta.push('매일');
   const busy = TD.busy.has(t.id) ? ' disabled' : '';
+  const wait = done ? '' : tdWaitChip_(t, today);
   const btn = done
     ? `<button type="button" class="btn btn-sm btn-ghost td-check" onclick="tdToggleTask_('${t.id}', true)" aria-label="되돌리기"${busy}>↺</button>`
     : `<button type="button" class="btn btn-sm btn-ghost td-check" onclick="tdToggleTask_('${t.id}', false)" aria-label="끝냈어요"${busy}>✓</button>`;
@@ -184,7 +204,7 @@ function tdTaskItem_(t, done){
   const note = t.note ? ` title="${escapeHtml(String(t.note).slice(0, 300))}"` : '';
   return `<li class="td-row td-task${done ? ' done' : ''}">${btn}
     <span class="td-what"><span class="td-title"${note}>${escapeHtml(t.title)}</span>
-    <small class="td-muted"><span class="td-chip">${escapeHtml(t.area || '기타')}</span> ${meta.join(' · ')}${link}</small></span>
+    <small class="td-muted"><span class="td-chip">${escapeHtml(t.area || '기타')}</span>${wait} ${meta.join(' · ')}${link}</small></span>
     <button type="button" class="btn btn-sm btn-ghost td-edit" onclick="tdOpenTimetable_('tasks', { task: '${t.id}' })" aria-label="시간표 앱에서 고치기" title="시간표 앱에서 이 할 일 고치기(메모·마감·링크)">✏️</button></li>`;
 }
 
