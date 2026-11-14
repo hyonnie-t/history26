@@ -2411,6 +2411,9 @@ body.perf-modal-open{overflow:hidden;}
 #dashView .td-sub small{color:var(--ink-soft); font-weight:400;}
 #dashView .td-sub.td-late{color:var(--seal);}
 #dashView .td-check{min-width:var(--tap-min); min-height:var(--tap-min); font-size:1.05rem;}
+#dashView .td-chip.td-wait{border-color:var(--gold); color:var(--ink);}
+#dashView .td-chip.td-wait-long{background:rgba(176,58,46,.1); border-color:var(--seal); color:var(--seal); font-weight:700;}
+#dashView .td-chip.td-extra{border-color:var(--indigo); color:var(--indigo); align-self:flex-start;}
 #dashView .td-task.done .td-title{text-decoration:line-through; color:var(--ink-soft);}
 /* 움직임: Scroll-triggered — 카드가 보일 때 한 장씩 떠오름 */
 #dashView .td-rise{opacity:0; transform:translateY(10px); transition:opacity .3s ease, transform .3s ease;}
