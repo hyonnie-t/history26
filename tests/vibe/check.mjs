@@ -119,10 +119,19 @@ function checkApp(dir) {
   add('draft-guard', '바닥', /DraftGuard\.start\(/.test(code) && /DraftGuard\.clear\(\)/.test(code), 'DraftGuard.start와 제출 성공 뒤 DraftGuard.clear()', hasWriting);
 
   // 코드에서 부르기만 하고 화면에 요소가 없으면 안 되므로, html의 id나 코드에서 만드는 id를 본다.
-  const padletEl = /id\s*=\s*["']padletBtn["']/.test(html) || /id\s*[:=]\s*["']padletBtn["']/.test(code);
-  add('padlet-btn', '바닥', padletEl, 'copyBtn이 있으면 화면에 padletBtn 요소도 있다', hasCopy);
-  add('hidden-rule', '바닥', /\[hidden\]\s*\{[^}]*display\s*:\s*none/.test(css), 'CSS에 [hidden]{display:none} 규칙', hasCopy);
-  add('submit-copy-one', '바닥', /제출하고 복사하기/.test(html + code), '«제출하고 복사하기» 한 버튼', hasCopy);
+  // 2026-11-17 효니 «글쓰기는 모두 저장해서 복사할 수 있도록»: copyBtn이 없어도 글쓰기 칸이 있는 제출 앱이면 본다. 학생 글이 아닌 칸이면 코드 주석 «면제: 패들렛».
+  const padletExempt = /면제:\s*패들렛\s*(—|-|$)/m.test(app + '\n' + html); // 앱 전체 면제. «면제: 패들렛 <버튼 id>»는 아래 버튼 하나만
+  const needPadlet = (hasCopy || hasWriting) && !padletExempt;
+  const padletIds = new Set([...(html + '\n' + code).matchAll(/id\s*[:=]\s*["'](padletBtn\w*)["']/g)].map((m) => m[1]));
+  const padletEl = padletIds.size > 0;
+  add('padlet-btn', '바닥', padletEl, '글쓰기·복사가 있으면 화면에 padletBtn 요소도 있다', needPadlet);
+  add('hidden-rule', '바닥', /\[hidden\]\s*\{[^}]*display\s*:\s*none/.test(css), 'CSS에 [hidden]{display:none} 규칙', needPadlet);
+  add('submit-copy-one', '바닥', /제출하고 복사하기/.test(html + code), '«제출하고 복사하기» 한 버튼', needPadlet);
+  // 차시·화면이 여럿인데 패들렛 버튼이 한 곳뿐인 경우(nation-building 3차시처럼): 제출 버튼 id 수와 견준다(경고만)
+  // 글이 없는 제출(게임 기록 등)은 주석 «면제: 패들렛 <버튼 id>»로 뺀다(예: culture-dig submitEscape)
+  const submitIds = new Set([...html.matchAll(/id\s*=\s*["']([\w-]*[Ss]ubmit[\w-]*)["']/g)].map((m) => m[1])
+    .filter((id) => !new RegExp('면제:\\s*패들렛[^\\n]*\\b' + id + '\\b').test(app + '\n' + html)));
+  add('padlet-per-submit', '마감', padletIds.size >= submitIds.size, `제출 버튼 ${submitIds.size}개(${[...submitIds].join(',')}) · 패들렛 버튼 ${padletIds.size}개 — 글쓰기 제출 화면마다 패들렛`, needPadlet && submitIds.size > 1);
 
   const labelHits = LABELS.filter((re) => re.test(screenText)).map(String);
   add('no-verify-labels', '바닥', labelHits.length === 0, labelHits.length ? `검증 라벨 발견: ${labelHits.join(' ')}` : '검증 라벨 0건');
