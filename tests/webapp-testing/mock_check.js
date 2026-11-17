@@ -8,7 +8,9 @@
  * 결과: <출력 폴더>/student_{phone,tablet,pc}.png, dash_curriculum_{pc,phone}.png, dash_questions_{phone,tablet,tabletL,pc}.png(v123) + 콘솔에 요약 JSON. PNG는 Read로 열어 눈으로 본다.
  *
  * playwright는 shot.js처럼 알려진 후보 경로를 차례로 시도한다(설치하지 않는다). 브라우저는 설치된 Chrome(channel:'chrome').
- * 가짜 학생: 2학년 1반 1번 «테스트», 1차시와 마지막 2차시만 미완료(«지금 할 활동»·«밀린 활동» 확인용). */
+ * 가짜 학생: 2학년 1반 1번 «테스트», 1차시와 마지막 2차시만 미완료(«지금 할 활동»·«밀린 활동» 확인용).
+ * boot(v182, all에 안 들어감): 로그인 한 번에 백엔드 GET이 몇 개 나가는지 센다 — ① 비밀번호 로그인 ② 저장본+세션으로 자동 입장(shared=1)
+ *   ③ BOOT_LEGACY=1이면 옛 백엔드(studentBoot를 모름)라 옛 조회 셋으로 돌아가는지. 결과는 summary의 gets(모드 목록). */
 const fs = require('fs'), path = require('path'), http = require('http');
 
 function loadPlaywright() {
@@ -22,6 +24,8 @@ function loadPlaywright() {
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const OUT = process.argv[2]; const WHAT = process.argv[3] || 'all';
+const BOOT_LEGACY = process.env.BOOT_LEGACY === '1'; // v182 — 옛 백엔드 흉내(studentBoot → 교사 조회 «인증 실패»)
+const GETLOG = []; // v182 — 백엔드 GET의 mode(+shared) 기록
 const PERF_SCORE = Number(process.env.PERF_SCORE || 27); // v124 exam 모드: 가짜 수행평가 점수(30점 만점)
 if (!OUT) { console.error('사용: node mock_check.js <출력 폴더> [student|dash|all]'); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
@@ -63,6 +67,14 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
   async function routeBackend(route) {
     const u = route.request().url(), m = route.request().method();
     if (m === 'GET') {
+      { const q = new URL(u).searchParams; GETLOG.push((q.get('mode') || '(none)') + (q.get('shared') ? '+shared' : '')); }
+      if (u.includes('mode=studentBoot')) { // v182
+        if (BOOT_LEGACY) return route.fulfill(J({ result: 'error', message: '인증 실패' }));
+        const sh = u.includes('shared=1') ? { curriculum: CUR, checkinPlan: { result: 'success', plan: {} } } : {};
+        return route.fulfill(J(Object.assign({ result: 'success', boot: 182, student: STUDENT,
+          announcements: { result: 'success', rows: [{ timestamp: '2026-11-17T00:00:00Z', grade: '전체', ban: '전체', content: '부트 공지 확인', status: '게시' }] },
+          checkinToday: { result: 'success', alreadyChecked: true, lessonId: '' } }, sh)));
+      }
       if (u.includes('mode=curriculumAdmin')) return route.fulfill(J({ result: 'success', lessons, gradeInfo: {} }));
       if (u.includes('mode=curriculum')) return route.fulfill(J(CUR));
       if (u.includes('mode=checkinPlan')) return route.fulfill(J({ result: 'success', plan: {} }));
@@ -168,6 +180,30 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
     }
   }
   // v128 — 감정 칩: 무거운 단어(h:1) 최대 1개 + 맨 끝 중립 칩 + 폭별 넘침 없음 + 중립 칩을 골랐을 때 중립 한마디(fortunes.n).
+  if (WHAT === 'boot') { // v182
+    // ① 처음 오는 기기, 비밀번호 로그인 — 방문 전체를 센다(저장본이 없어 부팅 때 커리큘럼·계획 + 로그인 studentBoot = 3)
+    { GETLOG.length = 0;
+      const { ctx, page, errs } = await open(375, 812);
+      await page.fill('#inputId', '20101'); await page.fill('#inputName', '테스트'); await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
+      await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(6500);
+      const ann = await page.evaluate(() => document.body.innerText.includes('부트 공지 확인'));
+      summary.boot_pw = { gets: GETLOG.slice(), annShown: ann, errs: errs.length ? errs : '없음' };
+      // ② 같은 기기 다시 열기: 저장본(커리큘럼·계획)+세션 → 자동 입장, 부팅 갱신까지 6.5초 기다려 GET 수를 센다
+      GETLOG.length = 0;
+      await page.reload(); await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(6500);
+      const st = await page.evaluate(() => ({ cur: CURRICULUM_FROM_CACHE, plan: CHECKIN_PLAN_FROM_CACHE, ann: document.body.innerText.includes('부트 공지 확인') }));
+      summary.boot_auto = { gets: GETLOG.slice(), stillFromCache: st, errs: errs.length ? errs : '없음' };
+      // ③ 저장본은 있고 세션만 없는 기기(로그아웃·만료): 7초 기다려도 GET 0, 비밀번호 로그인 때 studentBoot+shared 하나
+      await page.evaluate(() => localStorage.removeItem('h26_auth'));
+      GETLOG.length = 0;
+      await page.reload(); await page.waitForTimeout(7000);
+      const idle = GETLOG.slice();
+      await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
+      await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(6500);
+      summary.boot_nosession = { beforeLogin: idle, all: GETLOG.slice(), errs: errs.length ? errs : '없음' };
+      await page.screenshot({ path: path.join(OUT, `boot${BOOT_LEGACY ? '_legacy' : ''}_phone.png`), fullPage: true });
+      await ctx.close(); }
+  }
   if (WHAT === 'chips') {
     for (const [vn, w, h] of [['phone', 375, 812], ['tablet', 768, 1024], ['pc', 1280, 900]]) {
       const ctx = await browser.newContext({ viewport: { width: w, height: h } }); const page = await ctx.newPage(); const errs = [];

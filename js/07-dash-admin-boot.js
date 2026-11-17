@@ -1229,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => bootScriptsReady_(), { once:
     const heldEarly = window.H26Auth && H26Auth.get();
     const dashLink = new URLSearchParams(location.search).get('dash');
     if(parsedEarly && !dashLink && heldEarly && heldEarly.sid === savedEarly.sid){
-      pre = loginPrefetch_(savedEarly.sid, savedEarly.name, parsedEarly);
+      pre = loginPrefetch_(savedEarly.sid, savedEarly.name, parsedEarly, !!(curCached || planCached)); // v182 — 저장본으로 시작하면 새 커리큘럼·계획도 같은 응답에
     }
   }catch(e){}
 
@@ -1263,7 +1263,10 @@ document.addEventListener('DOMContentLoaded', () => bootScriptsReady_(), { once:
       loginDone = login(sid, name, true, false, pre); // v170 — 미리 보낸 조회를 넘긴다(학번·이름이 같을 때만 쓰인다)
     }catch(e){}
   }
-  bootCacheRefreshLater_(loginDone); // v171 — 저장본으로 시작했으면 로그인 조회가 끝난 뒤 새로 받는다
+  /* v171 — 저장본으로 시작했으면 로그인 조회가 끝난 뒤 새로 받는다.
+   * v182 — 자동 입장(pre)일 때만. 그때도 studentBoot&shared=1이 이미 새 것을 받았으면 아무것도 안 보낸다(못 받았을 때의 대비).
+   * 자동 입장이 없으면(비밀번호를 기다림) 여기서 따로 받지 않는다 — 학생이 로그인할 때 studentBoot&shared=1이 같이 받는다. */
+  if(pre) bootCacheRefreshLater_(loginDone);
 })();
 /* v175 — 수행평가 미응시자 명단(교사 전용, 읽기 전용이라 PREVIEW_MODE 가드 불필요). mode=perfMissing.
  * 이름은 백엔드 시트(수행평가미응시)에만 있고 이 공개 레포에는 없다. 반별 표: 번호 · 이름 · 빠진 수행평가. */
