@@ -107,7 +107,7 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
     const ctx = await browser.newContext({ viewport: { width: w, height: h } }); const page = await ctx.newPage(); const errs = [];
     page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 100)); });
     await page.route(/script\.google\.com/, routeBackend);
-    await page.goto('http://localhost:8765/index.html'); await page.waitForTimeout(600);
+    await page.goto('http://localhost:8765/index.html' + (process.env.PAGE_QS || '')); await page.waitForTimeout(600);  // v187: PAGE_QS='?season=xmas' 처럼 확인용 주소 붙이기
     return { ctx, page, errs };
   }
   if (WHAT === 'student' || WHAT === 'all') {
@@ -117,6 +117,7 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(1200);
       const info = await page.evaluate(() => ({ next: document.getElementById('nextTitle').textContent, sub: document.getElementById('nextSub').textContent, otherHead: getComputedStyle(document.getElementById('otherHead')).display, over: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
       await page.screenshot({ path: path.join(OUT, `student_${vn}.png`), fullPage: true });
+      if (process.env.PAGE_QS) await page.locator('#treeBox').screenshot({ path: path.join(OUT, `tree_${vn}.png`) });  // v187
       summary['student_' + vn] = { ...info, errs: errs.length ? errs : '없음' };
       await ctx.close();
     }
@@ -232,7 +233,7 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       const ctx = await browser.newContext({ viewport: { width: w, height: h } }); const page = await ctx.newPage(); const errs = [];
       page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 100)); });
       await page.route(/script\.google\.com/, routeBackend);
-      await page.goto('http://localhost:8765/index.html'); await page.waitForTimeout(600);
+      await page.goto('http://localhost:8765/index.html' + (process.env.PAGE_QS || '')); await page.waitForTimeout(600);  // v187: PAGE_QS='?season=xmas' 처럼 확인용 주소 붙이기
       await page.fill('#inputId', '20101'); await page.fill('#inputName', '테스트'); await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
       await page.waitForSelector('#checkinView .temp-btn', { timeout: 15000 });
       await page.click('.temp-btn[data-temp="3"]'); await page.waitForTimeout(300);

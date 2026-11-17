@@ -303,6 +303,7 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 10월엔 단풍 팔레트+낙엽(`treeSeason_()`, `?season=autumn|default`로 강제). 색은 `TREE_PALETTE`, 단계별 모양은 `TREE_STAGES`, 단계별
 잘라낸 `viewBox`는 `TREE_TOP`. 무작위는 시드 고정이라 화면마다 안 바뀐다.
 (v185) 11~2월은 겨울: `TREE_PALETTE.winter`(상록 청록 잎·빨간 겨울 열매, 꽃 없음), 위쪽 잎 덩어리에 눈 모자(`treeSnowCap_`), 눈 덮인 땅, `treeScene`이 눈송이(`.tree-snow`)와 옅은 겨울 하늘(`.tree-scene.is-winter`)을 더한다. 시험기간이면 저녁 하늘이 우선(겨울 하늘을 안 붙임). 동작 줄이기 설정이면 눈은 제자리에 멈춘다. `?season=winter`로 강제.
+(v187) 12월 11~25일은 `treeScene`이 `xmasPixelScene(stage, ratio)`로 48x52 칸 픽셀 크리스마스 트리를 그린다: 밤하늘(`.tree-scene.is-xmas-sky`)·하늘 별·네모 픽셀 눈(`.tree-px-snow`, steps), 장식 공 = 진행률 × 단계별 상한 `[0,1,3,5,7,9,11,14]`(4단계~ 2x2 공), 2단계~ 별, 3단계~ 꼬마전구(`.tree-px-light`, steps(1) 깜빡). 작은 단계는 `XMAS_VIEW_H`로 viewBox를 밑동 기준으로 좁혀(비율 유지) 크게 보인다. 시험기간이면 밤하늘·하늘 별을 빼고 저녁 하늘·소품이 우선. 동작 줄이기면 전구는 켜진 채, 눈은 제자리. `?season=xmas`로 강제.
 
 ## 반별 공개 (v145)
 커리큘럼 목록 항목의 반 칩(`clLessonBanRowHtml_`)을 누르면 `setLessonBanPublic`으로 그 반만 켜고 끈다. 서버가 돌려준 `public`·`publicBans`로 다시 그린다. 포털은 `mode=curriculum` 차시의 `bans`로 거른다(`filterLessonsForBan`, 담당 필터와 AND, 대시보드 미제출 집계도 이 함수를 써서 안 연 반은 안 센다). 재배포 전 옛 백엔드는 칩을 누르면 오류를 알린다.

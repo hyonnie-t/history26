@@ -11,13 +11,16 @@
 
 /* v185 — 겨울(눈) 추가(효니 쪽지 2026-11-16 «학생대시보드 나무 눈오는 겨울 버전으로»).
  * 계절은 달로만 정한다: 10월 단풍 / 11·12·1·2월 겨울 / 3~9월 기본(초록). 3월 1일이 되면 저절로 초록 나무로 돌아간다 — 손으로 되돌릴 일 없음.
- * 확인용: ?season=autumn|winter|default */
+ * 확인용: ?season=autumn|winter|default
+ * v187 — 12월 11~25일은 크리스마스 픽셀 트리('xmas', treeScene이 맨 아래 xmasPixelScene으로 그림). 12월의 그 앞뒤는 다시 겨울 눈 나무.
+ * 확인용: ?season=xmas (효니 결정 2026-11-17 «평소엔 눈 나무, 크리스마스 2주만 픽셀 트리». 날짜 12-11~25는 «12월 이주 전»을 Claude가 풀이) */
 function treeSeason_(){
   try{
     const q = new URLSearchParams(location.search).get('season');
-    if(q === 'autumn' || q === 'winter' || q === 'default') return q;
+    if(q === 'autumn' || q === 'winter' || q === 'default' || q === 'xmas') return q;
   }catch(e){}
-  const m = new Date().getMonth();
+  const now = new Date(), m = now.getMonth(), day = now.getDate();
+  if(m === 11 && day >= 11 && day <= 25) return 'xmas';
   if(m === 9) return 'autumn';
   if(m === 10 || m === 11 || m === 0 || m === 1) return 'winter';
   return 'default';
@@ -99,7 +102,7 @@ function treeSvg(stage, leaves, totalLessons){
   stage = Math.max(0, Math.min(7, stage || 0));
   leaves = leaves || 0;
   totalLessons = totalLessons || 0;
-  const season = treeSeason_();
+  const season = treeSeason_() === 'xmas' ? 'winter' : treeSeason_();   // v187 — 크리스마스 기간엔 treeScene이 픽셀 트리를 그리지만, treeSvg를 직접 불러도 겨울 나무가 나오게
   const C = TREE_PALETTE[season];
   const autumn = season === 'autumn';
   const winter = season === 'winter';
@@ -301,7 +304,9 @@ function treeExamCheer_(){
 function treeScene(stage, leaves, totalLessons, grade){
   stage = Math.max(0, Math.min(7, stage || 0));
   const exam = treeExamActive_(grade);
-  const autumn = treeSeason_() === 'autumn';
+  const season = treeSeason_();
+  const autumn = season === 'autumn';
+  const xmas = season === 'xmas';
   const ratio = totalLessons > 0 ? Math.min((leaves || 0) / totalLessons, 1) : 0;
   const IMG = 'images/tree/';
   const pct = v => (v * 100).toFixed(1) + '%';
@@ -338,12 +343,14 @@ function treeScene(stage, leaves, totalLessons, grade){
       }
     }
     body = `<div class="tree-sway"><img class="tree-img" src="${IMG}tree_${stage}.webp" alt="" width="480" height="520" decoding="async" draggable="false">${fx}</div>${fall}`;
+  } else if(xmas){
+    body = xmasPixelScene(stage, ratio);   // v187 — 눈도 픽셀로 함께 그림(아래 겨울 눈송이는 안 붙음)
   } else {
     body = treeSvg(stage, leaves, totalLessons);
   }
 
   /* v185 겨울: 눈송이(CSS로 떨어짐, 동작 줄이기 설정이면 제자리에 멈춘 눈) */
-  const winter = !autumn && treeSeason_() === 'winter';
+  const winter = season === 'winter';
   if(winter){
     const sr = treeRand_(1225);
     let snow = '';
@@ -362,5 +369,109 @@ function treeScene(stage, leaves, totalLessons, grade){
     }
     extra = `<span class="tree-glow"></span>${sparks}<img class="tree-prop" src="${IMG}study_prop.webp" alt="" width="300" height="270" draggable="false">`;
   }
-  return `<div class="tree-scene${exam ? ' is-exam' : ''}${winter && !exam ? ' is-winter' : ''}">${body}${extra}</div>`;
+  return `<div class="tree-scene${exam ? ' is-exam' : ''}${winter && !exam ? ' is-winter' : ''}${xmas ? ' is-xmas' : ''}${xmas && !exam ? ' is-xmas-sky' : ''}">${body}${extra}</div>`;
+}
+
+/* ══════════════ v187 — 크리스마스 픽셀 트리(12월 11~25일) ══════════════
+ * 시안: 클로드작업/산출물/수업평가/2026-11-17_역사포털-겨울나무/2026-11-17_크리스마스-픽셀나무-시안.html
+ * 48x52 칸(장면 480x520과 같은 비율)에 네모 픽셀로 그린다. 무작위는 시드 고정이라 같은 단계는 늘 같은 모양.
+ * 장식 공 = 진행률 × 단계별 상한(다른 계절의 새잎·열매 역할). 2단계~ 별, 3단계~ 꼬마전구(깜빡), 눈은 네모 픽셀.
+ * 0~4단계는 나무가 작아 하늘이 비어 보이므로 viewBox를 밑동 기준으로 좁혀(비율 유지) 크게 보인다(XMAS_VIEW_H, 그림 나무의 TREE_TOP과 같은 생각). */
+const XMAS_C = {outline:'#0f3b28',dark:'#1b5a38',mid:'#2b7d47',light:'#48a258',hi:'#7fcb68',
+  trunk:'#7a4a24',trunkD:'#4e2d13',snow:'#f4f8ff',snowS:'#c3d3ea',star:'#ffd84a',starD:'#e8a01c',
+  orn:['#e8363d','#ffcf33','#4aa8ff','#ff7eb9','#b06cff'],light1:'#fff3a0',light2:'#ff9f6b'};
+/* 단계별로 보이는 세로 칸 수(52=전체). 나무 꼭대기(별 포함) 위로 10칸쯤 하늘이 남게 맞춤 */
+const XMAS_VIEW_H = [26, 32, 38, 44, 50, 52, 52, 52];
+function xmasViewBox_(stage){
+  const h = XMAS_VIEW_H[stage], w = h * 48 / 52;
+  return { x: 24 - w / 2, y: 52 - h, w, h };
+}
+
+function xmasPixelSvg(stage, ratio){
+  stage = Math.max(0, Math.min(7, stage | 0));
+  const W = 48, H = 52, CX = 24, GY = 45;
+  const G = Array.from({length: H}, () => Array(W).fill(null));
+  const T = Array.from({length: H}, () => Array(W).fill(false));
+  const set = (x, y, c) => { if(x >= 0 && x < W && y >= 0 && y < H) G[y][x] = c; };
+  /* 눈 쌓인 땅(아래로 넓어지는 둔덕) */
+  for(let y = GY; y < GY + 5; y++){
+    const hw = Math.min(24, Math.round(9 + stage * 1.6 + (y - GY) * 2.6));
+    for(let x = CX - hw; x < CX + hw; x++) set(x, y, y === GY + 4 ? XMAS_C.snowS : XMAS_C.snow);
+  }
+  /* 줄기 */
+  const tw = stage < 2 ? 2 : stage < 5 ? 4 : 6, trH = 2 + (stage >> 1);
+  for(let y = GY - trH; y < GY; y++) for(let x = CX - tw / 2; x < CX + tw / 2; x++) set(x, y, x === CX + tw / 2 - 1 ? XMAS_C.trunkD : XMAS_C.trunk);
+  /* 잎 층(위에서부터 겹쳐 쌓은 삼각형) */
+  const th = 6 + stage * 4, top = GY - trH - th, tiers = stage < 2 ? 1 : stage < 4 ? 2 : stage < 6 ? 3 : 4;
+  const tierRows = [];
+  for(let t = 0; t < tiers; t++){
+    const t0 = top + Math.round(t * th / tiers) - (t > 0 ? 2 : 0), t1 = top + Math.round((t + 1) * th / tiers);
+    tierRows.push([t0, t1]);
+    for(let y = t0; y < t1; y++){
+      const hw = Math.round(1 + t * 1.7 + (y - t0) * 0.8);
+      for(let x = CX - hw; x < CX + hw; x++) if(x >= 0 && x < W && y >= 0) T[y][x] = true;
+    }
+  }
+  const isT = (x, y) => x >= 0 && x < W && y >= 0 && y < H && T[y][x];
+  const interior = [];
+  for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
+    if(!T[y][x]) continue;
+    if(!isT(x, y - 1)){ set(x, y, XMAS_C.snow); if(x < CX && isT(x, y + 1) && (x + y) % 2 === 0) set(x, y + 1, XMAS_C.snowS); continue; }
+    if(G[y][x]) continue; // 이미 눈
+    if(!isT(x - 1, y) || !isT(x + 1, y) || !isT(x, y + 1)){ set(x, y, XMAS_C.outline); continue; }
+    const rel = (x - CX + 0.5) / ((tiers + 2) * 2);
+    let c = rel < -0.5 ? XMAS_C.light : rel < 0.4 ? XMAS_C.mid : XMAS_C.dark;
+    if(rel < -0.2 && (x + y) % 4 === 0) c = XMAS_C.hi;
+    if(rel > 0.6 && (x + 2 * y) % 5 === 0) c = XMAS_C.outline;
+    set(x, y, c); interior.push([x, y]);
+  }
+  /* 장식 공: 진행률 × 단계별 상한, 시드 고정 자리 */
+  const cap = [0, 1, 3, 5, 7, 9, 11, 14][stage], shown = Math.round(Math.max(0, Math.min(1, ratio || 0)) * cap);
+  const r = treeRand_(stage * 53 + 7), used = [], orn = [];
+  for(let tries = 0; orn.length < cap && tries < 400; tries++){
+    const p = interior[Math.floor(r() * interior.length)]; if(!p) break;
+    if(used.some(q => Math.abs(q[0] - p[0]) + Math.abs(q[1] - p[1]) < 4)) continue;
+    used.push(p); orn.push(p);
+  }
+  const shownOrn = orn.slice(0, shown);
+  /* 4단계부터는 2x2 공(왼쪽 위 한 칸은 반짝이는 흰 점) — 큰 나무에서 한 칸짜리 공은 잎 무늬와 구분이 잘 안 돼서 */
+  shownOrn.forEach((p, i) => {
+    const c = XMAS_C.orn[i % XMAS_C.orn.length], x = p[0], y = p[1];
+    if(stage >= 4 && isT(x + 1, y) && isT(x, y + 1) && isT(x + 1, y + 1)){ set(x, y, '#ffffff'); set(x + 1, y, c); set(x, y + 1, c); set(x + 1, y + 1, c); }
+    else set(x, y, c);
+  });
+  /* 꼬마전구(3단계~): 층마다 가운데 줄에 3칸 간격, 두 무리가 번갈아 깜빡. 공(2x2 포함) 칸은 건너뜀 */
+  const lights = [];
+  if(stage >= 3) tierRows.forEach(([t0, t1], t) => {
+    const y = Math.round((t0 + t1) / 2) + 1;
+    for(let x = 0; x < W; x += 3){
+      const onOrn = shownOrn.some(q => (x === q[0] || x === q[0] + 1) && (y === q[1] || y === q[1] + 1));
+      if(isT(x, y) && isT(x - 1, y) && isT(x + 1, y) && !onOrn) lights.push([x, y, (x / 3 + t) % 2]);
+    }
+  });
+  /* 별(2단계~) */
+  const star = [];
+  if(stage >= 2){
+    const s = top - 1;
+    [[0,-4],[-1,-3],[0,-3],[-3,-2],[-2,-2],[-1,-2],[0,-2],[1,-2],[2,-2],[-2,-1],[-1,-1],[0,-1],[1,-1],[-2,0],[1,0]]
+      .forEach(([dx, dy]) => star.push([CX + dx, s + dy]));
+  }
+  /* 줄마다 같은 색 연속 칸을 rect 하나로 */
+  let out = '';
+  for(let y = 0; y < H; y++){ let x = 0; while(x < W){ const c = G[y][x]; if(!c){ x++; continue; } let e = x + 1; while(e < W && G[y][e] === c) e++; out += `<rect x="${x}" y="${y}" width="${e - x}" height="1" fill="${c}"/>`; x = e; } }
+  const lt = lights.map(([x, y, g]) => `<rect class="tree-px-light${g ? ' b' : ''}" x="${x}" y="${y}" width="1" height="1" fill="${g ? XMAS_C.light2 : XMAS_C.light1}"/>`).join('');
+  const st = star.length ? `<g class="tree-px-star">${star.map(([x, y]) => `<rect x="${x}" y="${y}" width="1" height="1" fill="${(x + y) % 3 === 0 ? XMAS_C.starD : XMAS_C.star}"/>`).join('')}</g>` : '';
+  const v = xmasViewBox_(stage);
+  return `<svg class="tree-px" viewBox="${v.x} ${v.y} ${v.w} ${v.h}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${out}${lt}${st}</svg>`;
+}
+
+/* 장면: 밤하늘 별 + 나무 + 픽셀 눈. 하늘 별·눈 한 칸 크기(--px)는 확대(viewBox)를 따라가되 36칸 폭보다 크게는 안 키운다
+ * (0~1단계에서 나무 칸 크기 그대로 키우면 눈·별이 10px쯤 돼 지저분해 보여서) */
+function xmasPixelScene(stage, ratio){
+  stage = Math.max(0, Math.min(7, stage | 0));
+  const v = xmasViewBox_(stage), px = (100 / Math.max(v.w, 36)).toFixed(3) + '%';
+  const r = treeRand_(1225); let sky = '', snow = '';
+  for(let i = 0; i < 10; i++) sky += `<span class="tree-px-sky" style="--px:${px};left:${(Math.floor(r() * 46) * 100 / 48).toFixed(1)}%;top:${(Math.floor(r() * 18) * 100 / 52).toFixed(1)}%"></span>`;
+  for(let i = 0; i < 16; i++) snow += `<span class="tree-px-snow" style="--px:${px};left:${(Math.floor(r() * 47) * 100 / 48).toFixed(1)}%;--y:${(4 + r() * 78).toFixed(0)}%;--dx:${Math.round((r() - .5) * 4) * 5}px;--t:${(7 + r() * 6).toFixed(1)}s;--d:${(-r() * 12).toFixed(1)}s"></span>`;
+  return sky + xmasPixelSvg(stage, ratio) + snow;
 }
