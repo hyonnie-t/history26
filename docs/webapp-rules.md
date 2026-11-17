@@ -57,6 +57,7 @@ AI가 앱마다 화면을 처음부터 짜면 같은 조각(마무리 화면, �
 13. **로그인 세션 연동(v83, 효니 확정: 웹앱 전부)**: `<head>`의 `<meta charset>` 바로 다음, 앱 스크립트보다 먼저
     `<script src="https://hyonnie-t.github.io/history26/snippets/portal_auth.js"></script>` 한 줄. 복사하지 말고 이 주소를 그대로 부른다(고칠 때 한 곳만 고치도록).
     백엔드 호출은 `fetch` + GET 주소의 `studentId=` / POST `JSON.stringify` 본문이어야 세션이 붙는다(지금 웹앱 전부가 이 형태). 다른 방식이면 로그인 필수를 켤 때 막힌다.
+    활동 기록 제출(`postToSheet`)은 `snippets/submit_retry.js`의 `postWithRetry`로 보낸다(v183, 2026-11-17 두 반 겹친 수업의 «0초 실패» 대책 — 오류 화면이면 같은 `clientId`로 다시 보냄). 새 앱도 복사해 넣는다.
 14. **글 복사 → 패들렛 열기 버튼(효니 확정: 글을 복사해 패들렛에 올리게 하는 앱 전부, 빠뜨리지 않는다)**: 마무리 화면의 `copyBtn` 옆에 `padletBtn`과 안내 `padlet-box`를 둔다.
     링크는 레포에 적지 않고 `?mode=curriculum`의 학년별 `portfolio.urlByBan`에서 학번의 반으로 가져온다. 없으면 버튼을 숨기고 안내 문구를 보인다.
     주소 가져오기는 `loadPadletUrl`/`renderPadlet`(학번이 정해지는 지점에서 불러온다). **제출과 복사는 «제출하고 복사하기» 버튼 하나로 합치고 `padletBtn`은 제출 성공 뒤에만 연다(효니 확정 2026-11-10)** — 기준 구현은 `empire-rebut`의 `submitAll`, 세부는 `docs/pieces/wrap-submit-padlet.md`. vienna_diary 등 옛 앱의 2버튼 마무리는 따라 하지 않는다. padlet.com은 FocusGuard가 자동 면제하므로 `exempt()`는 필요 없다.

@@ -8,6 +8,12 @@
 (오래된 구간은 순서가 섞여 있으니 새 번호를 정할 땐 `grep -oE '^## v[0-9]+' CHANGELOG.md | sort -V | tail -1`로 확인).
 이 번호는 프론트(이 레포)만의 번호다. 백엔드 `history26_backend`는 자기 번호를 따로 쓴다(같은 «v159»가 두 레포에서 서로 다른 변경이다).
 
+## v183 (2026-11-17) — 활동 웹앱 제출 재시도 조각 `snippets/submit_retry.js`
+
+포털 화면은 그대로이고 조각·문서만 더했다. 같은 날 두 반 겹친 수업에서 구글이 JSON 대신 오류 화면을 돌려준 «0초 실패»가 108건 났는데, 활동 웹앱 `postToSheet`는 `res.json()`이 바로 깨져 학생이 다시 눌러야 했다.
+`postWithRetry`는 오류 화면·HTTP 오류·네트워크 끊김·30초 초과면 1~3초 무작위로 쉬고 최대 2번 더 보낸다. 제출마다 `clientId`를 한 번 만들어 재시도에도 같이 보내고, 백엔드 v183이 10분 안 같은 `clientId`면 새 행 없이 success를 돌려준다(오래 걸려 끊긴 요청이 사실 저장된 경우). 정상 JSON 오류(순차 잠금·로그인 필요·시간 마감)와 `action` 있는 요청은 다시 보내지 않는다. `Math.random` 대신 `crypto.getRandomValues`(survive-eras 검사기가 app.js 안 Math.random을 막음).
+같은 날 활동 웹앱 10개(IR-simulator, culture-dig, empire-rebut, modern_slavery, nation-building, suffrage_age, suneung-dungeon, survive-eras, two_unifications, vienna_diary)에 복사해 넣었다.
+
 ## v182 (2026-11-17) — 학생 로그인 조회를 백엔드 `mode=studentBoot` 하나로
 
 2026-11-17 오전 2학년 두 반이 겹친 수업에서 포털이 느려지고 저장이 실패했다. 실행 기록상 구글이 JSON 대신 오류 화면을 돌려준 거절(«0초 실패»)이 10~12시 108건이었다. 원인(계정 단위 한도인지 그날 구글 쪽 문제인지)은 확인 못 해서, 학생 1명이 만드는 실행 수를 줄이기로 했다.
