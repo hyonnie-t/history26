@@ -2593,3 +2593,19 @@ body.perf-modal-open{overflow:hidden;}
 @media (prefers-reduced-motion:reduce){
   .help-fab, .help-fab.is-waiting span, .help-dialog[open] .help-dialog-card, .help-row.is-new{animation:none; transition:none;}
 }
+
+/* v181 — 반별 제출 시간 카드(js/12-timed.js) */
+#dashView .timed-card{margin-bottom:var(--space-4); border-left:4px solid var(--seal);}
+.timed-tools{display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap;}
+.timed-tools select{min-height:32px;}
+.timed-act + .timed-act{margin-top:var(--space-4);}
+.timed-title{margin:0 0 var(--space-2); font-weight:700;}
+.timed-rows{list-style:none; margin:0; padding:0; display:grid; gap:var(--space-2);}
+.timed-row{display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; padding:var(--space-2) var(--space-3); border-radius:6px; background:var(--paper-2, #f6f3ea);}
+.timed-row b{min-width:56px;}
+.timed-state{flex:1 1 160px; font-size:.92rem;}
+.timed-btns{display:flex; gap:var(--space-2); flex-wrap:wrap;}
+.timed-row.open .timed-state{color:#2f7465;}
+.timed-row.soon .timed-state{color:#8a5410; font-weight:700;}
+.timed-row.closed .timed-state{color:#b0302a; font-weight:700;}
+.timed-row.idle .timed-state{color:var(--ink-soft);}

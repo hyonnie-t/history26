@@ -86,6 +86,9 @@ sticky↔static 전환 조건과 `.side-combined` 내부 스크롤 높이 제한
 (`lessonActivityUrl()` 바로 앞)를 거쳐 스킴이 없으면 `https://`를 붙인다 — 스킴 없이(`www.example.com`)
 저장된 값이 `<a href>`에 그대로 들어가면 브라우저가 상대경로로 오해석하는 문제를 막기 위함.
 
+## 반별 제출 시간 (v181)
+2026-11-17 효니 쪽지 «수행평가 (2) → 수업 시작 기준 45분 안에만 수정, 그 뒤 제출 막기, 2-1은 다음 시간에 교사가 잠깐 허용». 백엔드 v181(`98_timed_submit.gs`)이 `TIMED_SUBMIT` 활동(지금은 nation-building 2차시 `35차시_국민국가건설_탐구글` 45분)을 반마다 «그 반 학생이 처음 연 때(또는 첫 제출)부터 45분»만 받는다. 대시보드 «📅 오늘» 탭 도움 요청 아래 «⏱ 반별 제출 시간» 칸(`js/12-timed.js`)이 반별 «시작 전 / N분 남음 / 마감»과 «N분 열기»(10·20·30·45분, 지금부터 그만큼)·«열어 준 시간 끝내기»를 보인다. 반 목록은 담당 반(`dashMyBans_`) → 차시 반(`clLessonBans_`). 옛 백엔드면 칸이 숨는다. 학생 화면은 nation-building이 남은 시간 띠를 보이고 닫힌 동안 1분마다 다시 물어, 열어 주면 1분 안에 제출 버튼이 살아난다.
+
 ## 선생님 도와주세요 (v177)
 수업 중 막힌 학생 신호. 로직은 `js/03-help.js` 하나, 백엔드는 `history26_backend` `97_help_request.gs`(시트 `도움요청`, 오늘 요청만 본다).
 - 학생: 포털 고정 버튼 `#helpFab` → `#helpDialog`(`<dialog>`) → `action=helpAsk`(한 학생 «대기» 줄은 하나, 다시 누르면 질문만 고침) / «혼자 해결했어요» `helpCancel`. 기다리는 동안만 30초마다 `mode=helpMine`, 교사가 해결하면 토스트. `renderPortal`이 `helpPortalInit_`를 부르고, 들어올 때 조회는 `localStorage h26_help_wait`(학번|날짜)가 있을 때만. `PREVIEW_MODE`면 보내지 않는다.

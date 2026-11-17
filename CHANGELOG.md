@@ -965,3 +965,6 @@ v96b: "이상 있음"을 누른 학생에게는 "선생님께 와서 직접 확�
 - 학생 계정 탭 본문을 탐구포인트·성적관리(v93)와 같은 `.dash-card`(제목 `.dash-card-title` + 설명 `.dash-card-desc`) 묶음으로: «초기화 요청» / «공통 초기 비밀번호» / «로그인 필수» / 학생 계정 `cl-collapse` 표(그대로) / «전체 초기화». 맨 위 안내문은 `.dash-panel > .dash-hint` 그대로. 카드 안 입력·버튼 줄은 `.filters`(그 자체가 카드라 카드 안에 카드가 생김) 대신 v93처럼 `.dash-inline`. id·onclick(`paRequests`·`paBadge`·`paInitialStatus`·`paInitialPw`·`paRequiredStatus`·`paAccountsBox`·`paSummary`·`paSearch`·`paCount`·`paAccounts`, `dashSetInitialPw`·`dashSetLoginRequired`·`dashResetAllPw`·`dashRenderPwAccounts_`)는 하나도 안 바꿨고 `js/07-dash-admin-boot.js`도 손대지 않았다.
 - `style.css` 맨 끝에 `#panelAccounts` 스코프 3줄만(카드 안 표는 그림자 없이 한 겹, 상태줄 글자 크기). 처음엔 `#dashView .dash-card` 전체에 걸었다가 성적관리 탭 캡처가 달라져서 이 탭으로 좁혔다(다른 탭 디자인은 범위 밖).
 - 확인: 가짜 백엔드(Playwright route)로 교사 모드 진입 → 8탭 × 폰360·태블릿820·PC1280 캡처. 학생 계정 패널 `closest('#dashView')` 참, 폭이 탐구포인트와 동일(폰 16/313·태블릿 16/773·PC 81/1104), `body` 직속 `.dash-panel` 0개, 콘솔·페이지 오류 0. 다른 일곱 탭은 `origin/main` 복사본과 PNG 21장 바이트 동일. 기존 Playwright 5개 ALL PASS. 캐시 키 `style.css?v=106`(JS는 안 바뀌어 그대로).
+
+## v181 (2026-11-17) — 반별 제출 시간 칸
+효니 쪽지(급함) «수행평가 (2) 45분 제한, 2-1은 교사가 잠깐 허용». 대시보드 «📅 오늘» 탭에 «⏱ 반별 제출 시간»(`js/12-timed.js`, 백엔드 v181 `mode=timedAdmin`·`timedOpen`). 쓰기는 PREVIEW_MODE 가드, 나가기 때 멈춤. 가짜 응답으로 열기·끝내기·폰 375 폭(가로 넘침 없음) 확인.
