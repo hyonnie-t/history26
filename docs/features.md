@@ -302,6 +302,7 @@ textarea·button·a·label·제목·`onclick`/tab 안은 건드리지 않고, ad
 `tree.js`의 `treeSvg(stage, leaves, totalLessons)`(index.html에서 분리). 8단계 로직(진행률 새잎·개화·열매)은 유지,
 10월엔 단풍 팔레트+낙엽(`treeSeason_()`, `?season=autumn|default`로 강제). 색은 `TREE_PALETTE`, 단계별 모양은 `TREE_STAGES`, 단계별
 잘라낸 `viewBox`는 `TREE_TOP`. 무작위는 시드 고정이라 화면마다 안 바뀐다.
+(v185) 11~2월은 겨울: `TREE_PALETTE.winter`(상록 청록 잎·빨간 겨울 열매, 꽃 없음), 위쪽 잎 덩어리에 눈 모자(`treeSnowCap_`), 눈 덮인 땅, `treeScene`이 눈송이(`.tree-snow`)와 옅은 겨울 하늘(`.tree-scene.is-winter`)을 더한다. 시험기간이면 저녁 하늘이 우선(겨울 하늘을 안 붙임). 동작 줄이기 설정이면 눈은 제자리에 멈춘다. `?season=winter`로 강제.
 
 ## 반별 공개 (v145)
 커리큘럼 목록 항목의 반 칩(`clLessonBanRowHtml_`)을 누르면 `setLessonBanPublic`으로 그 반만 켜고 끈다. 서버가 돌려준 `public`·`publicBans`로 다시 그린다. 포털은 `mode=curriculum` 차시의 `bans`로 거른다(`filterLessonsForBan`, 담당 필터와 AND, 대시보드 미제출 집계도 이 함수를 써서 안 연 반은 안 센다). 재배포 전 옛 백엔드는 칩을 누르면 오류를 알린다.

@@ -1963,9 +1963,21 @@ html{scrollbar-gutter:stable;}
 .tree-prop{position:absolute; right:-1%; bottom:1%; width:34%; height:auto; pointer-events:none; user-select:none; filter:drop-shadow(0 4px 6px rgba(20,10,40,.35));}
 .exam-cheer{margin:0 auto 10px; font-size:.84rem; font-weight:700; line-height:1.5; color:var(--indigo);
   background:rgba(46,74,122,.08); border:1px solid rgba(46,74,122,.25); border-radius:12px; padding:7px 12px;}
+/* v185 — 겨울(11~2월): 옅은 겨울 하늘 + 눈송이. 하늘이 있어야 흰 눈이 흰 카드 위에서 보인다. 시험기간 저녁 하늘이 켜지면 그쪽이 우선(tree.js가 is-winter를 안 붙임) */
+.tree-scene.is-winter{border-radius:18px; background:linear-gradient(180deg,#D9E8F5 0%,#EAF2FA 62%,#F7FAFD 100%);}
+.tree-snow{position:absolute; top:-4%; width:var(--z); height:var(--z); border-radius:50%; background:#fff; pointer-events:none;
+  box-shadow:0 0 3px rgba(110,145,190,.55); opacity:0; animation:treeSnow var(--t) linear infinite; animation-delay:var(--d);}
+@keyframes treeSnow{
+  0%{transform:translate(0,0); opacity:0;}
+  10%{opacity:.95;}
+  50%{transform:translate(var(--dx),130px);}
+  88%{opacity:.9;}
+  100%{transform:translate(0,270px); opacity:0;}
+}
 @media (prefers-reduced-motion:reduce){
   .tree-sway,.tree-fx-fruit,.tree-spark{animation:none;}
   .tree-fall{display:none;}
+  .tree-snow{animation:none; top:var(--y); opacity:.9;}  /* v185 — 움직임 끄면 제자리 눈 */
 }
 
 /* v95 — 발표 지급 폼의 유형 접기 */
