@@ -3,7 +3,7 @@
  * ════════════════════════════════════════════════════════
  * 효니 쪽지(2026-11-17): «수행평가 (2) → 수업 시작 기준 45분 안에만 수정, 그 뒤로는 제출 막기. 2-1은 포털 오류 때문에
  * 다음 시간에 시간을 더 줘야 해서, 교사가 잠깐 허용해 줄 수 있게.»
- * 백엔드 v181(history26_backend 98_timed_submit.gs)이 TIMED_SUBMIT 활동을 반마다 «그 반 학생이 처음 연 때(또는 첫 제출)부터 N분»만 받는다.
+ * 백엔드 v181(history26_backend 98_timed_submit.gs)이 TIMED_SUBMIT 활동을 반마다 «그 반 학생 3명이 연 때(또는 첫 제출)부터 N분»만 받는다.
  * 여기는 «📅 오늘» 탭 #timedCard에 반별 상태를 보이고 «N분 열기»(action=timedOpen)로 그 반을 지금부터 N분 연다.
  * - 조회: mode=timedAdmin(토큰). 대시보드에 들어가면 읽고, 오늘 탭이 보이는 동안 1분마다 다시 읽는다.
  * - 반 목록: 담당 반(dashMyBans_) → 없으면 그 차시 반(clLessonBans_) → 그래도 없으면 서버에 기록이 있는 반.
@@ -60,7 +60,7 @@ function timedClock_(t){
   return (h < 12 ? '오전 ' : '오후 ') + (h % 12 || 12) + ':' + String(m).padStart(2, '0');
 }
 function timedStateText_(st){
-  if(!st || !st.started) return { cls: 'idle', text: '시작 전 · 학생이 처음 열면 시작' };
+  if(!st || !st.started) return { cls: 'idle', text: '시작 전 · 학생 3명이 열거나 첫 제출 때 시작' };
   const now = Date.now() - (TIMED.skew || 0);
   const left = st.closesAt - now;
   if(left > 0){
