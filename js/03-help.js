@@ -62,8 +62,7 @@ function helpClose_(){
 function helpErr_(msg){ const el = $('helpError'); el.textContent = msg; el.style.display = 'block'; }
 
 async function helpPost_(body){
-  const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(body) }); // 문자열 본문 — portal_auth.js가 세션을 붙인다(AGENTS 절대 규칙 11)
-  const data = await res.json();
+  const data = await portalPost_(body); // v184 — helpAsk(덮어쓰기)·helpCancel은 오류 화면·끊김이면 다시 보냄. 문자열 본문이라 portal_auth.js가 세션을 붙인다
   if(data.result !== 'success'){ const e = new Error(data.message || '보내지 못했어요.'); e.fromServer = true; throw e; }
   return data;
 }

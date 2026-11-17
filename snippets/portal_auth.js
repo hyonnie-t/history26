@@ -68,7 +68,7 @@
   if (me && me.src && me.getAttribute('data-guard') !== 'off' && me.getAttribute('data-help') !== 'off') {
     try {
       var hs = document.createElement('script');
-      hs.src = me.src.replace(/portal_auth\.js[^/]*$/, 'help_button.js?v=178');
+      hs.src = me.src.replace(/portal_auth\.js[^/]*$/, 'help_button.js?v=184');
       hs.defer = true;
       (document.head || document.documentElement).appendChild(hs);
     } catch (e) { /* 버튼이 없어도 웹앱은 그대로 돈다 */ }

@@ -352,7 +352,7 @@ async function submitCheckin(fields, opts){
     return;
   }
   try{
-    await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(payload) });
+    await portalPost_(payload); // v184 — 덮어쓰기(학번+오늘)라 다시 보내도 한 행. 저장 순서가 바뀌지 않게 끝날 때까지 기다린다
   }catch(e){
     /* 체크인 기록 실패는 학생 흐름을 막지 않음 — 조용히 포털로 진입 */
   }
@@ -994,21 +994,18 @@ async function selfCheck(btn){
   const activityId = btn.dataset.activity;
   btn.disabled = true; btn.textContent = "기록하는 중…";
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        studentId: SESSION.studentId,
-        studentName: SESSION.name,
-        gameName: activityId,
-        choiceSummary: '자가체크'
-      })
+    // v184 — 기본 제출이라 백엔드 v183 clientId 중복 막기로 다시 보내도 한 행. 모두 실패하면 아래 catch(인터넷 안내)로 간다
+    const body = await portalPost_({
+      studentId: SESSION.studentId,
+      studentName: SESSION.name,
+      gameName: activityId,
+      choiceSummary: '자가체크'
     });
     // v21-1: 응답을 확인 안 하고 무조건 "완료"로 처리하던 버그 수정 — 백엔드가
     // 순차진행 위반 등으로 result:'error'를 돌려줘도(예: 화면이 최신 상태가 아닌
     // 채로 잠긴 활동을 기록하려 한 경우) 지금까지는 그걸 무시하고 학생 화면엔
     // 그냥 "완료" 도장이 찍혀서, 실제로는 기록되지 않았는데 완료로 보이는
     // 상태 불일치가 생겼음. 이제 결과를 확인해서 실패면 완료 처리하지 않는다.
-    const body = await res.json().catch(() => null);
     if(!body || body.result === 'error'){
       btn.disabled = false; btn.textContent = "활동을 끝냈어요 ✓";
       showToast((body && body.message) || "기록하지 못했어요. 다시 시도해 주세요.");
@@ -1038,16 +1035,13 @@ async function cancelSelfCheck(btn){
   const activityId = btn.dataset.activity;
   btn.disabled = true; btn.textContent = "취소하는 중…";
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'cancelSelfCheck',
-        studentId: SESSION.studentId,
-        studentName: SESSION.name,
-        activityId: activityId
-      })
+    // v184 — 백엔드 v184가 clientId로 중복을 막아 다시 보내도 한 번만 지운다
+    const body = await portalPost_({
+      action: 'cancelSelfCheck',
+      studentId: SESSION.studentId,
+      studentName: SESSION.name,
+      activityId: activityId
     });
-    const body = await res.json().catch(() => null);
     if(!body || body.result !== 'success'){
       btn.disabled = false; btn.textContent = "완료 취소";
       showToast((body && body.message) || "취소하지 못했어요. 다시 시도해 주세요.");
@@ -1281,11 +1275,7 @@ async function sendMessageReply(){
   const btn = $('btnSendMsg');
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'replyMessage', studentId: SESSION.studentId, studentName: SESSION.name, content: text })
-    });
-    const data = await res.json();
+    const data = await portalPost_({ action: 'replyMessage', studentId: SESSION.studentId, studentName: SESSION.name, content: text }); // v184
     if(data.result !== 'success') throw new Error(data.message || '실패');
     STUDENT_DATA.messages = STUDENT_DATA.messages || [];
     STUDENT_DATA.messages.push({ timestamp: new Date().toISOString(), from: '학생', content: text, read: false });
@@ -1312,19 +1302,15 @@ async function askQuestion(){
   const btn = $('btnAskQuestion');
   btn.disabled = true; btn.textContent = '보내는 중…';
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'askQuestion',
-        studentId: SESSION.studentId,
-        studentName: SESSION.name,
-        grade: SESSION.grade,
-        ban: SESSION.ban,
-        question: text
-      })
+    const data = await portalPost_({ // v184 — 백엔드 v184가 clientId로 중복을 막아 다시 보내도 한 행
+      action: 'askQuestion',
+      studentId: SESSION.studentId,
+      studentName: SESSION.name,
+      grade: SESSION.grade,
+      ban: SESSION.ban,
+      question: text
     });
     /* v161 — 응답을 읽는다. 전에는 세션 만료 등으로 서버가 거절해도 «보냈어요»가 뜨고 입력이 지워져 질문이 조용히 사라졌다. 실패하면 쓴 글을 남긴다. */
-    const data = await res.json();
     if(data.result !== 'success'){
       showToast('질문을 보내지 못했어요. ' + (data.message ? data.message : '새로고침한 뒤 다시 시도해 주세요.'));
       return;

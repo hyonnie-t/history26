@@ -96,10 +96,27 @@
     }
     function close() { if (dlg.close && dlg.open) dlg.close(); else dlg.removeAttribute('open'); }
     function fail(m) { err.textContent = m; err.style.display = 'block'; }
-    function post(body) {
-      return fetch(API, { method: 'POST', body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function (d) {
-        if (!d || d.result !== 'success') { var e = new Error((d && d.message) || '보내지 못했어요.'); e.fromServer = true; throw e; }
+    /* v184 — helpAsk(덮어쓰기)·helpCancel(이미 취소면 0건)은 두 번 와도 괜찮아, 구글 오류 화면(JSON 아님)·HTTP 오류·끊김·30초 초과면
+     * 1~3초 무작위로 쉬고 최대 2번 더 보낸다(포털 portalPost_와 같은 규칙). 정상 JSON 오류는 다시 안 보낸다. */
+    function postOnce(body) {
+      var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      var t = ctl ? setTimeout(function () { ctl.abort(); }, 30000) : null;
+      return fetch(API, { method: 'POST', body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined }).then(function (r) {
+        return r.text().then(function (txt) {
+          var d = null; try { d = JSON.parse(txt); } catch (e) { /* 오류 화면 */ }
+          if (!r.ok || !d || typeof d !== 'object') throw new Error('HTTP ' + r.status);
+          return d;
+        });
+      }).then(function (d) { if (t) clearTimeout(t); return d; }, function (e) { if (t) clearTimeout(t); throw e; });
+    }
+    function post(body, left) {
+      if (left == null) left = 2;
+      return postOnce(body).then(function (d) {
+        if (d.result !== 'success') { var e = new Error(d.message || '보내지 못했어요.'); e.fromServer = true; throw e; }
         return d;
+      }, function (e) {
+        if (left <= 0) throw e;
+        return new Promise(function (res) { setTimeout(res, 1000 + Math.floor(Math.random() * 2001)); }).then(function () { return post(body, left - 1); });
       });
     }
     function startPoll() { if (!timer) timer = setInterval(function () { if (!document.hidden) check(); }, POLL_MS); }
