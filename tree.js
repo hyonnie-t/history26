@@ -102,7 +102,7 @@ function treeSvg(stage, leaves, totalLessons){
   stage = Math.max(0, Math.min(7, stage || 0));
   leaves = leaves || 0;
   totalLessons = totalLessons || 0;
-  const season = treeSeason_();
+  const season = treeSeason_() === 'xmas' ? 'winter' : treeSeason_();   // v187 — 크리스마스 기간엔 treeScene이 픽셀 트리를 그리지만, treeSvg를 직접 불러도 겨울 나무가 나오게
   const C = TREE_PALETTE[season];
   const autumn = season === 'autumn';
   const winter = season === 'winter';
