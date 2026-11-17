@@ -109,19 +109,59 @@ let PW_CHANGE_CTX = null; // v83 — { sid, name, oldPw }: 초기 비밀번호�
 /* v170 — 책을 여는 데 필요한 조회 넷(학생 기록·공지·오늘 체크인·체크인 계획)을 한꺼번에 보내고 약속만 돌려준다.
  * 조회(GET)만 하고 SESSION·STUDENT_DATA·CHECKIN_CTX·화면은 건드리지 않는다 — 반영은 login()이 학생 기록 성공을 확인한 뒤에 한다.
  * 커리큘럼이 필요 없어서(학년·반은 학번에서 나온다) 부팅(initPortal)이 커리큘럼과 같이 보낼 수 있다.
- * student만 실패를 던진다(login의 try가 받는다). 안 쓰고 버려져도 «처리 안 된 실패» 경고가 나지 않게 빈 catch를 달아 둔다. */
-function loginPrefetch_(sid, name, parsed){
+ * student만 실패를 던진다(login의 try가 받는다). 안 쓰고 버려져도 «처리 안 된 실패» 경고가 나지 않게 빈 catch를 달아 둔다.
+ * v182 — 2026-11-17 두 반이 겹친 수업에서 포털이 느려지고 저장이 실패했다(구글이 JSON 대신 오류 화면을 돌려준 거절). 학생 1명이
+ * 로그인 때 GET을 4~5개 보내던 것을 백엔드 mode=studentBoot 하나로 묶는다(학생 기록·공지·오늘 체크인이 한 응답에, 옛 mode와 같은 모양).
+ * shared(커리큘럼·체크인 계획 저장본으로 시작했을 때)면 같은 응답에 커리큘럼·체크인 계획도 받아 바꿔 넣는다 — bootCacheRefreshLater_가
+ * 1~5초 뒤 따로 받던 두 조회가 없어진다(못 받았으면 그 함수가 예전처럼 받는다). 응답에 boot 표시가 없으면(아직 옛 백엔드) 옛 조회 셋으로 돌아간다. */
+function loginPrefetch_(sid, name, parsed, shared){
   // v171 — 네트워크·HTTP 오류·JSON 아님이면 최대 2번 더(fetchJsonJitter_). needLogin 같은 정상 응답은 다시 보내지 않는다.
-  const student = fetchJsonJitter_(CONFIG.WEBAPP_URL
-      + "?mode=student&studentId=" + encodeURIComponent(sid)
-      + "&name=" + encodeURIComponent(name));
+  // 주소에 studentId=가 있어야 portal_auth.js가 세션을 붙인다(AGENTS 절대 규칙 11).
+  const boot = fetchJsonJitter_(CONFIG.WEBAPP_URL
+      + "?mode=studentBoot&studentId=" + encodeURIComponent(sid)
+      + "&name=" + encodeURIComponent(name)
+      + "&grade=" + encodeURIComponent(parsed.grade)
+      + "&ban=" + encodeURIComponent(parsed.ban)
+      + (shared ? "&shared=1" : ""))
+    .then(b => { if(b && b.boot) bootApplyShared_(b); return b; });
+  boot.catch(() => {});
+  // 옛 백엔드(boot 표시도 needLogin도 없는 JSON)면 옛 조회 셋을 그때 보낸다
+  let legacy = null;
+  const old = () => legacy || (legacy = {
+    student: fetchJsonJitter_(CONFIG.WEBAPP_URL + "?mode=student&studentId=" + encodeURIComponent(sid) + "&name=" + encodeURIComponent(name)),
+    ann: fetchAnnouncements(parsed.grade, parsed.ban),
+    ck: checkinTodayFetch_(parsed.grade, parsed.ban, sid, name) // js/02
+  });
+  const isBoot = b => !!(b && b.boot);
+  const student = boot.then(b => isBoot(b) ? b.student : (b && b.needLogin) ? b : old().student);
   student.catch(() => {});
   return {
     sid, name, student,
-    ann: fetchAnnouncements(parsed.grade, parsed.ban),
-    ck: checkinTodayFetch_(parsed.grade, parsed.ban, sid, name), // js/02
+    ann: boot.then(b => isBoot(b)
+        ? ((b.announcements && b.announcements.result === 'success') ? (b.announcements.rows || []) : [])
+        : (b && b.needLogin) ? [] : old().ann).catch(() => []),
+    ck: boot.then(b => isBoot(b) ? (b.checkinToday || null) : (b && b.needLogin) ? null : old().ck).catch(() => null),
     plan: checkinPlanReady_() // 부팅 때 문항 계획을 못 받았으면 지금 같이 다시 받는다(받았으면 새 요청 없음)
   };
+}
+/* v182 — studentBoot 응답에 실린 커리큘럼·체크인 계획을 loadCurriculum·loadCheckinPlan이 받은 것과 똑같이 반영한다. */
+function bootApplyShared_(b){
+  try{
+    const c = b.curriculum;
+    if(c && c.result === 'success' && c.grades && Object.keys(c.grades).length){
+      const before = JSON.stringify(CONFIG.CURRICULUM);
+      CONFIG.CURRICULUM = c.grades;
+      CURRICULUM_FROM_CACHE = false;
+      bootCacheWrite_(BOOT_CACHE_KEY.curriculum, c.grades);
+      if(VIEW === 'portal' && SESSION && JSON.stringify(CONFIG.CURRICULUM) !== before) renderPortal();
+    }
+    const p = b.checkinPlan;
+    if(p && p.result === 'success' && p.plan){
+      CHECKIN_PLAN = p.plan;
+      CHECKIN_PLAN_FROM_CACHE = false;
+      bootCacheWrite_(BOOT_CACHE_KEY.plan, p.plan);
+    }
+  }catch(e){}
 }
 
 /* pre(v170): 자동 입장 때 initPortal이 커리큘럼과 같이 미리 보낸 loginPrefetch_ 결과. 같은 학번·이름일 때만 쓴다. */
@@ -183,7 +223,7 @@ async function login(sid, name, silent, preAuthed, pre){
    * 둘을 시작해서 책이 열리기까지 그만큼 더 걸렸다. 여기서는 조회만 하고(둘 다 실패를 던지지 않는다),
    * 판정·CHECKIN_CTX·화면 반영은 학생 기록이 성공한 뒤에만 한다 — needLogin·실패로 끝나면 두 응답은 그냥 버린다.
    * v170 — 자동 입장은 initPortal이 커리큘럼과 같이 미리 보낸 조회(pre)를 그대로 받는다. 전에는 커리큘럼(2~4초)이 온 뒤에야 보냈다. */
-  const q = (silent && pre && pre.sid === sid && pre.name === name) ? pre : loginPrefetch_(sid, name, parsed);
+  const q = (silent && pre && pre.sid === sid && pre.name === name) ? pre : loginPrefetch_(sid, name, parsed, CURRICULUM_FROM_CACHE || CHECKIN_PLAN_FROM_CACHE); // v182
   const annPending = q.ann, ckPending = q.ck, planPending = q.plan;
 
   try{

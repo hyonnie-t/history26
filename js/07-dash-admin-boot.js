@@ -1229,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => bootScriptsReady_(), { once:
     const heldEarly = window.H26Auth && H26Auth.get();
     const dashLink = new URLSearchParams(location.search).get('dash');
     if(parsedEarly && !dashLink && heldEarly && heldEarly.sid === savedEarly.sid){
-      pre = loginPrefetch_(savedEarly.sid, savedEarly.name, parsedEarly);
+      pre = loginPrefetch_(savedEarly.sid, savedEarly.name, parsedEarly, !!(curCached || planCached)); // v182 — 저장본으로 시작하면 새 커리큘럼·계획도 같은 응답에
     }
   }catch(e){}
 
