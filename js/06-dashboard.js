@@ -7,9 +7,15 @@ let TOKEN = '';
  *   네트워크 오류·JSON이 아닌 응답은 fetch/파싱 오류가 그대로 던져진다(fromServer 없음) — 부르는 쪽 catch의 일반 안내로 간다.
  * dashPostRaw_: 응답 JSON을 그대로 돌려준다. success 말고 다른 값(partial 등)이나 실패 응답의 필드를 직접 봐야 하는 곳만 쓴다.
  * 여기로 안 옮긴 것: ckqUploadImageWithRetry_(HTTP 상태를 보고 재시도), startPreview의 issueTestSession(대시보드 밖, 입력칸의 토큰). */
+/* v180(2026-11-17) — 수업이 몰려 백엔드 잠금 대기가 넘치면 서버가 JSON 대신 오류 화면을 돌려준다(그때는 아무것도 저장 안 됨).
+ * 그 경우만 3초 뒤 한 번 더 보낸다. 네트워크 자체가 끊긴 실패(fetch reject)는 저장됐을 수도 있어 다시 보내지 않는다. */
 async function dashPostRaw_(body){
-  const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(Object.assign({ token: TOKEN }, body)) });
-  return res.json();
+  const send = () => fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(Object.assign({ token: TOKEN }, body)) });
+  const text = await (await send()).text();
+  try { return JSON.parse(text); } catch(e) { /* 서버 오류 화면 — 아래에서 한 번 더 */ }
+  await new Promise(r => setTimeout(r, 3000));
+  const res2 = await send();
+  try { return await res2.json(); } catch(e) { return { result: 'error', message: '서버가 붐벼 저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.' }; }
 }
 async function dashPost_(body, fallbackMsg){
   const j = await dashPostRaw_(body);
