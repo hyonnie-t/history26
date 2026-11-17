@@ -292,8 +292,11 @@ async function fetchAnnouncements(grade, ban){
  * JSON이 아닌 구글 오류 페이지였다. 한 반(27명)이 같이 들어오면 학생당 5건, 최악 135건이 몰린다.
  * 저장본이 있으면 부팅 때 커리큘럼을 기다리지 않고(체크인 계획도 받지 않고) 바로 시작하고, 새 것은 로그인 조회가 끝난 뒤
  * 1~5초 무작위로 늦춰 받아 바꾼다(부팅 순간 학생당 조회 5건 → 3건). 12시간보다 오래됐거나 없거나 깨졌으면 지금처럼 기다린다.
- * 반 공통 정보만 담는다 — 학생별 정보(기록·공지·체크인 여부)는 저장하지 않는다. */
-const BOOT_CACHE_MAX_MS = 12 * 60 * 60 * 1000;
+ * 반 공통 정보만 담는다 — 학생별 정보(기록·공지·체크인 여부)는 저장하지 않는다.
+ * v182 — 12시간 → 7일. 역사 수업은 하루 이상 띄어 있어 수업 시작 때 대부분 저장본이 만료돼 부팅 조회(커리큘럼·계획)가 다시 몰렸다.
+ * 이제 로그인 조회(studentBoot&shared=1)가 책을 열기 전에 새 커리큘럼·계획으로 바꿔 넣으므로(bootApplyShared_) 오래된 저장본이 화면에 남지 않는다.
+ * 저장본에 학번의 학년이 없으면 login()이 새로 받는다(v171). */
+const BOOT_CACHE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
 const BOOT_CACHE_KEY = { curriculum: 'h26_cache_curriculum_v1', plan: 'h26_cache_checkinPlan_v1' };
 let CURRICULUM_FROM_CACHE = false, CHECKIN_PLAN_FROM_CACHE = false;
 function bootCacheRead_(key){

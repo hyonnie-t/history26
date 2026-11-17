@@ -181,9 +181,9 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
   }
   // v128 — 감정 칩: 무거운 단어(h:1) 최대 1개 + 맨 끝 중립 칩 + 폭별 넘침 없음 + 중립 칩을 골랐을 때 중립 한마디(fortunes.n).
   if (WHAT === 'boot') { // v182
-    // ① 비밀번호 로그인(부팅 때 커리큘럼·계획은 새로 받음 → 로그인 조회는 studentBoot 하나)
-    { const { ctx, page, errs } = await open(375, 812);
-      await page.waitForTimeout(800); GETLOG.length = 0;
+    // ① 처음 오는 기기, 비밀번호 로그인 — 방문 전체를 센다(저장본이 없어 부팅 때 커리큘럼·계획 + 로그인 studentBoot = 3)
+    { GETLOG.length = 0;
+      const { ctx, page, errs } = await open(375, 812);
       await page.fill('#inputId', '20101'); await page.fill('#inputName', '테스트'); await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
       await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(6500);
       const ann = await page.evaluate(() => document.body.innerText.includes('부트 공지 확인'));
@@ -193,6 +193,14 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       await page.reload(); await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(6500);
       const st = await page.evaluate(() => ({ cur: CURRICULUM_FROM_CACHE, plan: CHECKIN_PLAN_FROM_CACHE, ann: document.body.innerText.includes('부트 공지 확인') }));
       summary.boot_auto = { gets: GETLOG.slice(), stillFromCache: st, errs: errs.length ? errs : '없음' };
+      // ③ 저장본은 있고 세션만 없는 기기(로그아웃·만료): 7초 기다려도 GET 0, 비밀번호 로그인 때 studentBoot+shared 하나
+      await page.evaluate(() => localStorage.removeItem('h26_auth'));
+      GETLOG.length = 0;
+      await page.reload(); await page.waitForTimeout(7000);
+      const idle = GETLOG.slice();
+      await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
+      await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(6500);
+      summary.boot_nosession = { beforeLogin: idle, all: GETLOG.slice(), errs: errs.length ? errs : '없음' };
       await page.screenshot({ path: path.join(OUT, `boot${BOOT_LEGACY ? '_legacy' : ''}_phone.png`), fullPage: true });
       await ctx.close(); }
   }

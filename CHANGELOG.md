@@ -13,8 +13,9 @@
 2026-11-17 오전 2학년 두 반이 겹친 수업에서 포털이 느려지고 저장이 실패했다. 실행 기록상 구글이 JSON 대신 오류 화면을 돌려준 거절(«0초 실패»)이 10~12시 108건이었다. 원인(계정 단위 한도인지 그날 구글 쪽 문제인지)은 확인 못 해서, 학생 1명이 만드는 실행 수를 줄이기로 했다.
 - `loginPrefetch_`(js/01)가 `mode=student`·`announcements`·`checkinToday` 셋 대신 백엔드 v182 `mode=studentBoot` 하나를 보낸다(`fetchJsonJitter_` 재시도 그대로). 응답 안의 부분은 옛 mode와 같은 모양이라 `login()`의 판정·화면 코드는 그대로다.
 - 커리큘럼·체크인 계획 저장본으로 시작했으면 `&shared=1`로 같은 응답에 새 커리큘럼·계획도 받아 `bootApplyShared_`가 바꿔 넣는다 — `bootCacheRefreshLater_`가 1~5초 뒤 따로 받던 두 조회가 없어진다(못 받았으면 그 함수가 예전처럼 받는다).
+- 저장본 유효 시간 12시간 → 7일, 자동 입장이 없을 때는 부팅 뒤 따로 새로 받지 않는다(`initPortal`의 `bootCacheRefreshLater_`는 pre가 있을 때만). 검토자 지적: 수업이 하루 넘게 띄어 있어 수업 시작 때 대부분 저장본이 만료돼 GET 3개(커리큘럼·계획·studentBoot)가 나갔다. 이제 로그인 조회(`shared=1`)가 책을 열기 전에 새 것으로 바꿔 넣으므로 오래된 저장본이 화면에 남지 않는다.
 - 응답에 `boot` 표시가 없고 needLogin도 아니면(백엔드가 아직 옛 버전) 옛 조회 셋을 보낸다 — 배포 순서가 어긋나도 로그인은 된다.
-- 가짜 응답 점검 `mock_check.js … boot`: 비밀번호 로그인 GET 1개(`studentBoot`), 저장본 자동 입장 GET 1개(`studentBoot+shared`, 6.5초 기다려도 더 없음). `BOOT_LEGACY=1`이면 옛 조회 셋으로 돌아가는 것 확인. 전에는 로그인 한 번에 3~5개였다.
+- 가짜 응답 점검 `mock_check.js … boot`(방문 전체를 센다): 처음 오는 기기 GET 3개(커리큘럼·계획·studentBoot), 저장본+세션 자동 입장 1개(`studentBoot+shared`), 저장본은 있고 세션이 없는 기기 1개(7초 기다리는 동안 0, 로그인 때 `studentBoot+shared`). `BOOT_LEGACY=1`이면 옛 조회 셋으로 돌아가는 것 확인. 전에는 로그인 한 번에 3~5개였다.
 - `js/01-core-login.js?v=182`, `js/07-dash-admin-boot.js?v=182`.
 
 ## v180 (2026-11-17) — 대시보드 저장이 서버 붐빔으로 실패하면 한 번 다시 보낸다
