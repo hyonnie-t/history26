@@ -9,12 +9,18 @@
  * 그 밖의 달은 초록 잎 + (3·4단계) 연분홍 꽃 + (5단계~) 열매.
  * 빌드 단계 없이 <script src="tree.js">로 직접 불러온다. */
 
+/* v185 — 겨울(눈) 추가(효니 쪽지 2026-11-16 «학생대시보드 나무 눈오는 겨울 버전으로»).
+ * 계절은 달로만 정한다: 10월 단풍 / 11·12·1·2월 겨울 / 3~9월 기본(초록). 3월 1일이 되면 저절로 초록 나무로 돌아간다 — 손으로 되돌릴 일 없음.
+ * 확인용: ?season=autumn|winter|default */
 function treeSeason_(){
   try{
     const q = new URLSearchParams(location.search).get('season');
-    if(q === 'autumn' || q === 'default') return q;
+    if(q === 'autumn' || q === 'winter' || q === 'default') return q;
   }catch(e){}
-  return new Date().getMonth() === 9 ? 'autumn' : 'default';
+  const m = new Date().getMonth();
+  if(m === 9) return 'autumn';
+  if(m === 10 || m === 11 || m === 0 || m === 1) return 'winter';
+  return 'default';
 }
 
 function treeRand_(seed){
@@ -46,8 +52,27 @@ const TREE_PALETTE = {
     light: ['#F3B33B', '#DC6A2E'], hi:    ['#FBD86A', '#F09A3E'],
     leaf:  ['#F0A432', '#D8562B', '#F7CB55', '#B8321F'], fresh: '#FFE07A',
     bloom: '#F8D3DD', fruit: '#F08A24', fruitHi: '#FFC46B', calyx: '#5C8A3C'
+  },
+  /* v185 겨울: 차분한 상록 청록 잎 + 눈 모자, 꽃 대신 빨간 겨울 열매 */
+  winter: {
+    dark:  ['#2F5D55', '#1E3E3B'], mid:   ['#3F7267', '#2B5450'],
+    light: ['#6A9C8C', '#477A6E'], hi:    ['#B4D5C9', '#8DB8A9'],
+    leaf:  ['#5D8E7E', '#3E6F63', '#7FAE9C'], fresh: '#D4F0E2',
+    bloom: '#F8D3DD', fruit: '#C9303D', fruitHi: '#F59A9A', calyx: '#2F5D55',
+    snow: '#FBFDFF', snowShade: '#D3E2EF'
   }
 };
+
+/* v185 겨울 눈 모자: 잎 덩어리 위쪽을 덮는 흰 반달(아래쪽이 물결처럼 녹아내린 모양) */
+function treeSnowCap_(x, y, r, C){
+  const w = r * 0.92, top = y - r * 1.12, base = y - r * 0.42;
+  const d = `M${(x - w).toFixed(1)} ${base.toFixed(1)} Q${(x - w * 0.95).toFixed(1)} ${top.toFixed(1)} ${x.toFixed(1)} ${top.toFixed(1)} `
+    + `Q${(x + w * 0.95).toFixed(1)} ${top.toFixed(1)} ${(x + w).toFixed(1)} ${base.toFixed(1)} `
+    + `Q${(x + w * 0.6).toFixed(1)} ${(base - r * 0.22).toFixed(1)} ${(x + w * 0.35).toFixed(1)} ${(base + r * 0.06).toFixed(1)} `
+    + `Q${x.toFixed(1)} ${(base - r * 0.26).toFixed(1)} ${(x - w * 0.4).toFixed(1)} ${(base + r * 0.04).toFixed(1)} `
+    + `Q${(x - w * 0.7).toFixed(1)} ${(base - r * 0.2).toFixed(1)} ${(x - w).toFixed(1)} ${base.toFixed(1)}Z`;
+  return `<path d="${d}" fill="${C.snowShade}" transform="translate(0 1.2)"/><path d="${d}" fill="${C.snow}"/>`;
+}
 
 /* 단계별 모양: tw=줄기 굵기, cx/cy=잎 덩어리 중심, rx/ry=반지름, n=잎 덩어리 수, r=덩어리 크기 */
 const TREE_STAGES = [
@@ -77,6 +102,7 @@ function treeSvg(stage, leaves, totalLessons){
   const season = treeSeason_();
   const C = TREE_PALETTE[season];
   const autumn = season === 'autumn';
+  const winter = season === 'winter';
   const rnd = treeRand_(stage * 97 + 13);
   const BX = 100, GY = 164; // 줄기 밑동 x, 땅 y
   const ratio = totalLessons > 0 ? Math.min(leaves / totalLessons, 1) : 0;
@@ -91,8 +117,14 @@ function treeSvg(stage, leaves, totalLessons){
         <stop offset="0" stop-color="#94643A"/><stop offset=".45" stop-color="#6E4728"/><stop offset="1" stop-color="#4A2F1A"/>
       </linearGradient>
     </defs>`;
-  const ground = `<ellipse cx="${BX}" cy="${GY + 3}" rx="${56 + stage * 3}" ry="9" fill="url(#tGround)"/>`;
-  const tufts = [[-34, 1], [-20, -1], [22, 1], [36, 0], [-46, 2], [48, 2]].map(([dx, dy], i) => {
+  /* v185 겨울: 풀 대신 눈 덮인 땅(그늘 한 겹 + 흰 눈), 밑동 앞에 눈 더미 */
+  const ground = winter
+    ? `<ellipse cx="${BX}" cy="${GY + 3}" rx="${60 + stage * 3}" ry="8.5" fill="${C.snowShade}"/><ellipse cx="${BX}" cy="${GY + 1.8}" rx="${57 + stage * 3}" ry="7" fill="${C.snow}"/>`
+    : `<ellipse cx="${BX}" cy="${GY + 3}" rx="${56 + stage * 3}" ry="9" fill="url(#tGround)"/>`;
+  const drift = winter
+    ? `<ellipse cx="${BX - 3}" cy="${GY + 1}" rx="${10 + stage * 2.2}" ry="3.6" fill="${C.snow}"/><ellipse cx="${BX + 9 + stage}" cy="${GY + 2}" rx="${6 + stage * 1.2}" ry="2.6" fill="${C.snow}"/>`
+    : '';
+  const tufts = winter ? '' : [[-34, 1], [-20, -1], [22, 1], [36, 0], [-46, 2], [48, 2]].map(([dx, dy], i) => {
     const x = BX + dx, y = GY + dy;
     const col = i % 2 ? '#5E9A5E' : '#79B06B';
     return `<path d="M${x} ${y} q-2 -7 -5 -9 M${x} ${y} q0 -8 1 -11 M${x} ${y} q2 -6 5 -8" stroke="${col}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
@@ -113,7 +145,9 @@ function treeSvg(stage, leaves, totalLessons){
 
   /* 0단계 새싹, 1단계 어린 묘목은 잎 덩어리 없이 잎 몇 장으로 */
   if(stage <= 1){
-    const soil = `<ellipse cx="${BX}" cy="${GY}" rx="20" ry="5" fill="#8B6B48"/><ellipse cx="${BX}" cy="${GY - 1.5}" rx="15" ry="3.4" fill="#A98561"/>`;
+    const soil = winter
+      ? `<ellipse cx="${BX}" cy="${GY}" rx="20" ry="5" fill="${C.snowShade}"/><ellipse cx="${BX}" cy="${GY - 1.2}" rx="17" ry="4" fill="${C.snow}"/>`
+      : `<ellipse cx="${BX}" cy="${GY}" rx="20" ry="5" fill="#8B6B48"/><ellipse cx="${BX}" cy="${GY - 1.5}" rx="15" ry="3.4" fill="#A98561"/>`;
     const g1 = autumn ? '#7FB65E' : '#5FAE6A', g2 = autumn ? '#5E9A4A' : '#3F8A5C';
     let sprout;
     if(stage === 0){
@@ -127,7 +161,13 @@ function treeSvg(stage, leaves, totalLessons){
       sprout = stem + spots.map(([dx, h, ang, sc], i) =>
         treeLeafPath_(BX + dx, GY - h, ang, sc, autumn ? C.leaf[i % C.leaf.length] : (i % 2 ? g1 : g2))).join('');
     }
-    return `<svg viewBox="${treeViewBox_(stage)}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${defs}${ground}${soil}${sprout}${tufts}${fallen}</svg>`;
+    /* v185 겨울: 새싹 잎 끝에 작은 눈 한 송이씩 */
+    const sproutSnow = winter
+      ? (stage === 0
+        ? `<ellipse cx="${BX - 8}" cy="${GY - 37}" rx="4" ry="2.2" fill="${C.snow}"/><ellipse cx="${BX + 11}" cy="${GY - 38}" rx="4.4" ry="2.3" fill="${C.snow}"/>`
+        : `<ellipse cx="${BX}" cy="${GY - 52}" rx="4.6" ry="2.4" fill="${C.snow}"/><ellipse cx="${BX - 9}" cy="${GY - 34}" rx="3.6" ry="1.9" fill="${C.snow}"/><ellipse cx="${BX + 10}" cy="${GY - 26}" rx="3.6" ry="1.9" fill="${C.snow}"/>`)
+      : '';
+    return `<svg viewBox="${treeViewBox_(stage)}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${defs}${ground}${soil}${sprout}${sproutSnow}${tufts}${fallen}</svg>`;
   }
 
   /* 2단계 이상: 줄기 + 가지 + 잎 덩어리 */
@@ -183,7 +223,9 @@ function treeSvg(stage, leaves, totalLessons){
 
   /* 진행률 새잎 — 예전 규칙(단계별 상한 × 진행률)을 유지: 완료한 차시 비율만큼 밝은 새잎이 돋는다 */
   const leafCap = [0, 0, 4, 5, 6, 7, 9, 10][stage];
-  const flowerCap = autumn ? 0 : [0, 0, 0, 3, 4, 0, 0, 0][stage];   // 3·4단계에서만 개화(단풍철엔 안 핌)
+  /* v185 겨울: 위쪽 잎 덩어리(t<0.42)에 눈 모자. 아래쪽 덩어리엔 얹지 않는다(위 덩어리를 덮어 버림) */
+  const snowCaps = winter ? blobs.filter(b => b.t < 0.42).map(b => treeSnowCap_(b.x, b.y, b.r, C)).join('') : '';
+  const flowerCap = (autumn || winter) ? 0 : [0, 0, 0, 3, 4, 0, 0, 0][stage];   // 3·4단계에서만 개화(단풍철·겨울엔 안 핌)
   const fruitCap = [0, 0, 0, 0, 0, 3, 4, 6][stage];                    // 5단계부터 결실
   const spotsN = 10;
   const shown = Math.round(ratio * spotsN);
@@ -207,7 +249,7 @@ function treeSvg(stage, leaves, totalLessons){
   }).join('');
 
   return `<svg viewBox="${treeViewBox_(stage)}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    ${defs}${ground}${trunk}${bark}${branches}${canopy}${texture}${fresh}${flowers}${fruits}${tufts}${fallen}
+    ${defs}${ground}${trunk}${bark}${branches}${canopy}${texture}${snowCaps}${fresh}${flowers}${fruits}${drift}${tufts}${fallen}
   </svg>`;
 }
 
@@ -300,6 +342,17 @@ function treeScene(stage, leaves, totalLessons, grade){
     body = treeSvg(stage, leaves, totalLessons);
   }
 
+  /* v185 겨울: 눈송이(CSS로 떨어짐, 동작 줄이기 설정이면 제자리에 멈춘 눈) */
+  const winter = !autumn && treeSeason_() === 'winter';
+  if(winter){
+    const sr = treeRand_(1225);
+    let snow = '';
+    for(let i = 0; i < 16; i++){
+      snow += `<span class="tree-snow" style="left:${(3 + sr() * 94).toFixed(0)}%;--y:${(4 + sr() * 78).toFixed(0)}%;--z:${(3.5 + sr() * 3.5).toFixed(1)}px;--dx:${((sr() - 0.5) * 28).toFixed(0)}px;--t:${(6 + sr() * 6).toFixed(1)}s;--d:${(-sr() * 12).toFixed(1)}s"></span>`;
+    }
+    body += snow;
+  }
+
   let extra = '';
   if(exam){
     const sr = treeRand_(2026);
@@ -309,5 +362,5 @@ function treeScene(stage, leaves, totalLessons, grade){
     }
     extra = `<span class="tree-glow"></span>${sparks}<img class="tree-prop" src="${IMG}study_prop.webp" alt="" width="300" height="270" draggable="false">`;
   }
-  return `<div class="tree-scene${exam ? ' is-exam' : ''}">${body}${extra}</div>`;
+  return `<div class="tree-scene${exam ? ' is-exam' : ''}${winter && !exam ? ' is-winter' : ''}">${body}${extra}</div>`;
 }
