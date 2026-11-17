@@ -1979,6 +1979,30 @@ html{scrollbar-gutter:stable;}
   .tree-fall{display:none;}
   .tree-snow{animation:none; top:var(--y); opacity:.9;}  /* v185 — 움직임 끄면 제자리 눈 */
 }
+/* v187 — 크리스마스 픽셀 트리(12월 11~25일, tree.js xmasPixelScene). 밤하늘은 시험기간이 아닐 때만(is-xmas-sky), 시험기간엔 저녁 하늘이 우선.
+ * 전구는 steps(1)로 딱딱 깜빡(픽셀 느낌), 눈은 steps(26)로 한 칸씩 떨어짐. --px = 나무 픽셀 한 칸(단계별 확대에 맞춤) */
+.tree-scene.is-xmas-sky{border-radius:18px; background:linear-gradient(180deg,#141d45 0%,#22306b 55%,#3a4f8f 100%);}
+.tree-scene > svg.tree-px{shape-rendering:crispEdges; image-rendering:pixelated;}
+.tree-px-light{animation:treePxBlink 1.2s steps(1) infinite;}
+.tree-px-light.b{animation-delay:-.6s;}
+@keyframes treePxBlink{ 0%{opacity:1;} 50%{opacity:.25;} }
+.tree-px-star{animation:treePxTwinkle 2.4s steps(1) infinite;}
+@keyframes treePxTwinkle{ 0%,100%{opacity:1;} 50%{opacity:.85;} }
+.tree-px-sky{position:absolute; width:var(--px); aspect-ratio:1; background:#fff7c2; opacity:.75; pointer-events:none;}
+.tree-scene.is-exam .tree-px-sky{display:none;}  /* 시험기간 저녁 하늘엔 반딧불이 있어 밤하늘 별은 뺌 */
+.tree-px-snow{position:absolute; top:-3%; width:var(--px); aspect-ratio:1; background:#fff; opacity:0; pointer-events:none;
+  animation:treePxSnow var(--t) steps(26) infinite; animation-delay:var(--d);}
+@keyframes treePxSnow{
+  0%{transform:translate(0,0); opacity:0;}
+  8%{opacity:.95;}
+  50%{transform:translate(var(--dx),130px);}
+  90%{opacity:.9;}
+  100%{transform:translate(0,270px); opacity:0;}
+}
+@media (prefers-reduced-motion:reduce){
+  .tree-px-light,.tree-px-star{animation:none;}
+  .tree-px-snow{animation:none; top:var(--y); opacity:.9;}  /* 움직임 끄면 전구는 켜진 채, 눈은 제자리 */
+}
 
 /* v95 — 발표 지급 폼의 유형 접기 */
 .pp-types-wrap{margin-bottom:8px;}
