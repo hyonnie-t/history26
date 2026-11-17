@@ -26,6 +26,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const OUT = process.argv[2]; const WHAT = process.argv[3] || 'all';
 const BOOT_LEGACY = process.env.BOOT_LEGACY === '1'; // v182 — 옛 백엔드 흉내(studentBoot → 교사 조회 «인증 실패»)
 const GETLOG = []; // v182 — 백엔드 GET의 mode(+shared) 기록
+const POSTLOG = []; // v184 — retry 모드: 백엔드 POST의 action·clientId·응답 종류
 const PERF_SCORE = Number(process.env.PERF_SCORE || 27); // v124 exam 모드: 가짜 수행평가 점수(30점 만점)
 if (!OUT) { console.error('사용: node mock_check.js <출력 폴더> [student|dash|all]'); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
@@ -88,6 +89,12 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       return route.fulfill(J({ result: 'success', rows: [], lessons: [] }));
     }
     let b = {}; try { b = JSON.parse(route.request().postData() || '{}'); } catch (e) { /* 빈 본문 */ }
+    if (WHAT === 'retry') { // v184 — action마다 첫 POST는 구글 오류 화면(HTML 200), 다음부터 정상
+      const k = b.action || 'submit';
+      const first = !POSTLOG.some(x => x.k === k);
+      POSTLOG.push({ k, cid: b.clientId || '', res: first ? 'html' : 'json' });
+      if (first) return route.fulfill({ status: 200, contentType: 'text/html', body: '<!DOCTYPE html><html><body>Google Drive 오류</body></html>' });
+    }
     if (b.action === 'login') return route.fulfill(J({ result: 'success', session: { token: 'fixture', exp: 4102444800000, sid: b.studentId, name: b.name } }));
     return route.fulfill(J({ result: 'success' }));
   }
@@ -180,6 +187,22 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
     }
   }
   // v128 — 감정 칩: 무거운 단어(h:1) 최대 1개 + 맨 끝 중립 칩 + 폭별 넘침 없음 + 중립 칩을 골랐을 때 중립 한마디(fortunes.n).
+  if (WHAT === 'retry') { // v184 — 학생 저장 POST가 오류 화면 한 번 뒤 같은 clientId로 다시 가는지
+    const { ctx, page, errs } = await open(375, 812);
+    await page.fill('#inputId', '20101'); await page.fill('#inputName', '테스트'); await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
+    await page.waitForSelector('#portalView.shown', { timeout: 20000 }); await page.waitForTimeout(800);
+    const toasts = [];
+    await page.exposeFunction('__toast', t => toasts.push(t));
+    await page.evaluate(() => { const o = window.showToast; window.showToast = function (t) { window.__toast(t); return o.apply(this, arguments); }; });
+    await page.evaluate(() => { document.getElementById('questionInput').value = '재시도 질문'; return askQuestion(); });
+    await page.evaluate(() => { const d = document.createElement('div'); d.className = 'lesson'; d.dataset.lid = 'x'; const b = document.createElement('button'); b.dataset.activity = 'L1'; d.appendChild(b); document.body.appendChild(d); return selfCheck(b); });
+    await page.evaluate(() => { document.getElementById('msgInput').value = '답장'; return sendMessageReply(); });
+    const by = k => POSTLOG.filter(x => x.k === k);
+    const pair = k => { const r = by(k); return r.length === 2 && r[0].res === 'html' && r[1].res === 'json' && !!r[0].cid && r[0].cid === r[1].cid; };
+    summary.retry = { posts: POSTLOG.slice(), loginRetried: pair('login'), askRetried: pair('askQuestion'), selfCheckRetried: pair('submit'), replyRetried: pair('replyMessage'), toasts, errs: errs.length ? errs : '없음' };
+    await page.screenshot({ path: path.join(OUT, 'retry_phone.png') });
+    await ctx.close();
+  }
   if (WHAT === 'boot') { // v182
     // ① 처음 오는 기기, 비밀번호 로그인 — 방문 전체를 센다(저장본이 없어 부팅 때 커리큘럼·계획 + 로그인 studentBoot = 3)
     { GETLOG.length = 0;

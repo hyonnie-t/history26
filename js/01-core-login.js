@@ -79,6 +79,50 @@ async function fetchJsonRetry_(url, maxAttempts, delayMs){
   throw lastErr;
 }
 
+/* v184 — 학생 저장 POST 재시도. 2026-11-17 두 반 겹친 수업에서 구글이 JSON 대신 오류 화면을 준 «0초 실패»가 108건 났는데,
+ * 포털 저장 POST는 한 번만 보내 학생이 다시 눌러야 했다(활동 웹앱은 v183 snippets/submit_retry.js로 이미 고침).
+ * - 오류 화면(JSON 아님)·HTTP 오류·네트워크 끊김·30초 초과일 때만 1~3초 무작위로 쉬고 최대 2번 더 보낸다.
+ *   서버가 정상 JSON으로 답한 오류(로그인 실패·needLogin·순차 잠금 등)는 다시 보내지 않고 그대로 돌려준다(절대 규칙 9).
+ * - 다시 보내는 것은 두 번 와도 괜찮은 것만: 백엔드가 덮어쓰기(upsert)인 action과, 백엔드 v184가 clientId로 중복을 막는
+ *   askQuestion·replyMessage·cancelSelfCheck, v183이 막는 기본 제출(action 없음 — 자가체크). 표는 계획 TODO 5번.
+ *   changePassword는 두 번째 요청이 옛 비밀번호로 «틀렸어요»가 되므로 넣지 않는다. 목록 밖 action은 한 번만 보낸다.
+ * - 저장 하나에 clientId를 한 번 만들어 재시도에도 같은 값을 보낸다(옛 백엔드·중복 막기 없는 action은 무시).
+ * - 본문은 JSON 문자열 — portal_auth.js가 세션을 붙인다(절대 규칙 11).
+ * 모두 실패하면 Error를 던진다(e.netFail = true). 부르는 쪽 catch가 «인터넷 연결을 확인» 안내를 그대로 보여 준다. */
+const PORTAL_POST_RETRY_ACTIONS = ['', 'login', 'checkin', 'cancelSelfCheck', 'replyMessage', 'askQuestion', 'helpAsk', 'helpCancel', 'perfScoreConfirm'];
+async function portalPost_(payload){
+  const body = Object.assign({}, payload);
+  const canRetry = PORTAL_POST_RETRY_ACTIONS.indexOf(String(body.action || '')) >= 0;
+  if(canRetry && !body.clientId) body.clientId = portalClientId_();
+  let lastErr = null;
+  for(let i = 0; i < (canRetry ? 3 : 1); i++){
+    if(i) await new Promise(r => setTimeout(r, 1000 + Math.floor(Math.random() * 2001)));
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null; // 30초 넘게 멈추면 끊고 다시
+    const timer = ctl ? setTimeout(() => ctl.abort(), 30000) : null;
+    try{
+      const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST', body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined });
+      const text = await res.text();
+      let json = null;
+      try{ json = JSON.parse(text); }catch(e){ /* 구글 오류 화면(HTML) */ }
+      if(res.ok && json && typeof json === 'object') return json;
+      lastErr = new Error('HTTP ' + res.status + (json ? '' : ' (JSON 아님)'));
+    }catch(e){
+      lastErr = e;
+    }finally{
+      if(timer) clearTimeout(timer);
+    }
+  }
+  lastErr.netFail = true;
+  throw lastErr;
+}
+/* 저장 하나를 알아보는 무작위 값(영숫자·하이픈 8~64자 — 백엔드 submitClientId_ 규칙). */
+function portalClientId_(){
+  try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){ /* 아래로 */ }
+  let s = 'p' + Date.now().toString(36);
+  for(let i = 0; i < 3; i++) s += Math.floor(Math.random() * 4294967296).toString(36);
+  return s;
+}
+
 /* v171 — 학생 로그인 조회(학생 기록·오늘 체크인)용 재시도. 반 전체가 한꺼번에 들어오면 부팅 순간 조회가 몰려
  * Apps Script 동시 실행 한도(계정당 30건)에 걸릴 수 있다. 전에는 두 조회에 재시도가 없어, 한 번 실패하면 자동 입장 학생은
  * 안내 없이 로그인 화면에 머물고 체크인은 건너뛰었다.
@@ -203,9 +247,7 @@ async function login(sid, name, silent, preAuthed, pre){
     btn.disabled = true; btn.textContent = "확인하는 중…";
     $('loginError').style.display = 'none';
     try{
-      const res = await fetch(CONFIG.WEBAPP_URL, { method: 'POST',
-        body: JSON.stringify({ action: 'login', studentId: sid, name, password: pw }) });
-      const r = await res.json();
+      const r = await portalPost_({ action: 'login', studentId: sid, name, password: pw }); // v184 — 오류 화면·끊김이면 다시 보냄
       if(r.result !== 'success'){ showLoginError(r.message || "로그인하지 못했어요."); return; }
       if(r.mustChange){ startFirstPwChange_(sid, name, pw); return; }
       H26Auth.set(r.session);

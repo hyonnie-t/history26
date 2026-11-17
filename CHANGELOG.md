@@ -8,6 +8,14 @@
 (오래된 구간은 순서가 섞여 있으니 새 번호를 정할 땐 `grep -oE '^## v[0-9]+' CHANGELOG.md | sort -V | tail -1`로 확인).
 이 번호는 프론트(이 레포)만의 번호다. 백엔드 `history26_backend`는 자기 번호를 따로 쓴다(같은 «v159»가 두 레포에서 서로 다른 변경이다).
 
+## v184 (2026-11-17) — 포털 학생 저장 POST 재시도(`portalPost_`)
+
+계획 `TODO.md` 5번. v183이 활동 웹앱 제출에 재시도를 넣었지만 포털 안 학생 저장 POST(로그인·체크인·자가체크·질문함·답장·도와주세요·수행평가 확인)는 한 번만 보내, 구글이 JSON 대신 오류 화면을 주면(«0초 실패») 학생이 다시 눌러야 했다.
+- `portalPost_`(js/01): 오류 화면·HTTP 오류·네트워크 끊김·30초 초과면 1~3초 무작위로 쉬고 최대 2번 더 보낸다. 정상 JSON 오류(로그인 실패·needLogin·순차 잠금 등)는 다시 보내지 않고 그대로 돌려준다(절대 규칙 9). 모두 실패하면 `netFail` Error — 부르는 쪽 catch의 «인터넷 연결을 확인» 안내가 그대로 뜬다.
+- 다시 보내는 것은 두 번 와도 괜찮은 것만(`PORTAL_POST_RETRY_ACTIONS`): 덮어쓰기인 `login`·`checkin`·`helpAsk`·`helpCancel`·`perfScoreConfirm`, 백엔드 v184가 clientId로 중복을 막는 `askQuestion`·`replyMessage`·`cancelSelfCheck`, v183이 막는 기본 제출(자가체크). `changePassword`는 두 번째 요청이 옛 비밀번호로 «틀렸어요»가 돼 넣지 않았다. 읽음 표시(`ackMessages`·`ackFeedback`)는 보내고 잊는 그대로(놓쳐도 다음 로그인 때 다시). 교사 대시보드 POST는 뒤로 미뤘다.
+- 저장 하나에 `clientId`를 한 번 만들어 재시도에도 같이 보낸다. 체크인은 덮어쓰기라 순서가 바뀌면 옛 값이 남을 수 있어 끝날 때까지 기다린다(전과 같음).
+- 시험: `node tests/webapp-testing/post_retry_check.js`(12건, 가짜 fetch), `mock_check.js <폴더> retry`(action마다 첫 POST를 오류 화면으로 → 로그인·질문·자가체크·답장이 같은 clientId로 다시 가서 성공 안내가 뜨는지).
+
 ## v183 (2026-11-17) — 활동 웹앱 제출 재시도 조각 `snippets/submit_retry.js`
 
 포털 화면은 그대로이고 조각·문서만 더했다. 같은 날 두 반 겹친 수업에서 구글이 JSON 대신 오류 화면을 돌려준 «0초 실패»가 108건 났는데, 활동 웹앱 `postToSheet`는 `res.json()`이 바로 깨져 학생이 다시 눌러야 했다.

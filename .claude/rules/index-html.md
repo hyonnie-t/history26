@@ -16,7 +16,7 @@ paths:
   파일 안에서는 `/* ──` 구분선으로 찾는다. 마지막 파일 끝의 `initPortal()` IIFE로 부팅.
   | 파일 | 내용 |
   |---|---|
-  | `js/01-core-login.js` | config 가드, `$`·`store`·`fetchJsonRetry_`, 세션 상태 변수, 학생 로그인(`login`·`parseStudentId`), 커리큘럼·체크인 계획 로드 |
+  | `js/01-core-login.js` | config 가드, `$`·`store`·`fetchJsonRetry_`·`portalPost_`(v184 학생 저장 POST 재시도), 세션 상태 변수, 학생 로그인(`login`·`parseStudentId`), 커리큘럼·체크인 계획 로드 |
   | `js/02-checkin-portal.js` | 웰컴 체크인, 탐구 나무 SVG, 포털 렌더, 자가체크, 공지, 피드백 모아보기, 상단 탭, 질문함, 개인 메시지, 유틸 |
   | `js/03-help.js` | (v177) 선생님 도와주세요 — 학생 포털 고정 버튼·창(`helpPortalInit_`·`helpSend_`·`helpCancel_`), 교사 대시보드 도움 요청 칸·30초 읽기(`helpDashStart_`·`helpResolve_`). 로드 시점 코드는 상태 객체·visibilitychange뿐 |
   | `js/12-timed.js` | (v181) 대시보드 «📅 오늘» 탭 «⏱ 반별 제출 시간» 칸(`#timedCard`) — `mode=timedAdmin` 1분마다, «N분 열기» `timedOpen`(`timedDashStart_`·`timedDashStop_`·`timedOpen_`). 03 바로 뒤에 싣는다(로드 시점 코드는 상태 객체뿐) |
@@ -76,3 +76,4 @@ paths:
 ## 기능별 함정 한 줄 (상세는 `docs/features.md` 해당 섹션)
 - 체크인 문항 폼은 선택된 학년 탭(`CKQ_GRADE`)으로 저장된다. 옛 문항의 회수질문·재확인 값은 저장하면 교사 메모로 합쳐져 되돌릴 수 없다.
 - 학급 공통 피드백·발표 탐구포인트·성적조회·개인 메시지 등 백엔드 의존 기능은 "백엔드 재배포 전 동작"이 섹션마다 적혀 있다 — 고치기 전 그 섹션부터.
+- (v184) 학생이 누르는 저장 POST는 `portalPost_`(js/01)로 보낸다 — 오류 화면·HTTP 오류·끊김·30초 초과면 같은 `clientId`로 1~3초 뒤 최대 2번 더. 새 학생 저장 action을 더하면 «두 번 들어오면 괜찮은지»를 따져 `PORTAL_POST_RETRY_ACTIONS`에 넣거나(덮어쓰기면 그대로, 행을 더하면 백엔드 `ACTION_DEDUP_ACTIONS`에도) 빼 둔다. 시험 `node tests/webapp-testing/post_retry_check.js`, `mock_check.js <폴더> retry`.

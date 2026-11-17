@@ -180,11 +180,7 @@ async function submitPerfResponse(i, response){
   const box = $('perfActions' + i);
   box.querySelectorAll('button').forEach(b => { b.disabled = true; });
   try{
-    const res = await fetch(CONFIG.WEBAPP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'perfScoreConfirm', studentId: SESSION.studentId, studentName: SESSION.name, title: it.title, response })
-    });
-    const data = await res.json();
+    const data = await portalPost_({ action: 'perfScoreConfirm', studentId: SESSION.studentId, studentName: SESSION.name, title: it.title, response }); // v184 — 덮어쓰기라 다시 보내도 한 행
     if(data.result !== 'success') throw new Error(data.message || '저장 실패');
     it.response = data.response;
     renderPerfScore_();
