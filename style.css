@@ -2645,3 +2645,54 @@ body.perf-modal-open{overflow:hidden;}
 .timed-row.soon .timed-state{color:#8a5410; font-weight:700;}
 .timed-row.closed .timed-state{color:#b0302a; font-weight:700;}
 .timed-row.idle .timed-state{color:var(--ink-soft);}
+
+/* ── v188 성적관리 탭 정리(2026-11-23 효니 «엉망이다»): 학년 고르기 · 지금 할 일 · 접힌 묶음 · 미응시자 표. 간격은 8pt 토큰(--space-1~7)만 ── */
+#panelGrades .gt-head{display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); margin:0 0 var(--space-3);}
+#panelGrades .gt-years{display:inline-flex; gap:var(--space-1); padding:var(--space-1); border-radius:999px; background:var(--thead-bg); border:1px solid var(--line);}
+#panelGrades .gt-year{min-height:40px; padding:0 var(--space-4); border:0; border-radius:999px; background:none; font:inherit; font-size:.95rem; font-weight:700; color:var(--ink-soft); cursor:pointer; transition:background-color .2s ease-out, color .2s ease-out;}
+#panelGrades .gt-year:hover{color:var(--ink);}
+#panelGrades .gt-year.is-on{background:var(--indigo); color:#fff;}
+#panelGrades .gt-year:focus-visible, .gt-chip:focus-visible{outline:2px solid var(--indigo); outline-offset:2px;}
+#panelGrades .gt-todo{margin:0 0 var(--space-4); padding:var(--space-3); border-radius:var(--radius); background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow);}
+#panelGrades .gt-todo .dash-hint{margin:0;}
+.gt-todo-label{margin:0 0 var(--space-2); font-size:.85rem; font-weight:700; color:var(--ink-soft);}
+.gt-chips{display:flex; flex-wrap:wrap; gap:var(--space-2);}
+.gt-chip{display:inline-flex; align-items:center; gap:var(--space-1); min-height:40px; padding:0 var(--space-3); border-radius:999px; border:1px solid var(--line); background:#fff; font:inherit; font-size:.9rem; color:var(--ink); white-space:nowrap; cursor:pointer; transition:background-color .15s ease-out, transform .1s ease-out;}
+button.gt-chip:hover{background:var(--panel-alt);}
+button.gt-chip:active{transform:scale(.97);}
+.gt-chip.is-warn{background:var(--amber-bg); border-color:var(--amber-border); color:var(--amber-text-deep);}
+button.gt-chip.is-warn:hover{background:var(--amber-bg); border-color:var(--amber-text);}
+.gt-chip.is-zero{cursor:default; background:var(--thead-bg); color:var(--ink-soft); border-color:transparent;}
+.gt-dot{display:inline-block; flex:none; width:8px; height:8px; border-radius:50%; background:var(--muted-2);}
+.gt-dot.is-on{background:var(--jade); box-shadow:0 0 0 3px rgba(62,124,89,.18);}
+/* 접힌 묶음: 제목 · 요약(옅게) · 화살표는 오른쪽 끝 */
+#dashView #panelGrades .gt-fold{margin:0 0 var(--space-3);}
+#dashView #panelGrades .gt-fold > summary{display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-1) var(--space-2); min-height:48px; padding:var(--space-2) var(--space-3);}
+#dashView #panelGrades .gt-fold > .cl-collapse-body{padding:0 var(--space-3) var(--space-3);}
+.gt-fold-title{font-weight:700;}
+.gt-fold-note{display:inline-flex; align-items:center; gap:var(--space-1); font-size:.82rem; font-weight:500; color:var(--ink-soft);}
+#panelGrades .gt-fold .cl-arrow{margin-left:auto;}
+.gt-tools{display:flex; flex-wrap:wrap; gap:var(--space-2); margin:0 0 var(--space-3);}
+#panelGrades .gt-sub{margin:var(--space-3) 0 0;}
+#panelGrades .gt-sub > .perf-grp-body{padding:0 var(--space-3) var(--space-3);}
+#panelGrades .gt-sub .sem-tabs{margin-top:0;}
+#panelGrades > .fold-note{margin:var(--space-4) 0 0;}
+#panelGrades > .fold-note .dash-card-desc{margin:0 0 var(--space-2);}
+/* 미응시자 카드: 반별 표를 폭에 맞춰 1~3칸 */
+#panelGrades .gt-miss{margin:0 0 var(--space-3);}
+.gt-miss-head{margin-left:var(--space-2); font-size:.85rem; font-weight:500; color:var(--ink-soft);}
+.gt-miss-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap:var(--space-3); align-items:start;}
+.gt-miss-ban{border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff; overflow:hidden;}
+.gt-miss-ban h3{display:flex; align-items:baseline; gap:var(--space-2); margin:0; padding:var(--space-2) var(--space-3); background:var(--thead-bg); font-size:.95rem; color:var(--ink);}
+.gt-miss-ban h3 small{font-size:.82rem; font-weight:500; color:var(--ink-soft);}
+.gt-miss-table{width:100%; border-collapse:collapse; font-size:.9rem;}
+.gt-miss-table th, .gt-miss-table td{padding:var(--space-2); border-top:1px solid var(--row-line); text-align:left; vertical-align:top;}
+.gt-miss-table thead th{border-top:0; font-size:.8rem; font-weight:600; color:var(--ink-soft);}
+.gt-miss-table .no{width:1%; white-space:nowrap; text-align:right; color:var(--ink-soft);}
+.gt-miss-table .nm{width:1%; white-space:nowrap; font-weight:600; color:var(--ink);}
+.gt-tags{display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-1);}
+.gt-tag{display:inline-block; max-width:100%; padding:0 var(--space-2); border-radius:var(--radius-xs); background:var(--amber-bg); color:var(--ink); font-size:.85rem; line-height:1.7; word-break:keep-all; overflow-wrap:break-word;}
+@media (max-width:420px){
+  #panelGrades .gt-year{padding:0 var(--space-3);}
+  .gt-chip{white-space:normal; text-align:left;}
+}

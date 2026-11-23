@@ -162,6 +162,8 @@ Windows PC(효니 학교 PC)에서는 `python3`가 스토어 스텁이라 위 �
 «지금 할 활동»·«밀린 차시»·«그 밖의 기록» 머리글·«제출 N건/⚠ 제출 0건»·가로 넘침·콘솔 오류를 JSON으로 찍는다. 커리큘럼만 실제 ?mode=curriculum을 읽고(읽기 전용) 시트에는 쓰지 않는다.
 playwright 모듈은 shot.js처럼 후보 경로를 찾고(효니 학교 PC는 tistory-mcp npx 캐시), 브라우저는 설치된 Chrome을 쓴다.
 
+**성적관리 탭 점검 — v188(2026-11-23)**: `node tests/webapp-testing/grades_check.js <출력폴더>`. 가짜 `perfScoreAdmin`(3학년)·`perfMissing`(2·3학년)으로 학년 고르기·«지금 할 일» 숫자·미응시자 표(nowrap·꼬리표·keep-all)·접힌 묶음·학년 기억·팝업 학년 거르기를 [PASS]/[FAIL]로 보고, 폰360·768·1180·PC1280에서 가로 넘침·할 일 줄이 첫 화면 안인지 재고 `grades{2,3}_<폭>.png`를 찍는다. 시트에 안 쓴다.
+
 (webapp-testing 스킬을 설치한 뒤에는 서버 기동을 `scripts/with_server.py`로
 대신해도 된다 — 위 수동 방식과 결과는 동일함.)
 

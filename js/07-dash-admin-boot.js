@@ -138,7 +138,7 @@ function semDistBar_(label, rs, k, active){
   const tag = k ? 'button type="button" onclick="semPickBan_(\'' + k + '\')"' : 'div';
   return '<' + tag + ' class="sem-dist-row' + (active ? ' is-on' : '') + '"><span class="sem-dist-label">' + label + '</span><span class="sem-dist-bar">' + segs + '</span><span class="sem-dist-avg">' + (semAvg_(rs, 'total') == null ? '–' : semAvg_(rs, 'total')) + '</span></' + (k ? 'button' : 'div') + '>';
 }
-function semPickBan_(k){ SEM_BAN = k; dashRenderSemAdmin_(); }
+function semPickBan_(k){ SEM_BAN = k; SEM_TABLE_OPEN = true; dashRenderSemAdmin_(); } // v188 — 반을 고르면 학생 표를 펼친다
 function semFeedbackOpen_(sid){
   const r = semAdminRows_().find(x => x.studentId === sid);
   if(!r) return;
@@ -151,13 +151,20 @@ function semFeedbackOpen_(sid){
       return '<p class="sem-fb-line">' + (m ? '<b>' + escapeHtml(m[1]) + '</b> ' + escapeHtml(m[2]) : escapeHtml(l)) + '</p>';
     }).join('') + '</div>' : '<p class="dash-hint">피드백 문장이 없어요.</p>'));
 }
+/* v188 — 고른 학년(GRADES_YEAR)만 보인다. 반 탭·학생 표는 «학생 표 보기» 묶음 안에(누를 때만 펼침, 반별 막대를 누르면 펼쳐짐). */
+let SEM_TABLE_OPEN = false;
 function dashRenderSemAdmin_(){
   const box = $('semAdminBox');
   if(!box) return;
-  const list = semAdminRows_();
+  const all = semAdminRows_();
+  const list = gradesYearRows_(all);
+  const fold = $('semFold'), note = $('semFoldNote');
   box.classList.remove('dash-hint');
-  if(!list.length){ box.innerHTML = '<p class="dash-hint">올라온 지필평가 점수가 없어요.</p>'; return; }
+  // 지필 점수는 3학년만 올라온다 — 고른 학년에 없으면 묶음째 숨긴다(3학년인데 하나도 없으면 안내만)
+  if(fold) fold.style.display = (list.length || (GRADES_YEAR === '3' && !all.length)) ? '' : 'none';
+  if(!list.length){ box.innerHTML = '<p class="dash-hint">올라온 지필평가 점수가 없어요.</p>'; if(note) note.textContent = ''; return; }
   const on = SEM_ADMIN.show === 'ON';
+  if(note) note.innerHTML = '<span class="gt-dot' + (on ? ' is-on' : '') + '"></span>' + (on ? '학생 화면에 공개 중' : '비공개') + ' · ' + list.length + '명';
   const bans = [...new Set(list.map(r => r.studentId.slice(0, 3)))].sort();
   if(!bans.includes(SEM_BAN)) SEM_BAN = bans[0];
   const byBan = k => list.filter(r => r.studentId.slice(0, 3) === k);
@@ -169,13 +176,14 @@ function dashRenderSemAdmin_(){
     + '<button type="button" class="btn btn-sm' + (on ? ' btn-ghost' : '') + '" onclick="dashSetSemShow_(this,\'' + (on ? 'OFF' : 'ON') + '\')">' + (on ? '숨기기' : '공개하기') + '</button></div>'
     + '<div class="sem-kpis"><div><small>평균 합계</small><b>' + fmt(semAvg_(list, 'total')) + '</b></div><div><small>평균 기말고사</small><b>' + fmt(semAvg_(list, 'score')) + '</b></div><div><small>A·B 성취도</small><b>' + list.filter(r => r.grade === 'A' || r.grade === 'B').length + '<em>명</em></b></div></div>'
     + '<p class="sem-sec">반별 성취도 <span class="sem-legend">' + SEM_GRADES.map(g => '<i class="sem-g' + g + '"></i>' + g).join(' ') + '</span><span class="sem-dist-head">평균</span></p>'
-    + '<div class="sem-dist">' + semDistBar_('전체', list, '', false) + bans.map(k => semDistBar_(semBanName_(k), byBan(k), k, k === SEM_BAN)).join('') + '</div>'
+    + '<div class="sem-dist">' + semDistBar_('전체', list, '', false) + bans.map(k => semDistBar_(semBanName_(k), byBan(k), k, SEM_TABLE_OPEN && k === SEM_BAN)).join('') + '</div>'
+    + '<details class="perf-grp gt-sub" id="semStuFold"' + (SEM_TABLE_OPEN ? ' open' : '') + ' ontoggle="SEM_TABLE_OPEN = this.open"><summary>학생 표 보기 <span class="perf-grp-note">' + semBanName_(SEM_BAN) + ' ' + rows.length + '명 · 피드백</span></summary><div class="perf-grp-body">'
     + '<div class="sem-tabs" role="tablist">' + bans.map(k => '<button type="button" role="tab" aria-selected="' + (k === SEM_BAN) + '" class="sem-tab' + (k === SEM_BAN ? ' is-on' : '') + '" onclick="semPickBan_(\'' + k + '\')">' + semBanName_(k) + '</button>').join('') + '</div>'
     + '<div class="perf-stat-wrap"><table class="sem-table"><thead><tr><th>번호</th><th class="l">이름</th><th>수행</th><th>기말</th><th>합계</th><th>성취도</th><th></th></tr></thead><tbody>'
     + rows.map(r => '<tr><td>' + Number(r.studentId.slice(3)) + '</td><td class="l">' + escapeHtml(r.name) + '</td><td>' + fmt(r.perfGot) + '</td><td>' + fmt(r.score)
       + '</td><td class="sem-total-cell">' + (r.total == null ? '–' : String(r.total)) + '</td><td><span class="sem-badge sem-g' + escapeHtml(r.grade || 'x') + '">' + escapeHtml(r.grade || '–') + '</span></td>'
       + '<td><button type="button" class="sem-fb-btn" onclick="semFeedbackOpen_(\'' + escapeHtml(r.studentId) + '\')">피드백</button></td></tr>').join('')
-    + '</tbody></table></div>';
+    + '</tbody></table></div></div></details>';
 }
 async function dashSetSemShow_(btn, status){
   if(status === 'ON' && !confirm('3학년 학생들이 포털에서 학기말 성적·성취도·피드백을 보게 돼요. 공개할까요?')) return;
@@ -183,68 +191,126 @@ async function dashSetSemShow_(btn, status){
   try{
     const data = await dashPost_({ action: 'setExamScoreShow', status }, '저장 실패');
     SEM_ADMIN.show = data.status;
-    dashRenderSemAdmin_();
+    dashRenderSemAdmin_(); gradesRenderTodo_(); // v188 — 할 일 줄의 공개 상태도
     showToast(data.status === 'ON' ? '학생 화면에 공개했어요.' : '학생 화면에서 숨겼어요.');
   }catch(e){
     btn.disabled = false;
     showToast('바꾸지 못했어요: ' + e.message);
   }
 }
-/* ── 수행평가 점수 확인 현황 (교사, v96) — 반별 응답 수와 "이상 있음" 학생 목록 ── */
+/* ── 성적관리 탭 학년 고르기 (v188) — 2026-11-23 효니 «엉망이다». 2학기 말 2학년 미응시·채점이 몰려 학년을 먼저 고르고
+ * «지금 할 일» 한 줄을 맨 위에 둔다. 고른 학년은 이 기기에 기억(dash_grades_year). 데이터는 전 학년 그대로 받고 화면만 거른다. ── */
+let GRADES_YEAR = store.get('dash_grades_year') === '3' ? '3' : '2';
+let PERF_MISSING_ERR = '';
+let PERF_STU_OPEN = false;
+function gradesYearRows_(rows){ return (rows || []).filter(r => String(r.studentId).charAt(0) === GRADES_YEAR); }
+/* 점수 조정·확인 완료 뒤: 학생 목록만 다시 그리던 것(v98~v101)에 더해 «지금 할 일» 숫자·학기말 합계·묶음 요약도 맞춘다.
+ * 현황 표(dashRenderPerfStatus_)는 다시 그리지 않는다 — 학생별 점수·조정에서 고른 반·필터가 풀리기 때문(↻ 새로고침이 맞춘다). */
+function gradesSyncAfterEdit_(){ dashRenderSemAdmin_(); gradesRenderTodo_(); }
+function gradesPickYear_(y){ GRADES_YEAR = y; store.set('dash_grades_year', y); gradesRenderAll_(); }
+function gradesRenderAll_(){
+  document.querySelectorAll('#panelGrades .gt-year').forEach(b => { const on = b.dataset.year === GRADES_YEAR; b.classList.toggle('is-on', on); b.setAttribute('aria-selected', String(on)); });
+  dashRenderSemAdmin_(); dashRenderPerfStatus_(); perfMissingRender_(); gradesRenderTodo_();
+}
+/* «지금 할 일» 한 줄: 미응시 몇 명 몇 건 · 재확인 대기 · 이상 있음(확인 전) · 안 누름 · 학기말 공개 상태. 0인 것은 흐리게, 누르면 그 자리로 간다. */
+function gradesGo_(id, openId){
+  const o = openId && $(openId); if(o) o.open = true;
+  const el = $(id); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function gradesRenderTodo_(){
+  const box = $('gradesTodo'); if(!box) return;
+  if(DASH_LOAD.grades === 'loading'){ box.innerHTML = '<p class="dash-hint">불러오는 중…</p>'; return; }
+  const chip = (n, label, onclick, tone) => n
+    ? '<button type="button" class="gt-chip ' + (tone || '') + '" onclick="' + onclick + '">' + label + '</button>'
+    : '<span class="gt-chip is-zero">' + label + '</span>';
+  const parts = [];
+  if(PERF_MISSING_ERR) parts.push('<button type="button" class="gt-chip is-warn" onclick="perfMissingOpen_()">📝 미응시자 못 불러옴 · 다시</button>');
+  else {
+    const g = perfMissingGroups_(gradesYearRows_(PERF_MISSING_LAST && PERF_MISSING_LAST.rows)), ks = Object.keys(g);
+    const n = ks.reduce((t, k) => t + g[k].length, 0), m = ks.reduce((t, k) => t + g[k].reduce((u, s) => u + s.titles.length, 0), 0);
+    parts.push(chip(n, n ? '📝 미응시 <b>' + n + '명 · ' + m + '건</b>' : '📝 미응시 없음', "gradesGo_('perfMissCard')", 'is-warn'));
+  }
+  const rows = gradesYearRows_(PERF_ADMIN_ROWS);
+  if(rows.length){
+    const by = { none: 0, wait: 0, ask: 0, askTodo: 0 };
+    rows.forEach(r => { const st = perfStatusOf_(r); if(st === 'none') by.none++; else if(st === 'wait') by.wait++; else if(st === 'ask'){ by.ask++; if(!r.checked) by.askTodo++; } });
+    parts.push(chip(by.wait, '🔔 재확인 대기 <b>' + by.wait + '</b>', "gradesGo_('perfFold','perfFold')", 'is-warn'));
+    parts.push(chip(by.ask, '⚠️ 이상 있음 <b>' + by.ask + '</b>' + (by.ask ? (by.askTodo ? ' (확인 전 ' + by.askTodo + ')' : ' (모두 확인)') : ''), "gradesGo_('perfFold','perfFold')", by.askTodo ? 'is-warn' : ''));
+    parts.push(chip(by.none, '❔ 안 누름 <b>' + by.none + '</b>', "perfNoneOpen_('')", ''));
+  } else if(DASH_LOAD.grades === 'ready') parts.push('<span class="gt-chip is-zero">✅ 점수 확인: 올라온 점수 없음</span>');
+  const sem = gradesYearRows_(SEM_ADMIN.exams);
+  if(sem.length) parts.push('<button type="button" class="gt-chip" onclick="gradesGo_(\'semFold\',\'semFold\')"><span class="gt-dot' + (SEM_ADMIN.show === 'ON' ? ' is-on' : '') + '"></span>학기말 성적 ' + (SEM_ADMIN.show === 'ON' ? '공개 중' : '비공개') + '</button>');
+  box.innerHTML = '<p class="gt-todo-label">' + GRADES_YEAR + '학년 · 지금 할 일</p><div class="gt-chips">' + parts.join('') + '</div>';
+}
+/* ── 수행평가 점수 확인 현황 (교사, v96) — 반별 응답 수와 "이상 있음" 학생 목록.
+ * v188: 불러오기(dashLoadPerfStatus_)와 그리기(dashRenderPerfStatus_)를 나누고 미응시자(mode=perfMissing)도 같이 읽는다. ── */
 async function dashLoadPerfStatus_(){
   const box = $('perfAdminBox');
   box.textContent = '불러오는 중…';
   DASH_LOAD.grades = 'loading'; // v167
+  gradesRenderTodo_();
+  const missP = perfMissingLoad_(); // v188 — 따로 실패해도 현황은 그린다(이 약속은 거부되지 않는다)
   try{
     const res = await fetch(CONFIG.WEBAPP_URL + '?mode=perfScoreAdmin&token=' + encodeURIComponent(TOKEN));
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
-    const rows = data.rows || [];
-    PERF_ADMIN_ROWS = rows;
+    PERF_ADMIN_ROWS = data.rows || [];
     SEM_ADMIN = { exams: data.exams || [], show: data.examShow || 'OFF' }; // v136
+    await missP;
     DASH_LOAD.grades = 'ready';
-    dashRenderSemAdmin_();
-    if(!rows.length){ box.innerHTML = '<p class="dash-hint">올라온 수행평가 점수가 없어요.</p><div class="perf-toolbar"><button type="button" class="perf-askbtn perf-askbtn-miss" onclick="perfMissingOpen_()">📝 수행평가 미응시자</button></div>'; return; } // v175
-    const byBan = {};
-    rows.forEach(r => { (byBan[r.studentId.slice(0, 3)] = byBan[r.studentId.slice(0, 3)] || []).push(r); });
-    // v101: 응답한 뒤 점수가 바뀐 학생은 «재확인 대기»로 따로 센다(학생이 새 점수를 다시 눌러야 풀림). 한 행 합계 = 학생 수.
-    const head = '<tr><th class="l">반</th><th>학생 수</th><th>이상 없음</th><th>이상 있음</th><th>재확인 대기</th><th>아직 안 누름</th></tr>';
-    const trs = Object.keys(byBan).sort().map(k => {
-      const list = byBan[k];
-      const wait = list.filter(perfAdminChanged_).length;
-      const ok = list.filter(r => r.response === '이상 없음' && !perfAdminChanged_(r)).length;
-      const ask = list.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).length;
-      return '<tr><td class="l">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</td><td>' + list.length + '</td><td>' + ok
-        + '</td><td>' + ask + '</td><td' + (wait ? ' class="perf-wait"' : '') + '>' + wait + '</td><td>' + perfNoneCell_(k, list.length - ok - ask - wait) + '</td></tr>'; // v107: 아직 안 누름 숫자를 누르면 명단 팝업
-    }).join('');
-    const asks = rows.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).sort((a, b) => a.studentId.localeCompare(b.studentId));
-    const changed = rows.filter(perfAdminChanged_).sort((a, b) => a.studentId.localeCompare(b.studentId));
-    // v105: 표까지 내려가지 않아도 보이게 반별 응답 수(응답함/학생 수)를 칩으로 먼저 보여 준다.
-    const banSum = '<div class="perf-bansum">' + Object.keys(byBan).sort().map(k => {
-      const list = byBan[k];
-      return '<span class="perf-bansum-chip">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반 ' + list.filter(r => r.response).length + '/' + list.length + '</span>';
-    }).join('') + '</div>';
-    const noneAll = rows.filter(r => !r.response).length; // v107
-    box.innerHTML = banSum + '<div class="perf-toolbar"><button type="button" class="perf-askbtn perf-askbtn-ov" onclick="perfOverviewOpen_(\'\')">🗂️ 반별 한눈에 보기</button> <button type="button" class="perf-askbtn perf-askbtn-none" onclick="perfNoneOpen_(\'\')">👀 아직 안 누른 학생 보기 (' + noneAll + '명)</button> <button type="button" class="perf-askbtn perf-askbtn-miss" onclick="perfMissingOpen_()">📝 수행평가 미응시자</button></div>'
-      + '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
-      + (changed.length ? '<p class="dash-section-title">🔔 점수가 바뀌어 재확인 대기 (' + changed.length + '명)</p>' // v101
-          + '<p class="dash-hint">응답 뒤에 점수가 바뀐 학생이에요. 학생 화면에 «점수가 달라졌어요» 안내가 뜨고, 새 점수를 보고 다시 누르면 이 목록에서 빠져요.</p>'
-          + '<div class="perf-asklist">' + changed.map(r => '<button type="button" class="perf-askbtn perf-askbtn-wait" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
-          + escapeHtml(r.studentId + ' ' + r.name + ' ' + r.answeredScore + '→' + r.score + '점') + '</button>').join('') + '</div>' : '')
-      + '<p class="dash-section-title">이상 있음 (' + asks.length + '명)</p>'
-      + (asks.length ? '<p class="dash-hint">확인 완료 ' + asks.filter(r => r.checked).length + '명 / ' + asks.length + '명</p>' // v99
-          + '<div class="perf-asklist">' + asks.map(r => '<button type="button" id="perfAsk_' + escapeHtml(r.studentId) + '" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
-          + escapeHtml(perfAskLabel_(r)) + '</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
-      + '<p class="dash-section-title">학생별 점수·조정</p>'
-      + '<div class="filters"><select id="perfBanSel" onchange="dashRenderPerfStudents_()">'
-      + Object.keys(byBan).sort().map(k => '<option value="' + k + '">' + Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1)) + '반</option>').join('')
-      + '</select></div><div id="perfStudentBox"></div>';
-    dashRenderPerfStudents_();
+    gradesRenderAll_();
   }catch(e){
     DASH_LOAD.grades = 'error';
     box.innerHTML = escapeHtml('❌ 현황을 불러오지 못했어: ' + e.message) + dashRetryBtn_('dashLoadPerfStatus_()'); // v167 — 다시 시도
     if($('semAdminBox') && /불러오는 중/.test($('semAdminBox').textContent)) $('semAdminBox').textContent = '❌ 학기말 성적을 불러오지 못했어: ' + e.message; // v136
+    if($('perfFold')) $('perfFold').open = true; // v188 — 오류가 접힌 채 숨지 않게
+    await missP; perfMissingRender_();
+    $('gradesTodo').innerHTML = '<p class="dash-hint">' + escapeHtml('❌ 성적 현황을 불러오지 못했어: ' + e.message) + '</p>' + dashRetryBtn_('dashLoadPerfStatus_()');
   }
+}
+function dashRenderPerfStatus_(){
+  const box = $('perfAdminBox'), note = $('perfFoldNote');
+  if(!box) return;
+  box.classList.remove('dash-hint');
+  const rows = gradesYearRows_(PERF_ADMIN_ROWS);
+  if(!rows.length){
+    box.innerHTML = '<p class="dash-hint">' + GRADES_YEAR + '학년은 올라온 수행평가 점수가 없어요.</p>';
+    if(note) note.textContent = '올라온 점수 없음';
+    return;
+  }
+  const byBan = {};
+  rows.forEach(r => { (byBan[r.studentId.slice(0, 3)] = byBan[r.studentId.slice(0, 3)] || []).push(r); });
+  const banKeys = Object.keys(byBan).sort();
+  // v101: 응답한 뒤 점수가 바뀐 학생은 «재확인 대기»로 따로 센다(학생이 새 점수를 다시 눌러야 풀림). 한 행 합계 = 학생 수.
+  const head = '<tr><th class="l">반</th><th>학생 수</th><th>이상 없음</th><th>이상 있음</th><th>재확인 대기</th><th>아직 안 누름</th></tr>';
+  const trs = banKeys.map(k => {
+    const list = byBan[k];
+    const wait = list.filter(perfAdminChanged_).length;
+    const ok = list.filter(r => r.response === '이상 없음' && !perfAdminChanged_(r)).length;
+    const ask = list.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).length;
+    return '<tr><td class="l">' + perfBanName_(k) + '</td><td>' + list.length + '</td><td>' + ok
+      + '</td><td>' + ask + '</td><td' + (wait ? ' class="perf-wait"' : '') + '>' + wait + '</td><td>' + perfNoneCell_(k, list.length - ok - ask - wait) + '</td></tr>'; // v107: 아직 안 누름 숫자를 누르면 명단 팝업
+  }).join('');
+  const asks = rows.filter(r => r.response === '이상 있음' && !perfAdminChanged_(r)).sort((a, b) => a.studentId.localeCompare(b.studentId));
+  const changed = rows.filter(perfAdminChanged_).sort((a, b) => a.studentId.localeCompare(b.studentId));
+  const noneAll = rows.filter(r => !r.response).length; // v107
+  if(note) note.textContent = '응답 ' + (rows.length - noneAll) + '/' + rows.length + ' · 이상 있음 ' + asks.length + ' · 재확인 ' + changed.length;
+  // v188: 반별 응답 칩(v105)은 바로 아래 표와 같은 숫자라 뺐다. 미응시자 단추(v175)는 위 미응시자 카드로 옮겼다.
+  box.innerHTML = '<div class="gt-tools"><button type="button" class="perf-askbtn perf-askbtn-ov" onclick="perfOverviewOpen_(\'\')">🗂️ 반별 한눈에 보기</button><button type="button" class="perf-askbtn perf-askbtn-none" onclick="perfNoneOpen_(\'\')">👀 아직 안 누른 학생 (' + noneAll + '명)</button></div>'
+    + '<div class="perf-stat-wrap"><table class="grade-table perf-stat">' + head + trs + '</table></div>'
+    + (changed.length ? '<p class="dash-section-title">🔔 점수가 바뀌어 재확인 대기 (' + changed.length + '명)</p>' // v101
+        + '<p class="dash-hint">응답 뒤에 점수가 바뀐 학생이에요. 학생 화면에 «점수가 달라졌어요» 안내가 뜨고, 새 점수를 보고 다시 누르면 이 목록에서 빠져요.</p>'
+        + '<div class="perf-asklist">' + changed.map(r => '<button type="button" class="perf-askbtn perf-askbtn-wait" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
+        + escapeHtml(r.studentId + ' ' + r.name + ' ' + r.answeredScore + '→' + r.score + '점') + '</button>').join('') + '</div>' : '')
+    + '<p class="dash-section-title">⚠️ 이상 있음 (' + asks.length + '명)</p>'
+    + (asks.length ? '<p class="dash-hint">확인 완료 ' + asks.filter(r => r.checked).length + '명 / ' + asks.length + '명</p>' // v99
+        + '<div class="perf-asklist">' + asks.map(r => '<button type="button" id="perfAsk_' + escapeHtml(r.studentId) + '" class="perf-askbtn' + (r.checked ? ' is-checked' : '') + '" onclick="dashLoadPerfEvidence_(\'' + escapeHtml(r.studentId) + '\')">'
+        + escapeHtml(perfAskLabel_(r)) + '</button>').join('') + '</div>' : '<p class="dash-hint">없어요.</p>')
+    + '<details class="perf-grp gt-sub" id="perfStuFold"' + (PERF_STU_OPEN ? ' open' : '') + ' ontoggle="PERF_STU_OPEN = this.open"><summary>학생별 점수·조정 <span class="perf-grp-note">반을 골라 한 학생씩</span></summary><div class="perf-grp-body">' // v188 — 누를 때만 펼침
+    + '<div class="filters"><select id="perfBanSel" onchange="dashRenderPerfStudents_()" aria-label="반 고르기">'
+    + banKeys.map(k => '<option value="' + k + '">' + perfBanName_(k) + '</option>').join('')
+    + '</select></div><div id="perfStudentBox"></div></div></details>';
+  dashRenderPerfStudents_();
 }
 /* v97 — 이상 있음 학생 한 명의 점수 산출 근거 팝업 (교사 전용, mode=perfEvidenceAdmin). 학생 화면에는 이 데이터가 내려가지 않는다.
  * 순서: ① 점수 산출 근거(글 수·3/2/1/0점 개수·반영 합계) ② 점수별 토글 ③ 글마다 패들렛 원문 + 채점 근거. */
@@ -297,7 +363,7 @@ function perfNoneCell_(k, n){
 }
 function perfNoneGroups_(ban){
   const g = {};
-  PERF_ADMIN_ROWS.filter(r => !r.response && (!ban || r.studentId.slice(0, 3) === ban)).forEach(r => {
+  PERF_ADMIN_ROWS.filter(r => !r.response && (ban ? r.studentId.slice(0, 3) === ban : r.studentId.charAt(0) === GRADES_YEAR)).forEach(r => {
     (g[r.studentId.slice(0, 3)] = g[r.studentId.slice(0, 3)] || []).push(r);
   });
   Object.keys(g).forEach(k => g[k].sort((a, b) => a.studentId.localeCompare(b.studentId)));
@@ -306,8 +372,8 @@ function perfNoneGroups_(ban){
 function perfNoneOpen_(ban){
   const g = perfNoneGroups_(ban), keys = Object.keys(g).sort();
   const total = keys.reduce((n, k) => n + g[k].length, 0);
-  const all = PERF_ADMIN_ROWS.filter(r => !ban || r.studentId.slice(0, 3) === ban).length;
-  const title = (ban ? perfBanName_(ban) + ' ' : '') + '아직 안 누른 학생 ' + total + '명';
+  const all = PERF_ADMIN_ROWS.filter(r => ban ? r.studentId.slice(0, 3) === ban : r.studentId.charAt(0) === GRADES_YEAR).length; // v188 — 전체 = 고른 학년
+  const title = (ban ? perfBanName_(ban) + ' ' : GRADES_YEAR + '학년 ') + '아직 안 누른 학생 ' + total + '명';
   if(!total){ perfModalOpen_(title, '', '<p class="dash-hint">모두 눌렀어요 🎉</p>'); return; }
   const body = '<p class="dash-hint">«이상 없음/이상 있음»을 한 번도 누르지 않은 학생이에요. 전체 ' + all + '명 중 ' + total + '명. 점수가 바뀌어 다시 눌러야 하는 학생은 «재확인 대기»라서 여기엔 안 들어와요.</p>'
     + '<div class="perf-none-actions"><button type="button" class="perf-askbtn" onclick="perfNoneCopy_(\'' + escapeHtml(ban) + '\')">📋 명단 복사</button>'
@@ -330,7 +396,7 @@ function perfStatusOf_(r){
   return r.response === '이상 있음' ? 'ask' : 'ok';
 }
 function perfOverviewOpen_(ban){
-  const rows = PERF_ADMIN_ROWS.slice().sort((a, b) => a.studentId.localeCompare(b.studentId));
+  const rows = gradesYearRows_(PERF_ADMIN_ROWS).sort((a, b) => a.studentId.localeCompare(b.studentId)); // v188 — 고른 학년만
   const bans = Array.from(new Set(rows.map(r => r.studentId.slice(0, 3)))).sort();
   const show = ban ? [ban] : bans;
   const defs = [['none', '❔ 아직 안 누름', 'perf-ov-none'], ['wait', '🔔 재확인 대기', 'perf-ov-wait'], ['ask', '⚠️ 이상 있음', 'perf-ov-ask'], ['ok', '✅ 이상 없음', 'perf-ov-ok']];
@@ -352,7 +418,7 @@ function perfOverviewOpen_(ban){
   const tabs = '<div class="perf-ov-tabs"><button type="button" class="perf-askbtn' + (ban ? '' : ' is-checked') + '" onclick="perfOverviewOpen_(\'\')">전체 반</button>'
     + bans.map(k => '<button type="button" class="perf-askbtn' + (k === ban ? ' is-checked' : '') + '" onclick="perfOverviewOpen_(\'' + k + '\')">' + perfBanName_(k) + '</button>').join('')
     + '<button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_().then(() => perfOverviewOpen_(\'' + ban + '\'))">↻ 새로고침</button></div>';
-  perfModalOpen_((ban ? perfBanName_(ban) + ' ' : '') + '반별 한눈에 보기', '수행평가 점수 확인', tabs + (cards || '<p class="dash-hint">올라온 학생이 없어요.</p>')
+  perfModalOpen_((ban ? perfBanName_(ban) + ' ' : GRADES_YEAR + '학년 ') + '반별 한눈에 보기', '수행평가 점수 확인', tabs + (cards || '<p class="dash-hint">올라온 학생이 없어요.</p>')
     + '<p class="dash-hint">«이상 있음»의 ✓는 선생님이 확인 완료한 학생이에요. 이상 있음 학생의 근거는 현황 화면의 이상 있음 버튼에서 열어요.</p>');
 }
 let PERF_UI_KEEP = null;
@@ -375,6 +441,7 @@ async function dashAdjustPerfPost_(order, score){
     showToast('✅ ' + order + '번째 글 ' + data.previousPost + '점 → ' + data.score + '점, 총점 ' + data.previousTotal + '점 → ' + data.total + '점');
     await dashLoadPerfEvidence_(d.sid);
     if(typeof dashRenderPerfStudents_ === 'function') dashRenderPerfStudents_();
+    gradesSyncAfterEdit_(); // v188
   }catch(e){
     showToast('❌ ' + e.message + ' (백엔드 재배포 전이면 안 돼요)');
   }
@@ -526,6 +593,7 @@ function perfRefreshAdminLists_(){
   const b = d && $('perfAsk_' + d.sid);
   if(r && b){ b.textContent = perfAskLabel_(r); b.classList.toggle('is-checked', !!r.checked); }
   dashRenderPerfStudents_();
+  gradesSyncAfterEdit_(); // v188 — «확인 전 N» 숫자도
 }
 /* 학생에게 알려 줄 때 붙여 쓸 수 있는 요약 텍스트(클립보드). 원문은 길어서 빼고 점수·근거만 담는다. v99: 교사 메모도 함께. */
 async function perfCopyFeedback_(){
@@ -588,6 +656,7 @@ async function dashAdjustPerfScore_(sid){
     r.score = score;
     showToast('✅ ' + r.name + ' ' + data.previous + '점 → ' + score + '점으로 조정했어요.');
     dashRenderPerfStudents_();
+    gradesSyncAfterEdit_(); // v188
   }catch(e){
     showToast('❌ ' + e.message + ' (백엔드 재배포 전이면 안 돼요)');
   }
@@ -1188,6 +1257,7 @@ function dashClearSession_(){
     renderDash(); dashRenderQuestions();
     $('paRequests').textContent = ''; $('paAccounts').innerHTML = ''; $('paBadge').style.display = 'none';
     $('perfAdminBox').textContent = '불러오는 중…'; $('semAdminBox').textContent = '불러오는 중…';
+    $('gradesTodo').innerHTML = ''; $('perfMissBox').innerHTML = ''; $('perfMissCard').style.display = 'none'; PERF_MISSING_ERR = ''; // v188
   }catch(e){}
 }
 $('btnDashOut').addEventListener('click', () => {
@@ -1269,11 +1339,13 @@ document.addEventListener('DOMContentLoaded', () => bootScriptsReady_(), { once:
   if(pre) bootCacheRefreshLater_(loginDone);
 })();
 /* v175 — 수행평가 미응시자 명단(교사 전용, 읽기 전용이라 PREVIEW_MODE 가드 불필요). mode=perfMissing.
- * 이름은 백엔드 시트(수행평가미응시)에만 있고 이 공개 레포에는 없다. 반별 표: 번호 · 이름 · 빠진 수행평가. */
+ * 이름은 백엔드 시트(수행평가미응시)에만 있고 이 공개 레포에는 없다.
+ * v188: 팝업 대신 성적관리 탭 #perfMissCard에 고른 학년만 반별 표로 바로 보인다. 표는 번호·이름(좁게, 줄바꿈 없음) | 빠진 수행평가(한 줄에 꼬리표 하나),
+ * 머리는 «N명 · M건»(N = 학생 수, M = 빠진 평가 수). 전에는 평가를 쉼표로 이어 붙여 «신항로 개/척»처럼 글자 중간에서 넘어갔다. */
 let PERF_MISSING_LAST = null;
 function perfMissingGroups_(rows){
   const g = {};
-  rows.forEach(r => {
+  (rows || []).forEach(r => {
     const k = r.studentId.slice(0, 3);
     const byStu = g[k] = g[k] || {};
     const s = byStu[r.studentId] = byStu[r.studentId] || { studentId: r.studentId, name: r.name, titles: [] };
@@ -1284,34 +1356,47 @@ function perfMissingGroups_(rows){
   Object.keys(g).forEach(k => { out[k] = Object.keys(g[k]).sort().map(id => g[k][id]); });
   return out;
 }
-async function perfMissingOpen_(){
-  perfModalOpen_('수행평가 미응시자', '불러오는 중…', '<p class="dash-hint">불러오는 중…</p>');
+async function perfMissingLoad_(){
   try{
     const res = await fetch(CONFIG.WEBAPP_URL + '?mode=perfMissing&token=' + encodeURIComponent(TOKEN));
     const data = await res.json();
     if(data.result !== 'success') throw new Error(data.message || '조회 실패');
-    PERF_MISSING_LAST = data;
-    const g = perfMissingGroups_(data.rows || []), keys = Object.keys(g).sort();
-    const total = keys.reduce((n, k) => n + g[k].length, 0);
-    const notes = (data.notes || []).length ? '<ul class="perf-miss-notes">' + data.notes.map(s => '<li>' + escapeHtml(s) + '</li>').join('') + '</ul>' : '';
-    const actions = '<div class="perf-none-actions"><button type="button" class="perf-askbtn" onclick="perfMissingCopy_()">📋 명단 복사</button>'
-      + '<button type="button" class="perf-askbtn" onclick="perfMissingOpen_()">↻ 새로고침</button></div>';
-    const tables = keys.map(k => '<details class="perf-grp perf-none-grp" open><summary>' + perfBanName_(k) + ' <span class="perf-none-cnt">' + g[k].length + '명</span></summary>'
-      + '<div class="perf-stat-wrap"><table class="grade-table perf-miss-table"><tr><th>번호</th><th class="l">이름</th><th class="l">빠진 수행평가</th></tr>'
-      + g[k].map(s => '<tr><td>' + Number(s.studentId.slice(3)) + '</td><td class="l">' + escapeHtml(s.name) + '</td><td class="l">' + escapeHtml(s.titles.join(', ')) + '</td></tr>').join('')
-      + '</table></div></details>').join('');
-    const sub = data.at ? data.at + ' 기준' : '';
-    perfModalOpen_('수행평가 미응시자 ' + total + '명', sub,
-      '<p class="dash-hint">답안이 없는 학생이에요. 나중에 응시하면 따로 채점해요.</p>' + notes + actions
-      + (total ? tables : '<p class="dash-hint">미응시자가 없어요 🎉</p>'));
-  }catch(e){
-    perfModalOpen_('수행평가 미응시자', '', '<p class="dash-hint">' + escapeHtml('❌ 불러오지 못했어요: ' + e.message) + '</p>'
-      + '<div class="perf-none-actions"><button type="button" class="perf-askbtn" onclick="perfMissingOpen_()">↻ 다시 시도</button></div>');
+    PERF_MISSING_LAST = data; PERF_MISSING_ERR = '';
+  }catch(e){ PERF_MISSING_ERR = e.message || '조회 실패'; }
+}
+/* 옛 이름(v175 팝업 단추) — 다시 읽고 미응시자 카드로 간다 */
+async function perfMissingOpen_(){
+  await perfMissingLoad_(); perfMissingRender_(); gradesRenderTodo_(); gradesGo_('perfMissCard');
+}
+function perfMissingTableHtml_(k, list){
+  const items = list.reduce((n, s) => n + s.titles.length, 0);
+  return '<section class="gt-miss-ban"><h3>' + perfBanName_(k) + ' <small>' + list.length + '명 · ' + items + '건</small></h3>'
+    + '<table class="gt-miss-table"><thead><tr><th class="no">번호</th><th class="nm">이름</th><th class="l">빠진 수행평가</th></tr></thead><tbody>'
+    + list.map(s => '<tr><td class="no">' + Number(s.studentId.slice(3)) + '</td><td class="nm">' + escapeHtml(s.name) + '</td><td class="l"><span class="gt-tags">'
+      + s.titles.map(t => '<span class="gt-tag">' + escapeHtml(t) + '</span>').join('') + '</span></td></tr>').join('')
+    + '</tbody></table></section>';
+}
+function perfMissingRender_(){
+  const card = $('perfMissCard'), box = $('perfMissBox'), head = $('perfMissHead');
+  if(!card || !box) return;
+  if(PERF_MISSING_ERR){
+    card.style.display = ''; head.textContent = '';
+    box.innerHTML = '<p class="dash-hint">' + escapeHtml('❌ 미응시자 명단을 불러오지 못했어요: ' + PERF_MISSING_ERR) + '</p><div class="gt-tools"><button type="button" class="perf-askbtn" onclick="perfMissingOpen_()">↻ 다시 시도</button></div>';
+    return;
   }
+  const g = perfMissingGroups_(gradesYearRows_(PERF_MISSING_LAST && PERF_MISSING_LAST.rows)), keys = Object.keys(g).sort();
+  const total = keys.reduce((n, k) => n + g[k].length, 0), items = keys.reduce((n, k) => n + g[k].reduce((u, s) => u + s.titles.length, 0), 0);
+  card.style.display = total ? '' : 'none';
+  if(!total){ box.innerHTML = ''; head.textContent = ''; return; }
+  head.textContent = total + '명 · ' + items + '건';
+  const notes = (PERF_MISSING_LAST.at ? '<p class="dash-hint gt-miss-at">' + escapeHtml(PERF_MISSING_LAST.at) + ' 기준 · 답안이 없는 학생이에요. 나중에 응시하면 따로 채점해요.</p>' : '')
+    + ((PERF_MISSING_LAST.notes || []).length ? '<ul class="perf-miss-notes">' + PERF_MISSING_LAST.notes.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul>' : '');
+  const actions = '<div class="gt-tools"><button type="button" class="perf-askbtn" onclick="perfMissingCopy_()">📋 명단 복사</button><button type="button" class="perf-askbtn" onclick="perfMissingOpen_()">↻ 다시 읽기</button></div>';
+  box.innerHTML = notes + actions + '<div class="gt-miss-grid">' + keys.map(k => perfMissingTableHtml_(k, g[k])).join('') + '</div>';
 }
 async function perfMissingCopy_(){
-  const g = perfMissingGroups_((PERF_MISSING_LAST && PERF_MISSING_LAST.rows) || []), keys = Object.keys(g).sort();
+  const g = perfMissingGroups_(gradesYearRows_(PERF_MISSING_LAST && PERF_MISSING_LAST.rows)), keys = Object.keys(g).sort();
   const lines = keys.map(k => perfBanName_(k) + ' (' + g[k].length + '명): ' + g[k].map(s => Number(s.studentId.slice(3)) + '번 ' + s.name + '(' + s.titles.join('·') + ')').join(', '));
-  try{ await navigator.clipboard.writeText('수행평가 미응시자\n' + lines.join('\n')); showToast('명단을 복사했어요.'); }
+  try{ await navigator.clipboard.writeText(GRADES_YEAR + '학년 수행평가 미응시자\n' + lines.join('\n')); showToast('명단을 복사했어요.'); }
   catch(e){ showToast('복사에 실패했어요.'); }
 }
