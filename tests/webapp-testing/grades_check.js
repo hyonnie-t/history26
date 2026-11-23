@@ -45,6 +45,7 @@ const PERF = [];
   PERF.push(r);
 } });
 const EXAMS = PERF.map((r, i) => ({ studentId: r.studentId, name: r.name, title: '2학기 기말고사', score: 60 + i * 3, max: 100, areas: [], feedback: '' }));
+let FAIL = false; // true면 perfScoreAdmin이 실패를 돌려준다
 const LONG = ['신항로 개척과 유럽 세계의 팽창 보고서', '절대 왕정 비교 카드뉴스', '시민 혁명 토론 글쓰기'];
 const MISS = [
   { studentId: '20103', name: '이학년1-3', title: LONG[0], note: '' }, { studentId: '20103', name: '이학년1-3', title: LONG[1], note: '' },
@@ -62,6 +63,7 @@ const MISS = [
   async function routeBackend(route) {
     const req = route.request(), u = req.url();
     if (req.method() === 'GET') {
+      if (u.includes('mode=perfScoreAdmin') && FAIL) return route.fulfill(J({ result: 'error', message: '가짜 실패' }));
       if (u.includes('mode=perfScoreAdmin')) return route.fulfill(J({ result: 'success', rows: PERF, exams: EXAMS, examShow: 'ON' }));
       if (u.includes('mode=perfMissing')) return route.fulfill(J({ result: 'success', rows: MISS, notes: ['11-24 수업 때 미응시 처리'], at: '2026-11-23 09:00' }));
       if (u.includes('mode=curriculum')) return route.fulfill(J({ result: 'success', grades: {}, lessons: [], gradeInfo: {} }));
@@ -129,6 +131,19 @@ const MISS = [
   const r2 = await open({ width: 1280, height: 900 }, page);
   check('새로고침 뒤에도 3학년 유지', /3학년 · 지금 할 일/.test(await r2.page.textContent('#gradesTodo')) && await r2.page.$eval('.gt-year[data-year="3"]', b => b.classList.contains('is-on')));
   await r2.page.evaluate(() => gradesPickYear_('2'));
+
+  /* 4-2) 현황 조회 실패 뒤 학년을 바꿔도 오류·다시 시도가 남는지(검토 2026-11-23 재현 건) */
+  FAIL = true;
+  {
+    const pg = r2.page;
+    await pg.evaluate(() => dashLoadPerfStatus_()); // 맨 위 ↻ 새로고침과 같은 길
+    await pg.click('.gt-year[data-year="3"]');
+    const t = await pg.textContent('#perfAdminBox');
+    check('조회 실패 뒤 학년을 바꿔도 오류·다시 시도 유지', /불러오지 못했어/.test(t) && /다시 시도/.test(t), t.slice(0, 60));
+    check('조회 실패 중에도 학년 단추 표시', await pg.$eval('.gt-year[data-year="3"]', b => b.classList.contains('is-on')));
+    await pg.click('.gt-year[data-year="2"]');
+  }
+  FAIL = false;
 
   /* 5) 네 폭 */
   for (const [name, w, h] of [['phone', 360, 780], ['w768', 768, 1024], ['w1180', 1180, 820], ['pc', 1280, 900]]) {

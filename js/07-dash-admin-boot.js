@@ -177,7 +177,7 @@ function dashRenderSemAdmin_(){
     + '<div class="sem-kpis"><div><small>평균 합계</small><b>' + fmt(semAvg_(list, 'total')) + '</b></div><div><small>평균 기말고사</small><b>' + fmt(semAvg_(list, 'score')) + '</b></div><div><small>A·B 성취도</small><b>' + list.filter(r => r.grade === 'A' || r.grade === 'B').length + '<em>명</em></b></div></div>'
     + '<p class="sem-sec">반별 성취도 <span class="sem-legend">' + SEM_GRADES.map(g => '<i class="sem-g' + g + '"></i>' + g).join(' ') + '</span><span class="sem-dist-head">평균</span></p>'
     + '<div class="sem-dist">' + semDistBar_('전체', list, '', false) + bans.map(k => semDistBar_(semBanName_(k), byBan(k), k, SEM_TABLE_OPEN && k === SEM_BAN)).join('') + '</div>'
-    + '<details class="perf-grp gt-sub" id="semStuFold"' + (SEM_TABLE_OPEN ? ' open' : '') + ' ontoggle="SEM_TABLE_OPEN = this.open"><summary>학생 표 보기 <span class="perf-grp-note">' + semBanName_(SEM_BAN) + ' ' + rows.length + '명 · 피드백</span></summary><div class="perf-grp-body">'
+    + '<details class="perf-grp gt-sub" id="semStuFold"' + (SEM_TABLE_OPEN ? ' open' : '') + ' ontoggle="SEM_TABLE_OPEN = this.open"><summary>학생 표 보기 <span class="perf-grp-note">' + bans.length + '개 반 ' + list.length + '명 · 반별 · 피드백</span></summary><div class="perf-grp-body">'
     + '<div class="sem-tabs" role="tablist">' + bans.map(k => '<button type="button" role="tab" aria-selected="' + (k === SEM_BAN) + '" class="sem-tab' + (k === SEM_BAN ? ' is-on' : '') + '" onclick="semPickBan_(\'' + k + '\')">' + semBanName_(k) + '</button>').join('') + '</div>'
     + '<div class="perf-stat-wrap"><table class="sem-table"><thead><tr><th>번호</th><th class="l">이름</th><th>수행</th><th>기말</th><th>합계</th><th>성취도</th><th></th></tr></thead><tbody>'
     + rows.map(r => '<tr><td>' + Number(r.studentId.slice(3)) + '</td><td class="l">' + escapeHtml(r.name) + '</td><td>' + fmt(r.perfGot) + '</td><td>' + fmt(r.score)
@@ -208,8 +208,13 @@ function gradesYearRows_(rows){ return (rows || []).filter(r => String(r.student
  * 현황 표(dashRenderPerfStatus_)는 다시 그리지 않는다 — 학생별 점수·조정에서 고른 반·필터가 풀리기 때문(↻ 새로고침이 맞춘다). */
 function gradesSyncAfterEdit_(){ dashRenderSemAdmin_(); gradesRenderTodo_(); }
 function gradesPickYear_(y){ GRADES_YEAR = y; store.set('dash_grades_year', y); gradesRenderAll_(); }
-function gradesRenderAll_(){
+function gradesPaintYear_(){
   document.querySelectorAll('#panelGrades .gt-year').forEach(b => { const on = b.dataset.year === GRADES_YEAR; b.classList.toggle('is-on', on); b.setAttribute('aria-selected', String(on)); });
+}
+function gradesRenderAll_(){
+  gradesPaintYear_();
+  // 현황 조회가 실패한 채면 오류·«다시 시도»를 덮지 않는다(검토 2026-11-23 재현: 학년을 바꾸면 «점수 없음»으로 덮였음). 미응시자만 학년에 맞춘다
+  if(DASH_LOAD.grades === 'error'){ perfMissingRender_(); return; }
   dashRenderSemAdmin_(); dashRenderPerfStatus_(); perfMissingRender_(); gradesRenderTodo_();
 }
 /* «지금 할 일» 한 줄: 미응시 몇 명 몇 건 · 재확인 대기 · 이상 있음(확인 전) · 안 누름 · 학기말 공개 상태. 0인 것은 흐리게, 누르면 그 자리로 간다. */
@@ -248,7 +253,7 @@ async function dashLoadPerfStatus_(){
   const box = $('perfAdminBox');
   box.textContent = '불러오는 중…';
   DASH_LOAD.grades = 'loading'; // v167
-  gradesRenderTodo_();
+  gradesPaintYear_(); gradesRenderTodo_();
   const missP = perfMissingLoad_(); // v188 — 따로 실패해도 현황은 그린다(이 약속은 거부되지 않는다)
   try{
     const res = await fetch(CONFIG.WEBAPP_URL + '?mode=perfScoreAdmin&token=' + encodeURIComponent(TOKEN));
@@ -1258,6 +1263,7 @@ function dashClearSession_(){
     $('paRequests').textContent = ''; $('paAccounts').innerHTML = ''; $('paBadge').style.display = 'none';
     $('perfAdminBox').textContent = '불러오는 중…'; $('semAdminBox').textContent = '불러오는 중…';
     $('gradesTodo').innerHTML = ''; $('perfMissBox').innerHTML = ''; $('perfMissCard').style.display = 'none'; PERF_MISSING_ERR = ''; // v188
+    $('semFoldNote').textContent = ''; $('perfFoldNote').textContent = ''; SEM_ADMIN = { exams: [], show: 'OFF' }; // v188 — 묶음 요약에 앞 세션 숫자가 남지 않게
   }catch(e){}
 }
 $('btnDashOut').addEventListener('click', () => {
@@ -1391,7 +1397,7 @@ function perfMissingRender_(){
   head.textContent = total + '명 · ' + items + '건';
   const notes = (PERF_MISSING_LAST.at ? '<p class="dash-hint gt-miss-at">' + escapeHtml(PERF_MISSING_LAST.at) + ' 기준 · 답안이 없는 학생이에요. 나중에 응시하면 따로 채점해요.</p>' : '')
     + ((PERF_MISSING_LAST.notes || []).length ? '<ul class="perf-miss-notes">' + PERF_MISSING_LAST.notes.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul>' : '');
-  const actions = '<div class="gt-tools"><button type="button" class="perf-askbtn" onclick="perfMissingCopy_()">📋 명단 복사</button><button type="button" class="perf-askbtn" onclick="perfMissingOpen_()">↻ 다시 읽기</button></div>';
+  const actions = '<div class="gt-tools"><button type="button" class="perf-askbtn" onclick="perfMissingCopy_()">📋 명단 복사</button></div>'; // 다시 읽기는 맨 위 ↻ 하나로(제미나이 의견: 새로고침 단추 셋)
   box.innerHTML = notes + actions + '<div class="gt-miss-grid">' + keys.map(k => perfMissingTableHtml_(k, g[k])).join('') + '</div>';
 }
 async function perfMissingCopy_(){
