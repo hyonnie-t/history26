@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=187">
+<link rel="stylesheet" href="style.css?v=188">
 <script src="js/11-pwa-install.js?v=157" defer></script>
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
@@ -928,26 +928,42 @@
        계정(학번·이름·비밀번호) 관리는 여기 UI를 따로 안 만들고 효니가 "계정" 시트를 직접
        열어 편집하기로 확정됨 — 이 탭은 성적 데이터 자체(엑셀 업로드)와 열람 기간만 다룬다. -->
   <div class="dash-panel" id="panelGrades" style="display:none;">
-    <!-- v136 — 학기말 성적(수행 + 지필 환산)·성취도·개별 피드백. 지필 점수는 백엔드 uploadExamScores로 올리고 여기서 학생 공개를 켠다.
-         v137(2026-11-02 효니): 기말 뒤라 학기말 성적을 맨 위로, 수행평가 확인 현황은 아래 접기로. -->
-    <section class="dash-card">
-      <h2 class="dash-card-title">학기말 성적 (수행평가 + 지필평가)</h2>
-      <details class="fold-note" data-fold="semDesc"><summary>설명 보기</summary>
-      <p class="dash-card-desc">학생이 포털 맨 위 «학기말 성적 확인하기»(3학년 화면의 성적 카드)를 열면 맨 위에 학기말 합계·성취도·단원별 기말고사 점수·공부 길잡이가 나와요(공개를 켰을 때만). 합계는 수행평가 점수(조정 포함) ÷ 만점 × 30 + 기말고사 × 0.7로 화면에서 계산하고, 성취도는 반올림 전 합계로 정해요. 피드백 문장은 «지필평가점수» 시트에서 직접 고칠 수 있어요.</p></details>
-      <div id="semAdminBox" class="dash-hint">불러오는 중…</div>
+    <!-- v188(2026-11-23 효니 «엉망이다» → 방향 «응») — 맨 위 학년 고르기(2·3학년) + «지금 할 일» 한 줄을 먼저 보이고,
+         미응시자 명단은 바로 펼쳐 두고, 학기말 성적·점수 확인 현황은 접힌 묶음(접힘 상태는 localStorage)으로 둔다.
+         렌더는 js/07 gradesRenderAll_(), 데이터는 dashLoadPerfStatus_()가 perfScoreAdmin·perfMissing을 같이 읽는다. -->
+    <div class="gt-head">
+      <div class="gt-years" role="tablist" aria-label="학년 고르기">
+        <button type="button" role="tab" class="gt-year" data-year="2" aria-selected="false" onclick="gradesPickYear_('2')">2학년</button>
+        <button type="button" role="tab" class="gt-year" data-year="3" aria-selected="false" onclick="gradesPickYear_('3')">3학년</button>
+      </div>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="dashLoadPerfStatus_()">↻ 새로고침</button>
+    </div>
+    <section class="gt-todo" id="gradesTodo" aria-label="지금 할 일" aria-live="polite"><p class="dash-hint">불러오는 중…</p></section>
+
+    <!-- v175 미응시자 명단(mode=perfMissing)을 팝업 대신 여기 반별 표로 바로 보인다(v188). 고른 학년에 미응시자가 없으면 숨는다 -->
+    <section class="dash-card gt-miss" id="perfMissCard" style="display:none;">
+      <h2 class="dash-card-title">📝 수행평가 미응시자 <small class="gt-miss-head" id="perfMissHead"></small></h2>
+      <div id="perfMissBox"></div>
     </section>
 
-    <!-- v96 — 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). v137: 접기(내용·로드는 그대로 — 학기말 합계가 PERF_ADMIN_ROWS를 쓴다). -->
-    <details class="cl-collapse">
-      <summary>수행평가 점수 확인 현황 <span class="cl-sum-note">이상 있음·재확인 대기·학생별 점수 조정</span> <span class="cl-arrow">▶</span></summary>
-      <div class="cl-collapse-body">
-      <details class="fold-note" data-fold="perfDesc"><summary>설명 보기</summary>
-      <p class="dash-card-desc">학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 누른 뒤에 점수가 바뀌면 학생 화면에 변동 안내가 뜨고 한 번 더 누르게 해요(그동안은 «재확인 대기»). 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. 아래 «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p></details> <!-- v105: 긴 설명 접기, 접힘 상태는 localStorage -->
-      <div class="perf-toolbar"><button type="button" class="perf-askbtn" onclick="dashLoadPerfStatus_()">↻ 새로고침</button></div> <!-- v101: .filters 알약 바 대신 -->
-      <div id="perfAdminBox" class="dash-hint">불러오는 중…</div>
-      </div>
+    <!-- v136 학기말 성적(수행 + 지필 환산)·성취도·개별 피드백. 지필 점수는 백엔드 uploadExamScores로 올리고 여기서 학생 공개를 켠다. v188: 접힌 묶음, 고른 학년에 지필 점수가 없으면 숨는다 -->
+    <details class="cl-collapse gt-fold" id="semFold" data-fold="gtSem">
+      <summary><span class="gt-fold-title">📊 학기말 성적 (수행 + 지필)</span><span class="gt-fold-note" id="semFoldNote"></span><span class="cl-arrow" aria-hidden="true">▶</span></summary>
+      <div class="cl-collapse-body"><div id="semAdminBox" class="dash-hint">불러오는 중…</div></div>
     </details>
 
+    <!-- v96 수행평가 점수 확인 응답 현황(점수·근거는 백엔드 uploadPerfScores/uploadPerfEvidence로 올림). 학기말 합계가 PERF_ADMIN_ROWS를 쓴다 -->
+    <details class="cl-collapse gt-fold" id="perfFold" data-fold="gtPerf">
+      <summary><span class="gt-fold-title">✅ 수행평가 점수 확인 현황</span><span class="gt-fold-note" id="perfFoldNote"></span><span class="cl-arrow" aria-hidden="true">▶</span></summary>
+      <div class="cl-collapse-body"><div id="perfAdminBox" class="dash-hint">불러오는 중…</div></div>
+    </details>
+
+    <!-- v188 — 설명 보기 두 개(v105 semDesc·perfDesc)를 하나로 -->
+    <details class="fold-note" data-fold="gradesDesc"><summary>설명 보기</summary>
+      <p class="dash-card-desc"><b>학기말 성적</b> — 학생이 포털 맨 위 «학기말 성적 확인하기»(3학년 화면의 성적 카드)를 열면 맨 위에 학기말 합계·성취도·단원별 기말고사 점수·공부 길잡이가 나와요(공개를 켰을 때만). 합계는 수행평가 점수(조정 포함) ÷ 만점 × 30 + 기말고사 × 0.7로 화면에서 계산하고, 성취도는 반올림 전 합계로 정해요. 피드백 문장은 «지필평가점수» 시트에서 직접 고칠 수 있어요.</p>
+      <p class="dash-card-desc"><b>점수 확인 현황</b> — 학생이 포털 맨 위 «수행평가 점수 확인하기»에서 «이상 없음/이상 있음»을 누른 현황이에요. 누른 뒤에 점수가 바뀌면 학생 화면에 변동 안내가 뜨고 한 번 더 누르게 해요(그동안은 «재확인 대기»). 이상 있음 학생 버튼을 누르면 점수 산출 근거와 글별 원문이 팝업으로 열려요. «학생별 점수·조정»에서 한 학생씩 점수를 보고 직접 고칠 수 있어요.</p>
+      <p class="dash-card-desc"><b>미응시자</b> — 답안이 없는 학생이에요(«수행평가미응시» 시트). 나중에 응시하면 따로 채점해요.</p>
+    </details>
   </div>
 
   <!-- v134 — 📅 오늘: 시간표 앱(timetable)의 오늘 수업·반별 진도·할 일. 로직은 js/08-dash-today.js(탭을 열 때만 불러옴). -->
@@ -1114,7 +1130,7 @@
 <!-- v126 — 교사 질문함 아이콘(Lucian Icons v2.0.13, MIT, 로컬 사본 — 학교망 외부 로드 미확인이라 CDN 안 씀) -->
 <script type="module" src="vendor/lucian-icons/help.js"></script>
 <script type="module" src="vendor/lucian-icons/envelope.js"></script>
-<script src="js/07-dash-admin-boot.js?v=182"></script>
+<script src="js/07-dash-admin-boot.js?v=188"></script>
 <script src="js/08-dash-today.js?v=179"></script>
 <script src="js/09-dash-culture.js?v=174"></script>
 <script src="js/10-dash-groups.js?v=186"></script>
