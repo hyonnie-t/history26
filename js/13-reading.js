@@ -470,7 +470,8 @@ function rdaStuRowHtml_(s){
   const open = !!RDA.open[s.sid];
   const edited = s.recs.some(rdaEditedAfter_);
   let html = '<tr class="rd-stu-row' + (open ? ' is-open' : '') + '"><td>' + Number(s.sid.slice(1, 3)) + '-' + Number(s.sid.slice(3)) + '</td><td><button type="button" class="rd-name" aria-expanded="' + open + '" onclick="rdaToggle_(\'' + s.sid + '\')">' + rdEsc_(s.name || s.sid) + (edited ? ' <span class="rd-flag" title="판정 뒤 학생이 고친 기록이 있어요">고침</span>' : '') + '</button></td>'
-    + '<td>' + s.recs.length + '</td><td>' + s.books.length + '</td><td>' + s.ok + '</td><td>' + (s.hold || '') + '</td><td><b>' + rdaScore_(s.ok) + '</b></td></tr>';
+    + '<td>' + s.recs.length + '</td><td>' + s.books.length + '</td><td>' + s.ok + '</td><td>' + (s.hold || '') + '</td><td><b>' + rdaScore_(s.ok) + '</b>'
+    + (s.recs.some(r => RDA.pending[r.id] !== undefined) ? ' <span class="rd-flag is-pend" title="아래 «한 번에 저장»을 눌러야 CSV·다른 기기에 반영돼요">저장 전</span>' : '') + '</td></tr>'; // 제미나이 의견: 저장 안 한 판정이 점수에 섞여 보이는 것을 표시
   if(open){
     html += '<tr class="rd-stu-detail"><td colspan="7">' + (s.recs.length ? s.recs.map((r, i) => {
       const j = rdaJudge_(r);
