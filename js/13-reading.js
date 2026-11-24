@@ -10,6 +10,7 @@
  *   CSV 3종(반별 독서 목록·기록 전체·점수), 도서 목록 관리(붙여넣기 → 미리보기 → 저장 readingBooksSave).
  * 로드 시점 코드는 상태 객체뿐(앞 파일의 $·SESSION·showToast, 뒤 파일의 TOKEN·perfModalOpen_·dashMyBans_는 함수 안에서만 쓴다). */
 const READING_FROM = '2027-03-01';   // 학생 탭이 보이기 시작하는 날(그 전엔 ?reading=1이나 «학생 화면 테스트»에서만) — 효니가 바꾸면 여기만
+const READING_EARLY_BANS = ['201', '202', '203', '204']; // 그 전에도 먼저 여는 반(학년+반 두 자리). 2026-11-24 효니 «1~4반(2학년)만» — 종이 독서기록장을 옮겨 적어 교과독서 증빙으로
 const READING_TARGET = 5;            // 채점에 들어가는 최대 회차(인정 회당 2점, 최대 5회 = 10점)
 const READING_POINT = 2;
 const READING_ESSAY_GOAL = 150;      // 글 목표 글자 수(인정 후보 기준과 같음)
@@ -28,6 +29,7 @@ function readingTabVisible_(){
   if(!SESSION) return false;
   if(TEST_WRITE_MODE) return true;
   try{ if(new URLSearchParams(location.search).get('reading') === '1') return true; }catch(e){}
+  if(READING_EARLY_BANS.indexOf(String(SESSION.studentId).slice(0, 3)) >= 0) return true;
   return rdToday_() >= READING_FROM;
 }
 /* renderPortal에서 부른다 — 탭 단추를 보이거나 숨기고, 다른 학생으로 바뀌었으면 비운다 */

@@ -104,7 +104,11 @@ const ESSAY = '역사는 과거와 현재의 대화라는 말이 처음엔 어�
   { // 날짜 전·?reading 없이 — 탭 숨김
     seed(); const { ctx, page, errs } = await open(360, 780, true, '');
     await login(page);
-    summary.hiddenBeforeDate = { tabVisible: await page.isVisible('#qtabReading'), errs: errs.length ? errs : '없음' };
+    const hidden5 = await page.isVisible('#qtabReading');
+    await page.click('#btnLogout'); await page.waitForTimeout(400); // 먼저 여는 반(2학년 1~4반)은 날짜 전에도 보임
+    await page.fill('#inputId', '20103'); await page.fill('#inputName', '먼저반'); await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
+    await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(800);
+    summary.hiddenBeforeDate = { tabVisible_2_5: hidden5, tabVisible_2_1: await page.isVisible('#qtabReading'), errs: errs.length ? errs : '없음' };
     await ctx.close();
   }
 
