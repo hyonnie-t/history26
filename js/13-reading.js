@@ -87,7 +87,8 @@ function readingRender_(){
   const padlet = readingPadletUrl_();
   const links = '<div class="rd-links">'
     + (padlet ? '<a class="btn btn-sm btn-ghost" href="' + rdEsc_(padlet) + '" target="_blank" rel="noopener">📌 우리 반 패들렛 열기</a>' : '')
-    + '<a class="btn btn-sm btn-ghost" href="' + READING_SITE + '" target="_blank" rel="noopener">📖 독서로 열기</a></div>';
+    + '<a class="btn btn-sm btn-ghost" href="' + READING_SITE + '" target="_blank" rel="noopener">📖 독서로 열기</a>'
+    + (RD.state === 'ready' && !RD.editId ? '<button type="button" class="btn btn-sm btn-ghost" onclick="readingLoad_()" aria-label="내 독서 기록 새로 불러오기">↻</button>' : '') + '</div>'; // 다른 기기에서 쓴 기록 다시 읽기
   if(RD.state === 'preview'){
     box.innerHTML = '<p class="q-hint">미리보기에서는 독서 기록을 불러오거나 저장하지 않아요. 학생은 여기서 책 한 권을 읽을 때마다 밑줄·질문·한 줄 평·150자 글을 쓰고, «독서로에 옮겨 적기»로 복사해 독서로에 붙여요.</p>' + links;
     return;
@@ -123,7 +124,7 @@ function readingCardHtml_(r){
 }
 /* 독서로 «독서활동» 감상 칸에 붙일 글: 1줄 도서명(저자), 다음 줄 내 글(없으면 한 줄 평) */
 function readingCopyText_(r){
-  return rdBookLabel_(r.title, r.author) + '\n' + (r.essay || r.review || '');
+  return rdBookLabel_(r.title, r.author) + '\n' + (r.essay || r.review || r.underline || r.question || '');
 }
 async function readingCopy_(id){
   const r = RD.records.find(x => x.id === id);
@@ -176,8 +177,10 @@ const RD_FIELDS = [['title', 'rdTitle'], ['author', 'rdAuthor'], ['date', 'rdDat
 function readingFormAfter_(){
   const d = readingDraftGet_();
   let src = null;
-  if(d && d.id === RD.editId) src = d.v; // 쓰던 것 이어서
-  else if(!RD.isNew) src = RD.records.find(x => x.id === RD.editId) || null;
+  const rec = RD.isNew ? null : (RD.records.find(x => x.id === RD.editId) || null);
+  // 쓰던 것 이어서 — 단 고치기는 그 뒤 다른 기기에서 저장된 것보다 오래된 초안이면 버린다(검토 지적)
+  if(d && d.id === RD.editId && (!rec || !rec.updatedAt || (d.at && d.at > Date.parse(rec.updatedAt)))) src = d.v;
+  else src = rec;
   RD_FIELDS.forEach(([k, id]) => { const el = $(id); if(el) el.value = (src && src[k] != null) ? src[k] : ''; });
   if(!$('rdDate').value) $('rdDate').value = rdToday_();
   if($('rdBook')){
@@ -204,7 +207,7 @@ function readingFormVals_(){
 }
 function readingFormInput_(){
   readingEssayCount_();
-  readingDraftSet_({ id: RD.editId, isNew: RD.isNew, v: readingFormVals_() });
+  readingDraftSet_({ id: RD.editId, isNew: RD.isNew, at: Date.now(), v: readingFormVals_() });
 }
 function readingEssayCount_(){
   const el = $('rdEssayCnt');
@@ -316,7 +319,7 @@ function dashReadingClear_(){ // «나가기» — 학생 기록을 화면·메�
 function rdaPickGrade_(g){ RDA.grade = g; RDA.ban = 'mine'; RDA.cand = null; try{ localStorage.setItem('dash_reading_grade', g); }catch(e){} rdaRender_(); }
 function rdaPickBan_(v){ RDA.ban = v; RDA.cand = null; rdaRender_(); }
 function rdaBanName_(k){ return Number(k.slice(0, 1)) + '학년 ' + Number(k.slice(1, 3)) + '반'; }
-function rdaInBan_(sid){ const g = rdaGrade_(); return sid.charAt(0) === g && banMatches_(RDA.ban, g, Number(sid.slice(1, 3))); }
+function rdaInBan_(sid){ const g = rdaGrade_(); return sid.charAt(0) === g && sid.slice(3) !== '99' && banMatches_(RDA.ban, g, Number(sid.slice(1, 3))); } // 99번 = «학생 화면 테스트» 계정(검토 지적) — 현황·채점·CSV에서 뺀다
 /* 판정은 아직 저장 안 한 것(pending)을 먼저 본다 */
 function rdaJudge_(r){ return Object.prototype.hasOwnProperty.call(RDA.pending, r.id) ? RDA.pending[r.id] : (r.judge || ''); }
 function rdaIsCandidate_(r){ return !r.judge && !!String(r.underline || '').trim() && !!String(r.question || '').trim() && rdLen_(r.essay) >= READING_ESSAY_GOAL; }
