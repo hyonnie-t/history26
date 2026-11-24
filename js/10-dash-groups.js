@@ -25,7 +25,7 @@ function grSetSub_(sub){
 function grSegHtml_(){
   const btn = (sub, title, note) => `<button type="button" class="gr-seg-btn${GR.sub === sub ? ' active' : ''}" aria-pressed="${GR.sub === sub}" onclick="grSetSub_('${sub}')"><b>${title}</b><small>${note}</small></button>`;
   return `<div class="gr-seg">${btn('class', '👥 수업 모둠', '성적이 고르게 섞여요')}${btn('culture', '🏺 문화사 발굴단', '3학년, 성향 테스트 지망 반영')}</div>
-    <p class="gr-tools">로그인 없이: <a href="groups.html" target="_blank" rel="noopener">👀 확정한 모둠 보기</a>(효니쌤 반) · 다른 뽑기: <a href="picker.html" target="_blank" rel="noopener">🎲 발표자 뽑기</a> · <a href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener">🐉 수능 던전 기숙사</a> · 전자칠판: <a href="https://hyonnie-t.github.io/nation-building/?part=3&amp;final=1" target="_blank" rel="noopener">⚔️ 국민 국가 최종 레이드</a></p>`; // v186 — 교사 화면 모드가 있는 웹앱은 대시보드에 입구(2026-11-17 효니). nation-building 3차시 최종 보스전, 로그인·저장 없음
+    <p class="gr-tools">로그인 없이: <a href="groups.html" target="_blank" rel="noopener">👀 확정한 모둠 보기</a>(효니쌤 반) · 다른 뽑기: <a href="picker.html" target="_blank" rel="noopener">🎲 발표자 뽑기</a> · <a href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener">🐉 수능 던전 기숙사</a> · 전자칠판: <a href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener"><b>🐉 수능 던전 수업 진행</b></a>(토큰 넣고 반·차시 고르기) · <a href="https://hyonnie-t.github.io/nation-building/?part=3&amp;final=1" target="_blank" rel="noopener">⚔️ 국민 국가 최종 레이드</a></p>`; // v190 — 수능 던전 «수업 진행» 입구를 전자칠판 줄에(2026-11-25 효니). v186 — 교사 화면 모드가 있는 웹앱은 대시보드에 입구(2026-11-17 효니). nation-building 3차시 최종 보스전, 로그인·저장 없음
 }
 function grShowSub_(){
   const seg = $('grSeg'), gb = $('grBox'), cb = $('ctBox');
