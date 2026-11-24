@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=189">
+<link rel="stylesheet" href="style.css?v=191">
 <script src="js/11-pwa-install.js?v=157" defer></script>
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
@@ -409,18 +409,28 @@
     </div>
   </div>
 
-  <div class="dash-tabs">
-    <button class="dash-tab" data-tab="today" onclick="switchDashTab('today')">📅 오늘<span class="dq-badge" id="helpTabBadge" style="display:none;"></span></button><!-- v134 — 시간표 앱 연결 -->
-    <button class="dash-tab active" data-tab="records" onclick="switchDashTab('records')">학생 기록</button>
-    <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
-    <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">공지 관리</button>
-    <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">커리큘럼 관리</button>
-    <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">체크인</button>
-    <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">탐구포인트</button>
-    <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">성적관리</button>
-    <button class="dash-tab" data-tab="reading" onclick="switchDashTab('reading')">📚 독서</button><!-- v189 교과 독서기록장(js/13-reading.js) -->
-    <button class="dash-tab" data-tab="groups" onclick="switchDashTab('groups')">👥 모둠·팀</button><!-- v145 수업 모둠, v146 문화사 팀을 이 탭으로 합침 -->
-    <button class="dash-tab" data-tab="accounts" onclick="switchDashTab('accounts')">학생 계정<span class="dq-badge" id="paBadge" style="display:none;"></span></button>
+  <!-- v191 — 탭 12개를 쓰임새 네 묶음으로(2026-11-25 효니 «대시보드 상단탭 좀 정리»). data-tab·onclick 이름은 그대로라 ?dash= 주소·시험이 그대로 돈다. 이모지는 뺐다(#dashView «큰 탭 — 이모지 없이 글자만») -->
+  <div class="dash-tabs" role="tablist" aria-label="대시보드 메뉴">
+    <div class="dash-tabgroup"><span class="dash-tabgroup-label">매일</span><div class="dash-tabgroup-row">
+      <button class="dash-tab" data-tab="today" onclick="switchDashTab('today')">오늘<span class="dq-badge" id="helpTabBadge" style="display:none;"></span></button><!-- v134 — 시간표 앱 연결 -->
+      <button class="dash-tab active" data-tab="records" onclick="switchDashTab('records')">학생 기록</button>
+      <button class="dash-tab" data-tab="questions" onclick="switchDashTab('questions')">질문함<span class="dq-badge" id="dqBadge" style="display:none;"></span></button>
+      <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">체크인</button>
+    </div></div>
+    <div class="dash-tabgroup"><span class="dash-tabgroup-label">수업 준비</span><div class="dash-tabgroup-row">
+      <button class="dash-tab" data-tab="curriculum" onclick="switchDashTab('curriculum')">커리큘럼</button>
+      <button class="dash-tab" data-tab="announce" onclick="switchDashTab('announce')">공지</button>
+      <button class="dash-tab" data-tab="groups" onclick="switchDashTab('groups')">모둠·팀</button><!-- v145 수업 모둠, v146 문화사 팀을 이 탭으로 합침 -->
+      <button class="dash-tab" data-tab="tools" onclick="switchDashTab('tools')">수업 도구</button><!-- v191 전자칠판에 띄울 화면·뽑기 입구 -->
+    </div></div>
+    <div class="dash-tabgroup"><span class="dash-tabgroup-label">평가</span><div class="dash-tabgroup-row">
+      <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">성적</button>
+      <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">탐구포인트</button>
+      <button class="dash-tab" data-tab="reading" onclick="switchDashTab('reading')">독서</button><!-- v189 교과 독서기록장(js/13-reading.js) -->
+    </div></div>
+    <div class="dash-tabgroup"><span class="dash-tabgroup-label">관리</span><div class="dash-tabgroup-row">
+      <button class="dash-tab" data-tab="accounts" onclick="switchDashTab('accounts')">학생 계정<span class="dq-badge" id="paBadge" style="display:none;"></span></button>
+    </div></div>
   </div>
   <div class="dash-side-err" id="dashSideErr" role="status" style="display:none;"></div><!-- v176 — 피드백·질문함·공지를 못 불러왔을 때만 -->
 
@@ -1050,6 +1060,47 @@
   <div class="dash-panel" id="panelReading" style="display:none;"><div id="rdaBox"></div></div>
   <div class="dash-panel" id="panelGroups" style="display:none;"><div id="grSeg"></div><div id="grBox"></div><div id="ctBox" style="display:none;"></div></div>
 
+  <!-- v191 — «수업 도구»: 교사 화면이 따로 있는 수업 웹앱·뽑기 입구(v186·v190 «모둠·팀» 탭 한 줄에 있던 링크를 카드로). 조회·저장 없음, 새 탭으로 열림 -->
+  <div class="dash-panel" id="panelTools" style="display:none;">
+    <p class="dash-hint">수업 중에 <b>전자칠판에 띄우는 화면</b>과 수업 전 준비 화면을 모았어요. 누르면 새 탭으로 열려요.</p>
+    <h3 class="dash-section-title">전자칠판에 띄우기</h3>
+    <div class="tl-grid">
+      <a class="tl-card" href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener">
+        <span class="tl-ico" aria-hidden="true">🐉</span>
+        <span class="tl-body"><b>수능 던전 수업 진행</b><small>3학년 · 선생님 토큰 → 반·차시 고르기 → «수업 시작»</small>
+          <span class="tl-how">칠판엔 문제·열쇠 글자·타이머, 학생은 각자 태블릿·폰으로 풀어요</span></span>
+      </a>
+      <a class="tl-card" href="https://hyonnie-t.github.io/nation-building/?part=3&amp;final=1" target="_blank" rel="noopener">
+        <span class="tl-ico" aria-hidden="true">⚔️</span>
+        <span class="tl-body"><b>국민 국가 최종 레이드</b><small>2학년 · 3차시 마지막 보스전</small>
+          <span class="tl-how">로그인·저장 없이 바로 열려요</span></span>
+      </a>
+      <a class="tl-card" href="picker.html" target="_blank" rel="noopener">
+        <span class="tl-ico" aria-hidden="true">🎲</span>
+        <span class="tl-body"><b>발표자 뽑기</b><small>모든 반 · 번호 뽑기</small>
+          <span class="tl-how">로그인 없이 열려요</span></span>
+      </a>
+      <a class="tl-card" href="groups.html" target="_blank" rel="noopener">
+        <span class="tl-ico" aria-hidden="true">👀</span>
+        <span class="tl-body"><b>확정한 모둠 보기</b><small>효니쌤 반 · «모둠·팀» 탭에서 확정한 모둠</small>
+          <span class="tl-how">로그인 없이 열려요</span></span>
+      </a>
+    </div>
+    <h3 class="dash-section-title">수업 전에 준비</h3>
+    <div class="tl-grid">
+      <a class="tl-card" href="https://hyonnie-t.github.io/suneung-dungeon/?teacher=1" target="_blank" rel="noopener">
+        <span class="tl-ico" aria-hidden="true">🏰</span>
+        <span class="tl-body"><b>수능 던전 기숙사 배정·포인트</b><small>3학년 · 열린 화면에서 «기숙사 배정» 탭</small>
+          <span class="tl-how">명단에 성적이 있어요 — 칠판 화면을 끄고 열어 주세요</span></span>
+      </a>
+      <button type="button" class="tl-card" onclick="switchDashTab('groups')">
+        <span class="tl-ico" aria-hidden="true">👥</span>
+        <span class="tl-body"><b>수업 모둠·문화사 발굴단 짜기</b><small>이 대시보드의 «모둠·팀» 탭</small>
+          <span class="tl-how">성적이 고르게 섞이게 짜고 확정해요</span></span>
+      </button>
+    </div>
+  </div>
+
   <!-- v83 — 학생 로그인 비밀번호 관리. 비밀번호는 시트에 해시로만 있어 교사도 볼 수 없고, 잊으면 초기화만 한다. -->
   <div class="dash-panel" id="panelAccounts" style="display:none;">
     <!-- v106 — 탐구포인트·성적관리 탭과 같은 .dash-card 묶음(제목 .dash-card-title + 설명 .dash-card-desc). id·onclick은 그대로. -->
@@ -1150,13 +1201,13 @@
 <script src="js/13-reading.js?v=189"></script>
 <script src="js/04-perf-score.js?v=184"></script>
 <script src="js/05-badges-events.js?v=189"></script>
-<script src="js/06-dashboard.js?v=189"></script>
+<script src="js/06-dashboard.js?v=191"></script>
 <!-- v126 — 교사 질문함 아이콘(Lucian Icons v2.0.13, MIT, 로컬 사본 — 학교망 외부 로드 미확인이라 CDN 안 씀) -->
 <script type="module" src="vendor/lucian-icons/help.js"></script>
 <script type="module" src="vendor/lucian-icons/envelope.js"></script>
 <script src="js/07-dash-admin-boot.js?v=189"></script>
 <script src="js/08-dash-today.js?v=179"></script>
 <script src="js/09-dash-culture.js?v=174"></script>
-<script src="js/10-dash-groups.js?v=190"></script>
+<script src="js/10-dash-groups.js?v=191"></script>
 </body>
 </html>
