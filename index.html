@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=188">
+<link rel="stylesheet" href="style.css?v=189">
 <script src="js/11-pwa-install.js?v=157" defer></script>
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
@@ -231,6 +231,8 @@
           <button type="button" class="tab-btn active" data-qtab="question" onclick="switchQuickTab('question')">💬 질문하기</button>
           <button type="button" class="tab-btn" data-qtab="overview" onclick="switchQuickTab('overview')">📜 나의 달성도</button>
           <button type="button" class="tab-btn" data-qtab="archive" onclick="switchQuickTab('archive')">🗂 기록 보관함</button>
+          <!-- v189 — 교과 독서기록장(js/13-reading.js). READING_FROM(2027-03-01)부터, 그 전엔 ?reading=1·학생 화면 테스트에서만 보인다 -->
+          <button type="button" class="tab-btn" id="qtabReading" data-qtab="reading" onclick="switchQuickTab('reading')" style="display:none;">📚 독서기록장</button>
           <!-- v62 — 선생님이 먼저 보낸 개인 메시지가 있을 때만 보이는 탭(renderMessages 참고) -->
           <button type="button" class="tab-btn" id="qtabMessage" data-qtab="message" onclick="switchQuickTab('message')" style="display:none;">💌 선생님 메시지<span class="dq-badge" id="msgBadge" style="display:none;"></span></button>
         </div>
@@ -264,6 +266,11 @@
         <div class="tab-panel" id="qpArchive" style="display:none;">
           <p class="archive-hint">활동에서 내가 직접 쓴 글이 모여요. 학기 말 자기평가에 활용해 보세요.</p>
           <div id="archiveList"></div>
+        </div>
+
+        <div class="tab-panel" id="qpReading" style="display:none;">
+          <p class="q-hint">책을 읽을 때마다 밑줄 친 문장·내 질문·한 줄 평·짧은 글을 남겨요. 다 쓰면 «독서로에 옮겨 적기»로 독서로에도 올려요.</p>
+          <div id="readingBox"></div>
         </div>
       </section>
 
@@ -357,6 +364,19 @@
   <button type="button" class="help-fab" id="helpFab" style="display:none;" onclick="helpOpen_()"><span aria-hidden="true">🙋</span> 선생님 도와주세요</button>
 </div>
 
+<!-- v189 — 독서 기록 지우기 확인 창(브라우저 confirm 대신 앱 안 <dialog>, js/13-reading.js) -->
+<dialog id="rdConfirm" class="help-dialog" aria-labelledby="rdConfirmTitle">
+  <form class="pw-dialog-card help-dialog-card" method="dialog" onsubmit="event.preventDefault(); readingDelete_();">
+    <p class="pw-dialog-title" id="rdConfirmTitle">🗑 독서 기록 지우기</p>
+    <p class="help-dialog-desc" id="rdConfirmDesc"></p>
+    <p class="pw-dialog-error rd-form-err" id="rdConfirmErr" role="alert"></p>
+    <div class="help-dialog-actions">
+      <button type="submit" class="btn" id="rdConfirmYes">지우기</button>
+      <button type="button" class="btn btn-ghost" onclick="readingCloseDelete_()">그대로 두기</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- v177 — 선생님 도와주세요 창. 브라우저 확인 창(confirm) 대신 앱 안 <dialog> -->
 <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpDialogTitle">
   <form class="pw-dialog-card help-dialog-card" method="dialog" onsubmit="event.preventDefault(); helpSend_();">
@@ -398,6 +418,7 @@
     <button class="dash-tab" data-tab="checkin" onclick="switchDashTab('checkin')">체크인</button>
     <button class="dash-tab" data-tab="points" onclick="switchDashTab('points')">탐구포인트</button>
     <button class="dash-tab" data-tab="grades" onclick="switchDashTab('grades')">성적관리</button>
+    <button class="dash-tab" data-tab="reading" onclick="switchDashTab('reading')">📚 독서</button><!-- v189 교과 독서기록장(js/13-reading.js) -->
     <button class="dash-tab" data-tab="groups" onclick="switchDashTab('groups')">👥 모둠·팀</button><!-- v145 수업 모둠, v146 문화사 팀을 이 탭으로 합침 -->
     <button class="dash-tab" data-tab="accounts" onclick="switchDashTab('accounts')">학생 계정<span class="dq-badge" id="paBadge" style="display:none;"></span></button>
   </div>
@@ -1025,6 +1046,8 @@
   </div>
 
   <!-- v146 — 모둠·팀 한 탭. #grSeg로 고른다: 수업 모둠(js/10-dash-groups.js, #grBox) / 3학년 문화사 발굴단(js/09-dash-culture.js, #ctBox) -->
+  <!-- v189 — 교과 독서: 반별 현황·인정 후보·학생별 판정·CSV·도서 목록. 렌더 js/13-reading.js rdaRender_(), 데이터 mode=readingAdmin -->
+  <div class="dash-panel" id="panelReading" style="display:none;"><div id="rdaBox"></div></div>
   <div class="dash-panel" id="panelGroups" style="display:none;"><div id="grSeg"></div><div id="grBox"></div><div id="ctBox" style="display:none;"></div></div>
 
   <!-- v83 — 학생 로그인 비밀번호 관리. 비밀번호는 시트에 해시로만 있어 교사도 볼 수 없고, 잊으면 초기화만 한다. -->
@@ -1120,17 +1143,18 @@
 <script src="config.js?v=159"></script>
 <script src="checkin_data.js?v=159"></script>
 <script src="tree.js?v=187"></script>
-<script src="js/01-core-login.js?v=184"></script>
-<script src="js/02-checkin-portal.js?v=184"></script>
+<script src="js/01-core-login.js?v=189"></script>
+<script src="js/02-checkin-portal.js?v=189"></script>
 <script src="js/03-help.js?v=184"></script>
 <script src="js/12-timed.js?v=181"></script>
+<script src="js/13-reading.js?v=189"></script>
 <script src="js/04-perf-score.js?v=184"></script>
 <script src="js/05-badges-events.js?v=169"></script>
-<script src="js/06-dashboard.js?v=181"></script>
+<script src="js/06-dashboard.js?v=189"></script>
 <!-- v126 — 교사 질문함 아이콘(Lucian Icons v2.0.13, MIT, 로컬 사본 — 학교망 외부 로드 미확인이라 CDN 안 씀) -->
 <script type="module" src="vendor/lucian-icons/help.js"></script>
 <script type="module" src="vendor/lucian-icons/envelope.js"></script>
-<script src="js/07-dash-admin-boot.js?v=188"></script>
+<script src="js/07-dash-admin-boot.js?v=189"></script>
 <script src="js/08-dash-today.js?v=179"></script>
 <script src="js/09-dash-culture.js?v=174"></script>
 <script src="js/10-dash-groups.js?v=186"></script>

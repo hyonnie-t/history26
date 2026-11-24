@@ -395,6 +395,7 @@ function renderPortal(){
   const lessons = filterLessonsForBan(cur, SESSION.ban); // v28: 담당 트랙 필터링된 차시 목록
   setView_('portal'); // v166
   if(typeof helpPortalInit_ === 'function') helpPortalInit_(); // v177 — 선생님 도와주세요 버튼(js/03-help.js)
+  if(typeof readingPortalInit_ === 'function') readingPortalInit_(); // v189 — 독서기록장 탭 보이기·학생 바뀌면 비움(js/13-reading.js)
   const pv = $('portalView');
   requestAnimationFrame(() => { if(VIEW === 'portal') pv.classList.add('shown'); });
 
@@ -1139,7 +1140,7 @@ function askAboutFeedback_(idx){
 
 /* ── v57: 상단 탭 카드(질문함·달성도·보관함 / 패들렛·클래스카드) 전환 ── */
 function switchQuickTab(tab){
-  ['question','overview','archive','message'].forEach(t => {
+  ['question','overview','archive','message','reading'].forEach(t => { // v189 reading(교과 독서기록장)
     $('qp' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('#quickTabsCard .tab-btn').forEach(btn => {
@@ -1151,6 +1152,7 @@ function switchQuickTab(tab){
     box.scrollTop = box.scrollHeight;
     ackMessages_(); // v62 — 탭을 연 순간 읽은 것으로 처리
   }
+  if(tab === 'reading' && typeof readingTabOpen_ === 'function') readingTabOpen_(); // v189 — 탭을 열 때만 읽는다(js/13-reading.js)
 }
 
 function switchRefTab(tab){

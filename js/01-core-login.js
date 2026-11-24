@@ -89,7 +89,7 @@ async function fetchJsonRetry_(url, maxAttempts, delayMs){
  * - 저장 하나에 clientId를 한 번 만들어 재시도에도 같은 값을 보낸다(옛 백엔드·중복 막기 없는 action은 무시).
  * - 본문은 JSON 문자열 — portal_auth.js가 세션을 붙인다(절대 규칙 11).
  * 모두 실패하면 Error를 던진다(e.netFail = true). 부르는 쪽 catch가 «인터넷 연결을 확인» 안내를 그대로 보여 준다. */
-const PORTAL_POST_RETRY_ACTIONS = ['', 'login', 'checkin', 'cancelSelfCheck', 'replyMessage', 'askQuestion', 'helpAsk', 'helpCancel', 'perfScoreConfirm'];
+const PORTAL_POST_RETRY_ACTIONS = ['', 'login', 'checkin', 'cancelSelfCheck', 'replyMessage', 'askQuestion', 'helpAsk', 'helpCancel', 'perfScoreConfirm', 'readingSave', 'readingDelete']; // v189 독서: 기록ID upsert·상태만 바꾸는 지우기라 두 번 와도 같음
 async function portalPost_(payload){
   const body = Object.assign({}, payload);
   const canRetry = PORTAL_POST_RETRY_ACTIONS.indexOf(String(body.action || '')) >= 0;

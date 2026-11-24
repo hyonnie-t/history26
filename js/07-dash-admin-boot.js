@@ -1253,6 +1253,7 @@ function dashClearSession_(){
   if(typeof tdStop_ === 'function') tdStop_();
   if(typeof helpDashStop_ === 'function') helpDashStop_(); // v177 — 도움 요청 읽기 멈춤·숫자·창 제목 지움
   if(typeof timedDashStop_ === 'function') timedDashStop_(); // v181 — 반별 제출 시간 읽기 멈춤
+  if(typeof dashReadingClear_ === 'function') dashReadingClear_(); // v189 — 독서 기록·저장 안 한 판정 비움
   /* 숨긴 화면에 남은 학생 기록도 비운다. 탭은 처음 탭(학생 기록)으로 돌려, 다시 들어왔을 때 비운 데이터로 그려진 낡은 탭이 보이지 않게 한다
    * (성적관리·학생 계정·문화사·오늘 탭은 탭을 누를 때 새로 읽는다). */
   try{
