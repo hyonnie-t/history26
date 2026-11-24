@@ -96,6 +96,13 @@ sticky↔static 전환 조건과 `.side-combined` 내부 스크롤 높이 제한
 - 활동 웹앱(v178): 웹앱 레포는 고치지 않는다. 모든 웹앱이 싣는 `snippets/portal_auth.js`가 `snippets/help_button.js`를 불러 같은 버튼·창을 Shadow DOM 안에 그린다(웹앱 CSS와 안 섞임). 보이는 때: 세션 있음·`?preview=1` 아님·주소 sid가 있으면 세션 학번과 같음. 포털(`data-guard="off"`)·`data-help="off"`인 웹앱은 안 부른다. 웹앱의 아래 고정 버튼 줄(fixed/sticky)과 겹치면 그 위로 비키고(2초마다·스크롤·크기 변경 때 다시 잼), 페이지 끝에 80px 빈 칸을 둔다. 화면을 덮는 고정 창(모달·아래 시트)의 누를 것이 버튼 밑에 깔리면 창이 닫힐 때까지 숨는다. `h26_help_wait`를 포털과 같이 써서 포털↔웹앱을 오가도 «곧 와요»가 이어진다.
 - 점검: `node tests/webapp-testing/help_check.js <출력 폴더>`(포털·대시보드), `node tests/webapp-testing/help_apps_check.js <출력 폴더> [앱,...]`(배포된 활동 웹앱에 두 스니펫만 바꿔 끼움).
 
+## 교과 독서기록장 (v189, 2026-11-24)
+2027 1학기 교과 독서. 로직은 `js/13-reading.js` 하나, 백엔드 `history26_backend` `99_reading.gs`(v192, 시트 `독서기록`·`독서도서목록`). 독서로(read365)는 공개 API·교사 일괄 등록이 없어 공식 기록은 학생이 독서로에 직접 붙인다 — 여기는 수업 활동 기록과 채점 보조다.
+- 학생: 상단 탭 «📚 독서기록장»(`#qtabReading`·`#qpReading`). `READING_FROM`(2027-03-01)부터 보이고, 그 전엔 `READING_EARLY_BANS`(2026-11-24 효니 «1~4반(2학년)만» — 종이 독서기록장 옮겨 적기)·`?reading=1`·«🧪 학생 화면 테스트»에서만. 탭을 열 때만 `mode=readingMine`(로그인 묶음 studentBoot엔 안 넣음). 쓰기 폼은 탭 안에 펼침 — 선생님 추천 책 고르기(없으면 직접 쓰기)·읽은 날·쪽·밑줄·내 질문·한 줄 평·글(150자 목표, 글자 수 표시). 저장 `readingSave`(기록ID는 화면이 만듦 → 재시도해도 한 행, `PORTAL_POST_RETRY_ACTIONS`), 지우기 `readingDelete`(앱 안 `#rdConfirm`). 쓰던 글은 기기에 임시 저장(`h26_reading_draft_학번`), «책 덮기» 때 지움. «📋 독서로에 옮겨 적기» = «도서명(저자)» + 줄바꿈 + 글(없으면 한 줄 평) 복사, «📌 우리 반 패들렛 열기»(`padletParam_`), «📖 독서로 열기».
+- 학생 화면에 교사 판정(인정·보류·메모)은 받지도 그리지도 않는다(백엔드도 안 내려보냄). 회차 점 5개는 «내 기록 수»일 뿐 점수가 아니다. PREVIEW_MODE에선 읽지도 쓰지도 않고 안내만.
+- 교사: 탭 «📚 독서»(`#panelReading`·`#rdaBox`). `mode=readingAdmin` 한 번(전 학년)에 학년(2·3, `dash_reading_grade` 기억)·반(내 담당 반·전체·반별) 거르기는 화면에서. «지금 할 일» 칩, 반별 표(숫자 → 명단 팝업 `perfModalOpen_`·복사·새로고침), 인정 후보(밑줄·질문이 있고 글 150자 이상, 판정 안 함) 골라 한 번에 `readingJudge`, 학생별 표(반-번호·기록·권수·인정·보류·점수=인정 회당 2점 최대 5회)를 펼쳐 기록마다 인정/보류/안 함 → 아래 «한 번에 저장» 줄. 판정 뒤 학생이 고친 기록은 «고침» 표시. CSV(BOM) 3종: 반별 독서 목록 «도서명(저자)», 기록 전체, 점수(저장된 판정만). 도서 목록: 한 줄 «제목 / 저자 / ISBN / 출판사»(탭 구분 가능, «숨김») → 미리보기 → `readingBooksSave`(그 학년 통째 교체). «나가기»(`dashClearSession_`)가 `dashReadingClear_`로 비운다.
+- 점검: `node tests/webapp-testing/reading_check.js <출력 폴더>`(가짜 응답, 시트에 안 씀).
+
 ## 공지 대상 3분류 / 질문함 담당 반 필터링
 공지 작성 시 대상을 "담당 학급반"(`dashMyBans_()`가 콤마
 리스트로 반환)/"전체"/"개별 반" 3분류 라디오로 고르며, "담당 학급반"으로 게시하면 `ban` 필드에

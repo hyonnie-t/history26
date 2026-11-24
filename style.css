@@ -2696,3 +2696,99 @@ button.gt-chip.is-warn:hover{background:var(--amber-bg); border-color:var(--ambe
   #panelGrades .gt-year{padding:0 var(--space-3);}
   .gt-chip{white-space:normal; text-align:left;}
 }
+
+/* ── v189 교과 독서기록장(학생 #qpReading·교사 #panelReading, js/13-reading.js). 간격은 8pt 토큰(--space-1~7)만 ── */
+#qpReading .rd-head{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-2); margin:0 0 var(--space-2);}
+.rd-count{margin:0; font-size:.95rem;}
+.rd-count b{font-size:1.1rem; color:var(--indigo);}
+.rd-dots{display:inline-flex; gap:var(--space-1); margin-left:var(--space-1); vertical-align:middle;}
+.rd-dot{width:10px; height:10px; border-radius:50%; background:var(--line); transition:background-color .3s ease-out, transform .3s ease-out;}
+.rd-dot.is-on{background:var(--jade); transform:scale(1.1);}
+.rd-links{display:flex; flex-wrap:wrap; gap:var(--space-2); margin:0 0 var(--space-3);}
+.rd-links .btn{min-height:40px; display:inline-flex; align-items:center; text-decoration:none;}
+.rd-err{color:var(--seal);}
+.rd-list{display:grid; gap:var(--space-2);}
+.rd-card{padding:var(--space-3); border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card); animation:rdIn .25s ease-out;}
+.rd-card.is-editing{border-color:var(--indigo);}
+@keyframes rdIn{from{opacity:0; transform:translateY(var(--space-1));}}
+.rd-card-title{margin:0 0 var(--space-1); font-size:1rem; line-height:1.4; word-break:keep-all; overflow-wrap:anywhere;}
+.rd-card-title span{color:var(--ink-soft); font-size:.9rem;}
+.rd-meta{margin:0 0 var(--space-2); font-size:.82rem; color:var(--ink-soft);}
+.rd-review{margin:0 0 var(--space-2); padding:var(--space-2) var(--space-3); border-left:3px solid var(--indigo); background:var(--panel-alt); border-radius:var(--radius-xs); font-size:.92rem;}
+.rd-card > .btn{min-height:40px;}
+.rd-more{margin-top:var(--space-2);}
+.rd-more > summary{cursor:pointer; min-height:40px; display:flex; align-items:center; font-size:.88rem; color:var(--ink-soft);}
+.rd-block{margin:var(--space-2) 0 0;}
+.rd-block-label{margin:0 0 var(--space-1); font-size:.82rem; font-weight:700; color:var(--ink-soft);}
+.rd-block-text{margin:0; white-space:pre-wrap; font-size:.92rem; line-height:1.6; overflow-wrap:anywhere;}
+.rd-card-actions{display:flex; gap:var(--space-2); margin-top:var(--space-3);}
+.rd-card-actions .btn{min-height:40px;}
+/* 쓰기 폼 */
+.rd-form{margin:0 0 var(--space-4); padding:var(--space-3); border:1px solid var(--indigo); border-radius:var(--radius); background:var(--card); scroll-margin-top:var(--space-7); animation:rdIn .25s ease-out;}
+.rd-form-title{margin:0 0 var(--space-3); font-weight:700;}
+.rd-label{display:block; margin:var(--space-3) 0 var(--space-1); font-size:.88rem; font-weight:600;}
+.rd-label small{font-weight:400; color:var(--ink-soft);}
+.rd-form input, .rd-form select, .rd-form textarea{width:100%; box-sizing:border-box; min-height:48px; padding:var(--space-2) var(--space-3); font:inherit; font-size:1rem; border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff;}
+.rd-form textarea{resize:vertical; line-height:1.6;}
+.rd-form input:focus, .rd-form select:focus, .rd-form textarea:focus{border-color:var(--indigo); outline:none;}
+.rd-row{display:grid; grid-template-columns:1fr 1fr; gap:var(--space-2);}
+.rd-row-3{grid-template-columns:1.4fr 1fr 1fr;}
+.rd-row .rd-label{margin-top:var(--space-3);}
+.rd-cnt{margin:var(--space-1) 0 0; text-align:right; font-size:.82rem; color:var(--ink-soft); transition:color .2s ease-out;}
+.rd-cnt.is-done{color:var(--jade-text-deep); font-weight:700;}
+.rd-form-err{margin:var(--space-2) 0 0; color:var(--seal); font-size:.9rem; min-height:0;}
+.rd-form-err:empty{display:none;}
+.rd-form-actions{display:flex; flex-wrap:wrap; gap:var(--space-2); margin-top:var(--space-3);}
+.rd-form-actions .btn{min-height:48px; flex:1 1 auto;}
+@media (max-width:420px){
+  .rd-row{grid-template-columns:1fr;}
+  .rd-row-3{grid-template-columns:1fr 1fr;}
+  .rd-row-3 > div:first-child{grid-column:1 / -1;} /* 폰: 날짜는 한 줄, 쪽 두 칸은 나란히 */
+  .rd-row .rd-label{margin-top:var(--space-2);}
+}
+/* 교사 «📚 독서» 탭 — 학년 고르기·할 일 줄은 성적관리 탭(v188) 모양을 그대로 */
+#panelReading .gt-head{display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); margin:0 0 var(--space-3);}
+#panelReading .gt-years{display:inline-flex; gap:var(--space-1); padding:var(--space-1); border-radius:999px; background:var(--thead-bg); border:1px solid var(--line);}
+#panelReading .gt-year{min-height:40px; padding:0 var(--space-4); border:0; border-radius:999px; background:none; font:inherit; font-size:.95rem; font-weight:700; color:var(--ink-soft); cursor:pointer; transition:background-color .2s ease-out, color .2s ease-out;}
+#panelReading .gt-year.is-on{background:var(--indigo); color:#fff;}
+#panelReading .gt-year:focus-visible{outline:2px solid var(--indigo); outline-offset:2px;}
+#panelReading .gt-todo{margin:0 0 var(--space-4); padding:var(--space-3); border-radius:var(--radius); background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow);}
+#panelReading .dash-card{margin-bottom:var(--space-4);}
+.rd-tools{display:flex; flex-wrap:wrap; gap:var(--space-2); margin:0 0 var(--space-3);}
+.rd-bansel{display:inline-flex; align-items:center; gap:var(--space-2); font-weight:600;}
+.rd-bansel select{min-height:40px; padding:0 var(--space-2); font:inherit; border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff;}
+.rd-table-wrap{overflow-x:auto;}
+.rd-table{width:100%; border-collapse:collapse; font-size:.92rem;}
+.rd-table th, .rd-table td{padding:var(--space-2); border-bottom:1px solid var(--line); text-align:center; white-space:nowrap;}
+.rd-table thead th{background:var(--thead-bg); font-size:.85rem;}
+.rd-table tbody th{text-align:left;}
+.rd-stu td:nth-child(2){text-align:left;}
+.rd-name{min-height:40px; padding:0 var(--space-1); border:0; background:none; font:inherit; color:var(--indigo); text-decoration:underline; cursor:pointer; text-align:left;}
+.rd-stu-row.is-open{background:var(--panel-alt);}
+.rd-stu-detail td{white-space:normal; text-align:left; background:var(--panel-alt);}
+.rd-rec{padding:var(--space-2) 0; border-top:1px dashed var(--line);}
+.rd-rec:first-child{border-top:0;}
+.rd-rec-head{margin:0 0 var(--space-2);}
+.rd-flag{display:inline-block; padding:0 var(--space-1); border-radius:var(--radius-xs); background:var(--amber-bg); color:var(--amber-text-deep); font-size:.78rem; font-weight:700; text-decoration:none;}
+.rd-flag.is-pend{background:var(--indigo-bg); color:var(--indigo);}
+.rd-segs{display:inline-flex; gap:var(--space-1); margin:0 0 var(--space-2);}
+.rd-seg{min-height:40px; min-width:56px; padding:0 var(--space-3); border:1px solid var(--line); border-radius:999px; background:#fff; font:inherit; font-size:.88rem; cursor:pointer; transition:background-color .15s ease-out, transform .1s ease-out;}
+.rd-seg:active{transform:scale(.96);}
+.rd-seg.is-on{background:var(--indigo); border-color:var(--indigo); color:#fff;}
+.rd-detail{font-size:.88rem;}
+.rd-d{margin:0 0 var(--space-1); white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.55;}
+.rd-d span{display:inline-block; min-width:64px; margin-right:var(--space-2); font-weight:700; color:var(--ink-soft);}
+.rd-cand-tools{display:flex; flex-wrap:wrap; gap:var(--space-2); margin:0 0 var(--space-3);}
+.rd-cand-tools .btn{min-height:40px;}
+.rd-cand{list-style:none; margin:0; padding:0; display:grid; gap:var(--space-2);}
+.rd-cand > li{padding:var(--space-2) var(--space-3); border:1px solid var(--line); border-radius:var(--radius-sm);}
+.rd-cand label{display:flex; align-items:flex-start; gap:var(--space-2); min-height:40px; cursor:pointer;}
+.rd-cand input{width:20px; height:20px; margin-top:var(--space-1); flex:none;}
+.rd-cand summary{cursor:pointer; font-size:.85rem; color:var(--ink-soft); min-height:32px; display:flex; align-items:center;}
+.rd-pendbar{position:sticky; bottom:var(--space-3); z-index:20; display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); margin:0 0 var(--space-4); padding:var(--space-2) var(--space-3); border-radius:var(--radius); background:var(--ink); color:#fff; box-shadow:var(--shadow); animation:rdIn .2s ease-out;}
+.rd-pendbar span{flex:1 1 auto; font-weight:700;}
+.rd-pendbar .btn-ghost{color:#fff; border-color:rgba(255,255,255,.5);}
+.rd-export{display:flex; flex-wrap:wrap; gap:var(--space-2); margin:0 0 var(--space-2);}
+.rd-export .btn{min-height:40px;}
+.rd-books-input{width:100%; box-sizing:border-box; padding:var(--space-2); font:inherit; font-size:.9rem; border:1px solid var(--line); border-radius:var(--radius-sm); margin:0 0 var(--space-2);}
+@media (prefers-reduced-motion: reduce){ .rd-card, .rd-form, .rd-pendbar{animation:none;} .rd-dot, .rd-seg{transition:none;} }

@@ -435,8 +435,10 @@ function resetPortalState_(){
   MSG_POPUP_SEEN_TS = '';
   document.querySelectorAll('.msg-popup-overlay, .pp-popup-overlay, .fb-popup-overlay').forEach(el => el.remove());
   ['pwCur','pwNew','pwNew2'].forEach(id => { $(id).value = ''; }); closePwDialog_(); // 열려 있던 비밀번호 바꾸기 창
+  if(typeof readingResetPortal_ === 'function') readingResetPortal_(false); // v189 — 앞 학생 독서 기록·지우기 창 비움
 }
 function exitToLogin(){
+  if(typeof readingResetPortal_ === 'function') readingResetPortal_(true); // v189 — 진짜 로그아웃: 이 기기의 쓰던 독서 글도 지움(SESSION을 비우기 전에)
   resetPortalState_(); // v160
   store.del('portal_session');
   store.del('portal_handoff'); // v81
