@@ -176,7 +176,7 @@ async function enterDash(token){
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
   if(tab === 'culture'){ grSetSub_('culture'); tab = 'groups'; } // v146 — 문화사 팀은 «모둠·팀» 탭 안으로 합침, 옛 이름도 받는다
-  ['today','records','questions','announce','curriculum','checkin','points','grades','reading','groups','accounts'].forEach(t => { // v189 reading(📚 독서) // v134 — today(📅 오늘) 추가, v145 — groups(모둠·팀, v146부터 문화사 팀 포함)
+  ['today','records','questions','announce','curriculum','checkin','points','grades','reading','groups','tools','accounts'].forEach(t => { // v191 tools(수업 도구, 정적 카드) // v189 reading(📚 독서) // v134 — today(📅 오늘) 추가, v145 — groups(모둠·팀, v146부터 문화사 팀 포함)
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.dash-tab').forEach(btn => {

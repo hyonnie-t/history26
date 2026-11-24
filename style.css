@@ -2792,3 +2792,32 @@ button.gt-chip.is-warn:hover{background:var(--amber-bg); border-color:var(--ambe
 .rd-export .btn{min-height:40px;}
 .rd-books-input{width:100%; box-sizing:border-box; padding:var(--space-2); font:inherit; font-size:.9rem; border:1px solid var(--line); border-radius:var(--radius-sm); margin:0 0 var(--space-2);}
 @media (prefers-reduced-motion: reduce){ .rd-card, .rd-form, .rd-pendbar{animation:none;} .rd-dot, .rd-seg{transition:none;} }
+
+/* ── v191 — 대시보드 탭 묶음(매일/수업 준비/평가/관리) + «수업 도구» 카드. 간격은 --space-1~7만 ── */
+#dashView .dash-tabs{align-items:flex-end; column-gap:0; row-gap:0; padding:0 var(--space-2);}
+#dashView .dash-tabgroup{display:flex; flex-direction:column; flex:0 0 auto; padding:var(--space-2) var(--space-2) 0;}
+#dashView .dash-tabgroup + .dash-tabgroup{border-left:1px solid var(--d-line);}
+#dashView .dash-tabgroup-label{font-size:.72rem; font-weight:700; letter-spacing:.08em; color:var(--ink-soft); opacity:.75; padding:0 var(--space-2);}
+#dashView .dash-tabgroup-row{display:flex; flex-wrap:nowrap;}
+#dashView .dash-tab{padding:var(--space-2); min-height:40px; white-space:nowrap; border-radius:var(--space-2) var(--space-2) 0 0;}
+#dashView .dash-tab.active{background:var(--indigo-bg);}
+@media (max-width:1024px){
+  #dashView .dash-tabs{padding:0 var(--space-1);}
+  #dashView .dash-tabgroup{padding:var(--space-2) var(--space-1) 0; scroll-snap-align:start;}
+}
+#panelTools .dash-section-title{margin:var(--space-4) 0 var(--space-2);}
+#panelTools .tl-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:var(--space-3);}
+#panelTools .tl-card{
+  display:flex; align-items:flex-start; gap:var(--space-3); padding:var(--space-3); text-align:left; text-decoration:none; cursor:pointer;
+  font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--d-line); border-radius:var(--radius);
+  transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+#panelTools .tl-card:hover, #panelTools .tl-card:focus-visible{transform:translateY(-2px); border-color:var(--indigo); box-shadow:0 6px 16px rgba(35,38,44,.10);}
+#panelTools .tl-card:active{transform:translateY(0);}
+#panelTools .tl-ico{flex:0 0 48px; height:48px; display:grid; place-items:center; font-size:1.6rem; background:var(--indigo-bg); border-radius:var(--space-2);}
+#panelTools .tl-body{display:flex; flex-direction:column; gap:var(--space-1); min-width:0;}
+#panelTools .tl-body b{font-size:1.05rem;}
+#panelTools .tl-body small{font-size:.86rem; color:var(--ink-soft);}
+#panelTools .tl-how{font-size:.86rem; color:var(--indigo);}
+#dashView .gr-tools-link{font:inherit; color:var(--indigo); background:none; border:none; padding:0; text-decoration:underline; cursor:pointer;}
+@media (prefers-reduced-motion:reduce){ #panelTools .tl-card{transition:none;} #panelTools .tl-card:hover, #panelTools .tl-card:focus-visible{transform:none;} }
