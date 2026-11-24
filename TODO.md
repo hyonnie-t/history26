@@ -77,14 +77,14 @@
 
 ## 할 일 (순서대로, 항목마다 커밋)
 - [x] 0. 계획·TODO.md·연결 점검표(이 파일), 독서로 공개 화면 확인
-- [ ] 1. 새 vNN 번호 잡기(두 레포 `git fetch` + `git grep -n "v번호" origin/main`, 프론트 v188·백엔드 v191 다음)
-- [ ] 2. 백엔드 `99_reading.gs`: 시트 헬퍼·readingMine·readingSave·readingDelete + 라우팅(40·50·90) + mock_test 케이스(세션 없음/시트 없음/남의 기록 고치기 거절/수식 주입/횟수 제한)
-- [ ] 3. 백엔드 교사: readingAdmin·readingJudge·readingBooksSave + mock_test(토큰 없음/담당 아닌 반)
-- [ ] 4. 백엔드 문서: deploy-status·SPLIT_FILES·code-gs.md·AGENTS·CHANGELOG·glossary, `node --check` + `node tools/mock_test.js`
-- [ ] 5. 프론트 학생 독서기록장 탭(`js/13-reading.js`, index.html, style.css 8pt 토큰) + 독서로 복사·패들렛 단추
-- [ ] 6. 프론트 교사 «독서» 탭: 반별 표·명단 팝업·복사·새로고침·채점 보조·CSV 3종·도서 목록 관리
-- [ ] 7. `tests/webapp-testing/reading_check.js`(help_check.js 본뜸) — 학생·교사 화면 가짜 응답, 폰360·태블릿768/1180·PC 캡처
-- [ ] 8. webapp-connect-check 스킬로 점검표 다시 + 빈 줄 고침
+- [x] 1. 새 vNN 번호 잡기(두 레포 `git fetch` + `git grep -n "v번호" origin/main`, 프론트 v188·백엔드 v191 다음) → 프론트 v189·백엔드 v192(2026-11-24 원격 브랜치·열린 PR까지 grep, 안 쓰임)
+- [x] 2. 백엔드 `99_reading.gs`: 시트 헬퍼·readingMine·readingSave·readingDelete + 라우팅(40·50·90) + mock_test 케이스(세션 없음/시트 없음/남의 기록 고치기 거절/수식 주입/횟수 제한)
+- [x] 3. 백엔드 교사: readingAdmin·readingJudge·readingBooksSave + mock_test(토큰 없음/담당 아닌 반)
+- [x] 4. 백엔드 문서: deploy-status·SPLIT_FILES·code-gs.md·AGENTS·CHANGELOG·glossary, `node --check` + `node tools/mock_test.js`
+- [x] 5. 프론트 학생 독서기록장 탭(`js/13-reading.js`, index.html, style.css 8pt 토큰) + 독서로 복사·패들렛 단추 — ISBN 검색(책장 중계)은 이번엔 뺌(하루 상한 공유·학교망 미확인), 목록 고르기+직접 쓰기만
+- [x] 6. 프론트 교사 «독서» 탭: 반별 표·명단 팝업·복사·새로고침·채점 보조·CSV 3종·도서 목록 관리
+- [x] 7. `tests/webapp-testing/reading_check.js`(help_check.js 본뜸) — 학생·교사 화면 가짜 응답, 폰360·태블릿768/1180·PC 캡처
+- [x] 8. webapp-connect-check 스킬로 점검표 다시 + 빈 줄 고침 — 찾아 고친 것 3: 탭 연 채 다른 학생 로그인 시 앞 학생 목록 남음·«책 덮기» 때 쓰던 글 남음(공용 태블릿)·학번 재사용(백엔드 이번 학년도만)
 - [ ] 9. 검토자 1회(`클로드작업\도구\검토자-지시문.md` 틀, «새 기능 × 기존 기능» 조합 시험), 제미나이 의견(학생 정보 빼고), 엑사원 학생풀이
 - [ ] 10. 내장 브라우저로 직접 확인(로컬 preview `history26`) → 결과 보고 페이지
 - [ ] 11. **효니에게 배포 묻기** (PR 2개 병합·gas_sync push·deploy·deploy-status 갱신) — 답 전엔 안 함

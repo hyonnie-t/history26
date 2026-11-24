@@ -35,10 +35,21 @@ function readingPortalInit_(){
   const btn = $('qtabReading');
   if(!btn) return;
   const sid = SESSION ? SESSION.studentId : '';
-  if(RD.sid !== sid){ Object.assign(RD, { sid: sid, state: 'idle', records: [], books: [], err: '', editId: '', isNew: false, delId: '' }); }
+  const changed = RD.sid !== sid;
+  if(changed){ Object.assign(RD, { sid: sid, state: 'idle', records: [], books: [], err: '', editId: '', isNew: false, delId: '' }); if($('readingBox')) $('readingBox').innerHTML = ''; }
   const show = readingTabVisible_();
   btn.style.display = show ? '' : 'none';
-  if(!show && $('qpReading') && $('qpReading').style.display === 'block') switchQuickTab('question');
+  const open = $('qpReading') && $('qpReading').style.display === 'block';
+  if(!show && open) switchQuickTab('question');
+  else if(show && open && changed) readingTabOpen_(); // 탭을 연 채 다른 학생이 들어오면 그 학생 것을 새로 읽는다
+}
+/* «책 덮기»·미리보기 학생 바꾸기(resetPortalState_)에서 부른다 — 앞 학생 기록을 화면·메모리에서 비운다.
+ * clearDraft: 진짜 로그아웃일 때 이 기기의 쓰던 글도 지운다(교실 태블릿을 여럿이 같이 쓰므로) */
+function readingResetPortal_(clearDraft){
+  if(clearDraft && SESSION) readingDraftSet_(null);
+  Object.assign(RD, { sid: '', state: 'idle', records: [], books: [], err: '', editId: '', isNew: false, delId: '', busy: false });
+  if($('readingBox')) $('readingBox').innerHTML = '';
+  const d = $('rdConfirm'); if(d){ if(d.close && d.open) d.close(); else d.removeAttribute('open'); }
 }
 /* switchQuickTab('reading')에서 부른다 */
 function readingTabOpen_(){

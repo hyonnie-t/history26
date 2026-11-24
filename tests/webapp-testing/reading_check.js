@@ -157,6 +157,12 @@ const ESSAY = '역사는 과거와 현재의 대화라는 말이 처음엔 어�
     r.noJudgeTextEnd = !/인정|보류|선생님 메모/.test(await panelText());
     r.over = await over(page);
     await page.screenshot({ path: path.join(OUT, `student_after_${vn}.png`), fullPage: vn === 'phone' });
+    if (vn === 'phone') { // «책 덮기» — 쓰던 글·목록을 이 기기에서 지움(교실 태블릿 공용)
+      await page.click('#readingBox >> text=＋ 새 기록 쓰기'); await page.fill('#rdEssay', '쓰다 만 글'); await page.waitForTimeout(100);
+      const hadDraft = await page.evaluate(() => !!localStorage.getItem('h26_reading_draft_20520'));
+      await page.click('#btnLogout'); await page.waitForTimeout(500);
+      r.logout = { hadDraft, draftGone: await page.evaluate(() => !localStorage.getItem('h26_reading_draft_20520')), boxEmpty: await page.evaluate(() => document.getElementById('readingBox').innerHTML === '') };
+    }
     summary['student_' + vn] = { ...r, errs: errs.length ? errs : '없음' };
     await ctx.close();
   }
