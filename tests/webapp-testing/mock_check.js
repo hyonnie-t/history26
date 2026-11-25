@@ -44,12 +44,22 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
 (async () => {
   const CUR = await (await fetch(WEBAPP_URL + '?mode=curriculum')).json(); // 읽기 전용
   const g2 = CUR.grades['2'].lessons;
+  // v194 units 모드: 2학년 차시에 시트 «단원» 칸을 흉내 — config UNIT_GROUPS에 없는 차시 하나(EMPTY)만 빈칸(앞 차시 단원으로 묶여야 함),
+  // 그 앞은 «시험단원 가», 뒤는 «시험단원 나». 반별 공개·담당을 지워 1반 학생에게 모두 보이게 한다.
+  const CFG_TEXT = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8');
+  let EMPTY = -1;
+  if (WHAT === 'units') {
+    EMPTY = g2.findIndex((l, i) => i >= 2 && !CFG_TEXT.includes("'" + l.id + "'") && !CFG_TEXT.includes('"' + l.id + '"'));
+    if (EMPTY < 0) EMPTY = 3;
+    g2.forEach((l, i) => { delete l.unit; delete l.bans; l.owner = null; if (i < EMPTY) l.unit = '시험단원 가'; else if (i > EMPTY) l.unit = '시험단원 나'; });
+  }
+  const UNIT_POSTS = [];
   const skip = new Set([g2[0].id, g2[g2.length - 1].id, g2[g2.length - 2].id]);
   const acts = []; g2.forEach(l => { if (skip.has(l.id)) return; l.activities.forEach(a => acts.push({ activityId: a.id, timestamp: '2026-10-01T10:00:00Z', achievement: '중', summary: '', aiComment: '', reflection: '테스트 글' })); });
   const STUDENT = { result: 'success', activities: acts, presentationGrants: [], badges: [], messages: [], questions: [], feedback: [], classFeedback: [], announcements: [] };
   // 교사용 커리큘럼 행(학생용 응답에서 변환) + 기록: 2학년은 활동마다 2건, 단 한 활동(마지막 차시)은 0건으로 둬 «⚠ 제출 0건»을 본다
   let row = 2; const lessons = [];
-  for (const g of Object.keys(CUR.grades)) for (const l of CUR.grades[g].lessons) { const a = l.activities || []; lessons.push({ _row: row++, grade: Number(g), id: l.id, title: l.title, type: a[0] ? a[0].type : 'module', urlText: a[0] ? (a[0].url || '') : '', activitiesRaw: a.length > 1 ? JSON.stringify(a) : '', activitiesCount: a.length, sequential: !!l.sequential, owner: '', public: true, isPast: false, desc: '' }); }
+  for (const g of Object.keys(CUR.grades)) for (const l of CUR.grades[g].lessons) { const a = l.activities || []; lessons.push({ _row: row++, grade: Number(g), id: l.id, title: l.title, unit: l.unit || '', type: a[0] ? a[0].type : 'module', urlText: a[0] ? (a[0].url || '') : '', activitiesRaw: a.length > 1 ? JSON.stringify(a) : '', activitiesCount: a.length, sequential: !!l.sequential, owner: '', public: true, isPast: false, desc: '' }); }
   const rows = []; let k = 0; const zeroId = g2[g2.length - 1].activities[0].id;
   for (const l of g2) for (const a of l.activities || []) { if (a.id === zeroId) continue; for (let i = 0; i < 2; i++) rows.push({ _row: 100 + k++, studentId: '2010' + (1 + i), studentName: '학생' + i, gameName: a.id, timestamp: '2026-10-01T10:00:00Z', achievement: '중', summary: '', aiComment: '', reflection: '', choiceSummary: '' }); }
 
@@ -96,6 +106,7 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       if (first) return route.fulfill({ status: 200, contentType: 'text/html', body: '<!DOCTYPE html><html><body>Google Drive 오류</body></html>' });
     }
     if (b.action === 'login') return route.fulfill(J({ result: 'success', session: { token: 'fixture', exp: 4102444800000, sid: b.studentId, name: b.name } }));
+    if (b.action === 'setLessonUnits') { UNIT_POSTS.push(b.items); return route.fulfill(J({ result: 'success', count: (b.items || []).length })); } // v194
     return route.fulfill(J({ result: 'success' }));
   }
 
@@ -133,6 +144,48 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       const info = await page.evaluate(() => { const metas = [...document.querySelectorAll('#panelCurriculum .cl-meta')].map(e => e.textContent.trim()); return { items: metas.length, warn: metas.filter(t => t.includes('제출 0건')).length, over: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
       await page.screenshot({ path: path.join(OUT, `dash_curriculum_${vn}.png`), fullPage: true });
       summary['dash_' + vn] = { ...info, errs: errs.length ? errs : '없음' };
+      await ctx.close();
+    }
+  }
+  if (WHAT === 'units') { // v194 — 학생 연표가 시트 단원으로 묶이는지 + 대시보드 «단원 한꺼번에 정하기»·폼 단원 칸
+    const want = { '시험단원 가': EMPTY + 1, '시험단원 나': g2.length - EMPTY - 1 }; // 빈 차시는 앞 차시 단원(가)으로
+    for (const [vn, w, h] of [['phone360', 360, 780], ['tablet768', 768, 1024], ['tablet1180', 1180, 820], ['pc', 1280, 900]]) {
+      const { ctx, page, errs } = await open(w, h);
+      await page.fill('#inputId', '20101'); await page.fill('#inputName', '테스트'); await page.fill('#inputPw', '1234'); await page.click('#btnLogin');
+      await page.waitForSelector('#portalView.shown', { timeout: 15000 }); await page.waitForTimeout(1200);
+      const groups = await page.evaluate(() => [...document.querySelectorAll('#timeline .unit-group')].map(g => ({ name: g.dataset.unit, n: g.querySelectorAll('.lesson').length })));
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      const ok = groups.length === 2 && groups.every(g => want[g.name] === g.n);
+      await page.locator('#timeline').screenshot({ path: path.join(OUT, `units_student_${vn}.png`) });
+      summary['units_student_' + vn] = { ok, groups, over, errs: errs.length ? errs : '없음' };
+      await ctx.close();
+    }
+    for (const [vn, w, h] of [['pc', 1280, 900], ['tablet768', 768, 1024], ['phone360', 360, 780]]) {
+      const { ctx, page, errs } = await open(w, h);
+      await page.click('#btnTeacherMode'); await page.fill('#tokenInput', 'fixture-token'); await page.click('#btnGate');
+      await page.waitForSelector('#dashView', { state: 'visible', timeout: 15000 }); await page.waitForTimeout(1500);
+      await page.click('.dash-tab[data-tab="curriculum"]'); await page.waitForTimeout(500);
+      await page.evaluate(() => clSetGrade_('2'));
+      await page.locator('#panelCurriculum button', { hasText: '등록된 활동' }).first().click(); await page.waitForTimeout(300);
+      await page.click('#clUnitBulk > summary'); await page.waitForTimeout(300);
+      const before = await page.evaluate(() => ({ rows: [...document.querySelectorAll('#clUnitBulkList .cl-unit-input')].map(i => i.value), changed: document.querySelectorAll('#clUnitBulkList .cl-unit-row.changed').length, btn: document.getElementById('btnClUnitSave').textContent, meta: document.getElementById('clUnitBulkMeta').textContent, opts: document.querySelectorAll('#clUnitBulkOptions option').length }));
+      await page.locator('#clUnitBulkList .cl-unit-input').first().fill('바꾼 단원');
+      const after = await page.evaluate(() => ({ changed: document.querySelectorAll('#clUnitBulkList .cl-unit-row.changed').length, btn: document.getElementById('btnClUnitSave').textContent }));
+      await page.locator('#clUnitBulk').screenshot({ path: path.join(OUT, `units_dash_${vn}.png`) });
+      await page.click('#btnClUnitSave'); await page.waitForTimeout(300);
+      const dlg = await page.evaluate(() => ({ open: document.getElementById('clUnitConfirm').open, items: document.querySelectorAll('#clUnitConfirmList li').length, desc: document.getElementById('clUnitConfirmDesc').textContent }));
+      await page.screenshot({ path: path.join(OUT, `units_dialog_${vn}.png`) });
+      const nPost = UNIT_POSTS.length;
+      await page.click('#clUnitConfirmYes'); await page.waitForTimeout(1500);
+      const sent = UNIT_POSTS.slice(nPost);
+      const closed = await page.evaluate(() => !document.getElementById('clUnitConfirm').open);
+      // 폼: 첫 차시 «수정» → 단원 칸 프리필, datalist에 그 학년 단원
+      await page.locator('#clList .cl-grade-group[data-grade="2"] .cl-item').first().locator('button', { hasText: '수정' }).first().click().catch(() => {});
+      await page.waitForTimeout(300);
+      const form = await page.evaluate(() => ({ unit: document.getElementById('clUnit').value, opts: [...document.querySelectorAll('#clUnitOptions option')].map(o => o.value) }));
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      const ok = before.rows.length === g2.length && before.changed === 1 && after.changed === 2 && dlg.open && dlg.items === 2 && sent.length === 1 && sent[0].length === 2 && closed;
+      summary['units_dash_' + vn] = { ok, before, after, dlg, sent, closed, form, over, errs: errs.length ? errs : '없음' };
       await ctx.close();
     }
   }

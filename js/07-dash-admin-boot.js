@@ -1193,6 +1193,7 @@ $('btnClCancelEdit').addEventListener('click', dashResetLessonForm);
 $('clMulti').addEventListener('change', clToggleMulti);
 $('clOwner').addEventListener('change', clRefreshOwnerHint);
 $('clGrade').addEventListener('change', clRefreshOwnerHint);
+$('clGrade').addEventListener('change', clRefreshUnitOptions_); // v194 — 단원 고르기 목록은 고른 학년 것만
 $('clThinkingType').addEventListener('change', clRefreshBadgeNameOptions);
 $('ckqFormType').addEventListener('change', ckqOnTypeChange); // v51: 자료 형식 기본값도 같이 맞춤 (v52: *필수 표시도 같이)
 $('btnCkqCancel').addEventListener('click', dashResetCheckinLessonForm);

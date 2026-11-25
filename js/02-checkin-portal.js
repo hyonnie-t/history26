@@ -850,15 +850,20 @@ function setUnitOpen_(el, open){
   if(h) h.setAttribute('aria-expanded', String(open));
   UNIT_OPEN[el.dataset.unit] = open;
 }
-/* 차시 목록(교육과정 순서)에 중단원 이름을 붙인다. config.js의 UNIT_GROUPS[학년]에 id가 적힌 차시는 그 단원,
- * 적히지 않은 차시(새로 추가한 것)는 바로 앞 차시의 단원을 이어받는다. 학년에 설정이 없으면 전부 ''. */
+/* 차시 목록(교육과정 순서)에 중단원 이름을 붙인다.
+ * v194 — 순서: ① 커리큘럼 시트 «단원» 칸(lesson.unit, 대시보드에서 정함) ② config.js UNIT_GROUPS[학년]에 id가 적힌 단원
+ * ③ 바로 앞 차시의 단원(맨 앞 차시들에 단원이 없으면 처음 나오는 단원). 어디에도 단원이 없으면 전부 ''(예전처럼 한 줄로 나열).
+ * 옛 백엔드(unit을 안 내려줌)에서도 ②·③으로 예전과 같게 돈다. 대시보드 «단원 한꺼번에 정하기»도 이 함수로 지금 묶음을 미리 채운다. */
 function unitOfLessons_(grade, lessons){
   const cfg = (CONFIG.UNIT_GROUPS && CONFIG.UNIT_GROUPS[grade]) || [];
-  if(!cfg.length) return lessons.map(() => '');
   const byId = {};
   cfg.forEach(u => (u.ids || []).forEach(id => { byId[id] = u.name; }));
-  let prev = cfg[0].name;
-  return lessons.map(l => (prev = byId[l.id] || prev));
+  const own = l => String((l && l.unit) || '').trim() || byId[l && l.id] || '';
+  // 맨 앞 차시들에 단원이 없을 때: 시트 단원이 하나라도 있으면 처음 나오는 시트 단원, 없으면 예전처럼 UNIT_GROUPS 첫 단원
+  let prev = '';
+  for(const l of lessons){ if((prev = String((l && l.unit) || '').trim())) break; }
+  if(!prev && cfg.length) prev = cfg[0].name;
+  return lessons.map(l => (prev = own(l) || prev));
 }
 /* open=false: 완료한 차시만 접기 / open=true: 전부 펼치기 */
 function setDoneLessonsOpen_(open){

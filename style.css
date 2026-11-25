@@ -843,6 +843,22 @@ button{font-family:inherit; cursor:pointer;}
 .cl-collapse summary .cl-arrow{transition:transform .2s; color:var(--ink-soft); font-size:.8rem;}
 .cl-collapse[open] summary .cl-arrow{transform:rotate(90deg);}
 .cl-collapse .cl-collapse-body{padding:0 14px 14px;}
+/* v194 — 단원 한꺼번에 정하기(8pt 토큰) */
+.cl-unit-bulk-meta{font-weight:400; font-size:.8rem; color:var(--ink-soft);}
+.cl-unit-rows{list-style:none; margin:var(--space-2) 0 0; padding:0; display:flex; flex-direction:column; gap:var(--space-2);}
+.cl-unit-row{display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:var(--space-2); align-items:center;
+  padding:var(--space-2); border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card); transition:background-color .2s, border-color .2s;}
+.cl-unit-row.changed{border-color:var(--ochre); background:var(--amber-bg);}
+.cl-unit-lesson{display:flex; flex-direction:column; gap:var(--space-1); min-width:0;}
+.cl-unit-title{font-weight:700; font-size:.9rem; overflow-wrap:anywhere;}
+.cl-unit-id{font-size:.78rem; color:var(--ink-soft); overflow-wrap:anywhere;}
+.cl-unit-input{width:100%; min-height:40px; padding:0 var(--space-2); font-size:.92rem; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card);}
+.cl-unit-bulk-actions{display:flex; flex-wrap:wrap; gap:var(--space-2); margin-top:var(--space-3);}
+.cl-unit-bulk-actions .btn{min-height:40px;}
+.cl-unit-confirm-list{max-height:40vh; overflow:auto; margin:0 0 var(--space-3); padding-left:var(--space-3); font-size:.88rem; line-height:1.5; word-break:keep-all; overflow-wrap:anywhere;}
+#clUnitConfirm .help-dialog-desc, #clUnitBulk .cl-help{word-break:keep-all;}
+@media (max-width:560px){ .cl-unit-row{grid-template-columns:1fr;} }
+@media (prefers-reduced-motion: reduce){ .cl-unit-row{transition:none;} }
 .gi-block{
   background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm);
   padding:12px 14px; margin-bottom:10px;

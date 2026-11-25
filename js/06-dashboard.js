@@ -384,6 +384,23 @@ function dashInitCurriculumForm(){
   if(TEACHER_NAME) $('clOwner').value = TEACHER_NAME;
   clRefreshOwnerHint();
   clRefreshBadgeNameOptions(); // v24 — 데이터 로드 후 최신 BADGE_NAME_POOL로 초기 상태 맞춤
+  clRefreshUnitOptions_();     // v194
+}
+
+/* v194 — 단원(커리큘럼 시트 17열). 학년 하나의 차시를 교육과정 순서(order)로, 학생 연표와 같은 계산(unitOfLessons_)으로 지금 단원을 붙인다. */
+function clGradeLessonsOrdered_(g){
+  return LESSONS_ADMIN.filter(l => String(l.grade) === String(g)).sort((a, b) => a.order - b.order);
+}
+/* 그 학년에서 쓰는 단원 이름(나온 순서대로, 겹침 없음) — 폼 datalist·한꺼번에 정하기 datalist 공용 */
+function clUnitNames_(g){
+  const ls = clGradeLessonsOrdered_(g);
+  const now = unitOfLessons_(String(g), ls);
+  return [...new Set(ls.map(l => String(l.unit || '').trim()).concat(now).filter(Boolean))];
+}
+function clRefreshUnitOptions_(){
+  const dl = $('clUnitOptions');
+  if(!dl) return;
+  dl.innerHTML = clUnitNames_($('clGrade').value).map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
 }
 
 /* v80 — 학년 전환(2학년/3학년). 학년정보 폼과 등록된 활동 목록이 같은 학년을 보여준다.
@@ -417,6 +434,7 @@ function clSetGrade_(g){
   document.querySelectorAll('#giForm .gi-block, #clList .cl-grade-group').forEach(el => {
     el.style.display = el.dataset.grade === g ? '' : 'none';
   });
+  clUnitBulkRender_(); // v194 — 단원 한꺼번에 정하기도 고른 학년으로(고치던 값은 버리고 그 학년 값으로 다시 그림)
   // "새 활동 추가" 폼의 학년도 맞춰 둔다(직접 바꿀 수도 있음)
   const sel = $('clGrade');
   if(sel && [...sel.options].some(o => o.value === g) && sel.value !== g){
@@ -1497,6 +1515,112 @@ function dashRenderLessons(){
   clRenderGradeSeg_();
   list.innerHTML = html;
   bindClListEvents();
+  clUnitBulkRender_(); // v194
+  clRefreshUnitOptions_();
+}
+
+/* ── v194 — 단원 한꺼번에 정하기 ──
+ * 고른 학년(clCurGrade_)의 모든 차시(비공개·지난 활동 포함)를 교육과정 순서로 늘어놓는다. 단원 칸은 시트 값(l.unit), 비었으면
+ * 학생 연표가 지금 쓰는 단원(unitOfLessons_ — config UNIT_GROUPS → 앞 차시)으로 미리 채운다. 시트 값과 다른 줄만 «바뀜»으로 칠하고,
+ * 저장은 바뀐 줄만 모아 앱 안 확인 창 → setLessonUnits 한 번(행+활동id가 둘 다 맞을 때만 서버가 쓴다) → 다시 읽어 대조. */
+function clUnitBulkRows_(){
+  const g = clCurGrade_();
+  const ls = g ? clGradeLessonsOrdered_(g) : [];
+  const now = unitOfLessons_(String(g), ls);
+  return ls.map((l, i) => ({ l, saved: String(l.unit || '').trim(), start: String(l.unit || '').trim() || now[i] || '' }));
+}
+function clUnitBulkRender_(){
+  const wrap = $('clUnitBulkList');
+  if(!wrap) return;
+  const rows = clUnitBulkRows_();
+  const g = clCurGrade_();
+  if(!rows.length){ wrap.innerHTML = '<p class="cl-past-hint">이 학년에 등록된 차시가 없어요.</p>'; clUnitBulkSync_(); return; }
+  const names = clUnitNames_(g);
+  wrap.innerHTML = `<datalist id="clUnitBulkOptions">${names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('')}</datalist>`
+    + `<ol class="cl-unit-rows">` + rows.map(r => {
+      const l = r.l;
+      // 시트 단원이 비어 지금 연표 단원으로 미리 채운 줄은 «미리 채움»을 붙인다(저장하면 이 값으로 굳는다 — 제미나이 의견 2026-11-25)
+      const tags = [l.public ? '' : '🔒 비공개', l.isPast ? '지난 활동' : '', (!r.saved && r.start) ? '✎ 미리 채움(아직 저장 안 됨)' : ''].filter(Boolean).join(' · ');
+      return `<li class="cl-unit-row" data-row="${l._row}" data-id="${escapeHtml(l.id)}" data-saved="${escapeHtml(r.saved)}">
+        <div class="cl-unit-lesson"><span class="cl-unit-title">${escapeHtml(l.title)}</span>
+          <span class="cl-unit-id">${escapeHtml(l.id)}${tags ? ' · ' + tags : ''}</span></div>
+        <input class="cl-unit-input" type="text" maxlength="40" list="clUnitBulkOptions" autocomplete="off" aria-label="${escapeHtml(l.title)} 단원" value="${escapeHtml(r.start)}">
+      </li>`;
+    }).join('') + `</ol>`;
+  wrap.querySelectorAll('.cl-unit-input').forEach(inp => inp.addEventListener('input', clUnitBulkSync_));
+  clUnitBulkSync_();
+}
+function clUnitBulkChanges_(){
+  return [...document.querySelectorAll('#clUnitBulkList .cl-unit-row')].map(li => ({
+    row: Number(li.dataset.row), id: li.dataset.id, saved: li.dataset.saved,
+    unit: li.querySelector('.cl-unit-input').value.replace(/\s+/g, ' ').trim(),
+    title: (li.querySelector('.cl-unit-title') || {}).textContent || ''
+  })).filter(x => x.unit !== x.saved);
+}
+function clUnitBulkSync_(){
+  const changes = clUnitBulkChanges_();
+  const changed = new Set(changes.map(c => String(c.row)));
+  document.querySelectorAll('#clUnitBulkList .cl-unit-row').forEach(li => li.classList.toggle('changed', changed.has(li.dataset.row)));
+  const btn = $('btnClUnitSave');
+  if(btn){ btn.disabled = !changes.length; btn.textContent = changes.length ? `바뀐 단원 ${changes.length}개 저장` : '바뀐 단원 저장'; }
+  const meta = $('clUnitBulkMeta');
+  if(meta){
+    const rows = clUnitBulkRows_();
+    const empty = rows.filter(r => !r.saved).length;
+    meta.textContent = rows.length ? (empty ? `· 단원 빈 차시 ${empty}개` : '· 모두 정해짐') : '';
+  }
+}
+let CL_UNIT_PENDING = null;
+let CL_UNIT_SAVING = false; // 저장 중엔 창을 닫거나 새로 열지 않는다(검토 2026-11-25: Esc로 닫고 다시 열면 첫 저장이 끝날 때 새 값이 사라짐)
+function clUnitBulkAsk_(){
+  if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return; }
+  if(CL_UNIT_SAVING){ showToast('앞 저장이 끝나면 다시 눌러 주세요.'); return; }
+  const changes = clUnitBulkChanges_();
+  if(!changes.length) return;
+  CL_UNIT_PENDING = changes;
+  $('clUnitConfirmDesc').textContent = `${clCurGrade_()}학년 차시 ${changes.length}개의 단원을 바꿔요. 학생 학습 연표가 이 단원으로 다시 묶여요.`;
+  $('clUnitConfirmList').innerHTML = changes.map(c =>
+    `<li><b>${escapeHtml(c.title)}</b> <span class="cl-unit-id">${escapeHtml(c.saved || '(빈칸)')} → ${escapeHtml(c.unit || '(빈칸)')}</span></li>`).join('');
+  $('clUnitConfirmErr').style.display = 'none';
+  const yes = $('clUnitConfirmYes'); yes.disabled = false; yes.textContent = '저장';
+  const d = $('clUnitConfirm');
+  if(!d.dataset.bound){ d.dataset.bound = '1'; d.addEventListener('cancel', e => { if(CL_UNIT_SAVING) e.preventDefault(); }); } // 저장 중 Esc 막기
+  if(d.showModal){ if(!d.open) d.showModal(); } else d.setAttribute('open', '');
+}
+function clUnitBulkClose_(force){
+  if(CL_UNIT_SAVING && !force) return;
+  const d = $('clUnitConfirm');
+  if(d.close && d.open) d.close(); else d.removeAttribute('open');
+}
+async function clUnitBulkSave_(){
+  if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ clUnitBulkClose_(); return; }
+  if(CL_UNIT_SAVING) return;
+  const changes = CL_UNIT_PENDING || [];
+  if(!changes.length){ clUnitBulkClose_(); return; }
+  const grade = clCurGrade_();
+  const yes = $('clUnitConfirmYes');
+  const err = msg => { const el = $('clUnitConfirmErr'); el.textContent = msg; el.style.display = 'block'; };
+  yes.disabled = true; yes.textContent = '저장하는 중…';
+  CL_UNIT_SAVING = true;
+  try{
+    await dashPost_({ action: 'setLessonUnits', items: changes.map(c => ({ row: c.row, id: c.id, unit: c.unit })) }, '저장하지 못했어요.');
+    await dashLoadData();
+    dashRenderLessons();
+    // 다시 읽은 값과 대조 — 서버가 success만 주고 안 썼으면(옛 배포본 등) 그렇다고 알린다
+    const miss = changes.filter(c => { const l = LESSONS_ADMIN.find(x => String(x.grade) === String(grade) && x.id === c.id); return !l || String(l.unit || '').trim() !== c.unit.slice(0, 40); });
+    CL_UNIT_SAVING = false;
+    clUnitBulkClose_();
+    CL_UNIT_PENDING = null;
+    showToast(miss.length ? `저장은 했다는데 ${miss.length}개가 다시 읽은 값과 달라요. Apps Script 배포 버전을 확인해 주세요.` : `단원 ${changes.length}개를 저장했어요.`);
+    dashSyncCurriculum_();
+  }catch(e){
+    const msg = (e && e.fromServer && e.message) ? e.message : '저장하지 못했어요. 다시 시도해 주세요.';
+    err(msg);
+    if(!$('clUnitConfirm').open) showToast('단원 저장: ' + msg); // Esc 연타로 창이 닫혔으면 오류가 창 안에 묻히니 토스트로도
+    yes.disabled = false; yes.textContent = '다시 저장';
+  }finally{
+    CL_UNIT_SAVING = false;
+  }
 }
 
 /* v27: 활동목록JSON이 있는(활동 2개 이상) 차시는 목록에서 "활동 2개" 배지 +
@@ -1547,7 +1671,8 @@ function clLessonItemHtml(l, isPastItem){
   const subText = (sub.hasUrl && sub.n === 0 && !isPastItem)
     ? ` · <span class="cl-warn" title="학생 제출이 한 건도 없어요. 아직 수업 전이면 정상이고, 수업을 했는데도 0건이면 웹앱의 GAME_NAME이 이 활동 id와 글자까지 같은지 확인하세요.">⚠ 제출 0건</span>`
     : ` · 제출 ${sub.n}건`;
-  const ownerTag = (l.owner && l.owner !== '공통') ? ` · 👤 ${escapeHtml(l.owner)} 담당` : '';
+  const ownerTag = ((l.owner && l.owner !== '공통') ? ` · 👤 ${escapeHtml(l.owner)} 담당` : '')
+    + (l.unit ? ` · 📚 ${escapeHtml(l.unit)}` : ''); // v194 — 단원
   const metaText = multi
     ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}${ownerTag}${subText}`
     : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}${ownerTag}${subText}`;
@@ -1781,6 +1906,7 @@ async function dashAddLesson(btn){
   const owner = $('clOwner').value;
   const thinkingType = $('clThinkingType').value;
   const badgeName = $('clBadgeName').value.trim(); // v24
+  const unit = $('clUnit').value.replace(/\s+/g, ' ').trim(); // v194
   if(!grade || !id || !title){ showToast('학년·활동id·제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -1793,7 +1919,7 @@ async function dashAddLesson(btn){
 
   btn.disabled = true; btn.textContent = '추가하는 중…';
   try{
-    const json = await dashPostRaw_({ action:'addLesson', grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType, badgeName }).catch(e => { if(e instanceof SyntaxError) return null; throw e; }); // v165 — 전처럼 JSON이 아닌 응답은 null로 보고 아래 안내로
+    const json = await dashPostRaw_({ action:'addLesson', grade, id, title, desc, type, url, public:isPublic, activities, sequential, owner, thinkingType, badgeName, unit }).catch(e => { if(e instanceof SyntaxError) return null; throw e; }); // v165 — 전처럼 JSON이 아닌 응답은 null로 보고 아래 안내로
     // v23 버그 수정 — 지금까지 여기서 서버 응답을 안 읽어서, 백엔드가 에러를 던져도
     // 프론트는 무조건 "저장했어요"를 띄웠음(실패가 조용히 묻힘). 이제 result:'success'가
     // 아니면 실패로 처리하고 실제 에러 메시지를 보여줌 — 아래서 리스트 새로고침도 안 함.
@@ -1838,6 +1964,8 @@ function dashEditLesson(btn){
   $('clThinkingType').value = l.thinkingType || '';
   clRefreshBadgeNameOptions();
   $('clBadgeName').value = l.badgeName || ''; // v24
+  clRefreshUnitOptions_();
+  $('clUnit').value = l.unit || ''; // v194 — 비었으면 빈칸(학생 연표는 앞 차시 단원으로 묶임)
   clSetEditing_(row); // v167 — 공개여부는 목록에서 토글로만 관리(폼에서는 안 건드림)
 
   let acts = [];
@@ -1884,6 +2012,8 @@ function dashResetLessonForm(){
   $('clThinkingType').value = '';
   $('clBadgeName').value = ''; // v24
   clRefreshBadgeNameOptions();
+  $('clUnit').value = ''; // v194
+  clRefreshUnitOptions_();
   $('clMulti').checked = false;
   ['clAct1Id','clAct1Title','clAct1Desc','clAct1Url','clAct2Id','clAct2Title','clAct2Desc','clAct2Url']
     .forEach(id => { $(id).value = ''; });
@@ -1900,6 +2030,7 @@ async function dashUpdateLesson(btn, row){
   const owner = $('clOwner').value;
   const thinkingType = $('clThinkingType').value;
   const badgeName = $('clBadgeName').value.trim(); // v24
+  const unit = $('clUnit').value.replace(/\s+/g, ' ').trim(); // v194 — 백엔드는 unit 칸을 보낸 화면만 단원을 고친다
   if(!title){ showToast('제목은 필수예요.'); return; }
 
   const activities = clCollectActivitiesFromForm();
@@ -1912,7 +2043,7 @@ async function dashUpdateLesson(btn, row){
 
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
-    const json = await dashPostRaw_({ action:'updateLesson', row, title, desc, type, url, activities, sequential, owner, thinkingType, badgeName }).catch(e => { if(e instanceof SyntaxError) return null; throw e; }); // v165 — 전처럼 JSON이 아닌 응답은 null로 보고 아래 안내로
+    const json = await dashPostRaw_({ action:'updateLesson', row, title, desc, type, url, activities, sequential, owner, thinkingType, badgeName, unit }).catch(e => { if(e instanceof SyntaxError) return null; throw e; }); // v165 — 전처럼 JSON이 아닌 응답은 null로 보고 아래 안내로
     // v23 버그 수정 — addLesson과 동일: 서버 응답을 확인 안 하면 백엔드가 던진 에러가
     // 조용히 묻히고 무조건 "저장했어요"가 뜸. result:'success' 아니면 실패로 처리.
     if(!json || json.result !== 'success'){
