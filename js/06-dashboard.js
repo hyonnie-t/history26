@@ -1539,7 +1539,8 @@ function clUnitBulkRender_(){
   wrap.innerHTML = `<datalist id="clUnitBulkOptions">${names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('')}</datalist>`
     + `<ol class="cl-unit-rows">` + rows.map(r => {
       const l = r.l;
-      const tags = [l.public ? '' : '🔒 비공개', l.isPast ? '지난 활동' : ''].filter(Boolean).join(' · ');
+      // 시트 단원이 비어 지금 연표 단원으로 미리 채운 줄은 «미리 채움»을 붙인다(저장하면 이 값으로 굳는다 — 제미나이 의견 2026-11-25)
+      const tags = [l.public ? '' : '🔒 비공개', l.isPast ? '지난 활동' : '', (!r.saved && r.start) ? '✎ 미리 채움(아직 저장 안 됨)' : ''].filter(Boolean).join(' · ');
       return `<li class="cl-unit-row" data-row="${l._row}" data-id="${escapeHtml(l.id)}" data-saved="${escapeHtml(r.saved)}">
         <div class="cl-unit-lesson"><span class="cl-unit-title">${escapeHtml(l.title)}</span>
           <span class="cl-unit-id">${escapeHtml(l.id)}${tags ? ' · ' + tags : ''}</span></div>
