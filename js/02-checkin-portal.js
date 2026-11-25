@@ -859,8 +859,9 @@ function unitOfLessons_(grade, lessons){
   const byId = {};
   cfg.forEach(u => (u.ids || []).forEach(id => { byId[id] = u.name; }));
   const own = l => String((l && l.unit) || '').trim() || byId[l && l.id] || '';
+  // 맨 앞 차시들에 단원이 없을 때: 시트 단원이 하나라도 있으면 처음 나오는 시트 단원, 없으면 예전처럼 UNIT_GROUPS 첫 단원
   let prev = '';
-  for(const l of lessons){ if((prev = own(l))) break; }
+  for(const l of lessons){ if((prev = String((l && l.unit) || '').trim())) break; }
   if(!prev && cfg.length) prev = cfg[0].name;
   return lessons.map(l => (prev = own(l) || prev));
 }

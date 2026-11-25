@@ -1570,8 +1570,10 @@ function clUnitBulkSync_(){
   }
 }
 let CL_UNIT_PENDING = null;
+let CL_UNIT_SAVING = false; // 저장 중엔 창을 닫거나 새로 열지 않는다(검토 2026-11-25: Esc로 닫고 다시 열면 첫 저장이 끝날 때 새 값이 사라짐)
 function clUnitBulkAsk_(){
   if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ showToast('미리보기라 저장하지 않았어요.'); return; }
+  if(CL_UNIT_SAVING){ showToast('앞 저장이 끝나면 다시 눌러 주세요.'); return; }
   const changes = clUnitBulkChanges_();
   if(!changes.length) return;
   CL_UNIT_PENDING = changes;
@@ -1581,25 +1583,31 @@ function clUnitBulkAsk_(){
   $('clUnitConfirmErr').style.display = 'none';
   const yes = $('clUnitConfirmYes'); yes.disabled = false; yes.textContent = '저장';
   const d = $('clUnitConfirm');
+  if(!d.dataset.bound){ d.dataset.bound = '1'; d.addEventListener('cancel', e => { if(CL_UNIT_SAVING) e.preventDefault(); }); } // 저장 중 Esc 막기
   if(d.showModal){ if(!d.open) d.showModal(); } else d.setAttribute('open', '');
 }
-function clUnitBulkClose_(){
+function clUnitBulkClose_(force){
+  if(CL_UNIT_SAVING && !force) return;
   const d = $('clUnitConfirm');
   if(d.close && d.open) d.close(); else d.removeAttribute('open');
 }
 async function clUnitBulkSave_(){
   if(typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE){ clUnitBulkClose_(); return; }
+  if(CL_UNIT_SAVING) return;
   const changes = CL_UNIT_PENDING || [];
   if(!changes.length){ clUnitBulkClose_(); return; }
+  const grade = clCurGrade_();
   const yes = $('clUnitConfirmYes');
   const err = msg => { const el = $('clUnitConfirmErr'); el.textContent = msg; el.style.display = 'block'; };
   yes.disabled = true; yes.textContent = '저장하는 중…';
+  CL_UNIT_SAVING = true;
   try{
     await dashPost_({ action: 'setLessonUnits', items: changes.map(c => ({ row: c.row, id: c.id, unit: c.unit })) }, '저장하지 못했어요.');
     await dashLoadData();
     dashRenderLessons();
     // 다시 읽은 값과 대조 — 서버가 success만 주고 안 썼으면(옛 배포본 등) 그렇다고 알린다
-    const miss = changes.filter(c => { const l = LESSONS_ADMIN.find(x => String(x.grade) === String(clCurGrade_()) && x.id === c.id); return !l || String(l.unit || '').trim() !== c.unit.slice(0, 40); });
+    const miss = changes.filter(c => { const l = LESSONS_ADMIN.find(x => String(x.grade) === String(grade) && x.id === c.id); return !l || String(l.unit || '').trim() !== c.unit.slice(0, 40); });
+    CL_UNIT_SAVING = false;
     clUnitBulkClose_();
     CL_UNIT_PENDING = null;
     showToast(miss.length ? `저장은 했다는데 ${miss.length}개가 다시 읽은 값과 달라요. Apps Script 배포 버전을 확인해 주세요.` : `단원 ${changes.length}개를 저장했어요.`);
@@ -1607,6 +1615,8 @@ async function clUnitBulkSave_(){
   }catch(e){
     err((e && e.fromServer && e.message) ? e.message : '저장하지 못했어요. 다시 시도해 주세요.');
     yes.disabled = false; yes.textContent = '다시 저장';
+  }finally{
+    CL_UNIT_SAVING = false;
   }
 }
 
