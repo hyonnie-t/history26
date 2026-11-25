@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="style.css?v=191">
+<link rel="stylesheet" href="style.css?v=193">
 <script src="js/11-pwa-install.js?v=157" defer></script>
 <!-- v83 — 로그인 세션을 Apps Script 호출에 자동으로 붙이는 공용 스크립트(개별 웹앱도 같은 파일을 쓴다) -->
 <script src="snippets/portal_auth.js" data-guard="off"></script>
@@ -195,31 +195,30 @@
         <a class="btn-go" id="nextGo" href="#" target="_blank" rel="noopener">하러 가기 →</a>
       </section>
 
+      <!-- v193 — 공지는 최신 1건만 한 줄로, 나머지는 «이전 공지» 접기 안에(2026-11-25 효니 «뭐가 너무 많아서 보기 싫던데»).
+           같은 정리로 KPI 세 칸(완료 차시·포인트·피드백 수 — 연표 머리줄·나무 카드·피드백 카드와 겹침)과 단원 관통 질문 배너를 지웠다. -->
       <section class="announce-card" id="announceCard" aria-label="공지사항">
-        <h2>📢 공지사항</h2>
         <div id="announceList"></div>
       </section>
 
-      <div class="kpi-grid">
-        <div class="kpi">
-          <h3>완료한 활동</h3>
-          <div class="big"><span id="progressDone">0</span><small> / <span id="progressTotal">0</span> 차시</small></div>
-          <div class="mini-track"><div class="mini-fill" id="progressFill"></div></div>
-        </div>
-        <div class="kpi">
-          <h3>탐구 포인트</h3>
-          <div class="big"><span id="kpiPoints">0</span><small> 점</small></div>
-        </div>
-        <div class="kpi">
-          <h3>선생님 피드백</h3>
-          <div class="big"><span id="kpiFeedback">0</span><small> 개</small></div>
-        </div>
-      </div>
-
-      <section class="unit-banner" id="unitBanner" aria-label="이번 학기의 질문">
-        <p class="ub-label">이번 학기의 질문</p>
-        <p class="ub-q" id="unitQuestion"></p>
-      </section>
+      <!-- v193 — 패들렛·클래스카드·교과서: 탭 카드(한 번에 하나만 보임) → 한 줄 바로가기 타일. 교사가 커리큘럼 탭에서 카드마다 켜고 끈다(링크숨김). -->
+      <nav class="link-tiles" id="refTabsCard" aria-label="바로가기" style="display:none;">
+        <a class="link-tile" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener">
+          <span class="ref-ico ref-ico-jade" aria-hidden="true">📝</span>
+          <span class="lt-text"><b id="portfolioTitle"></b><small id="portfolioDesc"></small></span>
+          <span class="lt-go" aria-hidden="true">→</span>
+        </a>
+        <a class="link-tile" id="classcardLinkBtn" href="#" target="_blank" rel="noopener">
+          <span class="ref-ico ref-ico-indigo" aria-hidden="true">🃏</span>
+          <span class="lt-text"><b id="classcardTitle"></b><small id="classcardDesc"></small></span>
+          <span class="lt-go" aria-hidden="true">→</span>
+        </a>
+        <a class="link-tile" id="textbookLinkBtn" href="#" target="_blank" rel="noopener">
+          <span class="ref-ico ref-ico-amber" aria-hidden="true">📖</span>
+          <span class="lt-text"><b id="textbookTitle"></b><small id="textbookDesc"></small></span>
+          <span class="lt-go" aria-hidden="true">→</span>
+        </a>
+      </nav>
 
       <!-- v57 — 질문함·달성도·보관함을 탭 하나로 묶어 단원질문 바로 아래(상단)로 끌어올림.
            v42는 이 셋을 전부 "그 밖의 기록" 맨 아래로 보냈는데, 효니 피드백으로 자주 쓰는
@@ -271,46 +270,6 @@
         <div class="tab-panel" id="qpReading" style="display:none;">
           <p class="q-hint">책을 읽을 때마다 밑줄 친 문장·내 질문·한 줄 평·짧은 글을 남겨요. 다 쓰면 «독서로에 옮겨 적기»로 독서로에도 올려요.</p>
           <div id="readingBox"></div>
-        </div>
-      </section>
-
-      <!-- v79 — 학습 연표 위(상단)로 이동 + 시험범위 교과서 탭 추가(효니 요청: 나의 패들렛을 위로).
-           v57 — 패들렛(포트폴리오)·클래스카드를 탭 하나로 묶음. 둘 다 "학기 내내 고정
-           노출되는 링크 카드"라는 성격이 같아 탭 전환만으로 둘 다 접근하게 하고 세로 공간을
-           하나만큼만 차지하게 압축. 반에 클래스카드 URL이 없으면 그 탭 버튼 자체를 숨기고
-           패들렛 탭만 남긴다(renderPortal 참고). -->
-      <section class="tab-card" id="refTabsCard" aria-label="패들렛 · 클래스카드 · 시험범위 교과서" style="display:none;">
-        <div class="tab-nav" id="refTabNav" role="tablist">
-          <button type="button" class="tab-btn" id="refTabBtnPortfolio" data-rtab="portfolio" onclick="switchRefTab('portfolio')">패들렛(포트폴리오)</button>
-          <button type="button" class="tab-btn" id="refTabBtnClasscard" data-rtab="classcard" onclick="switchRefTab('classcard')">클래스카드</button>
-          <button type="button" class="tab-btn" id="refTabBtnTextbook" data-rtab="textbook" onclick="switchRefTab('textbook')">시험범위 교과서</button>
-        </div>
-        <div class="tab-panel ref-link-panel" id="refPanelPortfolio">
-          <span class="ref-ico ref-ico-jade" aria-hidden="true">📝</span>
-          <div class="ref-text">
-            <p class="pf-label">학기 내내 쓰는 포트폴리오</p>
-            <p class="pf-title" id="portfolioTitle"></p>
-            <p class="pf-desc" id="portfolioDesc"></p>
-          </div>
-          <a class="btn-go" id="portfolioLinkBtn" href="#" target="_blank" rel="noopener">내 패들렛 열기 →</a>
-        </div>
-        <div class="tab-panel ref-link-panel" id="refPanelClasscard" style="display:none;">
-          <span class="ref-ico ref-ico-indigo" aria-hidden="true">🃏</span>
-          <div class="ref-text">
-            <p class="pf-label">복습용 클래스카드</p>
-            <p class="pf-title" id="classcardTitle"></p>
-            <p class="pf-desc" id="classcardDesc"></p>
-          </div>
-          <a class="btn-go" id="classcardLinkBtn" href="#" target="_blank" rel="noopener">클래스카드 열기 →</a>
-        </div>
-        <div class="tab-panel ref-link-panel" id="refPanelTextbook" style="display:none;">
-          <span class="ref-ico ref-ico-amber" aria-hidden="true">📖</span>
-          <div class="ref-text">
-            <p class="pf-label">시험범위 교과서</p>
-            <p class="pf-title" id="textbookTitle"></p>
-            <p class="pf-desc" id="textbookDesc"></p>
-          </div>
-          <a class="btn-go" id="textbookLinkBtn" href="#" target="_blank" rel="noopener">교과서 열기 →</a>
         </div>
       </section>
 
@@ -553,7 +512,7 @@
     <div class="grade-seg" id="clGradeSeg" role="tablist" aria-label="편집할 학년"></div>
 
     <details class="cl-collapse">
-      <summary>학년 정보 (단원 질문 · 학생 화면 링크 · 담당 반) <span class="cl-arrow">▶</span></summary>
+      <summary>학년 정보 (학생 화면 링크 · 담당 반) <span class="cl-arrow">▶</span></summary>
       <div class="cl-collapse-body">
         <div id="giForm"></div>
       </div>
@@ -1195,13 +1154,13 @@
 <script src="checkin_data.js?v=159"></script>
 <script src="tree.js?v=187"></script>
 <script src="js/01-core-login.js?v=189"></script>
-<script src="js/02-checkin-portal.js?v=189"></script>
+<script src="js/02-checkin-portal.js?v=193"></script>
 <script src="js/03-help.js?v=184"></script>
 <script src="js/12-timed.js?v=181"></script>
 <script src="js/13-reading.js?v=189"></script>
 <script src="js/04-perf-score.js?v=184"></script>
 <script src="js/05-badges-events.js?v=189"></script>
-<script src="js/06-dashboard.js?v=191"></script>
+<script src="js/06-dashboard.js?v=193"></script>
 <!-- v126 — 교사 질문함 아이콘(Lucian Icons v2.0.13, MIT, 로컬 사본 — 학교망 외부 로드 미확인이라 CDN 안 씀) -->
 <script type="module" src="vendor/lucian-icons/help.js"></script>
 <script type="module" src="vendor/lucian-icons/envelope.js"></script>

@@ -470,13 +470,7 @@ function renderPortal(){
 
   renderNextActivity_(lessons, doneIds, lessonDone); // v105
 
-  /* KPI: 진행률 (차시 단위) */
-  const active = lessons.filter(l => lessonCounts_(l, SESSION.ban, doneIds)); // v164 — 내 반 링크가 없는(아직 못 하는) 차시는 분모에서 뺀다
-  const doneCount = active.filter(lessonDone).length;
-  const pct = active.length ? Math.round(doneCount / active.length * 100) : 0;
-  $('progressDone').textContent = doneCount;
-  $('progressTotal').textContent = active.length;
-  requestAnimationFrame(() => { $('progressFill').style.width = pct + '%'; });
+  /* v193 — KPI 세 칸(완료 차시·포인트·피드백 수)은 지웠다. 진도는 연표 머리줄(timelineCount), 포인트는 나무 카드, 피드백은 피드백 카드가 보여 준다. */
 
   /* 포인트·칭호·나무 (참여·노력 기반 — 달성도와 무관)
    * v27: 포인트는 활동 단위로 지급(첫 완료 FIRST점 + 재도전 1회당 RETRY점, 활동당
@@ -522,9 +516,7 @@ function renderPortal(){
   ranks.forEach((r, i) => { if (points >= r.min) { rank = r; rankIdx = i; } });
   const nextRank = ranks.find(r => r.min > points) || null;
   $('pointsNum').textContent = points;
-  $('kpiPoints').textContent = points;
   $('rankName').textContent = rank.name;
-  $('kpiFeedback').textContent = fbAll.length;
   if (nextRank) {
     $('rankNext').textContent = `다음 칭호(${nextRank.name})까지 ${nextRank.min - points}점`;
     const span = nextRank.min - rank.min;
@@ -558,19 +550,12 @@ function renderPortal(){
   // 있음) 페인트 한 번 지난 다음에 해야 정확한 위치를 잰다(레이아웃 함수 정의는 아래).
   requestAnimationFrame(layoutSideCard_);
 
-  /* 단원 관통 질문 배너 */
-  const uq = (cur.unitQuestion || '').trim();
-  if (uq) {
-    $('unitBanner').style.display = 'block';
-    $('unitQuestion').textContent = uq;
-  } else {
-    $('unitBanner').style.display = 'none';
-  }
+  /* v193 — 단원 관통 질문 배너는 지웠다(2026-11-25 효니 «이제 필요없고»). */
 
   /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드 (차시가 아니라 완료·포인트 대상 아님) */
   const pf = cur.portfolio;
   const pfUrl = pf ? (pf.urlByBan ? (pf.urlByBan[SESSION.ban] || '') : (pf.url || '')) : '';
-  const pfHas = !!(pf && pfUrl);
+  const pfHas = !!(pf && pfUrl && !pf.hidden); // v193 — hidden: 교사가 끈 카드(주소는 padletParam_이 계속 씀)
   if (pfHas) {
     $('portfolioTitle').textContent = pf.title || '나의 패들렛';
     $('portfolioDesc').textContent = pf.desc || '';
@@ -580,7 +565,7 @@ function renderPortal(){
   /* v45 — 복습용 클래스카드. 포트폴리오와 같은 패턴(반별 urlByBan 우선, 없으면 공통 url). */
   const cc = cur.classcard;
   const ccUrl = cc ? (cc.urlByBan ? (cc.urlByBan[SESSION.ban] || '') : (cc.url || '')) : '';
-  const ccHas = !!(cc && ccUrl);
+  const ccHas = !!(cc && ccUrl && !cc.hidden); // v193
   if (ccHas) {
     $('classcardTitle').textContent = cc.title || '복습용 클래스카드';
     $('classcardDesc').textContent = cc.desc || '';
@@ -590,25 +575,19 @@ function renderPortal(){
   /* v79 — 시험범위 교과서(PDF 등). 클래스카드와 같은 패턴(반별 urlByBan 우선, 없으면 공통 url). */
   const tb = cur.textbook;
   const tbUrl = tb ? (tb.urlByBan ? (tb.urlByBan[SESSION.ban] || '') : (tb.url || '')) : '';
-  const tbHas = !!(tb && tbUrl);
+  const tbHas = !!(tb && tbUrl && !tb.hidden); // v193
   if (tbHas) {
     $('textbookTitle').textContent = tb.title || '시험범위 교과서';
     $('textbookDesc').textContent = tb.desc || '';
     $('textbookLinkBtn').href = ensureUrlScheme_(tbUrl);
   }
 
-  /* v57 — 패들렛·클래스카드 탭 카드. 데이터가 전혀 없으면 카드 자체를 숨기고,
-   * 하나만 있으면 탭 내비게이션을 숨긴 채(누를 탭이 하나뿐이면 의미 없음) 그 패널만 보여준다. */
-  $('refTabBtnPortfolio').style.display = pfHas ? '' : 'none';
-  $('refTabBtnClasscard').style.display = ccHas ? '' : 'none';
-  $('refTabBtnTextbook').style.display = tbHas ? '' : 'none';
-  if (pfHas || ccHas || tbHas) {
-    $('refTabsCard').style.display = 'block';
-    $('refTabNav').style.display = ((pfHas ? 1 : 0) + (ccHas ? 1 : 0) + (tbHas ? 1 : 0)) > 1 ? 'flex' : 'none';
-    switchRefTab(pfHas ? 'portfolio' : (ccHas ? 'classcard' : 'textbook'));
-  } else {
-    $('refTabsCard').style.display = 'none';
-  }
+  /* v193 — 바로가기 타일(탭 카드 대신). 링크가 있는 타일만 보이고(교사가 끈 카드는 hidden), 하나도 없으면 줄째 숨긴다. */
+  $('portfolioLinkBtn').hidden = !pfHas;
+  $('classcardLinkBtn').hidden = !ccHas;
+  $('textbookLinkBtn').hidden = !tbHas;
+  [['portfolioDesc', pfHas], ['classcardDesc', ccHas], ['textbookDesc', tbHas]].forEach(([id, has]) => { const el = $(id); el.hidden = !has || !el.textContent.trim(); });
+  $('refTabsCard').style.display = (pfHas || ccHas || tbHas) ? '' : 'none';
 
   /* v42 — "학기 총평" 전용 카드(#feedbackCard)를 없애면서 이 렌더 블록도 함께 제거.
    * fbGeneral은 아래 renderFeedbackInbox(fbAll)에 "학기 총평" 라벨로 이미 포함돼
@@ -1072,11 +1051,15 @@ function renderAnnouncements(){
   }
   card.style.display = 'block';
   const sorted = [...items].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-  list.innerHTML = sorted.slice(0, 3).map(a => `
+  /* v193 — 최신 1건만 한 줄로 펼쳐 두고, 그 전 2건은 «이전 공지» 접기 안에 */
+  const item_ = a => `
     <div class="announce-item">
-      <div class="an-meta">${formatDate(a.timestamp)}</div>
-      <div>${escapeHtml(a.content)}</div>
-    </div>`).join('');
+      <span class="an-meta">${formatDate(a.timestamp)}</span>
+      <span class="an-text">${escapeHtml(a.content)}</span>
+    </div>`;
+  const older = sorted.slice(1, 3);
+  list.innerHTML = `<div class="an-top"><span class="an-tag">📢 공지</span>${item_(sorted[0])}</div>`
+    + (older.length ? `<details class="an-older"><summary>이전 공지 ${older.length}개</summary>${older.map(item_).join('')}</details>` : '');
 }
 
 /* ── 피드백 모아보기: 차시 인라인·학기 총평 카드에 흩어진 피드백을 전부 모아
@@ -1153,15 +1136,6 @@ function switchQuickTab(tab){
     ackMessages_(); // v62 — 탭을 연 순간 읽은 것으로 처리
   }
   if(tab === 'reading' && typeof readingTabOpen_ === 'function') readingTabOpen_(); // v189 — 탭을 열 때만 읽는다(js/13-reading.js)
-}
-
-function switchRefTab(tab){
-  ['portfolio','classcard','textbook'].forEach(t => {
-    $('refPanel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'flex' : 'none';
-  });
-  document.querySelectorAll('#refTabsCard .tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.rtab === tab);
-  });
 }
 
 /* 달성도 "더 보기" — 렌더마다 접힌 상태로 초기화되고(renderPortal), 누르면 펼쳐진다. */

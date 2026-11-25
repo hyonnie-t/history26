@@ -202,8 +202,6 @@ button{font-family:inherit; cursor:pointer;}
  * 정상적으로 이긴다(같은 우선순위에서는 나중 선언이 이김). */
 #teacherGate, #previewGate,
 .side-card,
-.kpi,
-.unit-banner,
 .tab-card,
 .lesson-card,
 .filters,
@@ -465,28 +463,26 @@ button{font-family:inherit; cursor:pointer;}
 }
 
 /* ── 우측 메인 ── */
-.kpi-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:14px;}
-@media (max-width:640px){ .kpi-grid{grid-template-columns:1fr 1fr;} .kpi-grid .kpi:first-child{grid-column:1/-1;} }
-.kpi{
-  padding:14px 16px;
-}
-.kpi h3{font-size:.82rem; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
-.kpi .big{font-family:var(--font-display); font-size:1.55rem; font-weight:700; color:var(--indigo); line-height:1.2;}
-.kpi .big small{font-size:.85rem; font-family:var(--font-body); color:var(--ink-soft); font-weight:400;}
-.kpi .mini-track{height:8px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:8px;}
-.kpi .mini-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--indigo), var(--ochre)); transition:width .6s ease;}
+/* v193 — KPI 세 칸·단원 관통 질문 배너는 지웠다(학생 화면 정리). */
 
-/* 단원 관통 질문 배너 */
-/* v85 — 카드 왼쪽 굵은 색 줄 대신 작은 이름표로 종류를 알림(학생 포털 카드 공통, 효니 선택 A안) */
-.unit-banner{
-  display:none;
-  padding:14px 18px; margin-bottom:14px;
+/* v193 — 바로가기 타일(패들렛·클래스카드·교과서). 폭이 되면 한 줄에 나란히, 폰에선 한 줄에 하나씩 낮게. */
+.link-tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:var(--space-2); margin-bottom:14px;}
+.link-tile{
+  display:flex; align-items:center; gap:var(--space-2); min-height:56px; padding:var(--space-2) var(--space-3);
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+  color:var(--ink); text-decoration:none; transition:transform .15s ease, border-color .15s ease;
 }
-.unit-banner .ub-label{
-  display:inline-block; font-size:.74rem; letter-spacing:.08em; color:var(--seal); font-weight:700;
-  background:rgba(176,58,46,.08); border-radius:999px; padding:2px 10px; margin-bottom:6px;
-}
-.unit-banner .ub-q{font-family:var(--font-display); font-size:1.02rem; font-weight:700; line-height:1.55;}
+.link-tile[hidden]{display:none;}
+.link-tile:hover{border-color:var(--indigo); transform:translateY(-1px);}
+.link-tile:active{transform:translateY(0) scale(.98);}
+.link-tile:focus-visible{outline:2px solid var(--indigo); outline-offset:2px;}
+.link-tile .ref-ico{width:40px; height:40px; border-radius:var(--space-2); font-size:1.2rem;}
+.lt-text{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; line-height:1.35; word-break:keep-all;}
+.lt-text b{font-family:var(--font-display); font-size:.95rem; overflow-wrap:anywhere;}
+.lt-text small{font-size:.78rem; color:var(--ink-soft); overflow-wrap:anywhere;}
+.lt-text small[hidden]{display:none;}
+.lt-go{color:var(--indigo); font-weight:700;}
+@media (prefers-reduced-motion:reduce){ .link-tile{transition:none;} .link-tile:hover{transform:none;} }
 
 /* 패들렛 포트폴리오 등 — 학기 내내 반마다 고정으로 쓰는 링크 카드.
  * pf-label/title/desc는 .ref-card·.ref-link-panel(패들렛·클래스카드 탭 패널)이 같이 쓴다. */
@@ -508,16 +504,22 @@ button{font-family:inherit; cursor:pointer;}
 .announce-card{
   display:none; background:var(--card); border:1px solid var(--line);
   border-radius:var(--radius); /* v85 왼쪽 줄·노란 바탕 대신 이름표 */
-  box-shadow:var(--shadow); padding:14px 18px; margin-bottom:14px;
+  box-shadow:var(--shadow); padding:var(--space-2) var(--space-3); margin-bottom:14px;
 }
-.announce-card h2{
-  display:inline-block; font-family:var(--font-body); font-size:.8rem; font-weight:700; margin-bottom:10px;
+/* v193 — 최신 공지 한 줄(이름표·날짜·내용) + «이전 공지» 접기 */
+.an-top{display:flex; align-items:baseline; gap:var(--space-2);}
+.an-top .announce-item{flex:1 1 auto;}
+.an-tag{
+  flex:0 0 auto; font-size:.76rem; font-weight:700; white-space:nowrap;
   color:var(--amber-text); background:var(--amber-bg); border:1px solid var(--amber-border);
-  border-radius:999px; padding:2px 10px;
+  border-radius:999px; padding:2px var(--space-2);
 }
-.announce-item{padding:8px 0; border-top:1px dashed var(--amber-border); font-size:.92rem; line-height:1.5;}
-.announce-item:first-of-type{border-top:none; padding-top:0;}
-.announce-item .an-meta{font-size:.76rem; color:var(--ink-soft); margin-bottom:2px;}
+.announce-item{display:flex; align-items:baseline; gap:var(--space-2); flex-wrap:wrap; font-size:.92rem; line-height:1.5; min-width:0;}
+.announce-item .an-meta{font-size:.76rem; color:var(--ink-soft); white-space:nowrap;}
+.announce-item .an-text{flex:1 1 0; min-width:10em; overflow-wrap:anywhere;}
+.an-older{margin-top:var(--space-1); font-size:.86rem;}
+.an-older summary{cursor:pointer; color:var(--ink-soft); font-size:.8rem; padding:var(--space-1) 0; list-style-position:inside;}
+.an-older .announce-item{padding:var(--space-1) 0; border-top:1px dashed var(--amber-border);}
 
 /* v57 — 질문함/나의 달성도/보관함, 패들렛/클래스카드처럼 카드 하나를 여러 탭으로
  * 나눌 때 쓰는 공용 탭 컴포넌트. 대시보드 .dash-tabs와 같은 밑줄 탭 패턴이지만
@@ -1602,6 +1604,11 @@ input[type=file]::file-selector-button:hover{background:var(--paper); color:var(
 .gi-link-ico{font-size:1rem;}
 .gi-pill{margin-left:auto; font-size:.7rem; padding:2px 8px; border-radius:999px; background:var(--line); color:var(--ink-soft); white-space:nowrap;}
 .gi-pill.on{background:var(--jade); color:#fff;}
+/* v193 — 링크 카드 켜기/끄기: 이름표 왼쪽 체크칸, 꺼 둔 카드는 흐리게 */
+.gi-toggle{margin-left:auto; display:inline-flex; align-items:center; gap:var(--space-1); cursor:pointer;}
+.gi-toggle input{width:18px; height:18px; accent-color:var(--jade); cursor:pointer;}
+.gi-toggle .gi-pill{margin-left:0;}
+.gi-link-card.is-off{opacity:.7;}
 .gi-link-card textarea{min-height:52px; font-size:.82rem;}
 .gi-two{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 .gi-two label{margin-top:0;}

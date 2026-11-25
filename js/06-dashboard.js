@@ -424,37 +424,55 @@ function clSetGrade_(g){
   }
 }
 
-function giLinkCardHtml_(icon, name, key, title, desc, url, titlePh){
-  const on = !!String(url || '').trim();
+/* v193 — 카드마다 «학생에게 보이기» 켜기/끄기. 끄면 링크를 지우지 않고 학생 화면에서만 숨긴다(백엔드 학년정보 «링크숨김» 칸). */
+function giLinkCardHtml_(icon, name, key, title, desc, url, titlePh, hidden){
+  const hasUrl = !!String(url || '').trim();
+  const on = hasUrl && !hidden;
   return `
-    <div class="gi-link-card">
+    <div class="gi-link-card${on ? '' : ' is-off'}">
       <div class="gi-link-head">
         <span class="gi-link-ico" aria-hidden="true">${icon}</span>
         <b>${name}</b>
-        <span class="gi-pill ${on ? 'on' : ''}">${on ? '학생에게 보임' : '링크 없음 · 숨김'}</span>
+        <label class="gi-toggle" title="${hasUrl ? '끄면 링크는 남겨 두고 학생 화면에서만 숨겨요' : '링크를 넣어야 학생에게 보여요'}">
+          <input type="checkbox" class="gi-${key}-show" ${hidden ? '' : 'checked'} onchange="giTogglePill_(this)">
+          <span class="gi-pill ${on ? 'on' : ''}">${on ? '학생에게 보임' : (hasUrl ? '꺼 둠 · 숨김' : '링크 없음 · 숨김')}</span>
+        </label>
       </div>
       <label>제목<input type="text" class="gi-${key}-title" placeholder="${titlePh}" value="${escapeHtml(title || '')}"></label>
       <label>설명<input type="text" class="gi-${key}-desc" placeholder="한 줄 안내 (선택)" value="${escapeHtml(desc || '')}"></label>
       <label>링크<textarea class="gi-${key}-url" placeholder="https://…  (반마다 다르면 5:https://… 처럼 한 줄에 하나)">${escapeHtml(url || '')}</textarea></label>
     </div>`;
 }
+/* v193 — 켜기/끄기를 누르면 저장 전에도 이름표만 바로 바꿔 보여 준다(저장은 «○학년 정보 저장»). */
+function giTogglePill_(cb){
+  const card = cb.closest('.gi-link-card');
+  const key = cb.className.replace('gi-', '').replace('-show', '');
+  const hasUrl = !!card.querySelector('.gi-' + key + '-url').value.trim();
+  const on = cb.checked && hasUrl;
+  card.classList.toggle('is-off', !on);
+  const pill = card.querySelector('.gi-pill');
+  pill.classList.toggle('on', on);
+  pill.textContent = on ? '학생에게 보임' : (hasUrl ? '꺼 둠 · 숨김' : '링크 없음 · 숨김');
+}
+function giHiddenSet_(text){
+  const out = {};
+  String(text || '').split(/[,\s]+/).forEach(k => { if (k) out[k] = true; });
+  return out;
+}
 function giBlockHtml_(g){
   const gi = GRADE_INFO_ADMIN[g];
+  const off = giHiddenSet_(gi.linkHiddenText);
   const trackConfigured = (gi.hyoBansText || '').trim() || (gi.mihyunBansText || '').trim();
   return `
       <div class="gi-block" data-grade="${g}" style="${g === clCurGrade_() ? '' : 'display:none;'}">
         <div class="gi-head"><h4>${g}학년 ${escapeHtml(gi.subject || '')}</h4><span class="gi-sub">학생 포털에 보이는 정보예요</span></div>
         <section class="gi-sec">
-          <p class="gi-sec-title">단원 관통 질문</p>
-          <textarea class="gi-uq" placeholder="학생 포털 상단 배너에 보이는 질문">${escapeHtml(gi.unitQuestion || '')}</textarea>
-        </section>
-        <section class="gi-sec">
           <p class="gi-sec-title">학생 화면 링크 카드</p>
-          <p class="gi-sec-hint">학습 연표 위 탭으로 보여요. 링크를 비워 두면 그 탭은 학생에게 안 보여요.</p>
+          <p class="gi-sec-hint">학생 화면 «바로가기» 줄에 보여요. 체크를 풀면 링크는 남겨 두고 학생에게만 숨겨요. 링크를 비워 둬도 숨겨져요.</p>
           <div class="gi-link-grid">
-            ${giLinkCardHtml_('📝', '패들렛(포트폴리오)', 'pf', gi.portfolioTitle, gi.portfolioDesc, gi.portfolioUrlText, '나의 패들렛')}
-            ${giLinkCardHtml_('🃏', '복습용 클래스카드', 'cc', gi.classcardTitle, gi.classcardDesc, gi.classcardUrlText, '복습용 클래스카드')}
-            ${giLinkCardHtml_('📖', '시험범위 교과서', 'tb', gi.textbookTitle, gi.textbookDesc, gi.textbookUrlText, '시험범위 교과서')}
+            ${giLinkCardHtml_('📝', '패들렛(포트폴리오)', 'pf', gi.portfolioTitle, gi.portfolioDesc, gi.portfolioUrlText, '나의 패들렛', off.pf)}
+            ${giLinkCardHtml_('🃏', '복습용 클래스카드', 'cc', gi.classcardTitle, gi.classcardDesc, gi.classcardUrlText, '복습용 클래스카드', off.cc)}
+            ${giLinkCardHtml_('📖', '시험범위 교과서', 'tb', gi.textbookTitle, gi.textbookDesc, gi.textbookUrlText, '시험범위 교과서', off.tb)}
           </div>
         </section>
         <section class="gi-sec">
@@ -488,7 +506,6 @@ async function dashSaveGradeInfo(grade, btn){
   const payload = {
     action: 'updateGradeInfo', token: TOKEN, grade,
     subject: (GRADE_INFO_ADMIN[grade] && GRADE_INFO_ADMIN[grade].subject) || '',
-    unitQuestion: block.querySelector('.gi-uq').value.trim(),
     portfolioTitle: block.querySelector('.gi-pf-title').value.trim(),
     portfolioDesc: block.querySelector('.gi-pf-desc').value.trim(),
     portfolioUrlText: block.querySelector('.gi-pf-url').value.trim(),
@@ -499,14 +516,16 @@ async function dashSaveGradeInfo(grade, btn){
     textbookDesc: block.querySelector('.gi-tb-desc').value.trim(),     // v79
     textbookUrlText: block.querySelector('.gi-tb-url').value.trim(),   // v79
     hyoBans: block.querySelector('.gi-hyo-bans').value.trim(),       // v28
-    mihyunBans: block.querySelector('.gi-mihyun-bans').value.trim() // v28
+    mihyunBans: block.querySelector('.gi-mihyun-bans').value.trim(), // v28
+    // v193 — 끈 카드(체크 해제) 목록. 단원 관통 질문은 화면에서 지워 보내지 않는다(백엔드가 빈칸으로 저장)
+    linkHidden: ['pf', 'cc', 'tb'].filter(k => !block.querySelector('.gi-' + k + '-show').checked).join(',')
   };
   const btnLabel = btn.textContent;
   btn.disabled = true; btn.textContent = '저장하는 중…';
   try{
     const j = await dashPost_(payload); // v161 — 서버가 거절하면 성공 표시를 하지 않는다
     Object.assign(GRADE_INFO_ADMIN[grade], {
-      unitQuestion: payload.unitQuestion, portfolioTitle: payload.portfolioTitle,
+      unitQuestion: '', portfolioTitle: payload.portfolioTitle, linkHiddenText: payload.linkHidden,
       portfolioDesc: payload.portfolioDesc, portfolioUrlText: payload.portfolioUrlText,
       classcardTitle: payload.classcardTitle, classcardDesc: payload.classcardDesc,
       classcardUrlText: payload.classcardUrlText,
