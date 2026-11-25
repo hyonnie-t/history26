@@ -1613,7 +1613,9 @@ async function clUnitBulkSave_(){
     showToast(miss.length ? `저장은 했다는데 ${miss.length}개가 다시 읽은 값과 달라요. Apps Script 배포 버전을 확인해 주세요.` : `단원 ${changes.length}개를 저장했어요.`);
     dashSyncCurriculum_();
   }catch(e){
-    err((e && e.fromServer && e.message) ? e.message : '저장하지 못했어요. 다시 시도해 주세요.');
+    const msg = (e && e.fromServer && e.message) ? e.message : '저장하지 못했어요. 다시 시도해 주세요.';
+    err(msg);
+    if(!$('clUnitConfirm').open) showToast('단원 저장: ' + msg); // Esc 연타로 창이 닫혔으면 오류가 창 안에 묻히니 토스트로도
     yes.disabled = false; yes.textContent = '다시 저장';
   }finally{
     CL_UNIT_SAVING = false;
