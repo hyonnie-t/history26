@@ -2844,3 +2844,14 @@ button.gt-chip.is-warn:hover{background:var(--amber-bg); border-color:var(--ambe
 #panelTools .tl-how{font-size:.86rem; color:var(--indigo);}
 #dashView .gr-tools-link{font:inherit; color:var(--indigo); background:none; border:none; padding:0; text-decoration:underline; cursor:pointer;}
 @media (prefers-reduced-motion:reduce){ #panelTools .tl-card{transition:none;} #panelTools .tl-card:hover, #panelTools .tl-card:focus-visible{transform:none;} }
+/* v195 — 강사 토큰 화면(body.dash-lecturer): 수업 진행에 안 쓰는 칸을 숨긴다. 권한은 백엔드가 지키고 여기는 헷갈리지 않게만.
+ * 오늘 탭의 효니 시간표 앱(로그인·오늘 수업·진도·할 일), 커리큘럼 편집(학년 정보·새 활동·단원 한꺼번에·수정·지난 활동·삭제·순서), 독서 도서 목록 저장, 학생 기록 CSV */
+.dash-lecturer #tdLogin, .dash-lecturer #tdGrid, .dash-lecturer #panelToday .td-head, .dash-lecturer #panelToday .td-quick, .dash-lecturer #tdStatus,
+.dash-lecturer #panelCurriculum > .dash-hint, .dash-lecturer #panelCurriculum > .cl-collapse, .dash-lecturer #panelCurriculum .cl-subtabs,
+.dash-lecturer #clSubAdd, .dash-lecturer #clUnitBulk,
+.dash-lecturer #clList [onclick^="dashEditLesson"], .dash-lecturer #clList [onclick^="dashToggleLessonPast"], .dash-lecturer #clList .cl-del, .dash-lecturer #clList .cl-move,
+.dash-lecturer .rd-books, .dash-lecturer #btnCsv,
+.dash-lecturer .rd-score-note, .dash-lecturer .rd-segs, .dash-lecturer .rd-flag,
+.dash-lecturer .rd-table:not(.rd-stu) tr > :last-child,
+.dash-lecturer .rd-stu thead th:nth-last-child(-n+3), .dash-lecturer .rd-stu .rd-stu-row > td:nth-last-child(-n+3){display:none !important;}
+/* ↑ 독서 탭: 판정 단추·판정 표시·점수 설명, 반별 표 «인정 후보» 칸(마지막), 학생별 표 «인정·보류·점수» 칸(마지막 셋) */

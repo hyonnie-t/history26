@@ -416,8 +416,11 @@ function rdaRender_(){
   const edited = allRecs.filter(rdaEditedAfter_);
   const zero = students.filter(s => !s.recs.length).length;
   const pendN = Object.keys(RDA.pending).length;
-  let html = head + '<div class="rd-tools">' + banSel + '</div>'
-    + '<section class="gt-todo" aria-live="polite"><p class="gt-todo-label">지금 할 일</p><div class="gt-chips">'
+  const lec = typeof dashIsLecturer_ === 'function' && dashIsLecturer_(); // v195 — 강사: 판정(=점수)·인정 후보·내보내기·도서 목록 없이 제출 현황만
+  let html = head + '<div class="rd-tools">' + banSel + '</div>';
+  if(lec) html += '<p class="dash-hint">' + rdEsc_(TEACHER_NAME || '강사님') + ' 화면이에요. 학생들이 쓴 독서 기록을 보는 곳이에요. 인정·점수는 담당 선생님이 나중에 해요.</p>'
+    + (zero ? '<section class="gt-todo"><div class="gt-chips"><button type="button" class="gt-chip" onclick="rdaListOpen_(\'\',\'zero\')">0회 학생 ' + zero + '명</button></div></section>' : '');
+  else html += '<section class="gt-todo" aria-live="polite"><p class="gt-todo-label">지금 할 일</p><div class="gt-chips">'
     + (cands.length ? '<button type="button" class="gt-chip is-warn" onclick="rdaScrollTo_(\'rdaCandCard\')">인정 후보 ' + cands.length + '개 확인</button>' : '<span class="gt-chip is-zero">인정 후보 없음</span>')
     + '<span class="gt-chip' + (undecided ? '' : ' is-zero') + '">판정 안 한 기록 ' + undecided + '개</span>'
     + (edited.length ? '<button type="button" class="gt-chip is-warn" onclick="rdaScrollTo_(\'rdaStuCard\')">판정 뒤 고친 기록 ' + edited.length + '개</button>' : '')
@@ -432,21 +435,21 @@ function rdaRender_(){
       + '</tbody></table></div>' : '<p class="dash-hint">고른 반에 학생·기록이 없어요.</p>')
     + '</section>';
   // 인정 후보
-  html += rdaCandHtml_(cands);
+  if(!lec) html += rdaCandHtml_(cands);
   // 학생별
-  html += '<section class="dash-card" id="rdaStuCard"><h2 class="dash-card-title">🧑‍🎓 학생별 <small>점수 = 인정 회당 ' + READING_POINT + '점, 최대 ' + READING_TARGET + '회(' + rdaScore_(READING_TARGET) + '점)</small></h2>'
+  html += '<section class="dash-card" id="rdaStuCard"><h2 class="dash-card-title">🧑‍🎓 학생별 <small class="rd-score-note">점수 = 인정 회당 ' + READING_POINT + '점, 최대 ' + READING_TARGET + '회(' + rdaScore_(READING_TARGET) + '점)</small></h2>'
     + (students.length ? '<div class="rd-table-wrap"><table class="rd-table rd-stu"><thead><tr><th>반-번호</th><th>이름</th><th>기록</th><th>권수</th><th>인정</th><th>보류</th><th>점수</th></tr></thead><tbody>'
       + students.map(rdaStuRowHtml_).join('') + '</tbody></table></div>' : '<p class="dash-hint">학생이 없어요.</p>')
     + '</section>';
   if(pendN) html += '<div class="rd-pendbar" role="status"><span>바꾼 판정 ' + pendN + '개</span><button type="button" class="btn btn-sm" onclick="rdaSavePending_()"' + (RDA.busy ? ' disabled' : '') + '>한 번에 저장</button><button type="button" class="btn btn-sm btn-ghost" onclick="rdaDropPending_()">되돌리기</button></div>';
   // 내보내기
-  html += '<section class="dash-card"><h2 class="dash-card-title">⬇️ 내보내기 <small>고른 학년·반 기준, 엑셀로 열려요</small></h2><div class="rd-export">'
+  if(!lec) html += '<section class="dash-card"><h2 class="dash-card-title">⬇️ 내보내기 <small>고른 학년·반 기준, 엑셀로 열려요</small></h2><div class="rd-export">'
     + '<button type="button" class="btn btn-sm" onclick="rdaCsv_(\'books\')">반별 독서 목록 «도서명(저자)»</button>'
     + '<button type="button" class="btn btn-sm btn-ghost" onclick="rdaCsv_(\'records\')">기록 전체</button>'
     + '<button type="button" class="btn btn-sm btn-ghost" onclick="rdaCsv_(\'score\')">점수(인정 회당 ' + READING_POINT + '점)</button></div>'
     + '<p class="dash-hint">독서활동상황·세특 근거는 «반별 독서 목록», 성적관리 올리기는 «점수» 파일을 쓰세요. 저장 안 한 판정은 들어가지 않아요.</p></section>';
   // 도서 목록 관리
-  html += rdaBooksHtml_();
+  if(!lec) html += rdaBooksHtml_();
   box.innerHTML = html;
 }
 function rdaScrollTo_(id){ const el = $(id); if(el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
