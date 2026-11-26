@@ -20,6 +20,12 @@
 - 패들렛 주소는 레포에 적지 않는다. `?mode=curriculum`의 `portfolio.urlByBan`에서 학번의 반으로 가져오고, 없으면 버튼을 숨기고 «선생님이 알려 준 곳» 안내.
 - 제출 body 최상위 `reflection`(학생 글), `choiceSummary`, `Object.assign(body, FocusGuard.payload())`. 성공 직후 `DraftGuard.clear()`.
 - 복사 글은 본문 중심, 양식 문구 최소(→ `char-count.md`).
+- **«✏️ 고쳐서 다시 내기» 단추를 기본으로 넣는다**(출처: 효니 말 2026-11-26 쪽지 imwvosbizm6w7 «앞으로는 고쳐서 다시 내기 버튼을 기본값으로 넣어줘»). 제출하면 잠겨서, 막 찍고 낸 학생이 다시 낼 길이 없는 줄 알았던 일 때문이다.
+  - 자리: 제출 단추 줄 바로 아래 `<button id="fixBtn" class="<보조 단추> wide" type="button" hidden>✏️ 고쳐서 다시 내기</button>`. 제출 성공 처리 끝에서 `fixBtn.hidden = false`.
+  - `unlockForFix()`: 보내는 중이거나 제출 안 했으면 끝 → `S.submitted = false` → 제출 때 잠근 것(readOnly·disabled·`data-no-draft`·고르기 막음·기기에 남긴 «제출함» 표시)을 모두 되돌림 → 제출 때 지운 고른 값이 있으면 다시 저장 → `fixBtn` 숨김 → 제출 단추를 켜고 «다시 제출» → 안내 «고친 뒤 «다시 제출»을 눌러 줘. 새로 낸 글이 앞의 것을 대신해.» 쓴 글·고른 것은 화면에 그대로 둔다(지우는 게 없으니 확인 창 없음).
+  - 백엔드는 고치지 않는다: 제출마다 새 행을 쓰고 최신 행을 기록으로 본다(대시보드엔 다시 «미확인»).
+  - 진행이 기기에 남아 다음 차시에 이어 하는 게임형 앱(`survive-eras`)은 고칠 글이 없으니 엔딩에 «🔄 처음부터 다시 하기»(앱 안 확인 창 → 학번별 저장 지우고 처음부터)를 둔다.
+  - 기준 구현: `trench_letters`·`culture-dig`의 `unlockForFix`, `survive-eras`의 `askRedo`·`doRedo`(2026-11-26 커밋). «이미 제출했어. 선생님께 물어봐»처럼 다시 내기를 막는 문구는 쓰지 않는다.
 
 ## 흔한 실수
 
