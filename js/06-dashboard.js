@@ -73,6 +73,20 @@ async function dashRetrySide_(){
     showToast(dashSideHasErr_() ? '아직 일부를 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.' : '다시 불러왔어요.');
   } finally { DASH_SIDE_RETRYING = false; }
 }
+/* v195 — 강사 토큰(출장 대강, 백엔드 v195 «수업 진행 전용»). 서버는 허용 목록 밖 요청에서 강사 토큰을 «토큰 없음»으로 본다.
+ * 화면은 로그인 때 학생 기록(teacherGet_)이 거절되면 mode=whoami로 강사인지 보고, 강사면 아래 탭만 보인다 — 권한은 서버가 지킨다. */
+let DASH_ROLE = 'full';
+const LECTURER_TABS = ['today', 'reading', 'curriculum', 'announce', 'tools'];
+function dashIsLecturer_(){ return DASH_ROLE === 'lecturer'; }
+function dashApplyRole_(){
+  const lec = dashIsLecturer_();
+  document.body.classList.toggle('dash-lecturer', lec);
+  document.querySelectorAll('.dash-tab').forEach(b => { b.style.display = (lec && LECTURER_TABS.indexOf(b.dataset.tab) < 0) ? 'none' : ''; });
+  document.querySelectorAll('.dash-tabgroup').forEach(g => { // 탭이 다 숨은 묶음(관리)은 이름표째 숨김
+    g.style.display = [...g.querySelectorAll('.dash-tab')].some(b => b.style.display !== 'none') ? '' : 'none';
+  });
+  if(lec) switchClSubtab('list'); // 커리큘럼은 «등록된 활동»의 공개 켜기·끄기만
+}
 let TEACHER_NAME = null; // v29 — 로그인 토큰으로 식별된 교사('효니'/'미현쌤'). 서버 권한엔 영향 없고,
                           // 대시보드 기본 필터·커리큘럼 "담당" 기본값을 여기에 맞춰 보여주는 용도.
 let ROWS = [];
@@ -128,7 +142,23 @@ async function dashLoadData(){
     // v62: 개인메시지도 백엔드 배포 전엔 없는 mode — 같은 이유로 실패를 따로 흡수.
     fetchJsonRetry_(base + '?mode=messagesAdmin&token=' + encodeURIComponent(TOKEN)).catch(() => ({ rows: [] }))
   ]);
-  if(r1.result === 'error') throw new Error(r1.message);
+  if(r1.result === 'error'){
+    // v195 — 교사 토큰이 아니면 강사 토큰인지 본다(교사 로그인은 요청이 늘지 않음). 옛 백엔드면 whoami가 teacherGet_로 떨어져 같은 오류.
+    const who = await fetchJsonRetry_(base + '?mode=whoami&token=' + encodeURIComponent(TOKEN)).catch(() => null);
+    if(!(who && who.result === 'success' && who.role === 'lecturer')) throw new Error(r1.message);
+    DASH_ROLE = 'lecturer';
+    TEACHER_NAME = who.teacher || '강사님';
+    ROWS = []; CLASS_FEEDBACKS = []; MESSAGES = [];
+    dashSideApply_(side);
+    DASH_SIDE.feedback = 'ok'; DASH_SIDE.questions = 'ok'; // 강사에겐 없는 탭이라 «불러오지 못했어요» 안내를 띄우지 않는다
+    dashRenderSideErr_();
+    if(r5.result === 'error') throw new Error(r5.message);
+    LESSONS_ADMIN = (r5.lessons || []).map(lessonNormalizeVisibility_);
+    GRADE_INFO_ADMIN = (r5.gradeInfo || {});
+    if(r5.badgeNamePool) BADGE_NAME_POOL = r5.badgeNamePool;
+    return;
+  }
+  DASH_ROLE = 'full'; // v195
   ROWS = (r1.rows || []).filter(r => parseStudentId(String(r.studentId)));
   TEACHER_NAME = r1.teacher || null; // v29
   dashSideApply_(side); // v176
@@ -160,7 +190,9 @@ async function enterDash(token){
     dashRenderGradeInfoForm();
     dashRenderGongminBonus_();
     dashRenderSideErr_(); // v176
-    dashLoadPwAdmin_(); // v83 — 초기화 요청 수 배지(기다리지 않음)
+    dashApplyRole_(); // v195 — 강사면 수업 진행 탭만
+    if(dashIsLecturer_()){ switchDashTab('today'); showToast(TEACHER_NAME + ' 화면이에요. 수업 진행 기능(도움 요청·제출 시간·독서·공개·공지)만 보여요.'); }
+    else dashLoadPwAdmin_(); // v83 — 초기화 요청 수 배지(기다리지 않음)
     if(typeof helpDashStart_ === 'function') helpDashStart_(); // v177 — 도움 요청 30초마다(기다리지 않음, js/03-help.js)
     if(typeof timedDashStart_ === 'function') timedDashStart_(); // v181 — 반별 제출 시간 1분마다(기다리지 않음, js/12-timed.js)
     if(typeof tdAfterEnter_ === 'function') tdAfterEnter_(); // v135 — ?dash=탭으로 들어왔으면 그 탭으로 (js/08-dash-today.js)
@@ -176,6 +208,7 @@ async function enterDash(token){
 /* ── 대시보드 탭 전환 ── */
 function switchDashTab(tab){
   if(tab === 'culture'){ grSetSub_('culture'); tab = 'groups'; } // v146 — 문화사 팀은 «모둠·팀» 탭 안으로 합침, 옛 이름도 받는다
+  if(dashIsLecturer_() && LECTURER_TABS.indexOf(tab) < 0) tab = 'today'; // v195 — ?dash= 주소로 막힌 탭을 열려 해도 오늘 탭으로
   ['today','records','questions','announce','curriculum','checkin','points','grades','reading','groups','tools','accounts'].forEach(t => { // v191 tools(수업 도구, 정적 카드) // v189 reading(📚 독서) // v134 — today(📅 오늘) 추가, v145 — groups(모둠·팀, v146부터 문화사 팀 포함)
     $('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
   });
@@ -190,7 +223,7 @@ function switchDashTab(tab){
   if(tab === 'points') ppRenderRecent_(); // v105 — 탭을 열 때마다 최근 지급 5건 갱신
   if(tab === 'accounts') dashLoadPwAdmin_(); // v83
   if(tab === 'groups' && typeof dashGroupsOpen_ === 'function') dashGroupsOpen_(); // v145 — js/10-dash-groups.js가 수업 모둠·문화사 팀(09)을 고른다
-  if(tab === 'today' && typeof dashTodayOpen_ === 'function') dashTodayOpen_(); // v134 — js/08-dash-today.js
+  if(tab === 'today' && typeof dashTodayOpen_ === 'function' && !dashIsLecturer_()) dashTodayOpen_(); // v134 — js/08-dash-today.js. v195 강사는 효니 시간표 앱(할 일·진도)을 안 연다
   if(tab === 'reading' && typeof dashReadingOpen_ === 'function') dashReadingOpen_(); // v189 — 교과 독서(js/13-reading.js), 처음·실패 뒤에만 읽음
   if(tab === 'checkin' && (DASH_LOAD.checkin === 'idle' || DASH_LOAD.checkin === 'error')){ DASH_LOAD.checkin = 'loading'; dashInitCheckinForm(); } // v167 — 읽는 중·읽음이면 다시 초기화하지 않는다
   if(typeof tdSyncUrl_ === 'function') tdSyncUrl_(tab); // v135 — 주소를 ?dash=탭으로 (새로고침·시간표 앱 링크가 같은 탭으로)
@@ -1668,7 +1701,8 @@ function clLessonBanRowHtml_(l){
 function clLessonItemHtml(l, isPastItem){
   const multi = (l.activitiesCount || 1) > 1;
   const sub = clLessonSubmitInfo_(l); // v120
-  const subText = (sub.hasUrl && sub.n === 0 && !isPastItem)
+  const subText = dashIsLecturer_() ? '' // v195 — 강사는 학생 기록을 안 받아 제출 수가 늘 0이라 빼 둔다
+    : (sub.hasUrl && sub.n === 0 && !isPastItem)
     ? ` · <span class="cl-warn" title="학생 제출이 한 건도 없어요. 아직 수업 전이면 정상이고, 수업을 했는데도 0건이면 웹앱의 GAME_NAME이 이 활동 id와 글자까지 같은지 확인하세요.">⚠ 제출 0건</span>`
     : ` · 제출 ${sub.n}건`;
   const ownerTag = ((l.owner && l.owner !== '공통') ? ` · 👤 ${escapeHtml(l.owner)} 담당` : '')
@@ -1677,8 +1711,8 @@ function clLessonItemHtml(l, isPastItem){
     ? `${escapeHtml(l.id)} · 활동 ${l.activitiesCount}개${l.sequential ? ' · 🔒 순차' : ''}${ownerTag}${subText}`
     : `${escapeHtml(l.id)} · ${escapeHtml(l.type)} · ${l.urlText ? 'URL 있음' : '준비 중(URL 없음)'}${ownerTag}${subText}`;
   return `
-    <div class="cl-item" ${isPastItem ? '' : 'draggable="true"'} data-row="${l._row}" data-grade="${escapeHtml(l.grade)}">
-      ${isPastItem ? '' : '<span class="cl-drag-handle" title="드래그해서 순서 바꾸기">⠿</span>'}
+    <div class="cl-item" ${(isPastItem || dashIsLecturer_()) ? '' : 'draggable="true"'} data-row="${l._row}" data-grade="${escapeHtml(l.grade)}">
+      ${(isPastItem || dashIsLecturer_()) ? '' : '<span class="cl-drag-handle" title="드래그해서 순서 바꾸기">⠿</span>'}
       <div class="cl-item-body">
         <div class="cl-meta">${metaText}</div>
         <div class="cl-title">${escapeHtml(l.title)}</div>

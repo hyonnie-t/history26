@@ -1247,6 +1247,7 @@ $('btnDashRefresh').addEventListener('click', async () => {
  * 문화사 30초 타이머와 오늘 탭 실시간 구독도 계속 돌았다. 다시 들어오면 enterDash가 전부 새로 읽는다. */
 function dashClearSession_(){
   TOKEN = ''; TEACHER_NAME = null;
+  DASH_ROLE = 'full'; dashApplyRole_(); // v195 — 강사 화면에서 나가면 탭·숨김을 되돌린다(다음 로그인은 enterDash가 다시 정함)
   ROWS = []; FEEDBACKS = []; CLASS_FEEDBACKS = []; QUESTIONS = []; MESSAGES = [];
   DASH_STUDENT_ORDER = []; openDetailSid = null; PP_RECENT = [];
   PA_DATA = null; PERF_ADMIN_ROWS = []; PERF_MISSING_LAST = null; CK_ADMIN_CACHE = null; // v175: 미응시자 명단도 비움

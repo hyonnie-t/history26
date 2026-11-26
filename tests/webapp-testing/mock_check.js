@@ -79,6 +79,10 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
     const u = route.request().url(), m = route.request().method();
     if (m === 'GET') {
       { const q = new URL(u).searchParams; GETLOG.push((q.get('mode') || '(none)') + (q.get('shared') ? '+shared' : '')); }
+      if (WHAT === 'lecturer') { // v195 — 강사 토큰: 학생 기록·메시지·질문함·피드백은 백엔드가 «인증 실패», whoami는 lecturer
+        if (u.includes('mode=whoami')) return route.fulfill(J({ result: 'success', teacher: '강사님', role: 'lecturer' }));
+        if ((u.includes('token=') && !u.includes('mode=')) || /mode=(messagesAdmin|questions|feedback|classFeedback)\b/.test(u)) return route.fulfill(J({ result: 'error', message: '인증 실패' }));
+      }
       if (u.includes('mode=studentBoot')) { // v182
         if (BOOT_LEGACY) return route.fulfill(J({ result: 'error', message: '인증 실패' }));
         const sh = u.includes('shared=1') ? { curriculum: CUR, checkinPlan: { result: 'success', plan: {} } } : {};
@@ -280,6 +284,30 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       summary.boot_nosession = { beforeLogin: idle, all: GETLOG.slice(), errs: errs.length ? errs : '없음' };
       await page.screenshot({ path: path.join(OUT, `boot${BOOT_LEGACY ? '_legacy' : ''}_phone.png`), fullPage: true });
       await ctx.close(); }
+  }
+  if (WHAT === 'lecturer') { // v195 — 강사 토큰으로 들어가면 수업 진행 탭만, 편집·효니 시간표 칸은 숨김, ?dash=로 막힌 탭을 열어도 오늘 탭, 나가면 되돌림
+    for (const [vn, w, h] of [['phone', 375, 812], ['tablet', 820, 1180], ['pc', 1280, 900]]) {
+      const { ctx, page, errs } = await open(w, h);
+      await page.click('#btnTeacherMode'); await page.fill('#tokenInput', 'lecturer-token'); await page.click('#btnGate');
+      await page.waitForSelector('#dashView', { state: 'visible', timeout: 15000 }); await page.waitForTimeout(800);
+      const vis = sel => page.evaluate(s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none' && e.offsetParent !== null; }, sel);
+      const tabs = await page.evaluate(() => [...document.querySelectorAll('.dash-tab')].filter(b => b.offsetParent !== null).map(b => b.dataset.tab));
+      const active = await page.evaluate(() => (document.querySelector('.dash-tab.active') || {}).dataset?.tab);
+      const sideErr = await vis('#dashSideErr');
+      const today = { help: await vis('#helpCard'), tdLogin: await vis('#tdLogin'), tdGrid: await vis('#tdGrid') };
+      await page.evaluate(() => switchDashTab('grades'));
+      const afterGrades = await page.evaluate(() => (document.querySelector('.dash-tab.active') || {}).dataset?.tab);
+      await page.evaluate(() => switchDashTab('curriculum')); await page.waitForTimeout(300);
+      const cur = { add: await vis('#clSubAdd'), list: await vis('#clSubList'), unitBulk: await vis('#clUnitBulk'), edit: await vis('#clList [onclick^="dashEditLesson"]'), del: await vis('#clList .cl-del'),
+        pub: await vis('#clList [onclick^="dashToggleLessonPublic"]'), drag: await page.evaluate(() => document.querySelectorAll('#clList [draggable="true"]').length), csv: await vis('#btnCsv') };
+      await page.screenshot({ path: path.join(OUT, `lecturer_curriculum_${vn}.png`), fullPage: true });
+      await page.evaluate(() => switchDashTab('today')); await page.waitForTimeout(300);
+      await page.screenshot({ path: path.join(OUT, `lecturer_today_${vn}.png`), fullPage: true });
+      await page.click('#btnDashOut'); await page.waitForTimeout(300);
+      const afterOut = await page.evaluate(() => ({ cls: document.body.classList.contains('dash-lecturer'), hidden: [...document.querySelectorAll('.dash-tab')].filter(b => b.style.display === 'none').length, role: DASH_ROLE }));
+      summary['lecturer_' + vn] = { tabs, active, afterGrades, sideErr, today, cur, afterOut, errs: errs.length ? errs : '없음' };
+      await ctx.close();
+    }
   }
   if (WHAT === 'chips') {
     for (const [vn, w, h] of [['phone', 375, 812], ['tablet', 768, 1024], ['pc', 1280, 900]]) {
