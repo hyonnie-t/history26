@@ -2346,7 +2346,8 @@ function dashMyBans_(grade){
   if(!TEACHER_NAME) return null;
   const cur = CONFIG.CURRICULUM[grade];
   if(!cur) return null;
-  if(TEACHER_NAME === '효니') return (cur.hyoBans && cur.hyoBans.length) ? cur.hyoBans : null;
+  // v195 — 강사님은 효니 반 대강이라 «내 담당 반» = 효니 반
+  if(TEACHER_NAME === '효니' || dashIsLecturer_()) return (cur.hyoBans && cur.hyoBans.length) ? cur.hyoBans : null;
   if(TEACHER_NAME === '미현쌤') return (cur.mihyunBans && cur.mihyunBans.length) ? cur.mihyunBans : null;
   return null;
 }

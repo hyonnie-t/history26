@@ -2850,4 +2850,8 @@ button.gt-chip.is-warn:hover{background:var(--amber-bg); border-color:var(--ambe
 .dash-lecturer #panelCurriculum > .dash-hint, .dash-lecturer #panelCurriculum > .cl-collapse, .dash-lecturer #panelCurriculum .cl-subtabs,
 .dash-lecturer #clSubAdd, .dash-lecturer #clUnitBulk,
 .dash-lecturer #clList [onclick^="dashEditLesson"], .dash-lecturer #clList [onclick^="dashToggleLessonPast"], .dash-lecturer #clList .cl-del, .dash-lecturer #clList .cl-move,
-.dash-lecturer .rd-books, .dash-lecturer #btnCsv{display:none !important;}
+.dash-lecturer .rd-books, .dash-lecturer #btnCsv,
+.dash-lecturer .rd-score-note, .dash-lecturer .rd-segs, .dash-lecturer .rd-flag,
+.dash-lecturer .rd-table:not(.rd-stu) tr > :last-child,
+.dash-lecturer .rd-stu thead th:nth-last-child(-n+3), .dash-lecturer .rd-stu .rd-stu-row > td:nth-last-child(-n+3){display:none !important;}
+/* ↑ 독서 탭: 판정 단추·판정 표시·점수 설명, 반별 표 «인정 후보» 칸(마지막), 학생별 표 «인정·보류·점수» 칸(마지막 셋) */

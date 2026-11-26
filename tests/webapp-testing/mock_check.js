@@ -81,6 +81,10 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       { const q = new URL(u).searchParams; GETLOG.push((q.get('mode') || '(none)') + (q.get('shared') ? '+shared' : '')); }
       if (WHAT === 'lecturer') { // v195 — 강사 토큰: 학생 기록·메시지·질문함·피드백은 백엔드가 «인증 실패», whoami는 lecturer
         if (u.includes('mode=whoami')) return route.fulfill(J({ result: 'success', teacher: '강사님', role: 'lecturer' }));
+        if (u.includes('mode=readingAdmin')) return route.fulfill(J({ result: 'success', lecturer: true, books: [], // 백엔드 v195: 강사에겐 판정·메모 없음
+          roster: [{ studentId: '20101', studentName: '육일' }, { studentId: '20102', studentName: '육이' }],
+          records: [{ id: 'rL1', studentId: '20101', studentName: '육일', grade: '2', ban: '1', title: '역사란 무엇인가', author: 'E. H. 카', date: '2026-11-20', pageFrom: 1, pageTo: 30,
+            underline: '밑줄 문장', question: '내 질문', review: '한 줄 평', essay: '강사 화면에서 보이는 글. '.repeat(12), updatedAt: '2026-11-20T03:00:00Z' }] }));
         if ((u.includes('token=') && !u.includes('mode=')) || /mode=(messagesAdmin|questions|feedback|classFeedback)\b/.test(u)) return route.fulfill(J({ result: 'error', message: '인증 실패' }));
       }
       if (u.includes('mode=studentBoot')) { // v182
@@ -303,9 +307,18 @@ const J = o => ({ status: 200, contentType: 'application/json', body: JSON.strin
       await page.screenshot({ path: path.join(OUT, `lecturer_curriculum_${vn}.png`), fullPage: true });
       await page.evaluate(() => switchDashTab('today')); await page.waitForTimeout(300);
       await page.screenshot({ path: path.join(OUT, `lecturer_today_${vn}.png`), fullPage: true });
+      await page.evaluate(() => { RDA.grade = '2'; switchDashTab('reading'); }); await page.waitForTimeout(800);
+      await page.evaluate(() => { const b = document.querySelector('#rdaBox .rd-name'); if (b) b.click(); }); await page.waitForTimeout(300);
+      const reading = await page.evaluate(() => {
+        const v = s => [...document.querySelectorAll(s)].some(e => e.offsetParent !== null);
+        return { ban: RDA.ban, students: document.querySelectorAll('#rdaBox .rd-stu-row').length, essay: (document.querySelector('#rdaBox .rd-detail') || {}).textContent?.includes('강사 화면에서 보이는 글') || false,
+          segs: v('#rdaBox .rd-segs'), cand: !!document.getElementById('rdaCandCard'), export: v('#rdaBox .rd-export'), scoreNote: v('#rdaBox .rd-score-note'),
+          stuCols: [...document.querySelectorAll('#rdaBox .rd-stu thead th')].filter(e => e.offsetParent !== null).map(e => e.textContent) };
+      });
+      await page.screenshot({ path: path.join(OUT, `lecturer_reading_${vn}.png`), fullPage: true });
       await page.click('#btnDashOut'); await page.waitForTimeout(300);
       const afterOut = await page.evaluate(() => ({ cls: document.body.classList.contains('dash-lecturer'), hidden: [...document.querySelectorAll('.dash-tab')].filter(b => b.style.display === 'none').length, role: DASH_ROLE }));
-      summary['lecturer_' + vn] = { tabs, active, afterGrades, sideErr, today, cur, afterOut, errs: errs.length ? errs : '없음' };
+      summary['lecturer_' + vn] = { tabs, active, afterGrades, sideErr, today, cur, reading, afterOut, errs: errs.length ? errs : '없음' };
       await ctx.close();
     }
   }
