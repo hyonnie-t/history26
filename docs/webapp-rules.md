@@ -59,6 +59,7 @@ AI가 앱마다 화면을 처음부터 짜면 같은 조각(마무리 화면, �
     백엔드 호출은 `fetch` + GET 주소의 `studentId=` / POST `JSON.stringify` 본문이어야 세션이 붙는다(지금 웹앱 전부가 이 형태). 다른 방식이면 로그인 필수를 켤 때 막힌다.
     활동 기록 제출(`postToSheet`)은 `snippets/submit_retry.js`의 `postWithRetry`로 보낸다(v183, 2026-11-17 두 반 겹친 수업의 «0초 실패» 대책 — 오류 화면이면 같은 `clientId`로 다시 보냄). 새 앱도 복사해 넣는다.
 14. **학생 글쓰기는 모두 저장 → 복사 → 패들렛(효니 확정: 2026-11-17 «글쓰기는 모두 저장해서 복사할 수 있도록», 그 전엔 «글을 복사해 패들렛에 올리게 하는 앱 전부»)**: 학생이 글을 써서 시트에 제출하는 화면은 평가가 아니어도 **전부** «제출하고 복사하기» 한 버튼 + 제출 성공 뒤 «우리 반 패들렛 열기»(`padletBtn`, 화면이 여럿이면 `padletBtn2`·`padletBtn3`처럼)와 안내 `padlet-box`를 둔다. 차시가 여럿인 앱은 차시마다(nation-building 3차시 마무리가 빠졌던 일, 2026-11-17). 마무리 화면의 `copyBtn` 옆에 둔다.
+    제출 뒤에는 **«✏️ 고쳐서 다시 내기»(`fixBtn`) 단추를 기본으로** 둔다(효니 확정 2026-11-26 «앞으로는 고쳐서 다시 내기 버튼을 기본값으로 넣어줘»). 세부·게임형 앱의 «처음부터 다시 하기»는 `docs/pieces/wrap-submit-padlet.md`.
     링크는 레포에 적지 않고 `?mode=curriculum`의 학년별 `portfolio.urlByBan`에서 학번의 반으로 가져온다. 없으면 버튼을 숨기고 안내 문구를 보인다.
     주소 가져오기는 `loadPadletUrl`/`renderPadlet`(학번이 정해지는 지점에서 불러온다). **제출과 복사는 «제출하고 복사하기» 버튼 하나로 합치고 `padletBtn`은 제출 성공 뒤에만 연다(효니 확정 2026-11-10)** — 기준 구현은 `empire-rebut`의 `submitAll`, 세부는 `docs/pieces/wrap-submit-padlet.md`. vienna_diary 등 옛 앱의 2버튼 마무리는 따라 하지 않는다. padlet.com은 FocusGuard가 자동 면제하므로 `exempt()`는 필요 없다.
     사고: `suffrage_age`(2026-10-22)에 빠져 학생이 복사 후 패들렛으로 가지 못함. nation-building 3차시 마무리(2026-10-29~11-17)는 제출만 있고 복사·패들렛이 없었다.
